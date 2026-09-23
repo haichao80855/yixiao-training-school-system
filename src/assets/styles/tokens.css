@@ -1,0 +1,52 @@
+:root {
+  /* 盛通蓝品牌基准色与衍生色阶 */
+  --st-color-primary: #1890FF;
+  --st-color-primary-hover: #40A9FF;
+  --st-color-primary-active: #096DD9;
+  --st-color-primary-light: #ECF5FF;
+  --st-color-primary-border: #BAE7FF;
+  --st-color-primary-bg: #F0F7FF;
+
+  /* 语义功能色 */
+  --st-color-success: #67C23A;
+  --st-color-success-light: #F0F9EB;
+  --st-color-warning: #FAAD14;
+  --st-color-warning-light: #FFF7E6;
+  --st-color-danger: #F56C6C;
+  --st-color-danger-light: #FEF0F0;
+  --st-color-danger-deep: #F5222D;
+  --st-color-purple: #722ED1;
+  --st-color-purple-light: #F9F0FF;
+
+  /* 中性色阶 */
+  --st-color-bg: #F5F7FA;
+  --st-color-header: #FAFAFA;
+  --st-color-card: #FFFFFF;
+  --st-color-title: #1F2D3D;
+  --st-color-regular: #303133;
+  --st-color-secondary: #606266;
+  --st-color-muted: #909399;
+  --st-color-placeholder: #C0C4CC;
+  --st-color-border: #EBEEF5;
+  --st-color-border-dark: #DCDFE6;
+
+  /* Element Plus 覆盖变量 */
+  --el-color-primary: #1890FF;
+  --el-color-primary-light-3: #5cb3ff;
+  --el-color-primary-light-5: #8cc8ff;
+  --el-color-primary-light-7: #bce0ff;
+  --el-color-primary-light-8: #d4ebff;
+  --el-color-primary-light-9: #ecf5ff;
+  --el-color-primary-dark-2: #096dd9;
+  --el-color-success: #67C23A;
+  --el-color-warning: #FAAD14;
+  --el-color-danger: #F56C6C;
+  --el-color-error: #F56C6C;
+
+  /* 尺寸及布局规范 */
+  --st-header-height: 60px;
+  --st-sidebar-width: 220px;
+  --st-sidebar-collapsed-width: 64px;
+  --st-table-header-height: 44px;
+  --st-table-row-height: 50px;
+}

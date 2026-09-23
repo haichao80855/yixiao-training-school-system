@@ -1,0 +1,462 @@
+// =======================================================
+// 盛通教育「一校教培系统」全业务领域数据库设计模型 (Prisma Schema)
+// 包含 5 大核心业务模块完整实体关系与数据约束
+// =======================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite" // 支持无缝平滑切换为 mysql / postgresql
+  url      = env("DATABASE_URL")
+}
+
+// -------------------------------------------------------
+// 1. 系统与租户上下文 (System & Multi-Tenant Context)
+// -------------------------------------------------------
+
+model Company {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String   // 如：北京盛通教育科技集团股份有限公司
+  stockCode   String   @default("002599") // A股股票代码
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campuses    Campus[]
+  orgNodes    OrgNode[]
+}
+
+model Campus {
+  id             String   @id @default(uuid())
+  companyId      String
+  code           String   @unique // 如 campus-bj-hq
+  name           String   // 如 总部乐博旗舰校区
+  isHeadquarter  Boolean  @default(false)
+  address        String?
+  phone          String?
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  users          User[]
+  classrooms     Classroom[]
+  classes        Class[]
+  students       Student[]
+  orders         Order[]
+  schedules      ScheduleEvent[]
+  courseAuths    CourseCampusAuth[]
+}
+
+model OrgNode {
+  id             String    @id @default(uuid())
+  companyId      String
+  code           String    @unique
+  name           String    // 如 华北北京大区, 总部校区, 教研部, 专职讲师岗
+  type           String    // group | region | campus | department | post
+  level          Int       // 1-5 级组织树
+  parentId       String?
+  leader         String?
+  phone          String?
+  status         String    @default("active")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parent         OrgNode?  @relation("OrgTreeRelation", fields: [parentId], references: [id])
+  children       OrgNode[] @relation("OrgTreeRelation")
+  users          User[]
+}
+
+model User {
+  id             String    @id @default(uuid())
+  campusId       String
+  orgNodeId      String?
+  account        String    @unique // 如 donghaichao
+  password       String    // bcrypt 加盐散列
+  realName       String    // 如 冬海潮
+  phone          String?
+  email          String?
+  avatar         String?
+  status         String    @default("active") // active | disabled
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  campus         Campus    @relation(fields: [campusId], references: [id])
+  orgNode        OrgNode?  @relation(fields: [orgNodeId], references: [id])
+
+  userRoles      UserRole[]
+  classesLed     Class[]   @relation("ClassAdvisor")
+  classesTaught  Class[]   @relation("ClassTeacher")
+  schedules      ScheduleEvent[]
+  createdOrders  Order[]   @relation("OrderCreator")
+  managedOrders  Order[]   @relation("OrderOwner")
+  approvals      ApprovalNode[]
+}
+
+model Role {
+  id             String     @id @default(uuid())
+  code           String     @unique // 如 super_admin, principal, teacher
+  name           String     // 如 超级管理员, 校区校长, 少儿编程专职讲师
+  description    String?
+  dataScope      String     @default("campus") // all | campus | department | self
+  isSystem       Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  userRoles      UserRole[]
+  permissions    RolePermission[]
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique // 如 curriculum:course:add, financial:order:export
+  name        String
+  level       String   // system | module | page | button
+  parentId    String?
+  sort        Int      @default(0)
+
+  rolePerms   RolePermission[]
+}
+
+model RolePermission {
+  id            String      @id @default(uuid())
+  roleId        String
+  permissionId  String
+
+  role          Role        @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission    Permission  @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+}
+
+model DictItem {
+  id        String   @id @default(uuid())
+  category  String   // 如 学员异动原因, 预警规则
+  dictKey   String   // 如 TRANS_REASON_DISTANCE
+  label     String   // 如 家庭搬迁/距离过远
+  order     Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// -------------------------------------------------------
+// 2. 教研中心模块 (Curriculum Center)
+// -------------------------------------------------------
+
+model Course {
+  id             String   @id @default(uuid())
+  code           String   @unique // 如 CRS-SCRATCH-001
+  name           String   // 如 012-软编Scratch创意图形编程
+  cover          String   // 16:9 高清矢量封面
+  pricePerLesson Float    // 课程标准单价 (元/课时)
+  totalLessons   Int      // 标准总课次数
+  subject        String   // scratch | python | cpp | robotics
+  grade          String   // junior | middle | senior
+  attribute      String   // regular | extended | activity | trial | training
+  status         String   @default("enabled") // enabled | disabled
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  campusAuths    CourseCampusAuth[]
+  units          CourseUnit[]
+  classes        Class[]
+  studentPackages StudentCoursePackage[]
+}
+
+model CourseCampusAuth {
+  id        String   @id @default(uuid())
+  courseId  String
+  campusId  String
+  createdAt DateTime @default(now())
+
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, campusId])
+}
+
+model CourseUnit {
+  id        String         @id @default(uuid())
+  courseId  String
+  unitName  String         // 如 单元一：图形化交互初探
+  sort      Int            @default(0)
+
+  course    Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   CourseLesson[]
+}
+
+model CourseLesson {
+  id          String     @id @default(uuid())
+  unitId      String
+  lessonName  String     // 如 第1课：走迷宫的小猫
+  durationMin Int        @default(90)
+  courseware  String?    // 课件 PPT / 互动白板链接
+  sort        Int        @default(0)
+
+  unit        CourseUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------
+// 3. 学员中心与 CRM (Student Center & Lifecycle)
+// -------------------------------------------------------
+
+model Student {
+  id            String   @id @default(uuid())
+  campusId      String
+  studentNo     String   @unique // 如 S948918
+  name          String   // 如 张子豪
+  gender        String   // male | female
+  phone         String   // 家长手机号 156****0125
+  parentName    String?  // 家长姓名
+  wechatOpenId  String?  // 绑定的家长微信号
+  faceVector    String?  // 刷脸考勤人脸底库标识
+  status        String   @default("normal") // normal | suspended | transferred | dropped_out
+  birthday      String?
+  school        String?
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campus        Campus   @relation(fields: [campusId], references: [id])
+
+  packages      StudentCoursePackage[]
+  wallet        StudentWallet?
+  walletLedgers WalletLedger[]
+  attendances   AttendanceRecord[]
+  orders        Order[]
+  abnormals     StudentAbnormalMovement[]
+}
+
+model StudentCoursePackage {
+  id               String   @id @default(uuid())
+  studentId        String
+  courseId         String
+  classId          String?  // 归属班级
+  orderNo          String?  // 关联订单号
+  totalLessons     Int      // 总课时数
+  remainingLessons Int      // 剩余可用课时
+  consumedLessons  Int      @default(0) // 已扣减消耗课时
+  bonusLessons     Int      @default(0) // 赠送课时数 (盛通核心退费规则: 赠课不折现)
+  pricePerLesson   Float    @default(0.0)
+  expiryDate       DateTime?
+  status           String   @default("active") // active | frozen | refunded | completed
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  student          Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course           Course   @relation(fields: [courseId], references: [id])
+  class            Class?   @relation(fields: [classId], references: [id])
+}
+
+model StudentWallet {
+  id               String   @id @default(uuid())
+  studentId        String   @unique
+  principalBalance Float    @default(0.0) // 真实充值本金 (元)
+  bonusBalance     Float    @default(0.0) // 赠送金余额 (元, 严禁直接提现)
+  goldPoints       Int      @default(0)   // 零花钱商城积分
+  updatedAt        DateTime @updatedAt
+
+  student          Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model WalletLedger {
+  id              String   @id @default(uuid())
+  studentId       String
+  orderNo         String?
+  type            String   // recharge | consumption | refund | withdraw | transfer | bonus_grant
+  amount          Float    // 交易总金额
+  principalChange Float    // 本金变动量
+  bonusChange     Float    // 赠送金变动量
+  description     String
+  operator        String   // 操作人员
+  createdAt       DateTime @default(now())
+
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model StudentAbnormalMovement {
+  id              String   @id @default(uuid())
+  studentId       String
+  type            String   // transfer_class | change_course | suspend | resume | transfer_campus | transfer_student | refund
+  reasonCategory  String   // 异动原因分类
+  reasonDetail    String?  // 详细描述
+  status          String   @default("pending") // pending | approved | rejected
+  auditStep       Int      @default(1)
+  originalData    String?  // JSON 存储的原状态快照
+  targetData      String?  // JSON 存储的目标变更数据 (如目标校区/班级/退费金额)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------
+// 4. 教务中心与排课调度 (Educational & Collision Engine)
+// -------------------------------------------------------
+
+model Classroom {
+  id          String   @id @default(uuid())
+  campusId    String
+  code        String   @unique // 如 CR-HQ-101
+  name        String   // 如 乐博创客实验室1
+  capacity    Int      @default(12) // 容纳人数上限
+  type        String   @default("maker") // maker | computer | regular | vip
+  status      String   @default("available") // available | maintenance | disabled
+  createdAt   DateTime @default(now())
+
+  campus      Campus   @relation(fields: [campusId], references: [id])
+  classes     Class[]
+  schedules   ScheduleEvent[]
+}
+
+model Class {
+  id                  String   @id @default(uuid())
+  campusId            String
+  courseId            String
+  code                String   @unique // 如 CLS-2026-01
+  name                String   // 如 Scratch-周六09:00精品班
+  capacity            Int      @default(8)
+  currentStudentCount Int      @default(0)
+  teacherId           String   // 主教老师 (User)
+  advisorId           String?  // 班主任学管 (User)
+  classroomId         String
+  startDate           DateTime
+  endDate             DateTime
+  status              String   @default("recruiting") // recruiting | in_progress | completed
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  campus              Campus   @relation(fields: [campusId], references: [id])
+  course              Course   @relation(fields: [courseId], references: [id])
+  teacher             User     @relation("ClassTeacher", fields: [teacherId], references: [id])
+  advisor             User?    @relation("ClassAdvisor", fields: [advisorId], references: [id])
+  classroom           Classroom @relation(fields: [classroomId], references: [id])
+
+  schedules           ScheduleEvent[]
+  studentPackages     StudentCoursePackage[]
+}
+
+model ScheduleEvent {
+  id            String   @id @default(uuid())
+  campusId      String
+  classId       String
+  teacherId     String
+  classroomId   String
+  date          String   // 格式：2026-09-21
+  startTime     String   // 格式：09:00
+  endTime       String   // 格式：10:30
+  semanticType  String   @default("regular") // regular | completed | conflict | personal
+  classType     String   @default("formal")  // formal | make_up | trial
+  status        String   @default("scheduled") // scheduled | in_progress | completed | cancelled
+  laneIndex     Int      @default(0) // 自适应 Lane 泳道排版索引 (0-3)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  campus        Campus   @relation(fields: [campusId], references: [id])
+  class         Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher       User     @relation(fields: [teacherId], references: [id])
+  classroom     Classroom @relation(fields: [classroomId], references: [id])
+
+  attendances   AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id              String   @id @default(uuid())
+  scheduleEventId String
+  studentId       String
+  status          String   // present | leave | absent | late
+  deductLessons   Int      @default(1) // 扣减课时数
+  isReversed      Boolean  @default(false) // 盛通反结课冲正标记 (防重放刷课)
+  reversedAt      DateTime?
+  comment         String?  // 课堂评语
+  score           Int?     // 随堂测验打分 (0-100)
+  rating          String?  // A+ | A | B+ | B
+  operator        String   // 点名操作人
+  createdAt       DateTime @default(now())
+
+  scheduleEvent   ScheduleEvent @relation(fields: [scheduleEventId], references: [id], onDelete: Cascade)
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// -------------------------------------------------------
+// 5. 财务中心与审批流 (Financial Center & Approvals)
+// -------------------------------------------------------
+
+model Order {
+  id                String   @id @default(uuid())
+  campusId          String
+  studentId         String
+  orderNo           String   @unique // 如 ORD-20260921-001
+  orderType         String   // regular | quarterly | change_course_diff | refund | service_fee | wallet_recharge
+  status            String   @default("paid") // paid | unpaid | rejected | void
+  originalPrice     Float    // 原价
+  discountAmount    Float    @default(0.0)
+  couponAmount      Float    @default(0.0)
+  receivableAmount  Float    // 应收金额
+  actualAmount      Float    // 实收金额 (以整数分存储，避免 IEEE 754 浮点累加漂移)
+  paymentMethod     String   // wechat | alipay | bank_transfer | pos | wallet
+  creatorId         String   // 提交人 (User)
+  ownerId           String   // 业绩归属人 (User)
+  channel           String   // ground | referral | meituan | online
+  deliveryStatus    String   @default("none") // delivered | undelivered | none
+  invoiceStatus     String   @default("unissued") // unissued | issued | processing
+  isLocked          Boolean  @default(false) // 财务账期加锁保护
+  remark            String?
+  voucherUrl        String?  // 收款凭证图片
+  payTime           DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  campus            Campus   @relation(fields: [campusId], references: [id])
+  student           Student  @relation(fields: [studentId], references: [id])
+  creator           User     @relation("OrderCreator", fields: [creatorId], references: [id])
+  owner             User     @relation("OrderOwner", fields: [ownerId], references: [id])
+
+  approval          ApprovalFlow?
+}
+
+model ApprovalFlow {
+  id              String         @id @default(uuid())
+  orderId         String         @unique
+  businessType    String         // payment | quarterly | refund | transfer | wallet_prestore
+  currentStep     Int            @default(1) // 1:教学核实 2:校长审批 3:财务终审
+  totalSteps      Int            @default(3)
+  status          String         @default("pending") // pending | approved | rejected | withdrawn
+  applicantName   String         // 申请人
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  order           Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  nodes           ApprovalNode[]
+}
+
+model ApprovalNode {
+  id              String       @id @default(uuid())
+  approvalFlowId  String
+  step            Int          // 1, 2, 3
+  stepName        String       // 如 教学端考勤核实, 校区校长行政复核, 财务部资金终审
+  reviewerId      String       // 审核人 (User)
+  action          String       // pass | reject | revert
+  comment         String?      // 审批批注
+  createdAt       DateTime     @default(now())
+
+  approvalFlow    ApprovalFlow @relation(fields: [approvalFlowId], references: [id], onDelete: Cascade)
+  reviewer        User         @relation(fields: [reviewerId], references: [id])
+}

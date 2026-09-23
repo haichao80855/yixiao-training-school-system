@@ -1,0 +1,49 @@
+@import './tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 盛通教育专属样式增强 */
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  color: var(--st-color-regular);
+  background-color: var(--st-color-bg);
+}
+
+/* Element Plus 样式细节对齐 */
+.el-table {
+  --el-table-header-bg-color: #FAFAFA;
+  --el-table-border-color: #EBEEF5;
+  font-size: 13px;
+}
+
+.el-table th.el-table__cell {
+  background-color: #FAFAFA !important;
+  color: #303133;
+  font-weight: 600;
+  height: 44px;
+}
+
+.el-table .el-table__cell {
+  padding: 8px 0;
+}
+
+/* 优雅滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #C0C4CC;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #909399;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
