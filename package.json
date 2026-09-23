@@ -12,6 +12,7 @@
     "server:build": "cd server && npm run build",
     "test:server": "cd server && node test-auth-and-system.js && node test-curriculum-and-student.js && node test-educational-and-attendance.js && node test-financial-and-approval.js",
     "test:fullstack": "node tests/e2e_full_stack_integration.cjs",
+    "test:e2e:walkthrough": "node scripts/e2e_all_functions_browser_walkthrough.cjs",
     "test:all": "node tests/runner.js && node tests/e2e_full_stack_integration.cjs && cd server && node test-auth-and-system.js && node test-curriculum-and-student.js && node test-educational-and-attendance.js && node test-financial-and-approval.js"
   },
   "dependencies": {

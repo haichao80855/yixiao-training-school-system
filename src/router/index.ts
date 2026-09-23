@@ -36,6 +36,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/curriculum/lessonPlan.vue'),
         meta: { title: '课次进度大纲', module: '教研中心' }
       },
+      {
+        path: 'curriculum/platformCourse',
+        name: 'CurriculumPlatformCourse',
+        component: () => import('@/views/curriculum/platformCourse.vue'),
+        meta: { title: '资源平台课程库', module: '教研中心' }
+      },
       // 2. 学员中心 (StudentCenter)
       {
         path: 'studentCenter',

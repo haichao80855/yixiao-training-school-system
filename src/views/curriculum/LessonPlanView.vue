@@ -205,12 +205,15 @@
         </div>
       </template>
     </el-dialog>
+    <!-- 随堂授课互动白板弹窗 -->
+    <CoursewarePlayerDialog ref="playerRef" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import CoursewarePlayerDialog from './components/CoursewarePlayerDialog.vue'
 import { MOCK_COURSES, MOCK_LESSON_PLANS, restoreCoursesFromStorage } from '@/mocks'
 import type { CourseItem, CourseUnit, LessonPlanItem } from '@/types/curriculum'
 
@@ -298,8 +301,19 @@ function handleDownloadCode(lesson: any) {
   ElMessage.success(`正在打包「${lesson.title || lesson.lessonName}」当堂代码工程模板...`)
 }
 
+const playerRef = ref<InstanceType<typeof CoursewarePlayerDialog> | null>(null)
+
 function handlePreview(lesson: any) {
-  ElMessage.info(`正在打开「${lesson.title || lesson.lessonName}」白板实时互动预览器...`)
+  if (playerRef.value) {
+    playerRef.value.open({
+      sessionName: lesson.title || lesson.lessonName || '随堂课件',
+      pptUrl: lesson.pptUrl || 'https://pro-img-brtm.baijiayun.com/0baijiacloud/live_ppt/516587/516587_ppt_html/index.html',
+      pptFileName: lesson.pptName || '第1课-C++基本框架 - 课件.pptx',
+      downloadUrl: lesson.downloadUrl || 'https://public-prod-shengtong.oss-cn-zhangjiakou.aliyuncs.com/3/2025-03-01/document/1740834516929-0-%E7%AC%AC1%E8%AF%BE-C%2B%2B%E5%9F%BA%E6%9C%AC%E6%A1%86%E6%9E%B6%20-%20%E8%AF%BE%E4%BB%B6.pptx'
+    });
+  } else {
+    ElMessage.info('正在打开白板实时互动预览器...');
+  }
 }
 
 function handleExportUnit(unit: CourseUnit) {

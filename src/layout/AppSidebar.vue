@@ -38,6 +38,9 @@
           <el-menu-item index="/curriculum/lessonPlan" class="!h-10 !pl-10 !text-xs">
             课次进度大纲
           </el-menu-item>
+          <el-menu-item index="/curriculum/platformCourse" class="!h-10 !pl-10 !text-xs">
+            资源平台课程库
+          </el-menu-item>
         </el-sub-menu>
 
         <!-- 2. 学员中心 -->
