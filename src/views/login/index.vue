@@ -13,7 +13,7 @@
         </div>
         <div>
           <div class="font-bold text-base tracking-wide flex items-center gap-2">
-            <span>盛通教育「一校教培系统」</span>
+            <span>拓视未来教育「一校教培系统」</span>
             <span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded border border-blue-400/30 font-mono">
               SZ:002599
             </span>
@@ -235,7 +235,7 @@
 
     <!-- 底部版权信息 -->
     <footer class="w-full max-w-7xl mx-auto px-6 py-4 text-center text-xs text-slate-500 border-t border-slate-800/60 z-10">
-      北京盛通教育科技股份有限公司 (SZ: 002599) · 一校智慧教培一体化平台 · 讲台与教学服务中枢
+      北京拓视未来教育科技股份有限公司 (SZ: 002599) · 一校智慧教培一体化平台 · 讲台与教学服务中枢
     </footer>
   </div>
 </template>

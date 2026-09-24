@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 盛通教育「一校教培系统」全业务闭环穿透端到端集成自动化测试套件
+ * 拓视未来教育「一校教培系统」全业务闭环穿透端到端集成自动化测试套件
  * tests/e2e_full_system_integration.cjs
  * 
  * 覆盖 5 大核心业务模块的 9 大穿透链路闭环：
@@ -164,7 +164,7 @@ async function runFullSystemIntegration() {
   const startTime = Date.now();
 
   console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}`);
-  console.log(`${colors.bold}${colors.cyan}盛通教育「一校教培系统」全业务闭环穿透端到端集成验证 (Full System Integration)${colors.reset}`);
+  console.log(`${colors.bold}${colors.cyan}拓视未来教育「一校教培系统」全业务闭环穿透端到端集成验证 (Full System Integration)${colors.reset}`);
   console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);
 
   try {
@@ -186,7 +186,7 @@ async function runFullSystemIntegration() {
       targetAudience: '小学4-6年级 / 初中',
       authorizedCampusIds: ['campus-bj-hq', 'campus-bj-hd', 'campus-bj-cy'], // 授权 HQ, 海淀, 朝阳
       status: 'enabled',
-      description: '盛通教育2026重磅推出：深度结合大语言模型与机器人运动控制算法',
+      description: '拓视未来教育2026重磅推出：深度结合大语言模型与机器人运动控制算法',
       units: [
         {
           id: 'unit-integ-01',

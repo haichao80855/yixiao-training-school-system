@@ -1,4 +1,4 @@
-# 盛通教育「一校教培系统」E2E 自动化测试基础设施规范 (TEST_INFRA)
+# 拓视未来教育「一校教培系统」E2E 自动化测试基础设施规范 (TEST_INFRA)
 
 > 本文档依据《双轨工程设计方法论》及系统规格说明书（`ORIGINAL_REQUEST.md`、`PROJECT.md`、`MODULE_ANALYSIS_DESIGN.md`）制定，确立本项目独立、Opaque-box、纯需求驱动的端到端自动化测试体系。
 

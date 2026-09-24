@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 盛通教育「一校教培系统」Tier 5 白盒对抗加固套件 1
+ * 拓视未来教育「一校教培系统」Tier 5 白盒对抗加固套件 1
  * tests/tier5_adversarial_suite_1.cjs
  * 
  * 核心对抗挑战向量 (Adversarial Challenge Vectors):
@@ -190,7 +190,7 @@ function restoreSystemSnapshot(snap) {
 async function runAdversarialSuite() {
   const startTime = Date.now();
   console.log(`\n${colors.bold}${colors.cyan}================================================================================${colors.reset}`);
-  console.log(`${colors.bold}${colors.cyan}盛通教育「一校教培系统」Tier 5 白盒对抗加固测试套件 1 (Adversarial Suite)${colors.reset}`);
+  console.log(`${colors.bold}${colors.cyan}拓视未来教育「一校教培系统」Tier 5 白盒对抗加固测试套件 1 (Adversarial Suite)${colors.reset}`);
   console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);
 
   const initialSnapshot = takeSystemSnapshot();

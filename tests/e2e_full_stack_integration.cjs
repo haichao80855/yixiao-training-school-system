@@ -1,6 +1,6 @@
 /**
  * ============================================================================
- * 盛通教育「一校教培系统」全栈端到端业务闭环穿透验收套件 (E2E Full Stack Integration)
+ * 拓视未来教育「一校教培系统」全栈端到端业务闭环穿透验收套件 (E2E Full Stack Integration)
  * 模拟前端真实客户端与 NestJS 后端微服务的完整业务数据闭环
  * ============================================================================
  */
@@ -31,7 +31,7 @@ function request(options, data) {
 
 async function runFullStackIntegration() {
   console.log('================================================================================');
-  console.log('盛通教育「一校教培系统」全栈端到端全链路业务闭环穿透测试 (第六步终审验收)');
+  console.log('拓视未来教育「一校教培系统」全栈端到端全链路业务闭环穿透测试 (第六步终审验收)');
   console.log('================================================================================\n');
 
   let passed = 0;
@@ -105,7 +105,7 @@ async function runFullStackIntegration() {
   });
   assert(campusesRes.status === 200, '拉取全量校区清单成功');
   const campuses = campusesRes.body.data;
-  assert(campuses.length >= 5, '包含盛通教育 5 所物理校区');
+  assert(campuses.length >= 5, '包含拓视未来教育 5 所物理校区');
 
   // 模拟前端顶栏切换校区浮标 -> 切换至远洋校区
   activeCampusId = campuses[1].id;

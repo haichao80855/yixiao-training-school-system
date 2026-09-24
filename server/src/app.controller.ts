@@ -11,7 +11,7 @@ export class AppController {
   getHealth() {
     return {
       status: 'ok',
-      system: '盛通教育「一校教培系统」NestJS 后端微服务中台',
+      system: '拓视未来教育「一校教培系统」NestJS 后端微服务中台',
       version: '1.0.0',
       stockCode: '002599',
       timestamp: new Date().toISOString(),

@@ -1,5 +1,5 @@
 // =======================================================
-// 盛通教育「一校教培系统」全业务领域数据库设计模型 (Prisma Schema)
+// 拓视未来教育「一校教培系统」全业务领域数据库设计模型 (Prisma Schema)
 // 包含 5 大核心业务模块完整实体关系与数据约束
 // =======================================================
 
@@ -19,7 +19,7 @@ datasource db {
 model Company {
   id          String   @id @default(uuid())
   code        String   @unique
-  name        String   // 如：北京盛通教育科技集团股份有限公司
+  name        String   // 如：北京拓视未来教育科技集团股份有限公司
   stockCode   String   @default("002599") // A股股票代码
   status      String   @default("active")
   createdAt   DateTime @default(now())

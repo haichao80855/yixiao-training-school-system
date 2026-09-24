@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 盛通教育「一校教培系统」终局胜利法证独立盲测穿透套件
+ * 拓视未来教育「一校教培系统」终局胜利法证独立盲测穿透套件
  * tests/blind_victory_stress_audit.cjs
  * 
  * 由 independent Victory Auditor (victory_auditor_2) 独立编写执行

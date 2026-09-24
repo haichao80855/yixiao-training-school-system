@@ -158,7 +158,7 @@ function runTest(suite, name, fn) {
 }
 
 console.log('\n================================================================================');
-console.log('盛通教育「一校教培系统」Milestone 2 缺陷修复对抗复验 (Challenger M2-3)');
+console.log('拓视未来教育「一校教培系统」Milestone 2 缺陷修复对抗复验 (Challenger M2-3)');
 console.log('================================================================================\n');
 
 // -----------------------------------------------------------------------------
@@ -628,7 +628,7 @@ const artifactPath = path.resolve(__dirname, '../.agents/challenger_m2_3/test_re
 fs.writeFileSync(artifactPath, JSON.stringify(results, null, 2), 'utf8');
 
 const logPath = path.resolve(__dirname, '../.agents/challenger_m2_3/test_results.log');
-const logContent = `盛通教育「一校教培系统」Milestone 2 缺陷修复对抗复验执行日志
+const logContent = `拓视未来教育「一校教培系统」Milestone 2 缺陷修复对抗复验执行日志
 执行时间: ${results.timestamp}
 总用例数: ${results.total} | 通过: ${results.passed} | 失败: ${results.failed} | 通过率: ${((results.passed / results.total) * 100).toFixed(2)}%
 判定结论: ${results.failed === 0 ? 'APPROVE' : 'REJECT'}

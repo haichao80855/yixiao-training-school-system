@@ -24,7 +24,7 @@ function request(options, data) {
 
 async function runTests() {
   console.log('====================================================');
-  console.log('盛通教育「一校教培系统」后端第二步集成与安全测试套件');
+  console.log('拓视未来教育「一校教培系统」后端第二步集成与安全测试套件');
   console.log('====================================================\n');
 
   let passed = 0;
@@ -51,7 +51,7 @@ async function runTests() {
     method: 'GET',
   });
   assert(healthRes.status === 200, '健康检查接口 GET / 返回 200');
-  assert(healthRes.body.data.stockCode === '002599', '健康检查返回盛通教育股票代码 002599');
+  assert(healthRes.body.data.stockCode === '002599', '健康检查返回拓视未来教育股票代码 002599');
 
   // 2. 验证受保护接口未携带 Token 自动被拦截 (401)
   const unauthRes = await request({

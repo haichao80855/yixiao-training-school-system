@@ -4,7 +4,7 @@ const ts = require('typescript');
 const assert = require('assert');
 
 console.log('================================================================');
-console.log('盛通教育「一校教培系统」教务-讲台(Workbench)与深度课评系统 端到端验证');
+console.log('拓视未来教育「一校教培系统」教务-讲台(Workbench)与深度课评系统 端到端验证');
 console.log('================================================================\n');
 
 // 模拟 window / localStorage

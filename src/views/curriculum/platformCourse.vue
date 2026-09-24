@@ -8,12 +8,12 @@
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <h1 class="text-base font-bold text-gray-900">盛通教育·资源平台课程库</h1>
+            <h1 class="text-base font-bold text-gray-900">拓视未来教育·资源平台课程库</h1>
             <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-[#1890FF] font-medium">企业级数据同步</span>
             <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 font-medium">全量课件互动白板已接入</span>
           </div>
           <p class="text-xs text-gray-500 mt-1">
-            已同步盛通教育 118 门精品课程，涵盖 2,029 个随堂课次与互动白板课件，点击课程即可随时调出互动大纲进行在线授课！
+            已同步拓视未来教育 118 门精品课程，涵盖 2,029 个随堂课次与互动白板课件，点击课程即可随时调出互动大纲进行在线授课！
           </p>
         </div>
       </div>

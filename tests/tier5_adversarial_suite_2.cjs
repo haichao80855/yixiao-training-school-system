@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 盛通教育「一校教培系统」Tier 5 白盒对抗加固验证套件 2 (Adversarial Coverage Hardening Suite 2)
+ * 拓视未来教育「一校教培系统」Tier 5 白盒对抗加固验证套件 2 (Adversarial Coverage Hardening Suite 2)
  * tests/tier5_adversarial_suite_2.cjs
  * 
  * 核心对抗挑战向量覆盖：
@@ -167,7 +167,7 @@ async function runTier5AdversarialSuite() {
   const startTime = Date.now();
 
   console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}`);
-  console.log(`${colors.bold}${colors.cyan}盛通教育「一校教培系统」Tier 5 白盒对抗加固验证套件 2 (Adversarial Suite 2)${colors.reset}`);
+  console.log(`${colors.bold}${colors.cyan}拓视未来教育「一校教培系统」Tier 5 白盒对抗加固验证套件 2 (Adversarial Suite 2)${colors.reset}`);
   console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);
 
   try {
@@ -968,7 +968,7 @@ async function runTier5AdversarialSuite() {
     const orgTree = [
       {
         id: 'org-grp-root',
-        name: '盛通教育集团',
+        name: '拓视未来教育集团',
         level: 1,
         type: 'group',
         boundUserCount: 100,

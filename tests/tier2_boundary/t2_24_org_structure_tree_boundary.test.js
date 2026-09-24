@@ -14,7 +14,7 @@ module.exports = {
             id: 'GRP_1',
             level: 1,
             type: 'group',
-            name: '盛通教育集团',
+            name: '拓视未来教育集团',
             children: [
               {
                 id: 'CAMPUS_HD',
@@ -43,7 +43,7 @@ module.exports = {
             id: 'GRP_ROOT',
             level: 1,
             type: 'group',
-            name: '盛通教育集团',
+            name: '拓视未来教育集团',
             children: [],
           },
         ];

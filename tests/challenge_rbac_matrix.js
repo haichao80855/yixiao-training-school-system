@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 盛通教育「一校教培系统」4 级 RBAC 细粒度权限矩阵与数据透视范围极限对抗测试套件
+ * 拓视未来教育「一校教培系统」4 级 RBAC 细粒度权限矩阵与数据透视范围极限对抗测试套件
  * 文件名: tests/challenge_rbac_matrix.js
  * 对应阶段: Milestone 6 (Challenger M6-2)
  *
@@ -84,7 +84,7 @@ function runTest(suiteName, testName, testFn) {
 }
 
 console.log(`\n${c.bold}${c.cyan}================================================================================${c.reset}`);
-console.log(`${c.bold}${c.cyan}  盛通教育「一校教培系统」4 级 RBAC 矩阵与数据透视极限对抗测试 (Challenger M6-2)${c.reset}`);
+console.log(`${c.bold}${c.cyan}  拓视未来教育「一校教培系统」4 级 RBAC 矩阵与数据透视极限对抗测试 (Challenger M6-2)${c.reset}`);
 console.log(`${c.bold}${c.cyan}================================================================================${c.reset}\n`);
 
 // =============================================================================
@@ -800,7 +800,7 @@ runTest('Org-Delete-Contract', 'validateNodeDeletion 5 级组织架构删除核�
   const testTree = [
     {
       id: 'root-group',
-      name: '盛通教育集团总部',
+      name: '拓视未来教育集团总部',
       level: 1,
       type: 'group',
       boundUserCount: 100,

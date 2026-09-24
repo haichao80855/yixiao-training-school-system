@@ -22,7 +22,7 @@ loaderFn(mockModule, mockModule.exports, (id) => {
 const SourceRBACEngine = mockModule.exports.RBACEngine;
 
 console.log('================================================================================');
-console.log('盛通教育「一校教培系统」Milestone 6 RBAC 法证随机盲测 (Random Blind Test)');
+console.log('拓视未来教育「一校教培系统」Milestone 6 RBAC 法证随机盲测 (Random Blind Test)');
 console.log('================================================================================');
 
 // 伪随机数发生器 (带确定性种子以保证审计可复现，且具备充分随机分布)

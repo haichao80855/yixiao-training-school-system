@@ -24,7 +24,7 @@ function request(options, data) {
 
 async function runTests() {
   console.log('================================================================');
-  console.log('盛通教育「一校教培系统」后端第五步（财务流水与多级风控审批）集成测试');
+  console.log('拓视未来教育「一校教培系统」后端第五步（财务流水与多级风控审批）集成测试');
   console.log('================================================================\n');
 
   let passed = 0;
@@ -251,7 +251,7 @@ async function runTests() {
     },
     {
       action: 'pass',
-      comment: '【校长室】符合盛通教育集团学员异动规章，准予提报财务终审。',
+      comment: '【校长室】符合拓视未来教育集团学员异动规章，准予提报财务终审。',
     },
   );
   assert(step2Res.status === 200 || step2Res.status === 201, 'Step 2 校区校长行政复核通过');

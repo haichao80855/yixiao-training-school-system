@@ -137,7 +137,7 @@ function cleanupStudent(studentId) {
 }
 
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}`);
-console.log(`${colors.bold}${colors.cyan}盛通教育「一校教培系统」Milestone 3 学员状态机与财务数学公式对抗验证 (Challenger M3)${colors.reset}`);
+console.log(`${colors.bold}${colors.cyan}拓视未来教育「一校教培系统」Milestone 3 学员状态机与财务数学公式对抗验证 (Challenger M3)${colors.reset}`);
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);
 
 // ============================================================================

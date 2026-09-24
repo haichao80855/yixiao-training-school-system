@@ -143,7 +143,7 @@ export class RBACEngine {
 export const MOCK_ORG_TREE_DATA: OrgNode[] = [
   {
     id: 'org-root',
-    name: '北京盛通教育科技集团 (002599)',
+    name: '北京拓视未来教育科技集团 (002599)',
     code: 'QD2023111500002',
     type: 'group',
     level: 1,

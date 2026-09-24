@@ -49,7 +49,7 @@ const LOCAL_STORAGE_CAMPUS_KEY = 'yixiao_current_campus_id'
 
 export const useTenantStore = defineStore('tenant', () => {
   const companyId = ref('COMP-ST-002599')
-  const companyName = ref('北京盛通教育科技集团股份有限公司')
+  const companyName = ref('北京拓视未来教育科技集团股份有限公司')
   const stockCode = ref('002599')
   const campuses = ref<Campus[]>(DEFAULT_CAMPUSES)
 

@@ -1,5 +1,5 @@
 /**
- * 盛通教育「一校教培系统」通用网络请求客户端 (Dual-Track HTTP Client)
+ * 拓视未来教育「一校教培系统」通用网络请求客户端 (Dual-Track HTTP Client)
  * 自动注入当前校区租户 ID (X-Campus-Id) 与 JWT Bearer Token
  */
 

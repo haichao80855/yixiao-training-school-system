@@ -8,7 +8,7 @@
         </div>
         <div>
           <div class="flex items-center space-x-3">
-            <h1 class="text-xl font-bold text-st-title">盛通教育「一校教培系统」控制台</h1>
+            <h1 class="text-xl font-bold text-st-title">拓视未来教育「一校教培系统」控制台</h1>
             <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-50 text-st-primary border border-blue-200">
               证券代码 002599
             </span>

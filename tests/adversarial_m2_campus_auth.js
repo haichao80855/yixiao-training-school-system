@@ -65,7 +65,7 @@ function test(name, fn) {
 }
 
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}`);
-console.log(`${colors.bold}${colors.cyan}盛通教育「一校教培系统」Milestone 2 跨校区授权与数据隔离对抗渗透测试 (Challenger M2-2)${colors.reset}`);
+console.log(`${colors.bold}${colors.cyan}拓视未来教育「一校教培系统」Milestone 2 跨校区授权与数据隔离对抗渗透测试 (Challenger M2-2)${colors.reset}`);
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);
 
 // 5 大实体校区常量

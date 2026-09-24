@@ -10,7 +10,7 @@ module.exports = {
       name: '5 级组织架构模型定义 (集团-区域-校区-部门-角色)',
       fn: () => {
         const levels = [
-          { level: 1, type: 'group', name: '盛通教育集团' },
+          { level: 1, type: 'group', name: '拓视未来教育集团' },
           { level: 2, type: 'region', name: '华北大区' },
           { level: 3, type: 'campus', name: '海淀校区' },
           { level: 4, type: 'department', name: '教学教研部' },

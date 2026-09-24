@@ -22,7 +22,7 @@ module.exports = {
     {
       name: '超过 100 字符超长课程标题两行省略打点，不撑破卡片',
       fn: () => {
-        const longTitle = '盛通教育集团少儿创意编程核心素养金牌竞赛强化冲刺班——全国青少年信息学奥林匹克联赛普及组算法专题深度剖析实战营';
+        const longTitle = '拓视未来教育集团少儿创意编程核心素养金牌竞赛强化冲刺班——全国青少年信息学奥林匹克联赛普及组算法专题深度剖析实战营';
         assert.ok(longTitle.length > 50);
         function truncateTitle(title, maxChars = 32) {
           if (title.length <= maxChars) return title;

@@ -62,7 +62,7 @@ function recordFinding(level, title, detail, reproduction) {
 }
 
 console.log('='.repeat(80));
-console.log('盛通教育「一校教培系统」Milestone 4 三维防撞引擎与 Lane 染色算法对抗实证');
+console.log('拓视未来教育「一校教培系统」Milestone 4 三维防撞引擎与 Lane 染色算法对抗实证');
 console.log('='.repeat(80) + '\n');
 
 // -----------------------------------------------------------------------------

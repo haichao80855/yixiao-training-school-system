@@ -1,5 +1,5 @@
 /**
- * 盛通教育「一校教培系统」测试结果报告器 (Reporter)
+ * 拓视未来教育「一校教培系统」测试结果报告器 (Reporter)
  */
 
 class TestReporter {
@@ -62,7 +62,7 @@ class TestReporter {
     const BOLD = '\x1b[1m';
 
     console.log('\n' + '='.repeat(80));
-    console.log(`${BOLD}${CYAN}盛通教育「一校教培系统」E2E 自动化测试执行报告 (Dual-Track Test Suite)${RESET}`);
+    console.log(`${BOLD}${CYAN}拓视未来教育「一校教培系统」E2E 自动化测试执行报告 (Dual-Track Test Suite)${RESET}`);
     console.log('='.repeat(80));
 
     // Print tier summaries

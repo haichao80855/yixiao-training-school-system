@@ -92,7 +92,7 @@ function test(name, fn) {
 }
 
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}`);
-console.log(`${colors.bold}${colors.cyan}盛通教育「一校教培系统」Milestone 5 多级审批状态机与校区隔离对抗测试 (Challenger M5-2)${colors.reset}`);
+console.log(`${colors.bold}${colors.cyan}拓视未来教育「一校教培系统」Milestone 5 多级审批状态机与校区隔离对抗测试 (Challenger M5-2)${colors.reset}`);
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);
 
 // 现场数据快照 (用于测试后 100% 零污染复原)

@@ -4,7 +4,7 @@ import * as bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  console.log('🌱 开始导入盛通教育「一校教培系统」初始业务种子数据...')
+  console.log('🌱 开始导入拓视未来教育「一校教培系统」初始业务种子数据...')
 
   // 1. 初始化机构 (Company)
   const company = await prisma.company.upsert({
@@ -13,7 +13,7 @@ async function main() {
     create: {
       id: 'comp-shengtong-01',
       code: 'QD2023111500002',
-      name: '北京盛通教育科技集团股份有限公司',
+      name: '北京拓视未来教育科技集团股份有限公司',
       stockCode: '002599',
       status: 'active',
     },

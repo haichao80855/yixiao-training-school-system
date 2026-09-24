@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 盛通教育「一校教培系统」E2E 自动化测试中央执行器 (Central Test Runner)
+ * 拓视未来教育「一校教培系统」E2E 自动化测试中央执行器 (Central Test Runner)
  * 纯 Node.js 原生零依赖，支持彩色终端打印、分层/特性过滤及报告生成
  */
 

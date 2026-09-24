@@ -90,7 +90,7 @@ function test(name, fn) {
 }
 
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}`);
-console.log(`${colors.bold}${colors.cyan}盛通教育「一校教培系统」Milestone 4 排课矩阵与点名消课反结课链路对抗验证 (Challenger M4-2)${colors.reset}`);
+console.log(`${colors.bold}${colors.cyan}拓视未来教育「一校教培系统」Milestone 4 排课矩阵与点名消课反结课链路对抗验证 (Challenger M4-2)${colors.reset}`);
 console.log(`${colors.bold}${colors.cyan}================================================================================${colors.reset}\n`);
 
 // 5 大实体校区常量

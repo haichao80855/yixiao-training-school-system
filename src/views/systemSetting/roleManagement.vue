@@ -335,7 +335,7 @@ const dataScopeCardList: { value: DataScope; title: string; description: string;
   {
     value: 'all',
     title: '全部校区数据',
-    description: '穿透盛通教育集团全量直营与加盟校区，透视所有账目、学员与考勤流',
+    description: '穿透拓视未来教育集团全量直营与加盟校区，透视所有账目、学员与考勤流',
     targetRole: '集团董事长 / 教研总监 / 财务合伙人'
   },
   {

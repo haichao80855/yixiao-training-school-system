@@ -125,7 +125,7 @@
     <div v-else-if="activeTab === 'product'" class="bg-white rounded-lg p-6 shadow-card border border-st-border space-y-4">
       <div class="border-b border-st-border pb-4">
         <h3 class="text-sm font-bold text-st-title">SaaS 授权产品与微服务矩阵</h3>
-        <p class="text-xs text-st-muted mt-1">当前机构已激活开通的盛通教育教培业务系统产品与硬件协同模块</p>
+        <p class="text-xs text-st-muted mt-1">当前机构已激活开通的拓视未来教育教培业务系统产品与硬件协同模块</p>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
         <div
@@ -705,7 +705,7 @@ const orgTreeRef = ref()
 
 // 机构元数据
 const orgMeta = reactive({
-  name: '北京盛通教育科技集团股份有限公司',
+  name: '北京拓视未来教育科技集团股份有限公司',
   code: 'QD2023111500002',
   stockCode: '002599',
   childCount: 0,

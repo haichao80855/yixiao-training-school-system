@@ -13,7 +13,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  console.log(`\n🚀 盛通教育「一校教培系统」NestJS 后端微服务已成功启动: http://localhost:${port}`);
+  console.log(`\n🚀 拓视未来教育「一校教培系统」NestJS 后端微服务已成功启动: http://localhost:${port}`);
   console.log(`📊 运行环境状态监控: http://localhost:${port}/api/stats/overview\n`);
 }
 bootstrap();

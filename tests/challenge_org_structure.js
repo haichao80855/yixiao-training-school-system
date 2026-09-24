@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 盛通教育「一校教培系统」Milestone 6 5级组织架构与节点删除风控对抗测试套件 (Challenger M6-1)
+ * 拓视未来教育「一校教培系统」Milestone 6 5级组织架构与节点删除风控对抗测试套件 (Challenger M6-1)
  * 纯 Node.js 标准沙箱运行，零外部额外依赖，严禁使用 BypassSandbox
  * 
  * 对抗挑战矩阵：
@@ -1180,7 +1180,7 @@ describe('现场数据隔离与零污染复原机制验证 (Zero-Pollution Invar
 // =========================================================================
 const elapsed = Date.now() - tracker.startTime;
 console.log(`\n${colors.bold}═══════════════════════════════════════════════════════════════════════${colors.reset}`);
-console.log(`${colors.bold}  盛通教育「一校教培系统」Challenger M6-1 组织架构对抗测试套件报告${colors.reset}`);
+console.log(`${colors.bold}  拓视未来教育「一校教培系统」Challenger M6-1 组织架构对抗测试套件报告${colors.reset}`);
 console.log(`${colors.bold}═══════════════════════════════════════════════════════════════════════${colors.reset}`);
 
 for (const s of tracker.suiteResults) {

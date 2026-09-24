@@ -4,7 +4,7 @@ const ts = require('typescript');
 const assert = require('assert');
 
 console.log('================================================================================');
-console.log('盛通教育「一校教培系统」Milestone 3 深度法证与运行时真实性独立审计');
+console.log('拓视未来教育「一校教培系统」Milestone 3 深度法证与运行时真实性独立审计');
 console.log('================================================================================\n');
 
 // 1. 静态代码法证审查 (Phase 1: Source Code Forensics)

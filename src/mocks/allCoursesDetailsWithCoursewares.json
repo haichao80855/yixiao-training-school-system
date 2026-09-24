@@ -13923,7 +13923,7 @@
   },
   "c767e27e64c44d6e9d8e7110e7b11f38": {
     "id": 3789,
-    "courseName": "盛通教育Python教师培训",
+    "courseName": "拓视未来教育Python教师培训",
     "courseCode": "c767e27e64c44d6e9d8e7110e7b11f38",
     "lessonTotal": 1,
     "lessons": [
@@ -55437,13 +55437,13 @@
         "sessionCode": "56e60587a8f44cd786809267fb365a7b",
         "sessionName": "妙笔生花",
         "pptUrl": "https://pro-img-brtm.baijiayun.com/0baijiacloud/live_ppt/142849/142849_ppt_html/index.html",
-        "pptFileName": "Python_妙笔生花_盛通教育_40min.pptx",
+        "pptFileName": "Python_妙笔生花_拓视未来教育_40min.pptx",
         "downloadUrl": "https://public-prod-shengtong.oss-cn-zhangjiakou.aliyuncs.com/course/ppt/1669944641544Python_%E5%A6%99%E7%AC%94%E7%94%9F%E8%8A%B1_%E7%9B%9B%E9%80%9A%E6%95%99%E8%82%B2_40min.pptx",
         "resources": [
           {
             "id": 16067,
             "resourceType": 1,
-            "name": "Python_妙笔生花_盛通教育_40min.pptx",
+            "name": "Python_妙笔生花_拓视未来教育_40min.pptx",
             "pptUrl": "https://pro-img-brtm.baijiayun.com/0baijiacloud/live_ppt/142849/142849_ppt_html/index.html",
             "downloadUrl": "https://public-prod-shengtong.oss-cn-zhangjiakou.aliyuncs.com/course/ppt/1669944641544Python_%E5%A6%99%E7%AC%94%E7%94%9F%E8%8A%B1_%E7%9B%9B%E9%80%9A%E6%95%99%E8%82%B2_40min.pptx",
             "fid": 142849,
