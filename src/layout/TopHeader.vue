@@ -71,6 +71,19 @@
       <!-- 多校区切换选择器 -->
       <CampusSelector customClass="bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 !text-white !border-transparent" />
 
+      <!-- 测试数据管理入口 -->
+      <button
+        @click="openTestDataModal"
+        class="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-xs font-semibold hover:bg-amber-100 transition-colors shadow-sm cursor-pointer"
+        title="测试数据管理：一键清空/恢复Mock数据"
+      >
+        <span class="text-sm">🧹</span>
+        <span class="hidden sm:inline">测试数据</span>
+        <span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-mono font-semibold">
+          {{ liveStats.studentCount }}学员/{{ liveStats.orderCount }}单
+        </span>
+      </button>
+
       <!-- AI 助手入口 -->
       <button
         @click="handleAiAssistant"
@@ -160,6 +173,9 @@
             <el-dropdown-item command="switch-admin">
               👑 快速换成：冬海潮 (管理员)
             </el-dropdown-item>
+            <el-dropdown-item command="test-data" divided>
+              🧹 测试数据管理 / 清空Mock数据
+            </el-dropdown-item>
             <el-dropdown-item command="logout" divided class="!text-rose-600 font-semibold">
               🚪 安全退出
             </el-dropdown-item>
@@ -181,6 +197,77 @@
         <el-button size="small" type="primary" @click="aiDialogVisible = false">收到建议</el-button>
       </template>
     </el-dialog>
+    <!-- 测试数据管理弹窗 -->
+    <el-dialog v-model="testDataModalVisible" title="🧹 测试数据与 Mock 数据管理中枢" width="540px" destroy-on-close>
+      <div class="space-y-4 text-xs">
+        <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 leading-relaxed">
+          <div class="font-bold text-sm mb-1 flex items-center gap-1.5">
+            <span>⚙️</span>
+            <span>系统业务测试数据状态（已为您清空初始 Mock 数据）</span>
+          </div>
+          <div>当前系统内预设业务模拟数据已全部清空，方便您自由录入学员、签约开单、创建班级与排课测试。</div>
+        </div>
+
+        <!-- 实时数据看板 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
+            <div class="text-[11px] text-gray-500">学员总数</div>
+            <div class="text-lg font-bold text-st-primary font-mono">{{ liveStats.studentCount }}</div>
+          </div>
+          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
+            <div class="text-[11px] text-gray-500">班级总数</div>
+            <div class="text-lg font-bold text-emerald-600 font-mono">{{ liveStats.classCount }}</div>
+          </div>
+          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
+            <div class="text-[11px] text-gray-500">排课日程</div>
+            <div class="text-lg font-bold text-purple-600 font-mono">{{ liveStats.scheduleCount }}</div>
+          </div>
+          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
+            <div class="text-[11px] text-gray-500">财务订单</div>
+            <div class="text-lg font-bold text-amber-600 font-mono">{{ liveStats.orderCount }}</div>
+          </div>
+        </div>
+
+        <!-- 明细统计 -->
+        <div class="p-3 bg-gray-50 rounded border text-gray-600 space-y-1 text-[11px]">
+          <div class="flex justify-between">
+            <span>• 待分班学员调度池：</span>
+            <b class="text-gray-800">{{ liveStats.unassignedCount }} 人</b>
+          </div>
+          <div class="flex justify-between">
+            <span>• 待办财务审批工单：</span>
+            <b class="text-gray-800">{{ liveStats.approvalCount }} 笔</b>
+          </div>
+          <div class="flex justify-between">
+            <span>• 考勤消课打卡记录：</span>
+            <b class="text-gray-800">{{ liveStats.attendanceCount }} 条</b>
+          </div>
+          <div class="flex justify-between">
+            <span>• 教研标准课程库：</span>
+            <b class="text-gray-800">{{ liveStats.courseCount }} 门</b>
+          </div>
+        </div>
+
+        <div class="text-[11px] text-gray-400">
+          💡 提示：点击“一键清空全部业务数据”可将学员、班级、课表与订单全部重置为 0；需要恢复官方演示数据时可随时点击“恢复初始演示Mock数据”。
+        </div>
+      </div>
+      <template #footer>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <el-button size="small" type="danger" plain @click="handleClearBusinessData">
+            清空全部业务数据
+          </el-button>
+          <div class="space-x-2">
+            <el-button size="small" type="warning" plain @click="handleClearLocalStorage">
+              清空本地缓存
+            </el-button>
+            <el-button size="small" type="primary" @click="handleRestorePresetData">
+              恢复初始演示Mock数据
+            </el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
   </header>
 </template>
 
@@ -190,6 +277,12 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
 import CampusSelector from './CampusSelector.vue'
+import {
+  clearAllMockData,
+  restoreAllMockData,
+  getMockDataStats
+} from '@/mocks'
+
 import type { MicroSystemItem } from '@/types'
 
 defineEmits(['toggle-sidebar'])
@@ -198,7 +291,7 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
-const currentUserName = computed(() => authStore.user?.realName || '冬海潮')
+const currentUserName = computed(() => authStore.user?.realName || authStore.user?.account || '冬海潮')
 const currentUserRole = computed(() => authStore.user?.roleName || '超级管理员')
 const avatarChar = computed(() => currentUserName.value ? currentUserName.value.charAt(0) : '用')
 const isTeacher = computed(() => authStore.isTeacher)
@@ -253,7 +346,85 @@ function toggleFullScreen() {
   }
 }
 
+const testDataModalVisible = ref(false)
+const liveStats = ref(getMockDataStats())
+
+function updateLiveStats() {
+  liveStats.value = getMockDataStats()
+}
+
+function openTestDataModal() {
+  updateLiveStats()
+  testDataModalVisible.value = true
+}
+
+function handleClearBusinessData() {
+  ElMessageBox.confirm(
+    '确认清空全系统业务数据（学员列表、待分班、班级、课表日程、考勤消课、财务订单、退费审批与台账流水）？清空后将方便您从 0 开始录入与测试。',
+    '清空业务测试数据确认',
+    {
+      confirmButtonText: '确认清空',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    clearAllMockData()
+    updateLiveStats()
+    ElMessage.success('已成功清空全部业务测试数据！页面已准备就绪。')
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
+  }).catch(() => {})
+}
+
+function handleClearLocalStorage() {
+  ElMessageBox.confirm(
+    '确认清空浏览器本地缓存 (LocalStorage)？',
+    '清空本地存储',
+    {
+      confirmButtonText: '确认清空',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    clearAllMockData()
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear()
+      localStorage.setItem('yixiao_mock_data_cleared', 'true')
+      localStorage.setItem('yixiao_mock_v5_cleared', '1')
+    }
+    updateLiveStats()
+    ElMessage.success('本地缓存已彻底清空并重置！即将刷新...')
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
+  }).catch(() => {})
+}
+
+function handleRestorePresetData() {
+  ElMessageBox.confirm(
+    '确认恢复系统初始预置的演示 Mock 数据（22 名学员、8 个班级、33 节排课及 25 笔财务订单）？',
+    '恢复初始演示数据确认',
+    {
+      confirmButtonText: '确认恢复',
+      cancelButtonText: '取消',
+      type: 'info'
+    }
+  ).then(() => {
+    restoreAllMockData()
+    updateLiveStats()
+    ElMessage.success('初始演示 Mock 数据已成功恢复！即将刷新展示...')
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
+  }).catch(() => {})
+}
+
 function handleUserCommand(command: string) {
+  if (command === 'test-data') {
+    openTestDataModal()
+    return
+  }
   if (command === 'logout') {
     ElMessageBox.confirm('确定要退出当前账号并返回登录界面吗？', '安全退出提示', {
       confirmButtonText: '确定退出',

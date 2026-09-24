@@ -81,6 +81,11 @@ const transpileResult = ts.transpileModule(studentTsCode, {
 // 构建沙箱上下文加载并执行
 const mockModule = { exports: {} };
 const curriculumMock = {
+  MOCK_COURSES: [
+    { id: 'course-scratch-001', name: '012-软编Scratch创意图形编程', pricePerLesson: 280, totalLessons: 48, status: 'enabled', authorizedCampusIds: ['campus-bj-hq'] },
+    { id: 'course-cpp-002', name: '001-信息学奥赛C++高阶培优班', pricePerLesson: 350, totalLessons: 64, status: 'enabled', authorizedCampusIds: ['campus-bj-hq'] },
+    { id: 'course-python-003', name: '008-Python人工智能趣味算法', pricePerLesson: 300, totalLessons: 48, status: 'enabled', authorizedCampusIds: ['campus-bj-yy'] },
+  ],
   MOCK_CURRICULUM_COURSES: [
     { id: 'course-scratch-001', name: '012-软编Scratch创意图形编程', pricePerLesson: 280, totalLessons: 48, status: 'enabled', authorizedCampusIds: ['campus-bj-hq'] },
     { id: 'course-cpp-002', name: '001-信息学奥赛C++高阶培优班', pricePerLesson: 350, totalLessons: 64, status: 'enabled', authorizedCampusIds: ['campus-bj-hq'] },
@@ -91,6 +96,12 @@ const curriculumMock = {
 const customRequire = (id) => {
   if (id === './curriculum' || id.includes('curriculum')) {
     return curriculumMock;
+  }
+  if (id === './educational' || id.includes('educational')) {
+    return { enrollStudentIntoClass: () => true, getAvailableClasses: () => [], MOCK_CLASSES: [] };
+  }
+  if (id === './financial' || id.includes('financial')) {
+    return { saveOrder: (o) => o };
   }
   return require(id);
 };

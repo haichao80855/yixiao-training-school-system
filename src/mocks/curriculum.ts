@@ -639,8 +639,23 @@ export const COURSES_STORAGE_KEY = 'yixiao_curriculum_courses_v1';
 
 export const MOCK_COURSES: CourseItem[] = [...MOCK_CURRICULUM_COURSES];
 
+export function clearCoursesMockData(): void {
+  MOCK_COURSES.length = 0;
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.removeItem(COURSES_STORAGE_KEY);
+  }
+}
+
+export function restoreCoursesMockData(): void {
+  MOCK_COURSES.length = 0;
+  MOCK_COURSES.push(...JSON.parse(JSON.stringify(MOCK_CURRICULUM_COURSES)));
+  saveCoursesToStorage();
+}
+
+
+
 export function saveCoursesToStorage(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(COURSES_STORAGE_KEY, JSON.stringify(MOCK_COURSES));
   } catch (e) {
@@ -649,7 +664,7 @@ export function saveCoursesToStorage(): void {
 }
 
 export function restoreCoursesFromStorage(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
   try {
     const raw = localStorage.getItem(COURSES_STORAGE_KEY);
     if (!raw) return;

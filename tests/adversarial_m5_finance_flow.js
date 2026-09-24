@@ -41,6 +41,10 @@ const jiti = createJiti(__filename, {
 });
 
 const mocks = jiti('../src/mocks/index.ts');
+if (mocks.MOCK_ORDERS_DATA.length === 0 && mocks.restoreFinancialMockData) {
+  mocks.restoreFinancialMockData();
+  mocks.restoreStudentMockData();
+}
 const FinanceAggregator = mocks.FinanceAggregator;
 
 const colors = {

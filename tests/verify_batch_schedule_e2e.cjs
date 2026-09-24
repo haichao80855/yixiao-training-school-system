@@ -12,6 +12,11 @@ const tsSource = fs.readFileSync(path.resolve(__dirname, '../src/mocks/education
 
 // 模拟 window / localStorage
 const storage = {};
+global.localStorage = {
+  getItem: (key) => storage[key] || null,
+  setItem: (key, val) => { storage[key] = String(val); },
+  removeItem: (key) => { delete storage[key]; }
+};
 global.window = {
   localStorage: {
     getItem: (key) => storage[key] || null,
@@ -55,6 +60,9 @@ function customRequire(modPath) {
   return require(modPath);
 }
 const educational = loadTsModule('../src/mocks/educational.ts');
+if (educational.MOCK_CLASSES.length === 0 && educational.restoreEducationalMockData) {
+  educational.restoreEducationalMockData();
+}
 
 console.log('【Step 1】查询当前校区的班级列表...');
 const classes = educational.getClasses({ campusId: 'campus-bj-hq' });

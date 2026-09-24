@@ -1070,42 +1070,6 @@ export const MOCK_SYSTEM_USERS: SystemUser[] = [
   }
 ]
 
-export const USERS_STORAGE_KEY = 'yixiao_mock_system_users_v1'
-
-export function saveSystemUsersToStorage() {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(MOCK_SYSTEM_USER_LIST))
-    } catch (e) {
-      console.warn('[Mock Users] Failed to save users to localStorage:', e)
-    }
-  }
-}
-
-export function restoreSystemUsersFromStorage() {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    try {
-      const raw = window.localStorage.getItem(USERS_STORAGE_KEY)
-      if (raw) {
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          parsed.forEach((user: SystemUser) => {
-            const idx = MOCK_SYSTEM_USER_LIST.findIndex(u => u.id === user.id)
-            if (idx >= 0) {
-              MOCK_SYSTEM_USER_LIST[idx] = { ...MOCK_SYSTEM_USER_LIST[idx], ...user }
-            } else {
-              MOCK_SYSTEM_USER_LIST.push(user)
-            }
-          })
-        }
-      }
-    } catch (e) {
-      console.warn('[Mock Users] Failed to restore users from localStorage:', e)
-    }
-  }
-}
-
-restoreSystemUsersFromStorage()
 
 // --- 4. 角色组列表 ---
 export const MOCK_ROLES_DATA: RoleItem[] = [
@@ -1584,7 +1548,38 @@ export const MOCK_DICTS_DATA: DictItem[] = [
 // 组织架构树状态
 export const MOCK_ORG_NODES = JSON.parse(JSON.stringify(MOCK_ORG_TREE_DATA)) as OrgNode[]
 // 系统员工列表状态
+export const USERS_STORAGE_KEY = 'yixiao_mock_system_users_v1'
+
+export function saveSystemUsersToStorage() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(MOCK_SYSTEM_USER_LIST))
+    } catch (e) {
+      console.warn('[Mock Users] Failed to save users to localStorage:', e)
+    }
+  }
+}
+
+export function restoreSystemUsersFromStorage() {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = window.localStorage.getItem(USERS_STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          MOCK_SYSTEM_USER_LIST.splice(0, MOCK_SYSTEM_USER_LIST.length, ...parsed)
+        }
+      }
+    } catch (e) {
+      console.warn('[Mock Users] Failed to restore users from localStorage:', e)
+    }
+  }
+}
+
 export const MOCK_SYSTEM_USER_LIST = JSON.parse(JSON.stringify(MOCK_SYSTEM_USERS)) as SystemUser[]
+
+// 立即恢复持久化员工列表
+restoreSystemUsersFromStorage()
 // 角色组列表状态
 export const MOCK_ROLES_LIST = JSON.parse(JSON.stringify(MOCK_ROLES_DATA)) as RoleItem[]
 // 权限树状态
@@ -1683,6 +1678,7 @@ export function deleteOrgNode(nodeId: string): OrgTreeValidationResult {
 
 // --- 系统员工服务 ---
 export function getSystemUsers(filter?: { campusId?: string; keyword?: string; roleId?: string; status?: string }): SystemUser[] {
+  restoreSystemUsersFromStorage()
   let result = [...MOCK_SYSTEM_USER_LIST]
 
   if (filter?.campusId && filter.campusId !== 'all') {

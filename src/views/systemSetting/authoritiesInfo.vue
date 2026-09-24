@@ -671,7 +671,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   School,
@@ -694,7 +694,8 @@ import {
   deleteSystemUser,
   resetUserPassword,
   toggleUserStatus,
-  updateSystemUser
+  updateSystemUser,
+  restoreSystemUsersFromStorage
 } from '@/mocks/system'
 
 // --- 状态定义 ---
@@ -1083,6 +1084,11 @@ function saveOrgMeta() {
   showEditOrgModal.value = false
   ElMessage.success('机构基本信息已成功更新！')
 }
+
+onMounted(() => {
+  restoreSystemUsersFromStorage()
+  systemUsers.value = [...MOCK_SYSTEM_USER_LIST]
+})
 </script>
 
 <style scoped>

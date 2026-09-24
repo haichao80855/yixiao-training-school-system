@@ -25,28 +25,28 @@
     <!-- 5 大授课工作台看板指标 -->
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
-        <div class="text-xs text-st-muted">今日待上课次</div>
+        <div class="text-xs text-st-muted">{{ filterDate ? "当日待上课次" : "今日待上课次" }}</div>
         <div class="text-2xl font-bold text-blue-600 mt-1">
           {{ workbenchStats.scheduledCount }} <span class="text-xs font-normal text-st-muted">节</span>
         </div>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
-        <div class="text-xs text-st-muted">已结课次</div>
+        <div class="text-xs text-st-muted">{{ filterDate ? "当日已结课次" : "今日已结课次" }}</div>
         <div class="text-2xl font-bold text-emerald-600 mt-1">
           {{ workbenchStats.completedCount }} <span class="text-xs font-normal text-st-muted">节</span>
         </div>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
-        <div class="text-xs text-st-muted">应到学员总数</div>
+        <div class="text-xs text-st-muted">{{ filterDate ? "当日应到学员" : "今日应到学员" }}</div>
         <div class="text-2xl font-bold text-st-title mt-1">
           {{ workbenchStats.totalStudents }} <span class="text-xs font-normal text-st-muted">人</span>
         </div>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
-        <div class="text-xs text-st-muted">实到学员总数</div>
+        <div class="text-xs text-st-muted">{{ filterDate ? "当日实到学员" : "今日实到学员" }}</div>
         <div class="text-2xl font-bold text-teal-600 mt-1">
           {{ workbenchStats.presentStudents }} <span class="text-xs font-normal text-st-muted">人</span>
         </div>
@@ -82,7 +82,7 @@
               </div>
 
               <span class="text-xs text-st-muted">
-                当前待上课次共 <b>{{ filteredSchedules.length }}</b> 节
+                {{ filterDate ? "当日" : "今日" }}待上课次共 <b>{{ filteredSchedules.length }}</b> 节
               </span>
             </div>
 
@@ -255,9 +255,17 @@ const route = useRoute()
 const tenantStore = useTenantStore()
 const currentCampus = computed(() => tenantStore.currentCampus)
 
+function getTodayDateStr(): string {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 const activeTab = ref('workbench')
 const filterTeacher = ref('')
-const filterDate = ref('')
+const filterDate = ref(getTodayDateStr())
 
 const schedules = ref<ScheduleEvent[]>([])
 const attendanceRecords = ref<AttendanceRecord[]>([])
@@ -282,13 +290,14 @@ const filteredSchedules = computed(() => {
   return list
 })
 
-// 看板统计数据
+// 看板统计数据（严格限定为所选日期或当天，避免统计全历史/未来排课）
 const workbenchStats = computed(() => {
-  const all = schedules.value
-  const scheduledCount = all.filter(s => s.status === 'scheduled').length
-  const completedCount = all.filter(s => s.status === 'completed').length
-  const totalStudents = all.reduce((sum, s) => sum + (s.studentIds?.length || 0), 0)
-  const presentStudents = all.reduce((sum, s) => sum + (s.attendanceCount || 0), 0)
+  const targetDate = filterDate.value || getTodayDateStr()
+  const todaySchedules = schedules.value.filter(s => s.date === targetDate)
+  const scheduledCount = todaySchedules.filter(s => s.status === 'scheduled').length
+  const completedCount = todaySchedules.filter(s => s.status === 'completed').length
+  const totalStudents = todaySchedules.reduce((sum, s) => sum + (s.studentIds?.length || 0), 0)
+  const presentStudents = todaySchedules.reduce((sum, s) => sum + (s.attendanceCount || 0), 0)
 
   const totalDeductedLessons = attendanceRecords.value
     .filter(r => !r.isReversed)

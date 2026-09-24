@@ -22,6 +22,9 @@ const jiti = createJiti(__filename, {
 });
 
 const mocks = jiti('../src/mocks/index.ts');
+if (mocks.MOCK_STUDENTS.length === 0 && mocks.restoreStudentMockData) {
+  mocks.restoreStudentMockData();
+}
 
 // 颜色输出辅助函数
 const colors = {

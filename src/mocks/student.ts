@@ -42,7 +42,7 @@ export const MOCK_AVAILABLE_CLASSES: AvailableClassOption[] = new Proxy([] as an
 })
 
 // 22+ 位覆盖 5 大校区的学员完整数据
-export const MOCK_STUDENTS: Student[] = [
+export const PRESET_MOCK_STUDENTS: Student[] = [
   {
     id: 'std-001',
     name: '张小萌',
@@ -944,7 +944,7 @@ export const MOCK_STUDENTS: Student[] = [
 ]
 
 // 待分班学员列表
-export const MOCK_UNASSIGNED_STUDENTS: UnassignedStudentItem[] = [
+export const PRESET_MOCK_UNASSIGNED_STUDENTS: UnassignedStudentItem[] = [
   {
     id: 'unas-001',
     studentId: 'std-005',
@@ -1005,7 +1005,7 @@ export const MOCK_UNASSIGNED_STUDENTS: UnassignedStudentItem[] = [
 ]
 
 // 服务费与代报考管理清单 (易快报对接)
-export const MOCK_SERVICE_FEES: ServiceFeeRecord[] = [
+export const PRESET_MOCK_SERVICE_FEES: ServiceFeeRecord[] = [
   {
     id: 'sf-001',
     certNo: 'BK20260901-01',
@@ -1078,6 +1078,32 @@ export const MOCK_SERVICE_FEES: ServiceFeeRecord[] = [
     operator: '孙学管'
   }
 ]
+
+// 默认提供已清空的纯净数据集供业务测试；可随时一键清空或一键恢复预设演示数据
+export const MOCK_STUDENTS: Student[] = []
+export const MOCK_UNASSIGNED_STUDENTS: UnassignedStudentItem[] = []
+export const MOCK_SERVICE_FEES: ServiceFeeRecord[] = []
+
+export function clearStudentMockData() {
+  MOCK_STUDENTS.length = 0
+  MOCK_UNASSIGNED_STUDENTS.length = 0
+  MOCK_SERVICE_FEES.length = 0
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.removeItem(STUDENTS_STORAGE_KEY)
+    localStorage.removeItem(UNASSIGNED_STORAGE_KEY)
+    localStorage.removeItem(LEGACY_STORAGE_KEY)
+  }
+}
+
+export function restoreStudentMockData() {
+  MOCK_STUDENTS.length = 0
+  MOCK_STUDENTS.push(...JSON.parse(JSON.stringify(PRESET_MOCK_STUDENTS)))
+  MOCK_UNASSIGNED_STUDENTS.length = 0
+  MOCK_UNASSIGNED_STUDENTS.push(...JSON.parse(JSON.stringify(PRESET_MOCK_UNASSIGNED_STUDENTS)))
+  MOCK_SERVICE_FEES.length = 0
+  MOCK_SERVICE_FEES.push(...JSON.parse(JSON.stringify(PRESET_MOCK_SERVICE_FEES)))
+  saveAllStudentsToStorage()
+}
 
 // ==========================================
 // 业务操作函数 API
@@ -1162,32 +1188,47 @@ const STUDENTS_STORAGE_KEY = 'yixiao_mock_students_data_v3'
 const UNASSIGNED_STORAGE_KEY = 'yixiao_mock_unassigned_data_v3'
 const LEGACY_STORAGE_KEY = 'yixiao_mock_students_custom'
 
-// 初始化时自动恢复 localStorage 中的学员全量状态（包含所有签约课包、钱包、异动与新增学员）
+// 初始化时自动根据清空状态恢复 localStorage 中的自建测试学员
 try {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const saved = localStorage.getItem(STUDENTS_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY)
-    if (saved) {
-      const list: Student[] = JSON.parse(saved)
-      if (Array.isArray(list)) {
-        for (const item of list) {
-          const idx = MOCK_STUDENTS.findIndex((s) => s.id === item.id || s.studentNo === item.studentNo)
-          if (idx >= 0) {
-            // 用缓存中的最新状态（课包、余额、在读状态等）覆盖预置数据
-            MOCK_STUDENTS[idx] = { ...MOCK_STUDENTS[idx], ...item }
-          } else {
-            // 新增建档学员
-            MOCK_STUDENTS.unshift(item)
-          }
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    const isExplicitlyCleared = localStorage.getItem('yixiao_mock_data_cleared') === 'true'
+    const migrated = localStorage.getItem('yixiao_mock_v5_cleared')
+
+    if (!migrated) {
+      localStorage.setItem('yixiao_mock_v5_cleared', '1')
+      localStorage.setItem('yixiao_mock_data_cleared', 'true')
+      localStorage.removeItem(STUDENTS_STORAGE_KEY)
+      localStorage.removeItem(UNASSIGNED_STORAGE_KEY)
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+    } else if (isExplicitlyCleared) {
+      // 已清空模式：仅恢复测试期间用户新增自建的数据
+      const saved = localStorage.getItem(STUDENTS_STORAGE_KEY)
+      if (saved) {
+        const list: Student[] = JSON.parse(saved)
+        if (Array.isArray(list)) {
+          MOCK_STUDENTS.length = 0
+          MOCK_STUDENTS.push(...list)
         }
       }
-    }
-
-    const savedUnassigned = localStorage.getItem(UNASSIGNED_STORAGE_KEY)
-    if (savedUnassigned) {
-      const uList: UnassignedStudentItem[] = JSON.parse(savedUnassigned)
-      if (Array.isArray(uList)) {
-        MOCK_UNASSIGNED_STUDENTS.length = 0
-        MOCK_UNASSIGNED_STUDENTS.push(...uList)
+      const savedUnassigned = localStorage.getItem(UNASSIGNED_STORAGE_KEY)
+      if (savedUnassigned) {
+        const uList: UnassignedStudentItem[] = JSON.parse(savedUnassigned)
+        if (Array.isArray(uList)) {
+          MOCK_UNASSIGNED_STUDENTS.length = 0
+          MOCK_UNASSIGNED_STUDENTS.push(...uList)
+        }
+      }
+    } else {
+      // 演示数据模式：恢复全量或预置
+      const saved = localStorage.getItem(STUDENTS_STORAGE_KEY)
+      if (saved) {
+        const list: Student[] = JSON.parse(saved)
+        if (Array.isArray(list)) {
+          MOCK_STUDENTS.length = 0
+          MOCK_STUDENTS.push(...list)
+        }
+      } else {
+        restoreStudentMockData()
       }
     }
   }
@@ -1197,7 +1238,7 @@ try {
 
 export function saveAllStudentsToStorage() {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       localStorage.setItem(STUDENTS_STORAGE_KEY, JSON.stringify(MOCK_STUDENTS))
       localStorage.setItem(UNASSIGNED_STORAGE_KEY, JSON.stringify(MOCK_UNASSIGNED_STUDENTS))
     }
@@ -1208,6 +1249,10 @@ export function saveAllStudentsToStorage() {
 
 // 保持旧函数签名兼容
 export const saveCustomStudentsToStorage = saveAllStudentsToStorage
+
+if (typeof window === 'undefined') {
+  restoreStudentMockData()
+}
 
 export function updateStudent(id: string, patch: Partial<Student>): Student | undefined {
   const index = MOCK_STUDENTS.findIndex(s => s.id === id)

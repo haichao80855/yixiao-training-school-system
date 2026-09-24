@@ -9,6 +9,11 @@ console.log('================================================================\n'
 
 // 模拟 window / localStorage
 const storage = {};
+global.localStorage = {
+  getItem: (key) => storage[key] || null,
+  setItem: (key, val) => { storage[key] = String(val); },
+  removeItem: (key) => { delete storage[key]; }
+};
 global.window = {
   localStorage: {
     getItem: (key) => storage[key] || null,
@@ -45,6 +50,9 @@ function customRequire(modPath) {
 }
 
 const educational = loadTsModule('../src/mocks/educational.ts');
+if (educational.MOCK_CLASSES.length === 0 && educational.restoreEducationalMockData) {
+  educational.restoreEducationalMockData();
+}
 
 console.log('【Step 1】查询讲台当日排课卡片与 7 维指标统计...');
 const workbenchData = educational.getWorkbenchLessons({ campusId: 'campus-bj-hq' });

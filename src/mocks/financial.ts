@@ -328,10 +328,40 @@ export class FinanceAggregator {
   }
 }
 
+// 默认提供纯净空集合供业务测试；可随时一键清空或一键恢复预设演示数据
+export const MOCK_ORDERS_DATA: OrderRecord[] = []
+export const MOCK_APPROVAL_RECORDS: ApprovalRecord[] = []
+export const MOCK_LEDGER_RECORDS: LedgerRecord[] = []
+
+export function clearFinancialMockData() {
+  MOCK_ORDERS_DATA.length = 0
+  MOCK_APPROVAL_RECORDS.length = 0
+  MOCK_LEDGER_RECORDS.length = 0
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.removeItem(ORDERS_STORAGE_KEY)
+  }
+}
+
+export function restoreFinancialMockData() {
+  MOCK_ORDERS_DATA.length = 0
+  MOCK_ORDERS_DATA.push(...JSON.parse(JSON.stringify(PRESET_MOCK_ORDERS_DATA)))
+  MOCK_APPROVAL_RECORDS.length = 0
+  MOCK_APPROVAL_RECORDS.push(...JSON.parse(JSON.stringify(PRESET_MOCK_APPROVAL_RECORDS)))
+  MOCK_LEDGER_RECORDS.length = 0
+  MOCK_LEDGER_RECORDS.push(...JSON.parse(JSON.stringify(PRESET_MOCK_LEDGER_RECORDS)))
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    try {
+      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(MOCK_ORDERS_DATA))
+    } catch (e) {
+      console.warn('[Mock Financial] Failed to save orders to storage:', e)
+    }
+  }
+}
+
 // ==========================================
 // 覆盖 5 大实体校区的真实订单流水 (28 笔高保真订单)
 // ==========================================
-export const MOCK_ORDERS_DATA: OrderRecord[] = [
+export const PRESET_MOCK_ORDERS_DATA: OrderRecord[] = [
   // --- 截图真实呈现 7 笔已支付订单 (实缴总计 14000.00 元) ---
   {
     id: 'ord-ss-01',
@@ -1463,7 +1493,7 @@ export const MOCK_ORDERS_DATA: OrderRecord[] = [
 // ==========================================
 // 业务与资金多级审批流单据 (支持 3 级状态流转)
 // ==========================================
-export const MOCK_APPROVAL_RECORDS: ApprovalRecord[] = [
+export const PRESET_MOCK_APPROVAL_RECORDS: ApprovalRecord[] = [
   {
     id: 'app-001',
     approvalNo: 'APPR-2026-0918-001',
@@ -1598,7 +1628,7 @@ export const MOCK_APPROVAL_RECORDS: ApprovalRecord[] = [
 // ==========================================
 // 校区收费流水总账本 (资金进出风控)
 // ==========================================
-export const MOCK_LEDGER_RECORDS: LedgerRecord[] = [
+export const PRESET_MOCK_LEDGER_RECORDS: LedgerRecord[] = [
   {
     transNo: 'TX20260918001',
     orderNo: '260918173041mBA01_v2',
@@ -1843,18 +1873,29 @@ const ORDERS_STORAGE_KEY = 'yixiao_mock_orders_v3'
 
 // 初始化从 localStorage 恢复自定义订单流水
 try {
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const saved = localStorage.getItem(ORDERS_STORAGE_KEY)
-    if (saved) {
-      const list: OrderRecord[] = JSON.parse(saved)
-      if (Array.isArray(list) && list.length > 0) {
-        for (const item of list) {
-          const idx = MOCK_ORDERS_DATA.findIndex(o => o.id === item.id || o.orderNo === item.orderNo)
-          if (idx >= 0) {
-            MOCK_ORDERS_DATA[idx] = item
-          } else {
-            MOCK_ORDERS_DATA.unshift(item)
-          }
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    const isCleared = localStorage.getItem('yixiao_mock_data_cleared') === 'true'
+    const migrated = localStorage.getItem('yixiao_mock_v5_cleared')
+
+    if (!migrated) {
+      localStorage.removeItem(ORDERS_STORAGE_KEY)
+    } else if (isCleared) {
+      // 已清空模式：仅恢复测试期间用户新增自建的订单
+      const saved = localStorage.getItem(ORDERS_STORAGE_KEY)
+      if (saved) {
+        const list: OrderRecord[] = JSON.parse(saved)
+        if (Array.isArray(list) && list.length > 0) {
+          MOCK_ORDERS_DATA.length = 0
+          MOCK_ORDERS_DATA.push(...list)
+        }
+      }
+    } else {
+      const saved = localStorage.getItem(ORDERS_STORAGE_KEY)
+      if (saved) {
+        const list: OrderRecord[] = JSON.parse(saved)
+        if (Array.isArray(list) && list.length > 0) {
+          MOCK_ORDERS_DATA.length = 0
+          MOCK_ORDERS_DATA.push(...list)
         }
       }
     }
@@ -1863,9 +1904,13 @@ try {
   console.warn('[Mock Financial] Failed to restore orders from storage:', e)
 }
 
+if (typeof window === 'undefined') {
+  restoreFinancialMockData()
+}
+
 export function syncOrdersToStorage() {
   try {
-    if (typeof window !== 'undefined' && window.localStorage) {
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(MOCK_ORDERS_DATA))
     }
   } catch (e) {

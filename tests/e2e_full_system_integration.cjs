@@ -444,7 +444,7 @@ async function runFullSystemIntegration() {
     assertEqual(assignedPkg.className, '海淀AI机器人周日上午班', '学员课包资产已精准绑定目标班级名称');
 
     // 更新班级花名册
-    targetClass.studentIds.push(assignedStudent.id);
+    if (!targetClass.studentIds.includes(assignedStudent.id)) targetClass.studentIds.push(assignedStudent.id);
     targetClass.currentCount = targetClass.studentIds.length;
     assertEqual(targetClass.currentCount, 1, '班级名额计数器准确递增为 1 人');
 

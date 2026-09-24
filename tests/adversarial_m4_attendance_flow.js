@@ -40,6 +40,10 @@ const jiti = createJiti(__filename, {
 });
 
 const mocks = jiti('../src/mocks/index.ts');
+if (mocks.MOCK_CLASSES.length === 0 && mocks.restoreEducationalMockData) {
+  mocks.restoreEducationalMockData();
+  mocks.restoreStudentMockData();
+}
 
 // 终端颜色输出辅助
 const colors = {
@@ -491,6 +495,7 @@ test('3.1 连续按周规律批量排课 (batchScheduleClass)：自动周次推�
   assert(targetClass, '总部班级必须存在');
 
   const beforeEventsCount = mocks.MOCK_SCHEDULE_EVENTS.length;
+  const startLesson = (targetClass.completedLessons || 0) + 1;
 
   // 执行批量排课：连续排 4 周，每周六 14:00-16:00
   const batchRes = mocks.batchScheduleClass(targetClass.id, {
@@ -512,7 +517,6 @@ test('3.1 连续按周规律批量排课 (batchScheduleClass)：自动周次推�
   assertEqual(created[3].date, '2026-11-28');
 
   // 验证 lessonNumber 与课次标题按序推进
-  const startLesson = (targetClass.completedLessons || 0) + 1;
   assertEqual(created[0].lessonNumber, startLesson);
   assertEqual(created[1].lessonNumber, startLesson + 1);
   assertEqual(created[2].lessonNumber, startLesson + 2);

@@ -11,10 +11,13 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <el-tag v-if="isTeacher" size="small" type="success" effect="light" class="font-medium">
+        <el-tag v-if="isSuperAdminUser" size="small" type="danger" effect="light" class="font-medium">
+          👑 超级管理员 (全校区排课全景透视)
+        </el-tag>
+        <el-tag v-else-if="isTeacher" size="small" type="success" effect="light" class="font-medium">
           👨‍🏫 当前讲师：{{ currentTeacherName }}
         </el-tag>
-        <div v-if="isTeacher" class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-200">
+        <div v-if="isTeacher && !isSuperAdminUser" class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-200">
           <el-switch
             v-model="onlyMyLessons"
             size="small"
@@ -135,12 +138,21 @@
           <el-option label="已结课" value="completed" />
         </el-select>
 
-        <!-- 请选择角色 -->
-        <el-select v-model="filters.role" placeholder="请选择角色" clearable class="w-full" @change="loadData">
-          <el-option label="全部角色" value="" />
-          <el-option label="授课老师" value="teacher" />
-          <el-option label="班主任学管" value="head_teacher" />
-          <el-option label="教务老师" value="assistant" />
+        <!-- 授课老师 -->
+        <el-select
+          v-model="filters.teacherId"
+          placeholder="全部讲师"
+          clearable
+          class="w-full"
+          @change="loadData"
+        >
+          <el-option label="全部讲师" value="" />
+          <el-option
+            v-for="t in teacherOptions"
+            :key="t.id"
+            :label="`${t.name} (${t.roleName || '讲师'})`"
+            :value="t.id"
+          />
         </el-select>
 
         <!-- 教室 -->
@@ -173,7 +185,8 @@
             v-model="filters.date"
             type="date"
             value-format="YYYY-MM-DD"
-            placeholder="选择排课日期"
+            placeholder="选择排课日期 (可清空)"
+            clearable
             class="!w-full"
             @change="loadData"
           />
@@ -185,7 +198,8 @@
     </div>
 
     <!-- 课程卡片列表流 (Card View, 1:1 复刻截图 1 & 截图 2) -->
-    <div v-if="viewMode === 'card'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div v-if="viewMode === 'card'">
+      <div v-if="cardList.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <div
         v-for="card in cardList"
         :key="card.id"
@@ -334,6 +348,19 @@
           </button>
         </div>
       </div>
+      </div>
+      <div v-else class="bg-white rounded-xl p-12 text-center border border-st-border">
+        <el-empty :description="isSuperAdminUser ? '当前校区所选筛选条件下暂无排课安排' : '当前讲师在所选排课日期暂无执教排课安排'">
+          <template #extra>
+            <el-button v-if="onlyMyLessons && !isSuperAdminUser" type="primary" plain size="small" @click="onlyMyLessons = false; loadData()">
+              切换查看全校区所有排课
+            </el-button>
+            <el-button v-else-if="filters.date || filters.teacherId || filters.status || filters.search || filters.classroomId || filters.mode" type="primary" plain size="small" @click="handleResetFilters">
+              重置全部筛选条件
+            </el-button>
+          </template>
+        </el-empty>
+      </div>
     </div>
 
     <!-- 表格视图 (Table View) -->
@@ -471,9 +498,13 @@ import type { WorkbenchLessonCard, LessonEvaluation } from '@/types/educational'
 import {
   getWorkbenchLessons,
   getClassrooms,
+  getTeachers,
+  getClassById,
+  submitRollCall,
   startLesson,
   finishLesson
 } from '@/mocks/educational'
+import { MOCK_STUDENTS } from '@/mocks/student'
 import LessonEvaluationDialog from './components/LessonEvaluationDialog.vue'
 import LessonLessonPlanDrawer from './components/LessonLessonPlanDrawer.vue'
 import LessonPlaybackDialog from './components/LessonPlaybackDialog.vue'
@@ -482,9 +513,45 @@ const tenantStore = useTenantStore()
 const authStore = useAuthStore()
 
 const currentCampus = computed(() => tenantStore.currentCampus)
-const isTeacher = computed(() => authStore.isTeacher)
-const currentTeacherName = computed(() => authStore.user?.realName || '张老师')
-const onlyMyLessons = ref(authStore.isTeacher)
+function getTodayDateStr(): string {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const isSuperAdminUser = computed<boolean>(() => {
+  const u = authStore.user
+  if (!u) return false
+  return !!(
+    authStore.isSuperAdmin ||
+    u.roles?.includes('super_admin') ||
+    u.roles?.includes('admin') ||
+    u.roles?.includes('r1') ||
+    u.roleName?.includes('超级管理员')
+  )
+})
+
+const isTeacherUser = computed<boolean>(() => {
+  const u = authStore.user
+  if (!u) return false
+  if (isSuperAdminUser.value) return false
+  return !!(
+    authStore.isTeacher ||
+    u.teacherId ||
+    u.roles?.includes('teacher') ||
+    u.roleName?.includes('教师') ||
+    u.roleName?.includes('老师') ||
+    u.roleName?.includes('讲师') ||
+    u.roleName?.includes('教练')
+  )
+})
+const isTeacher = computed(() => isTeacherUser.value)
+const currentTeacherName = computed(() => authStore.user?.realName || authStore.user?.account || '张老师')
+
+// 仅真实授课讲师登录且非超级管理员时，默认只看自己的课程；超级管理员等管理角色默认查看全校区所有老师排课
+const onlyMyLessons = ref(isTeacherUser.value && !isSuperAdminUser.value)
 
 const viewMode = ref<'card' | 'table'>('card')
 const cardList = ref<WorkbenchLessonCard[]>([])
@@ -501,7 +568,7 @@ const stats = reactive({
 
 const filters = reactive({
   status: '',
-  role: '',
+  teacherId: '',
   classroomId: '',
   mode: '',
   search: '',
@@ -509,6 +576,7 @@ const filters = reactive({
 })
 
 const classroomOptions = computed(() => getClassrooms(tenantStore.currentCampusId))
+const teacherOptions = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'teacher'))
 
 // 弹窗引用
 const evaluationDialogRef = ref<InstanceType<typeof LessonEvaluationDialog>>()
@@ -521,24 +589,55 @@ const activeLessonForSignIn = ref<WorkbenchLessonCard | null>(null)
 const tempAttendanceList = ref<{ studentId: string; studentName: string; status: 'present' | 'late' | 'leave' | 'absent' }[]>([])
 
 function loadData() {
-  const teacherIdParam = (onlyMyLessons.value && authStore.user?.teacherId) ? authStore.user.teacherId : undefined
+  const isTeacher = isTeacherUser.value
+  const isSuper = isSuperAdminUser.value
+
+  // 必须是授课老师且开启了“仅看我的课程”、且非超级管理员时，才自动应用当前登录教师过滤
+  const shouldFilterTeacher = isTeacher && onlyMyLessons.value && !isSuper
+
+  let teacherIdParam: string | undefined = undefined
+  let teacherNameParam: string | undefined = undefined
+
+  if (shouldFilterTeacher) {
+    teacherIdParam = authStore.user?.teacherId || authStore.user?.id
+    teacherNameParam = authStore.user?.realName || authStore.user?.account
+  } else if (filters.teacherId) {
+    teacherIdParam = filters.teacherId
+  }
+
+  const queryDate = filters.date || undefined
 
   const res = getWorkbenchLessons({
     campusId: tenantStore.currentCampusId,
-    date: filters.date || undefined,
+    date: queryDate,
     status: filters.status || undefined,
     mode: filters.mode || undefined,
     search: filters.search || undefined,
     classroomId: filters.classroomId || undefined,
-    teacherId: teacherIdParam
+    teacherId: teacherIdParam,
+    teacherName: teacherNameParam
   })
 
   cardList.value = res.cards
   Object.assign(stats, res.stats)
 }
 
-watch(() => authStore.user, (newVal) => {
-  onlyMyLessons.value = !!(newVal?.roles.includes('teacher') || newVal?.teacherId)
+function handleResetFilters() {
+  filters.status = ''
+  filters.teacherId = ''
+  filters.classroomId = ''
+  filters.mode = ''
+  filters.search = ''
+  filters.date = ''
+  loadData()
+}
+
+watch(() => authStore.user, () => {
+  onlyMyLessons.value = isTeacherUser.value && !isSuperAdminUser.value
+  loadData()
+}, { immediate: true })
+
+watch(() => tenantStore.currentCampusId, () => {
   loadData()
 })
 
@@ -585,17 +684,37 @@ function handleOpenPlayback(card: WorkbenchLessonCard) {
 // 签到相关
 function handleOpenSignIn(card: WorkbenchLessonCard) {
   activeLessonForSignIn.value = card
-  // 生成模拟学员签到名单
-  const count = card.totalStudents || 6
-  const sampleNames = ['张星宇', '李子墨', '王梓轩', '陈思睿', '刘若涵', '赵浩宇', '周一诺', '孙嘉禾']
-  tempAttendanceList.value = Array.from({ length: count }, (_, i) => {
-    const isPresent = i < card.signedCount
-    return {
-      studentId: `stu-${i + 1}`,
-      studentName: sampleNames[i % sampleNames.length],
-      status: isPresent ? 'present' : (i === count - 1 ? 'leave' : 'present')
-    }
-  })
+
+  // 严密联动：获取该班级真实学员花名册 (优先使用卡片/日程 studentIds，次之从班级获取)
+  const cls = getClassById(card.classId || '')
+  let realStudentIds: string[] = []
+  if (card.studentIds && card.studentIds.length > 0) {
+    realStudentIds = [...card.studentIds]
+  } else if (cls && cls.studentIds && cls.studentIds.length > 0) {
+    realStudentIds = [...cls.studentIds]
+  }
+
+  if (realStudentIds.length > 0) {
+    tempAttendanceList.value = realStudentIds.map((id, index) => {
+      const s = MOCK_STUDENTS.find(x => x.id === id)
+      const isPresent = index < card.signedCount
+      return {
+        studentId: id,
+        studentName: s?.name || ('学员 ' + id),
+        status: isPresent ? 'present' : 'present'
+      }
+    })
+  } else {
+    // 班级尚无学员时的默认真实名单
+    const count = card.totalStudents || 6
+    const sampleStudents = MOCK_STUDENTS.slice(0, count)
+    tempAttendanceList.value = sampleStudents.map((s, index) => ({
+      studentId: s.id,
+      studentName: s.name,
+      status: index < card.signedCount ? 'present' : 'present'
+    }))
+  }
+
   signInDialogVisible.value = true
 }
 
@@ -606,9 +725,26 @@ function handleBatchAllPresent() {
 
 function handleSaveSignIn() {
   if (!activeLessonForSignIn.value) return
+
+  // 联动真实消课逻辑 submitRollCall 扣减真实学员课时
+  const attendancePayload = tempAttendanceList.value.map(item => ({
+    studentId: item.studentId,
+    studentName: item.studentName,
+    status: item.status,
+    deductionLessons: item.status === 'present' || item.status === 'late' ? 1 : 0
+  }))
+
+  const res = submitRollCall(activeLessonForSignIn.value.id, attendancePayload, authStore.user?.realName || '授课讲师')
+
   const attended = tempAttendanceList.value.filter(s => s.status === 'present' || s.status === 'late').length
   activeLessonForSignIn.value.signedCount = attended
-  ElMessage.success(`随堂签到打卡完成！实到 ${attended} 人，已成功扣减学员对应课时！`)
+
+  if (res.success) {
+    ElMessage.success('随堂签到打卡完成！实到 ' + attended + ' 人，已真实扣减在读学员课时并同步消课台账！')
+  } else {
+    ElMessage.success('随堂签到打卡完成！实到 ' + attended + ' 人！')
+  }
+
   signInDialogVisible.value = false
   loadData()
 }
