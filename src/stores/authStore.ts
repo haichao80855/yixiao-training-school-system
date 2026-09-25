@@ -14,6 +14,7 @@ export interface UserProfile {
   departmentName?: string
   postName?: string
   permissions: string[]
+  dataScope?: 'all' | 'campus' | 'department' | 'self'
 }
 
 const TOKEN_KEY = 'yixiao_auth_token'
@@ -34,6 +35,7 @@ export const PRESET_USERS: Record<string, UserProfile & { password?: string; des
     roleName: '少儿编程专职主讲教师',
     departmentName: '少儿编程教学组',
     postName: '高级编程讲师',
+    dataScope: 'self',
     description: '信奥金牌讲师，主讲 Scratch / Python，教学讲台核心执教人',
     permissions: [
       'curriculum:view',
@@ -57,6 +59,7 @@ export const PRESET_USERS: Record<string, UserProfile & { password?: string; des
     roleName: '少儿编程专职主讲教师',
     departmentName: '少儿编程教学组',
     postName: '高级编程讲师',
+    dataScope: 'self',
     description: '快捷授课教师账号（同张老师）',
     permissions: [
       'curriculum:view',
@@ -80,6 +83,7 @@ export const PRESET_USERS: Record<string, UserProfile & { password?: string; des
     roleName: '超级管理员 (集团总部)',
     departmentName: '教务教学部',
     postName: '总系统管理员',
+    dataScope: 'all',
     description: '系统最高权限，统管全集团校区、财务审批与组织架构',
     permissions: ['*']
   },
@@ -94,6 +98,7 @@ export const PRESET_USERS: Record<string, UserProfile & { password?: string; des
     roleName: '超级管理员 (集团总部)',
     departmentName: '教务教学部',
     postName: '总系统管理员',
+    dataScope: 'all',
     description: '快捷管理员账号（同冬海潮）',
     permissions: ['*']
   },
@@ -110,6 +115,7 @@ export const PRESET_USERS: Record<string, UserProfile & { password?: string; des
     roleName: 'EV3/单片机硬件导师',
     departmentName: '创客工程组',
     postName: '硬件主讲教师',
+    dataScope: 'self',
     description: 'EV3机器人与开源硬件导师',
     permissions: [
       'curriculum:view',
@@ -130,6 +136,7 @@ export const PRESET_USERS: Record<string, UserProfile & { password?: string; des
     roleName: '分校区执行校长',
     departmentName: '校长办公室',
     postName: '执行校长',
+    dataScope: 'campus',
     description: '校区日常运营、教务调度与大额退费审批',
     permissions: [
       'curriculum:view',
@@ -151,6 +158,7 @@ export const PRESET_USERS: Record<string, UserProfile & { password?: string; des
     roleName: '校区出纳与财务',
     departmentName: '校区财务处',
     postName: '校区总出纳',
+    dataScope: 'campus',
     description: '收费核销、出纳流水与财务终审入账',
     permissions: [
       'financial:order:view',
@@ -188,6 +196,7 @@ export const useAuthStore = defineStore('auth', () => {
           if (matched.roleName) defaultUser.roleName = matched.roleName
           if (matched.campusId) defaultUser.campusId = matched.campusId
           if (matched.campusName) defaultUser.campusName = matched.campusName
+          if (matched.dataScope) defaultUser.dataScope = matched.dataScope
         }
       }
     } catch {
@@ -273,7 +282,8 @@ export const useAuthStore = defineStore('auth', () => {
           roleName: foundSysUser.roleName || (isSuperAdminRole ? '超级管理员 (集团总部)' : (isTeacherRole ? '少儿编程专职主讲教师' : '系统员工')),
           departmentName: foundSysUser.departmentName || (isSuperAdminRole ? '总经办' : '教务教学部'),
           postName: foundSysUser.postName || (isSuperAdminRole ? '超级管理员' : (isTeacherRole ? '授课教师' : '运营人员')),
-          permissions: ['*']
+          permissions: foundSysUser.permissions || ['curriculum:view', 'educational:schedule:view'],
+          dataScope: foundSysUser.dataScope || (isSuperAdminRole ? 'all' : 'self')
         }
       } else {
         // 允许任意自定义账号登录
@@ -289,7 +299,8 @@ export const useAuthStore = defineStore('auth', () => {
           roleName: isTeacherRole ? '少儿编程专职主讲教师' : '普通用户',
           departmentName: '教学教务中心',
           postName: isTeacherRole ? '授课教师' : '运营人员',
-          permissions: ['*']
+          permissions: ['*'],
+          dataScope: isTeacherRole ? 'self' : 'all'
         }
       }
     }
@@ -315,6 +326,20 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value.permissions.includes(permCode)
   }
 
+  const dataScope = computed<'all' | 'campus' | 'department' | 'self'>(() => user.value?.dataScope || 'self')
+  const isDataScopeSelf = computed(() => dataScope.value === 'self')
+  const isDataScopeCampus = computed(() => dataScope.value === 'campus')
+  const isDataScopeAll = computed(() => dataScope.value === 'all')
+
+  function updateUserDataScope(newScope: 'all' | 'campus' | 'department' | 'self') {
+    if (user.value) {
+      user.value.dataScope = newScope
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+      }
+    }
+  }
+
   return {
     token,
     user,
@@ -324,6 +349,11 @@ export const useAuthStore = defineStore('auth', () => {
     setLoginSession,
     login,
     logout,
-    hasPermission
+    hasPermission,
+    dataScope,
+    isDataScopeSelf,
+    isDataScopeCampus,
+    isDataScopeAll,
+    updateUserDataScope
   }
 })

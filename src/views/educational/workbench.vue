@@ -17,7 +17,18 @@
         <el-tag v-else-if="isTeacher" size="small" type="success" effect="light" class="font-medium">
           👨‍🏫 当前讲师：{{ currentTeacherName }}
         </el-tag>
-        <div v-if="isTeacher && !isSuperAdminUser" class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-200">
+        <!-- 权限范围徽章 -->
+        <el-tag
+          v-if="!isSuperAdminUser"
+          size="small"
+          :type="isDataScopeSelf ? 'warning' : 'primary'"
+          effect="plain"
+          class="font-medium font-mono"
+        >
+          {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人课程)' : (currentDataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+        </el-tag>
+        <!-- 仅看我的课程开关：仅当非本人专属数据（即本校/全校数据权限）时允许自由切换；本人权限已锁定只看本人课程 -->
+        <div v-if="isTeacher && !isSuperAdminUser && !isDataScopeSelf" class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-200">
           <el-switch
             v-model="onlyMyLessons"
             size="small"
@@ -141,12 +152,13 @@
         <!-- 授课老师 -->
         <el-select
           v-model="filters.teacherId"
-          placeholder="全部讲师"
+          :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '全部讲师'"
+          :disabled="isDataScopeSelf"
           clearable
           class="w-full"
           @change="loadData"
         >
-          <el-option label="全部讲师" value="" />
+          <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
           <el-option
             v-for="t in teacherOptions"
             :key="t.id"
@@ -352,10 +364,10 @@
       <div v-else class="bg-white rounded-xl p-12 text-center border border-st-border">
         <el-empty :description="isSuperAdminUser ? '当前校区所选筛选条件下暂无排课安排' : '当前讲师在所选排课日期暂无执教排课安排'">
           <template #extra>
-            <el-button v-if="onlyMyLessons && !isSuperAdminUser" type="primary" plain size="small" @click="onlyMyLessons = false; loadData()">
+            <el-button v-if="onlyMyLessons && !isSuperAdminUser && !isDataScopeSelf" type="primary" plain size="small" @click="onlyMyLessons = false; loadData()">
               切换查看全校区所有排课
             </el-button>
-            <el-button v-else-if="filters.date || filters.teacherId || filters.status || filters.search || filters.classroomId || filters.mode" type="primary" plain size="small" @click="handleResetFilters">
+            <el-button v-else-if="filters.date || (!isDataScopeSelf && filters.teacherId) || filters.status || filters.search || filters.classroomId || filters.mode" type="primary" plain size="small" @click="handleResetFilters">
               重置全部筛选条件
             </el-button>
           </template>
@@ -549,6 +561,13 @@ const isTeacherUser = computed<boolean>(() => {
 })
 const isTeacher = computed(() => isTeacherUser.value)
 const currentTeacherName = computed(() => authStore.user?.realName || authStore.user?.account || '张老师')
+const currentDataScope = computed(() => authStore.user?.dataScope || 'self')
+const isDataScopeSelf = computed<boolean>(() => {
+  const u = authStore.user
+  if (!u) return false
+  if (isSuperAdminUser.value) return false
+  return authStore.isDataScopeSelf || u.dataScope === 'self'
+})
 
 // 仅真实授课讲师登录且非超级管理员时，默认只看自己的课程；超级管理员等管理角色默认查看全校区所有老师排课
 const onlyMyLessons = ref(isTeacherUser.value && !isSuperAdminUser.value)
@@ -592,13 +611,16 @@ function loadData() {
   const isTeacher = isTeacherUser.value
   const isSuper = isSuperAdminUser.value
 
-  // 必须是授课老师且开启了“仅看我的课程”、且非超级管理员时，才自动应用当前登录教师过滤
-  const shouldFilterTeacher = isTeacher && onlyMyLessons.value && !isSuper
-
+  const isSelf = isDataScopeSelf.value
   let teacherIdParam: string | undefined = undefined
   let teacherNameParam: string | undefined = undefined
 
-  if (shouldFilterTeacher) {
+  if (isSelf) {
+    // 权限仅本人数据：严密阻断，锁定只看自己授课课程
+    onlyMyLessons.value = true
+    teacherIdParam = authStore.user?.teacherId || authStore.user?.id
+    teacherNameParam = authStore.user?.realName || authStore.user?.account
+  } else if (onlyMyLessons.value && !isSuper) {
     teacherIdParam = authStore.user?.teacherId || authStore.user?.id
     teacherNameParam = authStore.user?.realName || authStore.user?.account
   } else if (filters.teacherId) {
@@ -624,7 +646,7 @@ function loadData() {
 
 function handleResetFilters() {
   filters.status = ''
-  filters.teacherId = ''
+  filters.teacherId = isDataScopeSelf.value ? (authStore.user?.teacherId || authStore.user?.id || '') : ''
   filters.classroomId = ''
   filters.mode = ''
   filters.search = ''
@@ -633,7 +655,13 @@ function handleResetFilters() {
 }
 
 watch(() => authStore.user, () => {
-  onlyMyLessons.value = isTeacherUser.value && !isSuperAdminUser.value
+  if (isDataScopeSelf.value) {
+    onlyMyLessons.value = true
+    filters.teacherId = authStore.user?.teacherId || authStore.user?.id || ''
+  } else {
+    onlyMyLessons.value = isTeacherUser.value && !isSuperAdminUser.value
+    filters.teacherId = ''
+  }
   loadData()
 }, { immediate: true })
 

@@ -69,7 +69,14 @@
             <!-- 筛选条 -->
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="flex items-center space-x-3">
-                <el-select v-model="filterTeacher" placeholder="全部讲师" clearable class="!w-36">
+                <el-select
+                  v-model="filterTeacher"
+                  :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '全部讲师'"
+                  :disabled="isDataScopeSelf"
+                  clearable
+                  class="!w-36"
+                >
+                  <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
                   <el-option v-for="t in teachers" :key="t.id" :label="t.name" :value="t.id" />
                 </el-select>
                 <el-date-picker
@@ -81,11 +88,20 @@
                 />
               </div>
 
-              <span class="text-xs text-st-muted">
-                {{ filterDate ? "当日" : "今日" }}待上课次共 <b>{{ filteredSchedules.length }}</b> 节
-              </span>
+              <div class="flex items-center gap-2">
+                <el-tag
+                  size="small"
+                  :type="isDataScopeSelf ? 'warning' : 'primary'"
+                  effect="plain"
+                  class="font-medium font-mono"
+                >
+                  {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人点名)' : (authStore.user?.dataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+                </el-tag>
+                <span class="text-xs text-st-muted">
+                  {{ filterDate ? "当日" : "今日" }}待上课次共 <b>{{ filteredSchedules.length }}</b> 节
+                </span>
+              </div>
             </div>
-
             <!-- 待上课次表格 -->
             <el-table :data="filteredSchedules" stripe border size="default" style="width: 100%">
               <el-table-column prop="date" label="上课日期" width="115" />
@@ -237,10 +253,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
+import { useAuthStore } from '@/stores/authStore'
 import {
   getScheduleEvents,
   getAttendanceRecords,
@@ -253,7 +270,11 @@ import AttendanceDetailDialog from './components/AttendanceDetailDialog.vue'
 
 const route = useRoute()
 const tenantStore = useTenantStore()
+const authStore = useAuthStore()
 const currentCampus = computed(() => tenantStore.currentCampus)
+const isDataScopeSelf = computed(() => authStore.isDataScopeSelf || authStore.user?.dataScope === 'self')
+const currentTeacherId = computed(() => authStore.user?.teacherId || authStore.user?.id || '')
+const currentTeacherName = computed(() => authStore.user?.realName || authStore.user?.account || '')
 
 function getTodayDateStr(): string {
   const now = new Date()
@@ -279,9 +300,21 @@ function loadData() {
   attendanceRecords.value = getAttendanceRecords(tenantStore.currentCampusId)
 }
 
+watch(() => [authStore.user, isDataScopeSelf.value], () => {
+  if (isDataScopeSelf.value) {
+    filterTeacher.value = currentTeacherId.value
+  } else {
+    filterTeacher.value = ''
+  }
+}, { immediate: true })
+
 const filteredSchedules = computed(() => {
   let list = schedules.value
-  if (filterTeacher.value) {
+  if (isDataScopeSelf.value) {
+    const tId = currentTeacherId.value
+    const tName = currentTeacherName.value
+    list = list.filter(s => s.teacherId === tId || (tName && s.teacherName === tName))
+  } else if (filterTeacher.value) {
     list = list.filter(s => s.teacherId === filterTeacher.value)
   }
   if (filterDate.value) {

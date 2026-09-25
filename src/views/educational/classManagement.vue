@@ -92,7 +92,15 @@
           <el-option label="已结业" value="completed" />
         </el-select>
 
-        <el-select v-model="teacherFilter" placeholder="授课讲师" clearable class="!w-36" @change="loadData">
+        <el-select
+          v-model="teacherFilter"
+          :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '授课讲师'"
+          :disabled="isDataScopeSelf"
+          clearable
+          class="!w-36"
+          @change="loadData"
+        >
+          <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
           <el-option v-for="t in teachers" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
 
@@ -101,6 +109,14 @@
       </div>
 
       <div class="text-xs text-st-muted flex items-center gap-2">
+        <el-tag
+          size="small"
+          :type="isDataScopeSelf ? 'warning' : 'primary'"
+          effect="plain"
+          class="font-medium font-mono"
+        >
+          {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人班级)' : (authStore.user?.dataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+        </el-tag>
         <span v-if="selectedRows.length > 0" class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
           已勾选 {{ selectedRows.length }} 个教学班级
         </span>
@@ -275,9 +291,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
+import { useAuthStore } from '@/stores/authStore'
 import { getClasses, getTeachers, deleteClass, getClassrooms, addClassroom } from '@/mocks/educational'
 import type { ClassItem, Classroom } from '@/types/educational'
 import ClassDetailDrawer from './components/ClassDetailDrawer.vue'
@@ -285,7 +302,11 @@ import BatchScheduleDialog from './components/BatchScheduleDialog.vue'
 import ClassFormDialog from './components/ClassFormDialog.vue'
 
 const tenantStore = useTenantStore()
+const authStore = useAuthStore()
 const currentCampus = computed(() => tenantStore.currentCampus)
+const isDataScopeSelf = computed(() => authStore.isDataScopeSelf || authStore.user?.dataScope === 'self')
+const currentTeacherId = computed(() => authStore.user?.teacherId || authStore.user?.id || '')
+const currentTeacherName = computed(() => authStore.user?.realName || authStore.user?.account || '')
 
 // 教室管理状态
 const showClassroomManageModal = ref(false)
@@ -354,25 +375,37 @@ function getStatusLabel(status: string) {
 }
 
 function loadData() {
+  const tId = isDataScopeSelf.value ? currentTeacherId.value : (teacherFilter.value || undefined)
+  const tName = isDataScopeSelf.value ? currentTeacherName.value : undefined
   classList.value = getClasses({
     campusId: tenantStore.currentCampusId,
     search: searchQuery.value || undefined,
     status: statusFilter.value || undefined,
-    teacherId: teacherFilter.value || undefined
+    teacherId: tId,
+    teacherName: tName
   })
 }
+
+watch(() => [authStore.user, isDataScopeSelf.value], () => {
+  if (isDataScopeSelf.value) {
+    teacherFilter.value = currentTeacherId.value
+  } else {
+    teacherFilter.value = ''
+  }
+  loadData()
+}, { immediate: true })
 
 function handleResetFilters() {
   searchQuery.value = ''
   statusFilter.value = ''
-  teacherFilter.value = ''
+  teacherFilter.value = isDataScopeSelf.value ? currentTeacherId.value : ''
   loadData()
 }
 
 function handleClassSaveSuccess() {
   searchQuery.value = ''
   statusFilter.value = ''
-  teacherFilter.value = ''
+  teacherFilter.value = isDataScopeSelf.value ? currentTeacherId.value : ''
   loadData()
 }
 

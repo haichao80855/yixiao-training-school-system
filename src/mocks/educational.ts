@@ -1828,6 +1828,7 @@ export function getScheduleEvents(params?: {
   startDate?: string;
   endDate?: string;
   teacherId?: string;
+  teacherName?: string;
   classroomId?: string;
   courseId?: string;
   status?: string;
@@ -1875,7 +1876,15 @@ export function getScheduleEvents(params?: {
     list = list.filter(e => e.date >= params.startDate! && e.date <= params.endDate!)
   }
   if (params?.teacherId) {
-    list = list.filter(e => e.teacherId === params.teacherId)
+    const pTeacherId = params.teacherId.trim()
+    const pTeacherName = params.teacherName?.trim()
+    const allTeachers = getTeachers()
+    const matchedTeacherObj = allTeachers.find(t => (pTeacherId && t.id === pTeacherId) || (pTeacherName && t.name === pTeacherName))
+    list = list.filter(e => {
+      const matchId = e.teacherId === pTeacherId || (matchedTeacherObj && e.teacherId === matchedTeacherObj.id)
+      const matchName = pTeacherName && (e.teacherName === pTeacherName || (matchedTeacherObj && e.teacherName === matchedTeacherObj.name))
+      return matchId || matchName
+    })
   }
   if (params?.classroomId) {
     list = list.filter(e => e.classroomId === params.classroomId)
@@ -2274,7 +2283,8 @@ export function getClasses(params?: {
   search?: string;
   status?: string;
   teacherId?: string;
-}): ClassItem[] {
+  teacherName?: string;
+}) {
   restoreClassesFromStorage()
   let list = [...MOCK_CLASSES]
   if (params?.campusId && params.campusId !== 'campus-bj-hq' && params.campusId !== 'HQ001') {
@@ -2284,7 +2294,15 @@ export function getClasses(params?: {
     list = list.filter(c => c.status === params.status)
   }
   if (params?.teacherId) {
-    list = list.filter(c => c.teacherId === params.teacherId)
+    const pTeacherId = params.teacherId.trim()
+    const pTeacherName = params.teacherName?.trim()
+    const allTeachers = getTeachers()
+    const matchedTeacherObj = allTeachers.find(t => (pTeacherId && t.id === pTeacherId) || (pTeacherName && t.name === pTeacherName))
+    list = list.filter(c => {
+      const matchId = c.teacherId === pTeacherId || (matchedTeacherObj && c.teacherId === matchedTeacherObj.id)
+      const matchName = pTeacherName && (c.teacherName === pTeacherName || (matchedTeacherObj && c.teacherName === matchedTeacherObj.name))
+      return matchId || matchName
+    })
   }
   if (params?.search) {
     const s = params.search.toLowerCase()
@@ -2996,7 +3014,8 @@ export function getWorkbenchLessons(params: {
   const filterByTeacher = !!(params.teacherId || params.teacherName)
   const pTeacherId = params.teacherId?.trim()
   const pTeacherName = params.teacherName?.trim()
-  const matchedTeacherObj = MOCK_TEACHERS.find(t => (pTeacherId && t.id === pTeacherId) || (pTeacherName && t.name === pTeacherName))
+  const allTeachers = getTeachers()
+  const matchedTeacherObj = allTeachers.find(t => (pTeacherId && t.id === pTeacherId) || (pTeacherName && t.name === pTeacherName))
 
   let events = MOCK_SCHEDULE_EVENTS.filter(e => {
     // 过滤已被删除班级的残存排课

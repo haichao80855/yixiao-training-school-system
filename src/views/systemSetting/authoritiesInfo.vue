@@ -424,8 +424,11 @@
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="150" fixed="right">
+              <el-table-column label="操作" width="220" fixed="right">
                 <template #default="{ row }">
+                  <el-button link type="success" size="small" @click="handleQuickSwitchUser(row)" title="以该员工身份快速登录体验">
+                    体验
+                  </el-button>
                   <el-button link type="primary" size="small" @click="openResetPassword(row)">
                     改密
                   </el-button>
@@ -672,7 +675,9 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAuthStore } from '@/stores/authStore'
 import {
   School,
   User,
@@ -699,10 +704,11 @@ import {
 } from '@/mocks/system'
 
 // --- 状态定义 ---
+const router = useRouter()
+const authStore = useAuthStore()
 const activeTab = ref<'org' | 'logo' | 'product'>('org')
 const expandAll = ref(true)
 const orgTreeRef = ref()
-
 // 机构元数据
 const orgMeta = reactive({
   name: '北京拓视未来教育科技集团股份有限公司',
@@ -987,12 +993,24 @@ function submitAddUser() {
   }
   const newUser = addSystemUser({
     ...userForm,
+    dataScope: userForm.dataScope || 'self',
     postId: 'post-hq-teacher',
     departmentId: 'dept-hq-edu'
   })
   systemUsers.value = [...MOCK_SYSTEM_USER_LIST]
   showAddUserDialog.value = false
-  ElMessage.success(`员工 [${newUser.name}] 已成功录入系统！`)
+  ElMessage.success(`员工 [${newUser.name}] 已成功录入系统！数据透视权限：${getDataScopeLabel(newUser.dataScope)}`)
+}
+
+function handleQuickSwitchUser(user: SystemUser) {
+  authStore.login(user.account)
+  ElMessage.success(`已切换为员工【${user.name}】(${getDataScopeLabel(user.dataScope)}) 身份`)
+  const isTeacher = user.roleName?.includes('教师') || user.roleName?.includes('老师') || user.roleName?.includes('讲师') || user.roleId === 'r4'
+  if (isTeacher) {
+    router.push('/educational/workbench')
+  } else {
+    router.push('/dashboard')
+  }
 }
 
 function openResetPassword(user: SystemUser) {
@@ -1030,6 +1048,9 @@ function saveUserAuth() {
     dataScope: activeUser.value.dataScope
   })
   systemUsers.value = [...MOCK_SYSTEM_USER_LIST]
+  if (authStore.user?.id === activeUser.value.id || authStore.user?.account === activeUser.value.account) {
+    authStore.updateUserDataScope(activeUser.value.dataScope)
+  }
   showAuthDrawer.value = false
   ElMessage.success(`员工 [${activeUser.value.name}] 角色与数据权限配置已生效！`)
 }

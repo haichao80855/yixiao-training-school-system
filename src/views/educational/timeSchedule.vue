@@ -32,7 +32,15 @@
         </button>
       </div>
 
-      <div class="text-xs text-st-muted flex items-center gap-1.5">
+      <div class="text-xs text-st-muted flex items-center gap-2">
+        <el-tag
+          size="small"
+          :type="isDataScopeSelf ? 'warning' : 'primary'"
+          effect="plain"
+          class="font-medium font-mono"
+        >
+          {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人课表)' : (authStore.user?.dataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+        </el-tag>
         <span>当前校区：</span>
         <el-tag size="small" type="primary">{{ currentCampus.name }}</el-tag>
       </div>
@@ -42,10 +50,17 @@
     <div class="bg-white rounded-lg p-4 shadow-sm border border-st-border flex flex-wrap items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-3">
         <!-- 讲师 -->
-        <el-select v-model="filterTeacher" placeholder="讲师" clearable class="!w-36" size="default">
+        <el-select
+          v-model="filterTeacher"
+          :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '讲师'"
+          :disabled="isDataScopeSelf"
+          clearable
+          class="!w-36"
+          size="default"
+        >
+          <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
           <el-option v-for="t in teachers" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
-
         <!-- 教务/班主任 -->
         <el-select v-model="filterAdvisor" placeholder="教务" clearable class="!w-36" size="default">
           <el-option v-for="a in advisors" :key="a.id" :label="a.name" :value="a.id" />
@@ -407,9 +422,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
+import { useAuthStore } from '@/stores/authStore'
 import {
   EducationalCollisionEngine,
   getScheduleEvents,
@@ -424,7 +440,11 @@ import ScheduleDetailDrawer from './components/ScheduleDetailDrawer.vue'
 import ConflictCenterDialog from './components/ConflictCenterDialog.vue'
 
 const tenantStore = useTenantStore()
+const authStore = useAuthStore()
 const currentCampus = computed(() => tenantStore.currentCampus)
+const isDataScopeSelf = computed(() => authStore.isDataScopeSelf || authStore.user?.dataScope === 'self')
+const currentTeacherId = computed(() => authStore.user?.teacherId || authStore.user?.id || '')
+const currentTeacherName = computed(() => authStore.user?.realName || authStore.user?.account || '')
 
 // 子 Tab 导航定义
 const subTabs = [
@@ -509,17 +529,25 @@ const conflictCenterRef = ref<InstanceType<typeof ConflictCenterDialog>>()
 const schedules = ref<ScheduleEvent[]>([])
 
 function loadSchedules() {
+  const tId = isDataScopeSelf.value ? currentTeacherId.value : (filterTeacher.value || undefined)
+  const tName = isDataScopeSelf.value ? currentTeacherName.value : undefined
   schedules.value = getScheduleEvents({
     campusId: tenantStore.currentCampusId,
-    teacherId: filterTeacher.value || undefined,
+    teacherId: tId,
+    teacherName: tName,
     classroomId: filterClassroom.value || undefined,
     courseId: filterCourse.value || undefined
   })
 }
 
-onMounted(() => {
+watch(() => [authStore.user, isDataScopeSelf.value], () => {
+  if (isDataScopeSelf.value) {
+    filterTeacher.value = currentTeacherId.value
+  } else {
+    filterTeacher.value = ''
+  }
   loadSchedules()
-})
+}, { immediate: true })
 
 const campusConflictCount = computed(() => {
   return schedules.value.filter(s => s.hasConflict).length
@@ -605,13 +633,12 @@ function handleSearch() {
 }
 
 function handleReset() {
-  filterTeacher.value = ''
+  filterTeacher.value = isDataScopeSelf.value ? currentTeacherId.value : ''
   filterAdvisor.value = ''
   filterCourse.value = ''
   filterClassroom.value = ''
   loadSchedules()
 }
-
 function handleRefresh() {
   loadSchedules()
 }
