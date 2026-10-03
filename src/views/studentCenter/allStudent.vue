@@ -366,8 +366,10 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
+import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'
 import { MOCK_STUDENTS, deleteStudent, updateStudent, MOCK_UNASSIGNED_STUDENTS } from '@/mocks'
+import { PRESET_MOCK_STUDENTS } from '@/mocks/student'
 import type { Student } from '@/types/student'
 
 import StudentProfileDrawer from './components/StudentProfileDrawer.vue'
@@ -377,6 +379,7 @@ import StudentFormDialog from './components/StudentFormDialog.vue'
 import FaceEntryDialog from './components/FaceEntryDialog.vue'
 
 const tenantStore = useTenantStore()
+const authStore = useAuthStore()
 
 // 搜索条件
 const keyword = ref('')
@@ -413,15 +416,16 @@ const refreshTrigger = ref(0)
 const studentList = ref<Student[]>([...MOCK_STUDENTS])
 
 async function loadStudents() {
+  const fallbackStudents = MOCK_STUDENTS.length > 0 ? MOCK_STUDENTS : PRESET_MOCK_STUDENTS
   try {
     const res = await studentApi.getStudents({
       campusId: selectedCampus.value === 'all' ? undefined : selectedCampus.value,
       keyword: keyword.value || undefined,
       status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
       pageSize: 200
-    }, MOCK_STUDENTS)
+    }, fallbackStudents)
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || MOCK_STUDENTS)
+      const list = Array.isArray(res.data) ? res.data : (res.data.list || res.data.items || fallbackStudents)
       if (Array.isArray(list) && list.length > 0) {
         studentList.value = list.map((s: any) => ({
           id: s.id,
@@ -434,30 +438,30 @@ async function loadStudents() {
           phone: s.phone || '',
           parentName: s.parentName || '家长',
           parentPhone: s.phone || '',
-          campusId: s.campusId,
-          campusName: s.campus?.name || tenantStore.currentCampus.name,
+          campusId: s.campusId || s.campus?.id || 'campus-bj-hq',
+          campusName: s.campus?.name || s.campusName || tenantStore.currentCampus.name,
           status: s.status || 'normal',
-          createdAt: s.createdAt?.split('T')[0] || '2026-09-01',
-          remainingLessons: s.packages?.reduce((sum: number, p: any) => sum + (p.remainingLessons || 0), 0) || 48,
-          consumedLessons: s.packages?.reduce((sum: number, p: any) => sum + (p.consumedLessons || 0), 0) || 0,
-          totalLessons: s.packages?.reduce((sum: number, p: any) => sum + (p.totalLessons || 0), 0) || 48,
-          balance: Number(s.wallet?.principalBalance || 0),
+          createdAt: s.createdAt ? s.createdAt.split('T')[0] : '2026-09-01',
+          remainingLessons: s.totalRemainingLessons !== undefined ? s.totalRemainingLessons : (s.packages?.reduce((sum: number, p: any) => sum + (p.remainingLessons || 0), 0) || 48),
+          consumedLessons: s.totalConsumedLessons !== undefined ? s.totalConsumedLessons : (s.packages?.reduce((sum: number, p: any) => sum + (p.consumedLessons || 0), 0) || 0),
+          totalLessons: s.totalLessons || (s.totalRemainingLessons || 0) + (s.totalConsumedLessons || 0) || 48,
+          balance: Number(s.principalBalance || s.wallet?.principalBalance || 0),
           warningLevel: s.warningLevel || 'none',
-          wechatBound: !!s.wechatOpenId,
-          faceEntered: !!s.faceVector,
+          wechatBound: !!s.wechatOpenId || !!s.wechatBound,
+          faceEntered: !!s.faceVector || !!s.faceEntered,
           wallet: {
-            principalBalance: Number(s.wallet?.principalBalance || 0),
-            bonusBalance: Number(s.wallet?.bonusBalance || 0),
+            principalBalance: Number(s.principalBalance || s.wallet?.principalBalance || 0),
+            bonusBalance: Number(s.bonusBalance || s.wallet?.bonusBalance || 0),
             ledger: []
           },
           coursePackages: (s.packages || []).map((p: any) => ({
-            packageId: p.id,
+            packageId: p.id || p.packageId,
             courseId: p.courseId,
-            courseName: p.course?.name || '少儿编程标准课',
+            courseName: p.courseName || p.course?.name || '少儿编程标准课',
             totalLessons: p.totalLessons,
             remainingLessons: p.remainingLessons,
             consumedLessons: p.consumedLessons || 0,
-            expireDate: p.expiryDate ? p.expiryDate.split('T')[0] : '2027-12-31',
+            expireDate: p.expireDate || (p.expiryDate ? p.expiryDate.split('T')[0] : '2027-12-31'),
             status: p.status || 'active'
           }))
         }))
@@ -467,7 +471,7 @@ async function loadStudents() {
   } catch (err) {
     console.warn('[AllStudent] 远程学员拉取未就绪，使用本地双轨模式:', err)
   }
-  studentList.value = [...MOCK_STUDENTS]
+  studentList.value = [...fallbackStudents]
 }
 
 onMounted(() => {
@@ -479,6 +483,14 @@ watch(() => selectedCampus.value, () => {
   currentPage.value = 1
 })
 
+watch(() => authStore.token, () => {
+  loadStudents()
+})
+
+watch(() => tenantStore.currentCampusId, () => {
+  loadStudents()
+})
+
 // 筛选后学员全集
 const filteredStudents = computed(() => {
   // 建立显式响应式追踪依赖
@@ -486,7 +498,9 @@ const filteredStudents = computed(() => {
   return studentList.value.filter(s => {
     // 校区筛选：若选了具体校区，或者未选全集团且不在总部时做作用域
     if (selectedCampus.value !== 'all') {
-      if (s.campusId !== selectedCampus.value) return false
+      const matchId = s.campusId === selectedCampus.value
+      const matchName = s.campusName && (s.campusName.includes(currentCampusDisplayName.value) || currentCampusDisplayName.value.includes(s.campusName))
+      if (!matchId && !matchName) return false
     }
 
     // 关键词
