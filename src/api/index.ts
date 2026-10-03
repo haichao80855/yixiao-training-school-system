@@ -120,6 +120,8 @@ export const studentApi = {
     request('/api/students/enroll', { method: 'POST', body: JSON.stringify(data) }),
   executeMovement: (id: string, data: any) =>
     request(`/api/students/${id}/movement`, { method: 'POST', body: JSON.stringify(data) }),
+  deleteStudent: (id: string) =>
+    request(`/api/students/${id}`, { method: 'DELETE' }),
 }
 
 export const educationalApi = {

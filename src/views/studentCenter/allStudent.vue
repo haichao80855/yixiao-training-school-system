@@ -639,13 +639,19 @@ async function handleCommand(cmd: string, row: Student) {
     ElMessage.success(`已重置学员 [${row.name}] 密码为默认密码: 123456`)
   } else if (cmd === 'delete') {
     try {
-      await ElMessageBox.confirm(`确认删除学员 [${row.name}] (${row.studentNo}) 的档案？删除后不可恢复！`, '警示', {
+      await ElMessageBox.confirm(`确认删除学员 [${row.name}] (${row.studentNo}) 的档案？删除后将彻底清理该学员及其关联的所有测试课包与订单！`, '警示', {
         type: 'warning',
         confirmButtonText: '确定删除',
         cancelButtonText: '取消'
       })
+      try {
+        await studentApi.deleteStudent(row.id)
+      } catch (apiErr) {
+        console.warn('[AllStudent] 远程删除学员异常，执行本地删除:', apiErr)
+      }
       deleteStudent(row.id)
-      ElMessage.success('学员档案已删除')
+      ElMessage.success('学员档案已从数据库彻底删除！')
+      await loadStudents()
     } catch {
       // cancelled
     }

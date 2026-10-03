@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Delete,
   Param,
   Body,
   Query,
@@ -82,5 +83,10 @@ export class StudentController {
     @CurrentUser() user: any,
   ) {
     return this.studentService.executeMovement(studentId, dto, user);
+  }
+
+  @Delete(':id')
+  async deleteStudent(@Param('id') id: string) {
+    return this.studentService.deleteStudent(id);
   }
 }

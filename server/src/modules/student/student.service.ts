@@ -766,4 +766,62 @@ export class StudentService {
       };
     });
   }
+
+  /**
+   * 彻底删除学员档案及级联清理关联测试订单与资产
+   */
+  async deleteStudent(id: string) {
+    const student = await this.prisma.student.findUnique({
+      where: { id },
+      include: {
+        orders: {
+          include: {
+            approval: true,
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException('学员档案不存在');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      // 1. 清理关联订单的多级审批流节点与流程
+      for (const order of student.orders) {
+        if (order.approval) {
+          await tx.approvalNode.deleteMany({
+            where: { approvalFlowId: order.approval.id },
+          });
+          await tx.approvalFlow.delete({
+            where: { id: order.approval.id },
+          });
+        }
+      }
+
+      // 2. 清理关联订单
+      await tx.order.deleteMany({ where: { studentId: id } });
+
+      // 3. 清理消课考勤记录
+      await tx.attendanceRecord.deleteMany({ where: { studentId: id } });
+
+      // 4. 清理签约课包
+      await tx.studentCoursePackage.deleteMany({ where: { studentId: id } });
+
+      // 5. 清理零钱包及账本流水
+      await tx.walletLedger.deleteMany({ where: { studentId: id } });
+      await tx.studentWallet.deleteMany({ where: { studentId: id } });
+
+      // 6. 清理异动审批工单
+      await tx.studentAbnormalMovement.deleteMany({ where: { studentId: id } });
+
+      // 7. 最终彻底删除学员主体
+      await tx.student.delete({ where: { id } });
+    });
+
+    return {
+      success: true,
+      message: `学员 [${student.name}] 及其关联的业务测试数据已彻底从数据库清除`,
+    };
+  }
 }
