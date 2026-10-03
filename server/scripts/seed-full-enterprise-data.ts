@@ -154,7 +154,7 @@ async function main() {
   console.log('\n[3/4] 构建 5 级实体组织架构树 (28 个节点)...');
   const orgTreeRaw = [
     // 1级
-    { id: 'org-root', code: 'QD2023111500002', name: '北京拓视未来教育科技集团 (002599)', type: 'group', level: 1, parentId: null },
+    { id: 'org-root', code: 'org-root', name: '盛通股份集团总部', type: 'group', level: 1, parentId: null },
     // 2级
     { id: 'region-bj', code: 'REG-BJ', name: '华北北京大区', type: 'region', level: 2, parentId: 'org-root' },
     // 3级 校区

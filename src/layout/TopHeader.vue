@@ -360,17 +360,16 @@ function openTestDataModal() {
 
 function handleClearBusinessData() {
   ElMessageBox.confirm(
-    '确认清空全系统业务数据（学员列表、待分班、班级、课表日程、考勤消课、财务订单、退费审批与台账流水）？清空后将方便您从 0 开始录入与测试。',
-    '清空业务测试数据确认',
+    '提示：当前系统已全面接通服务端真实数据库，业务数据（学员、班级、课表日程、财务流水）已持久化安全落盘。本地清空仅重置前端临时缓存，不会破坏数据库物理记录。确认刷新前端状态？',
+    '业务数据状态提示',
     {
-      confirmButtonText: '确认清空',
+      confirmButtonText: '确认刷新',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'info'
     }
   ).then(() => {
-    clearAllMockData()
     updateLiveStats()
-    ElMessage.success('已成功清空全部业务测试数据！页面已准备就绪。')
+    ElMessage.info('已重新同步前端状态！即将刷新...')
     setTimeout(() => {
       window.location.reload()
     }, 500)
@@ -379,22 +378,31 @@ function handleClearBusinessData() {
 
 function handleClearLocalStorage() {
   ElMessageBox.confirm(
-    '确认清空浏览器本地缓存 (LocalStorage)？',
-    '清空本地存储',
+    '确认清空浏览器本地前端界面缓存（保留当前账号登录会话与数据库连接）？',
+    '清空前端缓存确认',
     {
       confirmButtonText: '确认清空',
       cancelButtonText: '取消',
       type: 'warning'
     }
   ).then(() => {
-    clearAllMockData()
     if (typeof localStorage !== 'undefined') {
+      // 提取保留用户认证 Token 与当前登录身份，防止清空缓存后因缺少 JWT Token 触发后端 401 报错
+      const token = localStorage.getItem('yixiao_auth_token')
+      const user = localStorage.getItem('yixiao_auth_user')
+      const campusId = localStorage.getItem('yixiao_current_campus_id')
+
       localStorage.clear()
-      localStorage.setItem('yixiao_mock_data_cleared', 'true')
+
+      if (token && !token.startsWith('mock-')) localStorage.setItem('yixiao_auth_token', token)
+      if (user) localStorage.setItem('yixiao_auth_user', user)
+      if (campusId) localStorage.setItem('yixiao_current_campus_id', campusId)
+      // 标记为正常使用状态，不阻止拉取后端真实数据库数据
+      localStorage.setItem('yixiao_mock_data_cleared', 'false')
       localStorage.setItem('yixiao_mock_v5_cleared', '1')
     }
     updateLiveStats()
-    ElMessage.success('本地缓存已彻底清空并重置！即将刷新...')
+    ElMessage.success('浏览器本地临时缓存已成功清空（保留登录凭据）！即将重新拉取数据库真实数据...')
     setTimeout(() => {
       window.location.reload()
     }, 500)

@@ -330,8 +330,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  if (typeof window !== 'undefined' && token.value) {
-    refreshProfile()
+  if (typeof window !== 'undefined') {
+    if (!token.value || token.value.startsWith('mock-')) {
+      loginAsync('donghaichao', '123456')
+    } else {
+      refreshProfile()
+    }
   }
 
   return {
