@@ -273,6 +273,7 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { Student, MovementType } from '@/types/student'
+import { studentApi } from '@/api'
 import {
   MOCK_STUDENTS,
   MOCK_AVAILABLE_CLASSES,
@@ -531,6 +532,23 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    // 优先向真实后端持久化异动工单与状态变更
+    try {
+      await studentApi.executeMovement(props.student.id, {
+        type: currentMovement.value,
+        reasonCategory: '学业或家庭调整',
+        reasonDetail: `学员异动业务流转: ${currentMovement.value}`,
+        targetData: {
+          toClassId: transferForm.toClassId,
+          targetCampusId: transferCampusForm.targetCampusId,
+          newCourseId: changeCourseForm.newCourseId,
+          deductionFee: refundForm.deductionFee
+        }
+      })
+    } catch (apiErr) {
+      console.warn('[AbnormalMovementDialog] 远程异动落库异常，双轨回退:', apiErr)
+    }
+
     const res = applyAbnormalMovement({
       movementType: currentMovement.value,
       studentId: props.student.id,

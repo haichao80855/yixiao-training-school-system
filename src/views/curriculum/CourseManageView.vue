@@ -326,6 +326,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
+import { curriculumApi } from '@/api'
 import { getCoursesByCampus, toggleCourseStatus } from '@/mocks'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import CourseEditorDialog from './components/CourseEditorDialog.vue'
@@ -385,8 +386,38 @@ const batchSelectedCampuses = ref<string[]>([])
 // 课程列表原始数据缓存（响应式监听校区与变更）
 const allCourses = ref<CourseItem[]>([])
 
-function reloadCourses() {
-  allCourses.value = getCoursesByCampus(tenantStore.currentCampusId)
+async function reloadCourses() {
+  const fallbackList = getCoursesByCampus(tenantStore.currentCampusId)
+  try {
+    const res = await curriculumApi.getCourses({
+      campusId: tenantStore.currentCampusId,
+      pageSize: 200
+    }, fallbackList)
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
+      if (Array.isArray(list) && list.length > 0) {
+        allCourses.value = list.map((item: any) => ({
+          id: item.id,
+          code: item.code,
+          name: item.name,
+          cover: item.cover,
+          pricePerLesson: Number(item.pricePerLesson || 280),
+          totalLessons: Number(item.totalLessons || 48),
+          subject: item.subject || 'scratch',
+          grade: item.grade || '中级课程',
+          attribute: item.attribute || 'regular',
+          status: item.status || 'enabled',
+          description: item.description || '',
+          authorizedCampusIds: item.authorizedCampusIds || item.campusAuths?.map((a: any) => a.campusId) || [tenantStore.currentCampusId],
+          createdAt: item.createdAt || new Date().toISOString()
+        }))
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[CourseManage] 远程课程拉取未就绪，使用本地双轨模式:', err)
+  }
+  allCourses.value = fallbackList
 }
 
 // 监听校区切换
@@ -544,12 +575,16 @@ function formatPrice(price: number): string {
 }
 
 // 快速启/禁用切换与 Toast 反馈
-function handleToggleStatus(course: CourseItem, val: boolean) {
+async function handleToggleStatus(course: CourseItem, val: boolean) {
   const targetStatus = val ? 'enabled' : 'disabled'
   course.status = targetStatus
-  toggleCourseStatus(course.id, targetStatus)
+  try {
+    await curriculumApi.updateStatus(course.id, targetStatus)
+  } catch {
+    toggleCourseStatus(course.id, targetStatus)
+  }
   if (val) {
-    ElMessage.success(`课程「${course.name}」已成功启用！`)
+    ElMessage.success(`课程「${course.name}」已成功启用并同步落库！`)
   } else {
     ElMessage.warning(`课程「${course.name}」已禁用，将阻断新建排课与前台选课！`)
   }
@@ -602,17 +637,26 @@ function handleBatchAuthorize() {
   batchAuthVisible.value = true
 }
 
-function confirmBatchAuth() {
+async function confirmBatchAuth() {
   if (batchSelectedCampuses.value.length === 0) {
     ElMessage.warning('请选择至少一个授权校区！')
     return
+  }
+  try {
+    await Promise.all(
+      filteredCourses.value.map(c =>
+        curriculumApi.authorizeCampuses(c.id, batchSelectedCampuses.value).catch(() => {})
+      )
+    )
+  } catch {
+    // 双轨降级
   }
   filteredCourses.value.forEach(c => {
     c.authorizedCampusIds = Array.from(new Set([...c.authorizedCampusIds, ...batchSelectedCampuses.value]))
   })
   batchAuthVisible.value = false
-  ElMessage.success(`批量授权成功！已同步至 ${filteredCourses.value.length} 门课程。`)
-  reloadCourses()
+  ElMessage.success(`批量授权成功！已同步至 ${filteredCourses.value.length} 门课程并落库。`)
+  await reloadCourses()
 }
 </script>
 

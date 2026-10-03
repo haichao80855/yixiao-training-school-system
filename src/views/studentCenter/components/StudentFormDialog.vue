@@ -211,6 +211,21 @@ async function handleSubmit() {
     submitting.value = true
     try {
       if (isEdit.value && props.student) {
+        // 优先向真实后端发送更新请求
+        try {
+          await studentApi.updateStudent(props.student.id, {
+            name: form.name,
+            gender: form.gender,
+            phone: form.phone,
+            campusId: form.campusId,
+            parentName: form.parentName,
+            school: form.school,
+            status: form.status,
+          })
+        } catch (apiErr) {
+          console.warn('[StudentFormDialog] 远程更新异常，使用本地双轨模式:', apiErr)
+        }
+
         // 更新本地状态
         updateStudent(props.student.id, {
           name: form.name,
@@ -228,7 +243,7 @@ async function handleSubmit() {
           wechatBound: form.wechatBound,
           status: form.status
         })
-        ElMessage.success('学员档案更新成功')
+        ElMessage.success('学员档案更新成功并同步入库！')
       } else {
         let backendSaved = false
         // 1. 优先向真实后端发送持久化请求

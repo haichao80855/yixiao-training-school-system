@@ -258,6 +258,7 @@ import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
+import { educationalApi } from '@/api'
 import {
   getScheduleEvents,
   getAttendanceRecords,
@@ -293,10 +294,52 @@ const attendanceRecords = ref<AttendanceRecord[]>([])
 
 const teachers = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'teacher'))
 
-function loadData() {
-  schedules.value = getScheduleEvents({
+async function loadData() {
+  const fallbackEvents = getScheduleEvents({
     campusId: tenantStore.currentCampusId
   })
+
+  try {
+    const res = await educationalApi.getSchedules({
+      campusId: tenantStore.currentCampusId
+    }, fallbackEvents)
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackEvents)
+      if (Array.isArray(list) && list.length > 0) {
+        schedules.value = list.map((evt: any) => ({
+          id: evt.id,
+          classId: evt.classId,
+          className: evt.class?.name || evt.className || 'Scratch精品班',
+          courseId: evt.class?.courseId || evt.courseId || 'crs-scratch-001',
+          courseName: evt.class?.course?.name || evt.courseName || 'Scratch图形化编程',
+          teacherId: evt.teacherId,
+          teacherName: evt.teacher?.realName || evt.teacherName || '张老师',
+          classroomId: evt.classroomId,
+          classroomName: evt.classroom?.name || evt.classroomName || '创客教室1',
+          campusId: evt.campusId || tenantStore.currentCampusId,
+          date: evt.date,
+          startTime: evt.startTime,
+          endTime: evt.endTime,
+          status: evt.status || 'scheduled',
+          semanticType: evt.semanticType || 'regular',
+          classType: evt.classType || 'formal',
+          laneIndex: evt.laneIndex || 0,
+          totalCount: evt.totalCount || 8,
+          attendanceCount: evt.attendanceCount || 0,
+          signedCount: evt.attendanceCount || 0,
+          studentIds: evt.studentIds || []
+        }))
+      } else {
+        schedules.value = fallbackEvents
+      }
+    } else {
+      schedules.value = fallbackEvents
+    }
+  } catch (err) {
+    console.warn('[Attendance] 远程排课日程拉取未就绪，使用本地双轨模式:', err)
+    schedules.value = fallbackEvents
+  }
+
   attendanceRecords.value = getAttendanceRecords(tenantStore.currentCampusId)
 }
 
@@ -370,6 +413,12 @@ async function handleRevertAttendance(record: AttendanceRecord) {
         type: 'warning'
       }
     )
+
+    try {
+      await educationalApi.reverseSchedule(record.scheduleEventId || record.id)
+    } catch (apiErr) {
+      console.warn('[Attendance] 远程反结课冲正异常，双轨执行:', apiErr)
+    }
 
     const res = revertAttendance(record.id, reason, '教务主管')
     if (res.success) {

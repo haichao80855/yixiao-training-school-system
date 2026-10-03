@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -10,7 +11,9 @@ import {
 } from '@nestjs/common';
 import { SystemService } from './system.service';
 import { CreateOrgNodeDto, UpdateOrgNodeDto } from './dto/create-org-node.dto';
-import { CreateRoleDto, AssignPermissionsDto } from './dto/update-role.dto';
+import { CreateRoleDto, UpdateRoleDto, AssignPermissionsDto } from './dto/update-role.dto';
+import { CreateUserDto, UpdateUserDto, ResetPasswordDto } from './dto/create-user.dto';
+import { CreateDictItemDto, UpdateDictItemDto } from './dto/create-dict.dto';
 
 @Controller('api/system')
 export class SystemController {
@@ -74,9 +77,87 @@ export class SystemController {
     return this.systemService.assignRolePermissions(id, dto);
   }
 
-  // 6. 业务字典
+  @Put('roles/:id')
+  updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
+    return this.systemService.updateRole(id, dto);
+  }
+
+  @Delete('roles/:id')
+  deleteRole(@Param('id') id: string) {
+    return this.systemService.deleteRole(id);
+  }
+
+  // 6. 员工档案管理
+  @Get('users')
+  getUsers(
+    @Query('campusId') campusId?: string,
+    @Query('keyword') keyword?: string,
+    @Query('roleId') roleId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.systemService.getUsers({ campusId, keyword, roleId, status });
+  }
+
+  @Post('users')
+  createUser(@Body() dto: CreateUserDto) {
+    return this.systemService.createUser(dto);
+  }
+
+  @Put('users/:id')
+  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.systemService.updateUser(id, dto);
+  }
+
+  @Delete('users/:id')
+  deleteUser(@Param('id') id: string) {
+    return this.systemService.deleteUser(id);
+  }
+
+  @Patch('users/:id/password')
+  resetUserPassword(
+    @Param('id') id: string,
+    @Body() dto: ResetPasswordDto,
+  ) {
+    return this.systemService.resetUserPassword(id, dto?.password);
+  }
+
+  @Patch('users/:id/status')
+  toggleUserStatus(
+    @Param('id') id: string,
+    @Body('status') status?: string,
+  ) {
+    return this.systemService.toggleUserStatus(id, status);
+  }
+
+  // 7. 业务字典
   @Get('dict-items')
   getDictItems(@Query('category') category?: string) {
     return this.systemService.getDictItems(category);
+  }
+
+  @Post('dict-items')
+  createDictItem(@Body() dto: CreateDictItemDto) {
+    return this.systemService.createDictItem(dto);
+  }
+
+  @Put('dict-items/:id')
+  updateDictItem(
+    @Param('id') id: string,
+    @Body() dto: UpdateDictItemDto,
+  ) {
+    return this.systemService.updateDictItem(id, dto);
+  }
+
+  @Delete('dict-items/:id')
+  deleteDictItem(@Param('id') id: string) {
+    return this.systemService.deleteDictItem(id);
+  }
+
+  @Patch('dict-items/:id/status')
+  toggleDictItemStatus(
+    @Param('id') id: string,
+    @Body('enabled') enabled?: boolean,
+  ) {
+    return this.systemService.toggleDictItemStatus(id, enabled);
   }
 }

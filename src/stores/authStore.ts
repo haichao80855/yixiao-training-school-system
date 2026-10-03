@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { getSystemUsers } from '@/mocks/system'
+import { authApi } from '@/api'
 
 export interface UserProfile {
   id: string
@@ -183,22 +183,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       defaultUser = JSON.parse(initialUserStr)
       defaultToken = initialToken
-      // 同步组织架构中创建员工的最真实姓名与岗位
-      if (defaultUser && (defaultUser.account || defaultUser.id)) {
-        const sysUsers = getSystemUsers()
-        const matched = sysUsers.find(
-          u => (defaultUser!.account && u.account.toLowerCase() === defaultUser!.account.toLowerCase()) ||
-               u.id === defaultUser!.id ||
-               (defaultUser!.realName && u.name === defaultUser!.realName)
-        )
-        if (matched) {
-          defaultUser.realName = matched.name
-          if (matched.roleName) defaultUser.roleName = matched.roleName
-          if (matched.campusId) defaultUser.campusId = matched.campusId
-          if (matched.campusName) defaultUser.campusName = matched.campusName
-          if (matched.dataScope) defaultUser.dataScope = matched.dataScope
-        }
-      }
     } catch {
       defaultUser = null
     }
@@ -245,63 +229,21 @@ export const useAuthStore = defineStore('auth', () => {
       const { password: _, description: __, ...u } = preset
       targetUser = u
     } else {
-      // 优先从组织架构与机构创建的员工列表 (MOCK_SYSTEM_USER_LIST / localStorage) 匹配
-      const sysUsers = getSystemUsers()
-      const foundSysUser = sysUsers.find(
-        u => u.account.toLowerCase() === key ||
-             (u.phone && u.phone === key) ||
-             u.name.toLowerCase() === key ||
-             u.id === key
-      )
-
-      if (foundSysUser) {
-        const isSuperAdminRole =
-          foundSysUser.roleId === 'r1' ||
-          (foundSysUser.roleName && foundSysUser.roleName.includes('超级管理员'))
-        const isTeacherRole =
-          !isSuperAdminRole && (
-            foundSysUser.roleName?.includes('老师') ||
-            foundSysUser.roleName?.includes('教师') ||
-            foundSysUser.roleName?.includes('讲师') ||
-            foundSysUser.roleName?.includes('教练') ||
-            foundSysUser.roleId === 'r4' ||
-            foundSysUser.roleId?.includes('teacher') ||
-            foundSysUser.postId?.includes('teacher')
-          )
-
-        targetUser = {
-          id: foundSysUser.id,
-          account: foundSysUser.account,
-          realName: foundSysUser.name,
-          campusId: foundSysUser.campusId || 'campus-bj-hq',
-          campusName: foundSysUser.campusName || '总部校区',
-          teacherId: isTeacherRole ? foundSysUser.id : undefined,
-          roles: isSuperAdminRole
-            ? ['super_admin', foundSysUser.roleId || 'r1']
-            : (isTeacherRole ? ['teacher'] : [foundSysUser.roleId || 'staff']),
-          roleName: foundSysUser.roleName || (isSuperAdminRole ? '超级管理员 (集团总部)' : (isTeacherRole ? '少儿编程专职主讲教师' : '系统员工')),
-          departmentName: foundSysUser.departmentName || (isSuperAdminRole ? '总经办' : '教务教学部'),
-          postName: foundSysUser.postName || (isSuperAdminRole ? '超级管理员' : (isTeacherRole ? '授课教师' : '运营人员')),
-          permissions: foundSysUser.permissions || ['curriculum:view', 'educational:schedule:view'],
-          dataScope: foundSysUser.dataScope || (isSuperAdminRole ? 'all' : 'self')
-        }
-      } else {
-        // 允许任意自定义账号登录
-        const isTeacherRole = key.includes('teacher') || key.includes('ls') || key.includes('教')
-        targetUser = {
-          id: `u-${Date.now()}`,
-          account: key,
-          realName: isTeacherRole ? '张老师' : key,
-          campusId: 'campus-bj-hq',
-          campusName: '总部校区',
-          teacherId: isTeacherRole ? 't-001' : undefined,
-          roles: isTeacherRole ? ['teacher'] : ['super_admin'],
-          roleName: isTeacherRole ? '少儿编程专职主讲教师' : '普通用户',
-          departmentName: '教学教务中心',
-          postName: isTeacherRole ? '授课教师' : '运营人员',
-          permissions: ['*'],
-          dataScope: isTeacherRole ? 'self' : 'all'
-        }
+      // 允许任意自定义账号登录
+      const isTeacherRole = key.includes('teacher') || key.includes('ls') || key.includes('教')
+      targetUser = {
+        id: `u-${Date.now()}`,
+        account: key,
+        realName: isTeacherRole ? '张老师' : key,
+        campusId: 'campus-bj-hq',
+        campusName: '总部校区',
+        teacherId: isTeacherRole ? 't-001' : undefined,
+        roles: isTeacherRole ? ['teacher'] : ['super_admin'],
+        roleName: isTeacherRole ? '少儿编程专职主讲教师' : '普通用户',
+        departmentName: '教学教务中心',
+        postName: isTeacherRole ? '授课教师' : '运营人员',
+        permissions: ['*'],
+        dataScope: isTeacherRole ? 'self' : 'all'
       }
     }
 
@@ -340,6 +282,58 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function loginAsync(account: string, password = '123456'): Promise<{ success: boolean; user: UserProfile }> {
+    try {
+      const res = await authApi.login({ account, password })
+      if (res && res.success && res.data?.token && res.data?.user) {
+        const u = res.data.user
+        const mappedUser: UserProfile = {
+          id: u.id,
+          account: u.account,
+          realName: u.realName,
+          campusId: u.campusId,
+          campusName: u.campusName,
+          roles: u.roles?.map((r: any) => typeof r === 'string' ? r : (r.code || r.name)) || ['staff'],
+          roleName: u.roles?.[0]?.name || (u.roles?.includes('super_admin') ? '超级管理员' : '系统员工'),
+          departmentName: u.departmentName || '教务中心',
+          postName: u.postName || '运营人员',
+          permissions: u.permissions || ['*'],
+          dataScope: u.dataScope || 'campus'
+        }
+        setLoginSession(res.data.token, mappedUser)
+        return { success: true, user: mappedUser }
+      }
+    } catch (e) {
+      console.warn('[AuthStore] 远程后端认证未就绪，使用本地双轨模式登录:', e)
+    }
+    return login(account, password)
+  }
+
+  async function refreshProfile(): Promise<void> {
+    try {
+      if (!token.value) return
+      const res = await authApi.getProfile()
+      if (res && res.success && res.data) {
+        const u = res.data
+        if (user.value) {
+          user.value.realName = u.realName || user.value.realName
+          user.value.campusId = u.campusId || user.value.campusId
+          user.value.campusName = u.campusName || user.value.campusName
+          if (u.dataScope) user.value.dataScope = u.dataScope
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(USER_KEY, JSON.stringify(user.value))
+          }
+        }
+      }
+    } catch {
+      // 保持本地状态
+    }
+  }
+
+  if (typeof window !== 'undefined' && token.value) {
+    refreshProfile()
+  }
+
   return {
     token,
     user,
@@ -348,6 +342,8 @@ export const useAuthStore = defineStore('auth', () => {
     isTeacher,
     setLoginSession,
     login,
+    loginAsync,
+    refreshProfile,
     logout,
     hasPermission,
     dataScope,

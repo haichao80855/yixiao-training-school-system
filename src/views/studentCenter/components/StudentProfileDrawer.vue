@@ -419,9 +419,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { Student, StudentCoursePackage, CompetitionRecord } from '@/types/student'
+import { studentApi } from '@/api'
 import { rechargeWallet, withdrawWallet } from '@/mocks'
 
 const props = defineProps<{
@@ -442,6 +443,23 @@ const visible = computed({
 })
 
 const activeTab = ref('courses')
+
+watch(() => visible.value, async (val) => {
+  if (val && props.student?.id) {
+    try {
+      const res = await studentApi.getStudentProfile(props.student.id)
+      if (res && res.success && res.data) {
+        const d = res.data
+        if (d.wallet && props.student.wallet) {
+          props.student.wallet.principalBalance = Number(d.wallet.principalBalance || 0)
+          props.student.wallet.bonusBalance = Number(d.wallet.bonusBalance || 0)
+        }
+      }
+    } catch {
+      // dual-track fallback
+    }
+  }
+})
 
 // 资产统计
 const totalRemainingLessons = computed(() => {

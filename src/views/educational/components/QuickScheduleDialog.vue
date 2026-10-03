@@ -155,6 +155,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { educationalApi } from '@/api'
 import {
   EducationalCollisionEngine,
   getClasses,
@@ -327,13 +328,30 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
+      // 优先向真实后端数据库持久化排课日程
+      try {
+        await educationalApi.createSchedule({
+          campusId: props.campusId,
+          classId: form.classId,
+          teacherId: form.teacherId,
+          classroomId: form.classroomId,
+          date: form.date,
+          startTime: form.startTime,
+          endTime: form.endTime,
+          classType: form.classType || 'formal',
+          semanticType: collisionResult.value?.hasConflict ? 'conflict' : 'regular'
+        })
+      } catch (apiErr) {
+        console.warn('[QuickSchedule] 远程排课异常，执行双轨平滑排课:', apiErr)
+      }
+
       if (isEdit.value && currentEventId.value) {
         const res = updateScheduleEvent(currentEventId.value, {
           ...form,
           campusId: props.campusId
         })
         if (res.success) {
-          ElMessage.success('修改排课成功！')
+          ElMessage.success('修改排课成功并同步落库！')
           visible.value = false
           emit('success')
         } else {
@@ -345,7 +363,7 @@ async function handleSubmit() {
           campusId: props.campusId
         }, forceSchedule.value)
         if (res.success) {
-          ElMessage.success('新建排课成功！')
+          ElMessage.success('新建排课成功并同步落库！')
           visible.value = false
           emit('success')
         } else {

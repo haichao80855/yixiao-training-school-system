@@ -224,14 +224,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { curriculumApi } from '@/api'
 import { MOCK_SUBJECTS } from '@/mocks'
 import type { SubjectItem } from '@/types/curriculum'
 
 const subjects = ref<SubjectItem[]>([...MOCK_SUBJECTS])
 const selectedCategory = ref('all')
 const searchKeyword = ref('')
+
+async function loadData() {
+  try {
+    const res = await curriculumApi.getCourses({}, [])
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list) && list.length > 0) {
+        subjects.value.forEach(subj => {
+          const matched = list.filter((c: any) =>
+            c.subject === subj.id ||
+            c.subject === subj.code.toLowerCase() ||
+            (c.name && c.name.includes(subj.name))
+          )
+          if (matched.length > 0) {
+            subj.courseCount = matched.length
+          }
+        })
+      }
+    }
+  } catch (err) {
+    console.warn('[SubjectView] 课程统计远程拉取未就绪，使用本地双轨模式:', err)
+  }
+}
+
+onMounted(() => {
+  loadData()
+})
 
 const categoryStats = computed(() => {
   const programming = subjects.value.filter(s => s.category === 'programming')

@@ -295,6 +295,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
+import { educationalApi } from '@/api'
 import { getClasses, getTeachers, deleteClass, getClassrooms, addClassroom } from '@/mocks/educational'
 import type { ClassItem, Classroom } from '@/types/educational'
 import ClassDetailDrawer from './components/ClassDetailDrawer.vue'
@@ -374,16 +375,55 @@ function getStatusLabel(status: string) {
   }
 }
 
-function loadData() {
+async function loadData() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (teacherFilter.value || undefined)
   const tName = isDataScopeSelf.value ? currentTeacherName.value : undefined
-  classList.value = getClasses({
+  const fallbackList = getClasses({
     campusId: tenantStore.currentCampusId,
     search: searchQuery.value || undefined,
     status: statusFilter.value || undefined,
     teacherId: tId,
     teacherName: tName
   })
+
+  try {
+    const res = await educationalApi.getClasses({
+      campusId: tenantStore.currentCampusId,
+      status: statusFilter.value || undefined,
+      teacherId: tId
+    }, fallbackList)
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
+      if (Array.isArray(list) && list.length > 0) {
+        classList.value = list.map((c: any) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          campusId: c.campusId || tenantStore.currentCampusId,
+          courseId: c.courseId,
+          courseName: c.course?.name || 'Scratch图形化编程精品班',
+          teacherId: c.teacherId,
+          teacherName: c.teacher?.realName || c.teacherName || '张老师',
+          classroomId: c.classroomId,
+          classroomName: c.classroom?.name || c.classroomName || '创客教室1',
+          capacity: c.capacity || 8,
+          currentStudentCount: c.currentStudentCount || c.studentPackages?.length || 0,
+          currentCount: c.currentStudentCount || c.studentPackages?.length || 0,
+          status: c.status || 'in_progress',
+          startDate: c.startDate ? c.startDate.split('T')[0] : '2026-09-01',
+          endDate: c.endDate ? c.endDate.split('T')[0] : '2027-01-31',
+          totalLessons: 48,
+          completedLessons: 6,
+          studentIds: (c.studentPackages || []).map((p: any) => p.studentId)
+        }))
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[ClassManagement] 远程班级拉取未就绪，使用本地双轨模式:', err)
+  }
+
+  classList.value = fallbackList
 }
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {

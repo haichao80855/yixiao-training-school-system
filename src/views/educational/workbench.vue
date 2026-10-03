@@ -516,6 +516,7 @@ import {
   startLesson,
   finishLesson
 } from '@/mocks/educational'
+import { educationalApi } from '@/api'
 import { MOCK_STUDENTS } from '@/mocks/student'
 import LessonEvaluationDialog from './components/LessonEvaluationDialog.vue'
 import LessonLessonPlanDrawer from './components/LessonLessonPlanDrawer.vue'
@@ -751,7 +752,7 @@ function handleBatchAllPresent() {
   ElMessage.info('已将全部学员标记为到课')
 }
 
-function handleSaveSignIn() {
+async function handleSaveSignIn() {
   if (!activeLessonForSignIn.value) return
 
   // 联动真实消课逻辑 submitRollCall 扣减真实学员课时
@@ -761,6 +762,19 @@ function handleSaveSignIn() {
     status: item.status,
     deductionLessons: item.status === 'present' || item.status === 'late' ? 1 : 0
   }))
+
+  try {
+    await educationalApi.rollCall({
+      scheduleId: activeLessonForSignIn.value.id,
+      attendances: attendancePayload.map(a => ({
+        studentId: a.studentId,
+        status: a.status,
+        deductLessons: a.deductionLessons
+      }))
+    })
+  } catch (apiErr) {
+    console.warn('[Workbench] 远程点名消课落库异常，双轨执行:', apiErr)
+  }
 
   const res = submitRollCall(activeLessonForSignIn.value.id, attendancePayload, authStore.user?.realName || '授课讲师')
 

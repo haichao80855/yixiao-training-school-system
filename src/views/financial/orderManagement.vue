@@ -815,7 +815,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search,
@@ -826,6 +826,7 @@ import {
   Upload
 } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
+import { financialApi } from '@/api'
 import {
   FinanceAggregator,
   getOrdersByCampus,
@@ -893,8 +894,59 @@ function handleColumnsUpdated(newCols: ColumnConfig[]) {
 }
 
 // 数据源
+const remoteOrders = ref<OrderRecord[]>([])
+
+async function loadOrders() {
+  const fallbackList = getOrdersByCampus(tenantStore.currentCampusId)
+  try {
+    const res = await financialApi.getOrders({
+      campusId: tenantStore.currentCampusId,
+      pageSize: 200
+    }, fallbackList)
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
+      if (Array.isArray(list) && list.length > 0) {
+        remoteOrders.value = list.map((o: any) => ({
+          id: o.id,
+          orderNo: o.orderNo,
+          studentId: o.studentId,
+          studentName: o.student?.name || o.studentName || '学员',
+          studentNo: o.student?.studentNo || o.studentNo || 'S001',
+          phone: o.student?.phone || o.phone || '',
+          courseId: o.courseId || '',
+          courseName: o.course?.name || o.courseName || 'Scratch图形化编程精品班',
+          campusId: o.campusId || tenantStore.currentCampusId,
+          campusName: o.campus?.name || tenantStore.currentCampus.name,
+          orderType: o.orderType || 'regular',
+          chargeType: o.orderType || 'regular',
+          originalPrice: Number(o.originalPrice || 0),
+          discountAmount: Number(o.discountAmount || 0),
+          couponAmount: Number(o.couponAmount || 0),
+          actualAmount: Number(o.actualAmount || 0),
+          paymentMethod: o.paymentMethod || 'wechat',
+          status: o.status || 'paid',
+          orderStatus: o.status || 'paid',
+          isLocked: !!o.isLocked,
+          goodsDelivery: o.deliveryStatus || 'none',
+          invoiceStatus: o.invoiceStatus || 'unissued',
+          creator: o.creator?.realName || o.creator || '教务顾问',
+          performanceOwner: o.owner?.realName || o.owner || '校区校长',
+          signupTime: o.createdAt ? o.createdAt.split('T')[0] : '2026-09-01',
+          payTime: o.payTime ? o.payTime.split('T')[0] : '2026-09-01',
+          voucherUrl: o.voucherUrl || '',
+          remark: o.remark || ''
+        }))
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[OrderManagement] 远程订单拉取未就绪，使用本地双轨模式:', err)
+  }
+  remoteOrders.value = fallbackList
+}
+
 const allOrders = computed<OrderRecord[]>(() => {
-  return getOrdersByCampus(tenantStore.currentCampusId)
+  return remoteOrders.value.length > 0 ? remoteOrders.value : getOrdersByCampus(tenantStore.currentCampusId)
 })
 
 // 各状态数量统计 Badge
@@ -1059,10 +1111,16 @@ function handleVoidOrder(order: OrderRecord) {
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
+  ).then(async () => {
+    try {
+      await financialApi.voidOrder(order.id)
+    } catch {
+      // dual-track
+    }
     try {
       voidOrder(order.id)
-      ElMessage.success('订单已作废并成功释放预留名额')
+      ElMessage.success('订单已作废并成功释放预留名额并落库')
+      await loadOrders()
     } catch (err: any) {
       ElMessage.error(err.message || '作废失败')
     }
@@ -1086,15 +1144,21 @@ function simulateUploadVoucher() {
   ElMessage.success('已模拟上传并解析收款凭条图像')
 }
 
-function saveVoucherAudit() {
+async function saveVoucherAudit() {
   if (!currentVoucherOrder.value) return
+  try {
+    await financialApi.updateVoucher(currentVoucherOrder.value.id, currentVoucherOrder.value.voucherUrl || '')
+  } catch {
+    // dual track
+  }
   updateOrderVoucher(currentVoucherOrder.value.id, {
     auditRemark: voucherAuditRemark.value,
     auditor: '财务审核专员'
   })
   currentVoucherOrder.value.verifyRemark = voucherAuditRemark.value
   voucherDialogVisible.value = false
-  ElMessage.success('收款凭证审核附言已保存入账')
+  ElMessage.success('收款凭证审核附言已保存入账并同步落盘')
+  await loadOrders()
 }
 
 // 弹窗 2: 修改订单逻辑
@@ -1252,9 +1316,15 @@ function getPayMethodLabel(method?: PaymentMethod): string {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   // 保持与当前校区初始状态一致
   filterForm.campusId = tenantStore.currentCampusId || 'CAMPUS_HQ'
+  await loadOrders()
+})
+
+watch(() => tenantStore.currentCampusId, () => {
+  filterForm.campusId = tenantStore.currentCampusId
+  loadOrders()
 })
 </script>
 

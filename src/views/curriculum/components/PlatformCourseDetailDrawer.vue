@@ -119,6 +119,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { curriculumApi } from '@/api'
 import allCoursewaresData from '@/mocks/allCoursesDetailsWithCoursewares.json'
 import CoursewarePlayerDialog from './CoursewarePlayerDialog.vue'
 
@@ -150,8 +151,37 @@ const course = ref<CourseItem | null>(null)
 const lessonList = ref<LessonItem[]>([])
 const playerRef = ref<InstanceType<typeof CoursewarePlayerDialog> | null>(null)
 
-function open(targetCourse: CourseItem) {
+async function open(targetCourse: CourseItem) {
   course.value = targetCourse
+
+  // 优先从服务端数据库读取最新课次与白板课件链接
+  try {
+    const res = await curriculumApi.getCourseById(targetCourse.courseCode)
+    if (res && res.success && res.data) {
+      const units = res.data.units || []
+      const dbLessons: LessonItem[] = []
+      units.forEach((u: any) => {
+        (u.lessons || []).forEach((l: any, idx: number) => {
+          dbLessons.push({
+            sessionId: idx + 1,
+            sessionCode: l.id || `${targetCourse.courseCode}_${idx + 1}`,
+            sessionName: l.lessonName,
+            pptUrl: l.courseware || '',
+            downloadUrl: l.courseware || '',
+            pptFileName: `${l.lessonName}.pptx`
+          })
+        })
+      })
+      if (dbLessons.length > 0) {
+        lessonList.value = dbLessons
+        visible.value = true
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[PlatformCourseDetailDrawer] 远程课件拉取未就绪，使用本地双轨模式:', err)
+  }
+
   const details = (allCoursewaresData as Record<string, any>)[targetCourse.courseCode]
   if (details && details.lessons) {
     lessonList.value = details.lessons

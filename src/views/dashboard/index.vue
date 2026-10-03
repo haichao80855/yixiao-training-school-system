@@ -140,17 +140,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTenantStore } from '@/stores/tenantStore'
+import { request } from '@/utils/request'
 import { getCampusStats } from '@/mocks'
 
 const router = useRouter()
 const tenantStore = useTenantStore()
 const currentCampus = computed(() => tenantStore.currentCampus)
 
+const remoteStats = ref<any>(null)
+
+async function loadStats() {
+  try {
+    const res = await request('/api/stats/overview')
+    if (res && res.success && res.data) {
+      remoteStats.value = res.data
+    }
+  } catch {
+    // dual track
+  }
+}
+
 const stats = computed(() => {
-  return getCampusStats(tenantStore.currentCampusId)
+  const local = getCampusStats(tenantStore.currentCampusId)
+  if (remoteStats.value) {
+    return {
+      ...local,
+      studentCount: remoteStats.value.studentCount || local.studentCount,
+      courseCount: remoteStats.value.courseCount || local.courseCount,
+      scheduleCount: remoteStats.value.scheduleCount || local.scheduleCount,
+      orderCount: remoteStats.value.orderCount || local.orderCount
+    }
+  }
+  return local
+})
+
+onMounted(() => {
+  loadStats()
+})
+
+watch(() => tenantStore.currentCampusId, () => {
+  loadStats()
 })
 
 const activeRoleTab = ref('admin')

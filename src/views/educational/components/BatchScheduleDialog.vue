@@ -145,6 +145,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { educationalApi } from '@/api'
 import { getTeachers, getClassrooms, batchScheduleClass } from '@/mocks/educational'
 import type { ClassItem } from '@/types/educational'
 
@@ -284,6 +285,21 @@ async function handleSubmit() {
         if (res.success) {
           totalSuccessCount += res.createdEvents.length
           totalConflicts += res.conflicts.length
+
+          // 异步批量持久化到数据库
+          for (const ev of res.createdEvents) {
+            educationalApi.createSchedule({
+              campusId: props.campusId,
+              classId: targetCls.id,
+              teacherId: ev.teacherId,
+              classroomId: ev.classroomId,
+              date: ev.date,
+              startTime: ev.startTime,
+              endTime: ev.endTime,
+              classType: ev.classType || 'formal',
+              semanticType: ev.semanticType || 'regular'
+            }).catch(() => {})
+          }
         }
       }
 

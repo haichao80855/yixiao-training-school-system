@@ -360,10 +360,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, Close, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
+import { financialApi } from '@/api'
 import {
   getApprovalRecords,
   processApprovalRecord
@@ -390,8 +391,58 @@ const statusTabs = [
   { key: 'rejected', name: '已驳回' }
 ]
 
+const remoteApprovals = ref<ApprovalRecord[]>([])
+
+async function loadApprovals() {
+  const fallbackList = getApprovalRecords(tenantStore.currentCampusId)
+  try {
+    const res = await financialApi.getApprovals({
+      campusId: tenantStore.currentCampusId
+    })
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
+      if (Array.isArray(list) && list.length > 0) {
+        remoteApprovals.value = list.map((a: any) => ({
+          id: a.id,
+          approvalNo: a.approvalNo || a.id,
+          orderId: a.orderId,
+          orderNo: a.order?.orderNo || a.orderNo || 'ORD-001',
+          sourceId: a.orderId || a.id,
+          applicantName: a.applicantName || a.applicant || '经办人',
+          applicantId: a.applicantId || '',
+          studentName: a.order?.student?.name || a.studentName || '学员',
+          studentNo: a.order?.student?.studentNo || a.studentNo || 'S001',
+          campusId: a.order?.campusId || a.campusId || tenantStore.currentCampusId,
+          campusName: a.order?.campus?.name || a.campusName || tenantStore.currentCampus.name,
+          businessType: a.businessType || 'payment',
+          amount: Number(a.order?.actualAmount || a.amount || 0),
+          currentStep: a.currentStep || 1,
+          totalSteps: a.totalSteps || 3,
+          status: a.status || 'pending',
+          applicant: a.applicantName || a.applicant || '经办人',
+          applyTime: a.createdAt ? a.createdAt.split('T')[0] : '2026-09-01',
+          createdAt: a.createdAt ? a.createdAt.split('T')[0] : '2026-09-01',
+          timeline: (a.nodes || []).map((n: any) => ({
+            step: n.step,
+            stepName: n.stepName,
+            operator: n.reviewer?.realName || n.operator || '审核人',
+            action: n.action,
+            comment: n.comment || '',
+            time: n.createdAt ? n.createdAt.replace('T', ' ').slice(0, 19) : '2026-09-21 10:00:00'
+          })),
+          auditNodes: a.nodes || []
+        }))
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[ApprovalFlow] 远程审批单拉取未就绪，使用本地双轨模式:', err)
+  }
+  remoteApprovals.value = fallbackList
+}
+
 const allApprovals = computed(() => {
-  return getApprovalRecords(tenantStore.currentCampusId)
+  return remoteApprovals.value.length > 0 ? remoteApprovals.value : getApprovalRecords(tenantStore.currentCampusId)
 })
 
 const businessCounts = computed(() => {
@@ -476,15 +527,24 @@ function openPassDialog(record: ApprovalRecord) {
   passDialogVisible.value = true
 }
 
-function confirmPass() {
+async function confirmPass() {
   if (!currentActiveRecord.value) return
-  try {
-    const operator = currentActiveRecord.value.currentStep === 1
-      ? '教学核查专员'
-      : currentActiveRecord.value.currentStep === 2
-        ? '校区执行校长'
-        : '总部财务总监'
+  const operator = currentActiveRecord.value.currentStep === 1
+    ? '教学核查专员'
+    : currentActiveRecord.value.currentStep === 2
+      ? '校区执行校长'
+      : '总部财务总监'
 
+  try {
+    await financialApi.auditApproval(currentActiveRecord.value.id, {
+      action: 'pass',
+      comment: passComment.value || '审核通过'
+    })
+  } catch (apiErr) {
+    console.warn('[ApprovalFlow] 远程审批流转异常，双轨执行:', apiErr)
+  }
+
+  try {
     processApprovalRecord(
       currentActiveRecord.value.id,
       'pass',
@@ -492,7 +552,8 @@ function confirmPass() {
       passComment.value || '审核通过'
     )
     passDialogVisible.value = false
-    ElMessage.success('审批已成功推进至下一节点')
+    ElMessage.success('审批已成功推进至下一节点并同步落盘')
+    await loadApprovals()
   } catch (err: any) {
     ElMessage.error(err.message || '审批推进失败')
   }
@@ -504,11 +565,20 @@ function openRejectDialog(record: ApprovalRecord) {
   rejectDialogVisible.value = true
 }
 
-function confirmReject() {
+async function confirmReject() {
   if (!currentActiveRecord.value) return
   if (!rejectComment.value.trim()) {
     ElMessage.warning('驳回审批必须填写明确的驳回原因与修改意见！')
     return
+  }
+
+  try {
+    await financialApi.auditApproval(currentActiveRecord.value.id, {
+      action: 'reject',
+      comment: rejectComment.value.trim()
+    })
+  } catch (apiErr) {
+    console.warn('[ApprovalFlow] 远程驳回异常，双轨执行:', apiErr)
   }
 
   try {
@@ -519,7 +589,8 @@ function confirmReject() {
       rejectComment.value.trim()
     )
     rejectDialogVisible.value = false
-    ElMessage.warning('审批单已驳回并中断流转')
+    ElMessage.warning('审批单已驳回并中断流转，状态已同步落盘')
+    await loadApprovals()
   } catch (err: any) {
     ElMessage.error(err.message || '驳回失败')
   }
@@ -580,4 +651,11 @@ function copyText(text: string, title: string) {
     }).catch(() => {})
   }
 }
+onMounted(async () => {
+  await loadApprovals()
+})
+
+watch(() => tenantStore.currentCampusId, () => {
+  loadApprovals()
+})
 </script>

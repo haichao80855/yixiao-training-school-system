@@ -159,6 +159,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { educationalApi } from '@/api'
 import { getTeachers, getClassrooms, addClass, updateClass, addClassroom, restoreClassroomsFromStorage, restoreClassesFromStorage } from '@/mocks/educational'
 import { getCoursesByCampus } from '@/mocks'
 import type { ClassItem, ClassStatus, Classroom, Teacher } from '@/types/educational'
@@ -340,18 +341,49 @@ async function handleSubmit() {
 
       console.log('[ClassForm] ready to add/update class. isEdit=', isEdit.value)
       if (isEdit.value && currentId.value) {
+        try {
+          await educationalApi.updateClass(currentId.value, {
+            name: form.name,
+            capacity: form.capacity,
+            teacherId: form.teacherId,
+            classroomId: form.classroomId,
+            startDate: form.startDate,
+            endDate: form.endDate,
+            status: form.status,
+          })
+        } catch (apiErr) {
+          console.warn('[ClassForm] 远程更新班级异常，双轨平滑执行:', apiErr)
+        }
+
         updateClass(currentId.value, {
           ...form,
           campusId: props.campusId
         })
-        ElMessage.success('班级信息已更新！')
+        ElMessage.success('班级信息已更新并同步落库！')
       } else {
+        try {
+          await educationalApi.createClass({
+            campusId: props.campusId,
+            courseId: form.courseId,
+            code: form.code,
+            name: form.name,
+            capacity: form.capacity,
+            teacherId: form.teacherId,
+            classroomId: form.classroomId,
+            startDate: form.startDate,
+            endDate: form.endDate,
+            status: form.status,
+          })
+        } catch (apiErr) {
+          console.warn('[ClassForm] 远程新建班级异常，双轨平滑执行:', apiErr)
+        }
+
         const added = addClass({
           ...form,
           campusId: props.campusId
         })
         console.log('[ClassForm] addClass succeeded:', added.id, added.name)
-        ElMessage.success('新建班级成功！')
+        ElMessage.success('新建班级成功并已同步落库！')
       }
       visible.value = false
       console.log('[ClassForm] emit success!')

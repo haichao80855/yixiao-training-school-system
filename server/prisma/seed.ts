@@ -103,9 +103,33 @@ async function main() {
     update: {},
     create: {
       code: 'teacher',
-      name: '少儿编程专职讲师',
+      name: '少儿编程专职主讲教师',
       description: '负责排课查看、点名消课与随堂评价',
       dataScope: 'self',
+      isSystem: true,
+    },
+  })
+
+  const advisorRole = await prisma.role.upsert({
+    where: { code: 'advisor' },
+    update: {},
+    create: {
+      code: 'advisor',
+      name: '教务学管主管',
+      description: '负责排课调度、学员跟进与考勤监查',
+      dataScope: 'campus',
+      isSystem: true,
+    },
+  })
+
+  const financeRole = await prisma.role.upsert({
+    where: { code: 'finance' },
+    update: {},
+    create: {
+      code: 'finance',
+      name: '校区出纳与财务',
+      description: '负责订单审核、收款开票与资金对账',
+      dataScope: 'campus',
       isSystem: true,
     },
   })
@@ -154,7 +178,84 @@ async function main() {
     create: { userId: teacherUser.id, roleId: teacherRole.id },
   })
 
-  console.log('✅ 超管账号 [donghaichao / 123456] 及讲师账号初始化成功')
+  // 批量初始化系统预设的 23 位实体教职工账号
+  const presetUsersList = [
+    { id: 'u-01', account: 'donghaichao_lead', realName: '冬海潮 (总经办)', phone: '13800138000', campusId: 'campus-bj-hq', roleId: superRole.id },
+    { id: 'u-02', account: 'zhangjh', realName: '张建华', phone: '13800138001', campusId: 'campus-bj-hq', roleId: principalRole.id },
+    { id: 'u-03', account: 'lixw', realName: '李晓雯', phone: '13800138002', campusId: 'campus-bj-yy', roleId: advisorRole.id },
+    { id: 'u-04', account: 'wangcw', realName: '王财务', phone: '13800138003', campusId: 'campus-bj-hq', roleId: financeRole.id },
+    { id: 'u-05', account: 'zhaolp', realName: '赵立鹏', phone: '13800138004', campusId: 'campus-bj-hq', roleId: teacherRole.id },
+    { id: 'u-06', account: 'sunchen', realName: '孙晨', phone: '13800138005', campusId: 'campus-bj-yy', roleId: teacherRole.id },
+    { id: 'u-07', account: 'zhoumin', realName: '周敏', phone: '13800138006', campusId: 'campus-bj-yy', roleId: advisorRole.id },
+    { id: 'u-08', account: 'wuhao', realName: '吴昊', phone: '13800138007', campusId: 'campus-bj-cy', roleId: teacherRole.id },
+    { id: 'u-09', account: 'zhengli', realName: '郑丽', phone: '13800138008', campusId: 'campus-bj-cy', roleId: principalRole.id },
+    { id: 'u-10', account: 'chenming', realName: '陈明', phone: '13800138009', campusId: 'campus-bj-hd', roleId: principalRole.id },
+    { id: 'u-11', account: 'liuyang', realName: '刘洋', phone: '13800138010', campusId: 'campus-bj-hd', roleId: teacherRole.id },
+    { id: 'u-12', account: 'huangwei', realName: '黄伟', phone: '13800138011', campusId: 'campus-bj-hd', roleId: teacherRole.id },
+    { id: 'u-13', account: 'guojing', realName: '郭静', phone: '13800138012', campusId: 'campus-bj-wj', roleId: principalRole.id },
+    { id: 'u-14', account: 'hehao', realName: '何浩', phone: '13800138013', campusId: 'campus-bj-wj', roleId: teacherRole.id },
+    { id: 'u-15', account: 'luofang', realName: '罗芳', phone: '13800138014', campusId: 'campus-bj-wj', roleId: advisorRole.id },
+    { id: 'u-16', account: 'mateng', realName: '马腾', phone: '13800138015', campusId: 'campus-bj-yy', roleId: financeRole.id },
+    { id: 'u-17', account: 'zhuling', realName: '朱玲', phone: '13800138016', campusId: 'campus-bj-hq', roleId: advisorRole.id },
+    { id: 'u-18', account: 'gaofeng', realName: '高峰', phone: '13800138017', campusId: 'campus-bj-hq', roleId: advisorRole.id },
+    { id: 'u-19', account: 'pengxue', realName: '彭雪', phone: '13800138018', campusId: 'campus-bj-hd', roleId: financeRole.id },
+    { id: 'u-20', account: 'fengkai', realName: '冯凯', phone: '13800138019', campusId: 'campus-bj-cy', roleId: advisorRole.id },
+    { id: 'u-21', account: 'jiangting', realName: '蒋婷', phone: '13800138020', campusId: 'campus-bj-hq', roleId: teacherRole.id },
+    { id: 'u-22', account: 'qiankun', realName: '钱坤', phone: '13800138021', campusId: 'campus-bj-wj', roleId: advisorRole.id },
+    { id: 'u-zhangls', account: 'zhangls', realName: '张老师', phone: '13900000003', campusId: 'campus-bj-hq', roleId: teacherRole.id },
+  ]
+
+  for (const pu of presetUsersList) {
+    const u = await prisma.user.upsert({
+      where: { account: pu.account },
+      update: {
+        realName: pu.realName,
+        phone: pu.phone,
+        campusId: pu.campusId,
+      },
+      create: {
+        id: pu.id,
+        account: pu.account,
+        password: passwordHash,
+        realName: pu.realName,
+        phone: pu.phone,
+        campusId: pu.campusId,
+        orgNodeId: hqDept.id,
+        status: 'active',
+      },
+    })
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: u.id, roleId: pu.roleId } },
+      update: {},
+      create: { userId: u.id, roleId: pu.roleId },
+    })
+  }
+
+  // 初始化常见业务字典
+  const dictItemsList = [
+    { category: 'trans_reason', dictKey: 'TRANS_REASON_DISTANCE', label: '家庭搬迁/距离过远', order: 1 },
+    { category: 'trans_reason', dictKey: 'TRANS_REASON_TIME', label: '上课时间冲突', order: 2 },
+    { category: 'trans_reason', dictKey: 'TRANS_REASON_STUDY_PRESSURE', label: '校内学业压力过大', order: 3 },
+    { category: 'trans_reason', dictKey: 'TRANS_REASON_HEALTH', label: '身体健康原因', order: 4 },
+    { category: 'trans_reason', dictKey: 'TRANS_REASON_OTHER', label: '其他原因', order: 5 },
+    { category: 'warning_rule', dictKey: 'WARN_ABSENT_3_TIMES', label: '连续旷课达 3 次预警', order: 1 },
+    { category: 'warning_rule', dictKey: 'WARN_LESSON_LESS_4', label: '剩余课时不足 4 节预警', order: 2 },
+    { category: 'warning_rule', dictKey: 'WARN_NO_CONSUME_30D', label: '超过 30 天未消课预警', order: 3 },
+    { category: 'payment_method', dictKey: 'PAY_WECHAT', label: '微信支付', order: 1 },
+    { category: 'payment_method', dictKey: 'PAY_ALIPAY', label: '支付宝', order: 2 },
+    { category: 'payment_method', dictKey: 'PAY_POS', label: 'POS机刷卡', order: 3 },
+    { category: 'payment_method', dictKey: 'PAY_BANK', label: '对公转账', order: 4 },
+  ]
+  for (const di of dictItemsList) {
+    const existing = await prisma.dictItem.findFirst({
+      where: { category: di.category, dictKey: di.dictKey },
+    })
+    if (!existing) {
+      await prisma.dictItem.create({ data: di })
+    }
+  }
+
+  console.log('✅ 超管账号 [donghaichao / 123456] 及全部 23 位预设教职工与业务字典初始化成功')
 
   // 5. 物理教室初始化 (Classrooms)
   const classroomsData = [

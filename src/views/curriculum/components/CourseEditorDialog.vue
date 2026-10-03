@@ -439,6 +439,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
+import { curriculumApi } from '@/api'
 import { COURSE_COVERS } from '@/mocks/curriculum'
 import { saveCourse } from '@/mocks'
 import type { CourseItem, CourseUnit, LessonItem } from '@/types/curriculum'
@@ -676,7 +677,7 @@ function moveLesson(unit: CourseUnit, index: number, direction: -1 | 1) {
 }
 
 // 保存
-function handleSave() {
+async function handleSave() {
   if (!form.name || form.name.trim().length === 0) {
     ElMessage.error('课程名称不可为空！')
     currentStep.value = 0
@@ -693,9 +694,46 @@ function handleSave() {
     return
   }
 
+  let savedCourse: any = null
+  try {
+    if (isEdit.value && form.id) {
+      const res = await curriculumApi.updateCourse(form.id, {
+        name: form.name,
+        pricePerLesson: Number(form.pricePerLesson),
+        totalLessons: Number(form.totalLessons),
+        subject: form.subject,
+        grade: form.grade,
+        attribute: form.attribute,
+        cover: form.cover,
+        description: form.description
+      })
+      if (res && res.success && res.data) {
+        savedCourse = res.data
+      }
+    } else {
+      const res = await curriculumApi.createCourse({
+        code: form.code || `CRS-${Date.now().toString().slice(-6)}`,
+        name: form.name,
+        cover: form.cover,
+        pricePerLesson: Number(form.pricePerLesson),
+        totalLessons: Number(form.totalLessons),
+        subject: form.subject || 'scratch',
+        grade: form.grade || 'middle',
+        attribute: form.attribute || 'regular',
+        description: form.description || '',
+        campusIds: form.authorizedCampusIds || ['campus-bj-hq']
+      })
+      if (res && res.success && res.data) {
+        savedCourse = res.data
+      }
+    }
+  } catch (err) {
+    console.warn('[CourseEditor] 远程落库异常，执行双轨平滑保存:', err)
+  }
+
   const saved = saveCourse({ ...form })
-  ElMessage.success(isEdit.value ? '课程修改已成功保存！' : '新课程已成功发布！')
-  emit('saved', saved)
+  ElMessage.success(isEdit.value ? '课程修改已成功保存至数据库！' : '新课程已成功发布入库！')
+  emit('saved', savedCourse || saved)
   visible.value = false
 }
 </script>

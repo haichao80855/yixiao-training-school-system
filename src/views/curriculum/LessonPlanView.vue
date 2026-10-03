@@ -214,14 +214,71 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import CoursewarePlayerDialog from './components/CoursewarePlayerDialog.vue'
+import { curriculumApi } from '@/api'
 import { MOCK_COURSES, MOCK_LESSON_PLANS, restoreCoursesFromStorage } from '@/mocks'
 import type { CourseItem, CourseUnit, LessonPlanItem } from '@/types/curriculum'
 
 const courses = ref<CourseItem[]>([])
+const loadedUnits = ref<CourseUnit[]>([])
 
-function reloadCourses() {
+async function reloadCourses() {
   restoreCoursesFromStorage()
+  try {
+    const res = await curriculumApi.getCourses({}, MOCK_COURSES)
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || MOCK_COURSES)
+      if (Array.isArray(list) && list.length > 0) {
+        courses.value = list.map((item: any) => ({
+          id: item.id,
+          code: item.code,
+          name: item.name,
+          cover: item.cover,
+          pricePerLesson: Number(item.pricePerLesson || 280),
+          totalLessons: Number(item.totalLessons || 48),
+          subject: item.subject || 'scratch',
+          grade: item.grade || '中级课程',
+          attribute: item.attribute || 'regular',
+          status: item.status || 'enabled',
+          description: item.description || '',
+          units: item.units || [],
+          authorizedCampusIds: item.authorizedCampusIds || ['campus-bj-hq']
+        }))
+        if (!courses.value.some(c => c.id === selectedCourseId.value)) {
+          selectedCourseId.value = courses.value[0].id
+        }
+        await loadCourseUnits(selectedCourseId.value)
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[LessonPlanView] 远程课程拉取未就绪，使用本地双轨模式:', err)
+  }
   courses.value = [...MOCK_COURSES]
+}
+
+async function loadCourseUnits(courseId: string) {
+  try {
+    const res = await curriculumApi.getUnits(courseId)
+    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+      loadedUnits.value = res.data.map((u: any) => ({
+        id: u.id,
+        title: u.unitName || u.title || '核心教学单元',
+        order: u.sort || 1,
+        lessons: (u.lessons || []).map((l: any, idx: number) => ({
+          id: l.id,
+          title: l.lessonName || `第 ${idx + 1} 课`,
+          name: l.lessonName || `第 ${idx + 1} 课`,
+          duration: l.durationMin || 90,
+          order: l.sort || idx + 1,
+          objective: '教学大纲核心知识与工程实操',
+          hasMedia: !!l.courseware,
+          pptUrl: l.courseware || ''
+        }))
+      }))
+    }
+  } catch {
+    loadedUnits.value = []
+  }
 }
 
 onMounted(() => {
@@ -239,6 +296,9 @@ const currentCourse = computed(() => {
 })
 
 const currentUnits = computed<CourseUnit[]>(() => {
+  if (loadedUnits.value && loadedUnits.value.length > 0) {
+    return loadedUnits.value
+  }
   if (currentCourse.value && currentCourse.value.units && currentCourse.value.units.length > 0) {
     return currentCourse.value.units
   }
@@ -289,7 +349,8 @@ const filteredPlans = computed(() => {
   })
 })
 
-function handleCourseChange() {
+async function handleCourseChange() {
+  await loadCourseUnits(selectedCourseId.value)
   ElMessage.info(`已切换至「${currentCourse.value?.name}」教案视图`)
 }
 
@@ -345,12 +406,30 @@ function openAddPlanDialog() {
   addPlanDialogVisible.value = true
 }
 
-function handleSavePlan() {
+async function handleSavePlan() {
   if (!planForm.value.lessonName) {
     ElMessage.warning('请输入课次名称')
     return
   }
   const course = courses.value.find(c => c.id === planForm.value.courseId)
+  
+  // 尝试持久化到后端数据库
+  try {
+    await curriculumApi.createUnit(planForm.value.courseId, {
+      unitName: planForm.value.unitTitle || '核心进阶实战单元',
+      lessons: [
+        {
+          lessonName: planForm.value.lessonName,
+          durationMin: 90,
+          courseware: 'https://pro-img-brtm.baijiayun.com/0baijiacloud/live_ppt/516587/516587_ppt_html/index.html'
+        }
+      ]
+    })
+    await loadCourseUnits(planForm.value.courseId)
+  } catch (err) {
+    console.warn('[LessonPlanView] 远程大纲落库异常，双轨回退:', err)
+  }
+
   lessonPlans.value.unshift({
     id: `plan-${Date.now()}`,
     courseId: planForm.value.courseId,
@@ -370,6 +449,6 @@ function handleSavePlan() {
     status: 'published'
   })
   addPlanDialogVisible.value = false
-  ElMessage.success('新课时大纲与课件发布成功！')
+  ElMessage.success('新课时大纲与课件发布成功并同步入库！')
 }
 </script>

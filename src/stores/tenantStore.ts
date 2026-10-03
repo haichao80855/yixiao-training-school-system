@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Campus } from '@/types'
+import { systemApi } from '@/api'
 
 const DEFAULT_CAMPUSES: Campus[] = [
   {
@@ -73,6 +74,31 @@ export const useTenantStore = defineStore('tenant', () => {
     }
   }
 
+  async function loadCampuses() {
+    try {
+      const res = await systemApi.getCampuses(DEFAULT_CAMPUSES)
+      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+        campuses.value = res.data.map((c: any) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          isHeadquarter: c.isHeadquarter,
+          address: c.address || '',
+          phone: c.phone || ''
+        }))
+        if (!campuses.value.some(c => c.id === currentCampusId.value)) {
+          currentCampusId.value = campuses.value[0].id
+        }
+      }
+    } catch {
+      // 保持默认校区列表
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    loadCampuses()
+  }
+
   return {
     companyId,
     companyName,
@@ -80,6 +106,7 @@ export const useTenantStore = defineStore('tenant', () => {
     campuses,
     currentCampusId,
     currentCampus,
-    setCampus
+    setCampus,
+    loadCampuses
   }
 })

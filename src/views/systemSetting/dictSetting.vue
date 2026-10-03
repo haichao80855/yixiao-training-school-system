@@ -180,9 +180,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { DictItem } from '@/types/system'
+import { systemApi } from '@/api'
 import {
   MOCK_DICTS_LIST,
   addDict,
@@ -196,6 +197,25 @@ const activeCategoryTab = ref('all')
 const searchQuery = ref('')
 const filterStatus = ref<boolean | ''>('')
 const dictList = ref<DictItem[]>(MOCK_DICTS_LIST)
+
+async function loadData() {
+  try {
+    const res = await systemApi.getDictItems(undefined, MOCK_DICTS_LIST)
+    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+      dictList.value = res.data.map((d: any) => ({
+        id: d.id,
+        category: d.category,
+        dictKey: d.dictKey,
+        label: d.label,
+        order: d.order ?? 0,
+        enabled: d.enabled ?? true,
+        remark: d.remark || ''
+      }))
+    }
+  } catch (err) {
+    console.warn('[DictSetting] 远程接口未就绪，使用本地双轨模式:', err)
+  }
+}
 
 // 弹窗表单状态
 const showDictModal = ref(false)
@@ -288,39 +308,67 @@ function openEditModal(item: DictItem) {
   showDictModal.value = true
 }
 
-function submitDictForm() {
+async function submitDictForm() {
   if (!dictForm.value.dictKey.trim() || !dictForm.value.label.trim()) {
     ElMessage.warning('请补全字典键值 (Key) 和显示标签 (Label)')
     return
   }
 
-  if (isEditMode.value) {
-    updateDict(editingId.value, {
-      label: dictForm.value.label,
-      order: dictForm.value.order,
-      enabled: dictForm.value.enabled,
-      remark: dictForm.value.remark
-    })
-    ElMessage.success(`字典项 [${dictForm.value.dictKey}] 修改成功！`)
-  } else {
-    addDict({
-      category: dictForm.value.category,
-      dictKey: dictForm.value.dictKey,
-      label: dictForm.value.label,
-      order: dictForm.value.order,
-      enabled: dictForm.value.enabled,
-      remark: dictForm.value.remark
-    })
-    ElMessage.success(`字典项 [${dictForm.value.dictKey}] 创建成功！`)
+  try {
+    if (isEditMode.value) {
+      await systemApi.updateDictItem(editingId.value, {
+        label: dictForm.value.label,
+        order: dictForm.value.order,
+        enabled: dictForm.value.enabled
+      })
+      ElMessage.success(`字典项 [${dictForm.value.dictKey}] 修改成功！`)
+    } else {
+      await systemApi.createDictItem({
+        category: dictForm.value.category,
+        dictKey: dictForm.value.dictKey,
+        label: dictForm.value.label,
+        order: dictForm.value.order,
+        enabled: dictForm.value.enabled
+      })
+      ElMessage.success(`字典项 [${dictForm.value.dictKey}] 创建成功！`)
+    }
+    await loadData()
+  } catch {
+    if (isEditMode.value) {
+      updateDict(editingId.value, {
+        label: dictForm.value.label,
+        order: dictForm.value.order,
+        enabled: dictForm.value.enabled,
+        remark: dictForm.value.remark
+      })
+      ElMessage.success(`字典项 [${dictForm.value.dictKey}] 修改成功！`)
+    } else {
+      addDict({
+        category: dictForm.value.category,
+        dictKey: dictForm.value.dictKey,
+        label: dictForm.value.label,
+        order: dictForm.value.order,
+        enabled: dictForm.value.enabled,
+        remark: dictForm.value.remark
+      })
+      ElMessage.success(`字典项 [${dictForm.value.dictKey}] 创建成功！`)
+    }
+    dictList.value = [...MOCK_DICTS_LIST]
   }
 
-  dictList.value = [...MOCK_DICTS_LIST]
   showDictModal.value = false
 }
 
-function handleToggleStatus(item: DictItem) {
-  toggleDictStatus(item.id)
-  ElMessage.success(`字典项 [${item.dictKey}] 已变更为：${item.enabled ? '启用中' : '已停用'}`)
+async function handleToggleStatus(item: DictItem) {
+  const nextEnabled = !item.enabled
+  try {
+    await systemApi.toggleDictItemStatus(item.id, nextEnabled)
+    await loadData()
+  } catch {
+    toggleDictStatus(item.id)
+    item.enabled = nextEnabled
+  }
+  ElMessage.success(`字典项 [${item.dictKey}] 已变更为：${nextEnabled ? '启用中' : '已停用'}`)
 }
 
 function handleDelete(item: DictItem) {
@@ -332,12 +380,21 @@ function handleDelete(item: DictItem) {
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
-    deleteDict(item.id)
-    dictList.value = [...MOCK_DICTS_LIST]
+  ).then(async () => {
+    try {
+      await systemApi.deleteDictItem(item.id)
+      await loadData()
+    } catch {
+      deleteDict(item.id)
+      dictList.value = [...MOCK_DICTS_LIST]
+    }
     ElMessage.success(`字典项 [${item.dictKey}] 已成功删除`)
   }).catch(() => {})
 }
+
+onMounted(async () => {
+  await loadData()
+})
 </script>
 
 <style scoped>

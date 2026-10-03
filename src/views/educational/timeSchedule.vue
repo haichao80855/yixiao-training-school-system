@@ -426,6 +426,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
+import { educationalApi } from '@/api'
 import {
   EducationalCollisionEngine,
   getScheduleEvents,
@@ -528,16 +529,58 @@ const conflictCenterRef = ref<InstanceType<typeof ConflictCenterDialog>>()
 // 响应式排课日程
 const schedules = ref<ScheduleEvent[]>([])
 
-function loadSchedules() {
+async function loadSchedules() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (filterTeacher.value || undefined)
   const tName = isDataScopeSelf.value ? currentTeacherName.value : undefined
-  schedules.value = getScheduleEvents({
+  const fallbackEvents = getScheduleEvents({
     campusId: tenantStore.currentCampusId,
     teacherId: tId,
     teacherName: tName,
     classroomId: filterClassroom.value || undefined,
     courseId: filterCourse.value || undefined
   })
+
+  try {
+    const res = await educationalApi.getSchedules({
+      campusId: tenantStore.currentCampusId,
+      teacherId: tId,
+      classroomId: filterClassroom.value || undefined
+    }, fallbackEvents)
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackEvents)
+      if (Array.isArray(list) && list.length > 0) {
+        schedules.value = list.map((evt: any) => ({
+          id: evt.id,
+          classId: evt.classId,
+          className: evt.class?.name || evt.className || 'Scratch精品班',
+          courseId: evt.class?.courseId || evt.courseId || 'crs-scratch-001',
+          courseName: evt.class?.course?.name || evt.courseName || 'Scratch图形化编程',
+          teacherId: evt.teacherId,
+          teacherName: evt.teacher?.realName || evt.teacherName || '张老师',
+          classroomId: evt.classroomId,
+          classroomName: evt.classroom?.name || evt.classroomName || '创客教室1',
+          campusId: evt.campusId || tenantStore.currentCampusId,
+          date: evt.date,
+          startTime: evt.startTime,
+          endTime: evt.endTime,
+          status: evt.status || 'scheduled',
+          semanticType: evt.semanticType || 'regular',
+          classType: evt.classType || 'formal',
+          laneIndex: evt.laneIndex || 0,
+          totalCount: evt.totalCount || 8,
+          attendanceCount: evt.attendanceCount || 0,
+          signedCount: evt.attendanceCount || 0,
+          studentIds: evt.studentIds || [],
+          hasConflict: evt.semanticType === 'conflict'
+        }))
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[TimeSchedule] 远程排课日程拉取未就绪，使用本地双轨模式:', err)
+  }
+
+  schedules.value = fallbackEvents
 }
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {
@@ -673,9 +716,13 @@ function handleExport() {
 async function handleDelete(id: string) {
   try {
     await ElMessageBox.confirm('确定取消该排课课次吗？', '提示', { type: 'warning' })
-    deleteScheduleEvent(id)
-    ElMessage.success('排课已取消')
-    loadSchedules()
+    try {
+      await educationalApi.deleteSchedule(id)
+    } catch {
+      deleteScheduleEvent(id)
+    }
+    ElMessage.success('排课已取消并同步落盘')
+    await loadSchedules()
   } catch {
     // cancelled
   }

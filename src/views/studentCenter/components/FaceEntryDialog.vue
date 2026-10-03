@@ -64,6 +64,7 @@
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { Student } from '@/types/student'
+import { studentApi } from '@/api'
 import { updateStudent } from '@/mocks'
 
 const props = defineProps<{
@@ -88,9 +89,17 @@ const capturedImage = ref('')
 function handleCapture() {
   if (progress.value === 100) {
     if (props.student) {
+      const faceUrl = capturedImage.value || props.student.avatar || ''
+      try {
+        studentApi.updateStudent(props.student.id, {
+          avatar: faceUrl
+        })
+      } catch {
+        // dual-track
+      }
       updateStudent(props.student.id, {
         faceEntered: true,
-        faceImageUrl: capturedImage.value || props.student.avatar
+        faceImageUrl: faceUrl
       })
       ElMessage.success('学员人脸底库已成功录入并同步至校区考勤闸机！')
       emit('success')

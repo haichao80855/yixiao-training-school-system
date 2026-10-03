@@ -363,9 +363,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
+import { studentApi } from '@/api'
 import { MOCK_STUDENTS, deleteStudent, updateStudent, MOCK_UNASSIGNED_STUDENTS } from '@/mocks'
 import type { Student } from '@/types/student'
 
@@ -409,12 +410,80 @@ const currentCampusDisplayName = computed(() => {
 })
 
 const refreshTrigger = ref(0)
+const studentList = ref<Student[]>([...MOCK_STUDENTS])
+
+async function loadStudents() {
+  try {
+    const res = await studentApi.getStudents({
+      campusId: selectedCampus.value === 'all' ? undefined : selectedCampus.value,
+      keyword: keyword.value || undefined,
+      status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
+      pageSize: 200
+    }, MOCK_STUDENTS)
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || MOCK_STUDENTS)
+      if (Array.isArray(list) && list.length > 0) {
+        studentList.value = list.map((s: any) => ({
+          id: s.id,
+          studentNo: s.studentNo,
+          name: s.name,
+          gender: s.gender || 'male',
+          age: s.age || 8,
+          grade: s.grade || '小学三年级',
+          school: s.school || '中关村第一小学',
+          phone: s.phone || '',
+          parentName: s.parentName || '家长',
+          parentPhone: s.phone || '',
+          campusId: s.campusId,
+          campusName: s.campus?.name || tenantStore.currentCampus.name,
+          status: s.status || 'normal',
+          createdAt: s.createdAt?.split('T')[0] || '2026-09-01',
+          remainingLessons: s.packages?.reduce((sum: number, p: any) => sum + (p.remainingLessons || 0), 0) || 48,
+          consumedLessons: s.packages?.reduce((sum: number, p: any) => sum + (p.consumedLessons || 0), 0) || 0,
+          totalLessons: s.packages?.reduce((sum: number, p: any) => sum + (p.totalLessons || 0), 0) || 48,
+          balance: Number(s.wallet?.principalBalance || 0),
+          warningLevel: s.warningLevel || 'none',
+          wechatBound: !!s.wechatOpenId,
+          faceEntered: !!s.faceVector,
+          wallet: {
+            principalBalance: Number(s.wallet?.principalBalance || 0),
+            bonusBalance: Number(s.wallet?.bonusBalance || 0),
+            ledger: []
+          },
+          coursePackages: (s.packages || []).map((p: any) => ({
+            packageId: p.id,
+            courseId: p.courseId,
+            courseName: p.course?.name || '少儿编程标准课',
+            totalLessons: p.totalLessons,
+            remainingLessons: p.remainingLessons,
+            consumedLessons: p.consumedLessons || 0,
+            expireDate: p.expiryDate ? p.expiryDate.split('T')[0] : '2027-12-31',
+            status: p.status || 'active'
+          }))
+        }))
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[AllStudent] 远程学员拉取未就绪，使用本地双轨模式:', err)
+  }
+  studentList.value = [...MOCK_STUDENTS]
+}
+
+onMounted(() => {
+  loadStudents()
+})
+
+watch(() => selectedCampus.value, () => {
+  loadStudents()
+  currentPage.value = 1
+})
 
 // 筛选后学员全集
 const filteredStudents = computed(() => {
   // 建立显式响应式追踪依赖
   const _tick = refreshTrigger.value
-  return MOCK_STUDENTS.filter(s => {
+  return studentList.value.filter(s => {
     // 校区筛选：若选了具体校区，或者未选全集团且不在总部时做作用域
     if (selectedCampus.value !== 'all') {
       if (s.campusId !== selectedCampus.value) return false
@@ -458,8 +527,8 @@ const paginatedStudents = computed(() => {
 // 统计
 const campusStats = computed(() => {
   const list = selectedCampus.value === 'all'
-    ? MOCK_STUDENTS
-    : MOCK_STUDENTS.filter(s => s.campusId === selectedCampus.value)
+    ? studentList.value
+    : studentList.value.filter(s => s.campusId === selectedCampus.value)
 
   return {
     total: list.length,
@@ -592,5 +661,6 @@ function handleFinanceExport() {
 
 function refreshData() {
   refreshTrigger.value++
+  loadStudents()
 }
 </script>

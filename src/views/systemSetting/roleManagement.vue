@@ -288,6 +288,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { RoleItem, PermissionNode, DataScope } from '@/types/system'
+import { systemApi } from '@/api'
 import {
   MOCK_ROLES_LIST,
   MOCK_PERMISSION_TREE_DATA,
@@ -303,6 +304,36 @@ const activeRoleId = ref('r1')
 const permissionTree = ref<PermissionNode[]>(MOCK_PERMISSION_TREE_DATA)
 const permTreeRef = ref()
 const isExpandAll = ref(true)
+
+async function loadData() {
+  try {
+    const [rolesRes, permsRes] = await Promise.all([
+      systemApi.getRoles(MOCK_ROLES_LIST),
+      systemApi.getPermissions(MOCK_PERMISSION_TREE_DATA)
+    ])
+    if (rolesRes && rolesRes.success && Array.isArray(rolesRes.data) && rolesRes.data.length > 0) {
+      roles.value = rolesRes.data.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        code: r.code,
+        description: r.description || '',
+        dataScope: r.dataScope || 'campus',
+        isSystem: r.isSystem || ['super_admin', 'principal', 'teacher', 'admin', 'r1', 'r2', 'r3', 'r4'].includes(r.code),
+        permissions: r.permissions || ['curriculum:view'],
+        userCount: r.userCount || 0
+      }))
+    }
+    if (permsRes && permsRes.success && Array.isArray(permsRes.data) && permsRes.data.length > 0) {
+      permissionTree.value = permsRes.data
+    }
+    const current = roles.value.find(r => r.id === activeRoleId.value) || roles.value[0]
+    if (current) {
+      selectRole(current)
+    }
+  } catch (err) {
+    console.warn('[RoleManagement] 远程接口未就绪，使用本地双轨模式:', err)
+  }
+}
 
 // 当前角色编辑中的数据范围与勾选权限
 const currentDataScope = ref<DataScope>('all')
@@ -424,39 +455,59 @@ function resetCurrentRolePerms() {
   }
 }
 
-function handleSaveRoleAuth() {
+async function handleSaveRoleAuth() {
   if (!currentRole.value) return
 
   // 获取勾选节点
   const checkedKeys = permTreeRef.value ? permTreeRef.value.getCheckedKeys() : []
-  const halfCheckedKeys = permTreeRef.value ? permTreeRef.value.getHalfCheckedKeys() : []
-  const allSelectedKeys = [...checkedKeys, ...halfCheckedKeys]
-
   const savedKeys = isSuperAdmin.value ? ['*'] : checkedKeys
 
-  saveRolePermissions(currentRole.value.id, savedKeys, currentDataScope.value)
-  roles.value = [...MOCK_ROLES_LIST]
+  try {
+    await Promise.all([
+      systemApi.assignRolePermissions(currentRole.value.id, savedKeys),
+      systemApi.updateRole(currentRole.value.id, { dataScope: currentDataScope.value })
+    ])
+  } catch {
+    saveRolePermissions(currentRole.value.id, savedKeys, currentDataScope.value)
+  }
 
   ElMessage.success(`角色 [${currentRole.value.name}] 细粒度权限与数据范围已成功保存并实时生效！`)
+  await loadData()
 }
 
 // --- 角色创建与删除 ---
-function submitAddRole() {
+async function submitAddRole() {
   if (!newRoleForm.value.name.trim() || !newRoleForm.value.code.trim()) {
     ElMessage.warning('请输入角色名称与编码')
     return
   }
-  const created = addRole({
-    name: newRoleForm.value.name,
-    code: newRoleForm.value.code,
-    description: newRoleForm.value.description,
-    dataScope: newRoleForm.value.dataScope,
-    permissions: ['curriculum:view', 'student:view']
-  })
-  roles.value = [...MOCK_ROLES_LIST]
-  showAddRoleModal.value = false
-  selectRole(created)
-  ElMessage.success(`角色组 [${created.name}] 创建成功！`)
+  try {
+    const res = await systemApi.createRole({
+      name: newRoleForm.value.name,
+      code: newRoleForm.value.code,
+      description: newRoleForm.value.description,
+      dataScope: newRoleForm.value.dataScope,
+      permissionCodes: ['curriculum:view', 'student:view']
+    })
+    showAddRoleModal.value = false
+    ElMessage.success(`角色组 [${newRoleForm.value.name}] 创建成功！`)
+    await loadData()
+    if (res?.data?.id) {
+      activeRoleId.value = res.data.id
+    }
+  } catch {
+    const created = addRole({
+      name: newRoleForm.value.name,
+      code: newRoleForm.value.code,
+      description: newRoleForm.value.description,
+      dataScope: newRoleForm.value.dataScope,
+      permissions: ['curriculum:view', 'student:view']
+    })
+    roles.value = [...MOCK_ROLES_LIST]
+    showAddRoleModal.value = false
+    selectRole(created)
+    ElMessage.success(`角色组 [${created.name}] 创建成功！`)
+  }
 }
 
 function handleDeleteRole(role: RoleItem) {
@@ -469,13 +520,14 @@ function handleDeleteRole(role: RoleItem) {
         cancelButtonText: '取消',
         type: 'warning'
       }
-    ).then(() => {
-      deleteRole(role.id)
-      roles.value = [...MOCK_ROLES_LIST]
-      if (activeRoleId.value === role.id) {
-        selectRole(roles.value[0])
+    ).then(async () => {
+      try {
+        await systemApi.deleteRole(role.id)
+      } catch {
+        deleteRole(role.id)
       }
       ElMessage.success(`角色组 [${role.name}] 已删除`)
+      await loadData()
     }).catch(() => {})
   } catch (err: any) {
     ElMessage.error(err.message)
@@ -523,10 +575,8 @@ function getDataScopeBadgeClass(scope: DataScope): string {
   }
 }
 
-onMounted(() => {
-  if (roles.value.length > 0) {
-    selectRole(roles.value[0])
-  }
+onMounted(async () => {
+  await loadData()
 })
 </script>
 

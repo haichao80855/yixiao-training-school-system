@@ -242,6 +242,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { educationalApi } from '@/api'
 import {
   MOCK_UNASSIGNED_STUDENTS,
   assignClassToStudent
@@ -353,7 +354,7 @@ function assignFromReport() {
   }
 }
 
-function confirmAssign() {
+async function confirmAssign() {
   if (!activeItem.value || !selectedClassId.value) {
     ElMessage.warning('请选择目标班级')
     return
@@ -364,6 +365,12 @@ function confirmAssign() {
   if (cls.currentCount >= cls.capacity) {
     ElMessage.error('该班级已达满班上限，无法继续排入')
     return
+  }
+
+  try {
+    await educationalApi.assignStudentsToClass(cls.id, [activeItem.value.studentId])
+  } catch (err) {
+    console.warn('[Unassigned] 远程分班入库异常，双轨平滑执行:', err)
   }
 
   const ok = assignClassToStudent(activeItem.value.studentId, cls.id, cls.name)

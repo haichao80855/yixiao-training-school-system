@@ -265,10 +265,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Download, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
+import { financialApi } from '@/api'
 import { getLedgerRecords, isCampusMatch } from '@/mocks/financial'
 import type { LedgerRecord } from '@/types/financial'
 
@@ -280,8 +281,43 @@ const filterType = ref('all')
 const filterDateRange = ref<string[] | null>(null)
 const filterKeyword = ref('')
 
+const remoteLedgers = ref<LedgerRecord[]>([])
+
+async function loadLedgers() {
+  const fallbackList = getLedgerRecords(tenantStore.currentCampusId)
+  try {
+    const res = await financialApi.getOrders({
+      campusId: filterCampus.value === 'all' ? undefined : filterCampus.value,
+      pageSize: 200
+    }, [])
+    if (res && res.success && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list) && list.length > 0) {
+        remoteLedgers.value = list.map((o: any) => ({
+          transNo: `TX${o.orderNo ? o.orderNo.replace(/\D/g, '') : Date.now()}`,
+          orderNo: o.orderNo,
+          date: o.payTime ? o.payTime.replace('T', ' ').slice(0, 19) : (o.createdAt ? o.createdAt.replace('T', ' ').slice(0, 19) : '2026-09-21 10:00:00'),
+          campusId: o.campusId,
+          campusName: o.campus?.name || tenantStore.currentCampus.name,
+          student: o.student?.name || o.studentName || '学员',
+          studentNo: o.student?.studentNo || o.studentNo || 'S001',
+          type: o.orderType === 'refund' ? '退费冲减' : (o.orderType === 'quarterly' ? '季度学费' : '常规学费'),
+          amount: o.orderType === 'refund' ? -Math.abs(Number(o.actualAmount || 0)) : Number(o.actualAmount || 0),
+          method: o.paymentMethod === 'wechat' ? '微信商户号' : (o.paymentMethod === 'alipay' ? '支付宝生活号' : (o.paymentMethod === 'bank_transfer' ? '招商银行对公' : '银联POS')),
+          verifier: o.creator?.realName || o.creator || '系统财务',
+          status: o.status === 'paid' ? '已核销' : (o.status === 'void' ? '已作废' : '待处理')
+        }))
+        return
+      }
+    }
+  } catch (err) {
+    console.warn('[ChargingLedger] 远程流水拉取未就绪，使用本地双轨模式:', err)
+  }
+  remoteLedgers.value = fallbackList
+}
+
 const allLedgers = computed(() => {
-  return getLedgerRecords(tenantStore.currentCampusId)
+  return remoteLedgers.value.length > 0 ? remoteLedgers.value : getLedgerRecords(tenantStore.currentCampusId)
 })
 
 const displayLedgers = computed(() => {
@@ -373,8 +409,17 @@ function resetFilter() {
 }
 
 function handleRefresh() {
+  loadLedgers()
   ElMessage.success('流水账本已刷新至最新账期数据')
 }
+
+onMounted(async () => {
+  await loadLedgers()
+})
+
+watch(() => tenantStore.currentCampusId, () => {
+  loadLedgers()
+})
 
 // 导出对账单
 function handleExportLedger() {
