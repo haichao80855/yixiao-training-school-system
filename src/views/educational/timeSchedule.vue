@@ -531,24 +531,15 @@ const schedules = ref<ScheduleEvent[]>([])
 
 async function loadSchedules() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (filterTeacher.value || undefined)
-  const tName = isDataScopeSelf.value ? currentTeacherName.value : undefined
-  const fallbackEvents = getScheduleEvents({
-    campusId: tenantStore.currentCampusId,
-    teacherId: tId,
-    teacherName: tName,
-    classroomId: filterClassroom.value || undefined,
-    courseId: filterCourse.value || undefined
-  })
-
   try {
     const res = await educationalApi.getSchedules({
       campusId: tenantStore.currentCampusId,
       teacherId: tId,
       classroomId: filterClassroom.value || undefined
-    }, fallbackEvents)
+    })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackEvents)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list)) {
         schedules.value = list.map((evt: any) => ({
           id: evt.id,
           classId: evt.classId,
@@ -577,10 +568,10 @@ async function loadSchedules() {
       }
     }
   } catch (err) {
-    console.warn('[TimeSchedule] 远程排课日程拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[TimeSchedule] 远程排课日程拉取失败:', err)
   }
 
-  schedules.value = fallbackEvents
+  schedules.value = []
 }
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {

@@ -897,15 +897,14 @@ function handleColumnsUpdated(newCols: ColumnConfig[]) {
 const remoteOrders = ref<OrderRecord[]>([])
 
 async function loadOrders() {
-  const fallbackList = getOrdersByCampus(tenantStore.currentCampusId)
   try {
     const res = await financialApi.getOrders({
       campusId: tenantStore.currentCampusId,
       pageSize: 200
-    }, fallbackList)
+    })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list)) {
         remoteOrders.value = list.map((o: any) => ({
           id: o.id,
           orderNo: o.orderNo,
@@ -940,13 +939,13 @@ async function loadOrders() {
       }
     }
   } catch (err) {
-    console.warn('[OrderManagement] 远程订单拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[OrderManagement] 远程订单拉取失败:', err)
   }
-  remoteOrders.value = fallbackList
+  remoteOrders.value = []
 }
 
 const allOrders = computed<OrderRecord[]>(() => {
-  return remoteOrders.value.length > 0 ? remoteOrders.value : getOrdersByCampus(tenantStore.currentCampusId)
+  return remoteOrders.value
 })
 
 // 各状态数量统计 Badge

@@ -202,6 +202,7 @@ import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { Student } from '@/types/student'
 import { MOCK_STUDENTS, enrollStudent, getCoursesByCampus, restoreCoursesFromStorage } from '@/mocks'
+import { PRESET_MOCK_STUDENTS } from '@/mocks/student'
 import { studentApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 import type { CourseItem } from '@/types/curriculum'
@@ -226,7 +227,11 @@ const currentStep = ref(0)
 const submitting = ref(false)
 
 const candidateStudents = computed(() => {
-  return MOCK_STUDENTS
+  if (props.student) {
+    const fallback = MOCK_STUDENTS.length > 0 ? MOCK_STUDENTS : PRESET_MOCK_STUDENTS
+    return [props.student, ...fallback.filter(s => s.id !== props.student?.id)]
+  }
+  return MOCK_STUDENTS.length > 0 ? MOCK_STUDENTS : PRESET_MOCK_STUDENTS
 })
 
 const availableCoursesList = ref<CourseItem[]>([])
@@ -255,7 +260,10 @@ const formData = reactive({
 })
 
 const selectedStudent = computed(() => {
-  return MOCK_STUDENTS.find(s => s.id === formData.studentId)
+  if (props.student && (props.student.id === formData.studentId || props.student.studentNo === formData.studentId)) {
+    return props.student
+  }
+  return candidateStudents.value.find(s => s.id === formData.studentId || s.studentNo === formData.studentId)
 })
 
 const selectedCourse = computed(() => {
@@ -272,8 +280,8 @@ const finalActualAmount = computed(() => {
 })
 
 const walletInsufficient = computed(() => {
-  if (!selectedStudent.value) return true
-  const total = selectedStudent.value.wallet.principalBalance + selectedStudent.value.wallet.bonusBalance
+  if (!selectedStudent.value?.wallet) return false
+  const total = (selectedStudent.value.wallet.principalBalance || 0) + (selectedStudent.value.wallet.bonusBalance || 0)
   return total < finalActualAmount.value
 })
 
@@ -384,7 +392,7 @@ async function handleSubmit() {
       console.warn('[EnrollDialog] 后端开单接口异常，自动降级至本地模式:', apiErr)
     }
 
-    // 2. 本地响应式状态库同步生效
+    // 2. 本地响应式状态库同步生效 (若后端已成功，则静默更新或兜底)
     const res = enrollStudent({
       studentId: formData.studentId,
       courseId: formData.courseId,
@@ -399,17 +407,17 @@ async function handleSubmit() {
       operator: '教务学管'
     })
 
-    if (res.success) {
+    if (orderNoGenerated || res.success) {
       ElMessage.success(
         orderNoGenerated
           ? `签约开单成功！订单已落盘：${orderNoGenerated}`
-          : res.message
+          : (res.message || '签约开单成功！')
       )
       emit('success')
       visible.value = false
       currentStep.value = 0
     } else {
-      ElMessage.error(res.message)
+      ElMessage.error(res.message || '签约开单失败')
     }
   } catch (err: any) {
     ElMessage.error(err.message || '签约失败')

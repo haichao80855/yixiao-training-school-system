@@ -368,8 +368,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'
-import { MOCK_STUDENTS, deleteStudent, updateStudent, MOCK_UNASSIGNED_STUDENTS } from '@/mocks'
-import { PRESET_MOCK_STUDENTS } from '@/mocks/student'
 import type { Student } from '@/types/student'
 
 import StudentProfileDrawer from './components/StudentProfileDrawer.vue'
@@ -413,20 +411,19 @@ const currentCampusDisplayName = computed(() => {
 })
 
 const refreshTrigger = ref(0)
-const studentList = ref<Student[]>([...MOCK_STUDENTS])
+const studentList = ref<Student[]>([])
 
 async function loadStudents() {
-  const fallbackStudents = MOCK_STUDENTS.length > 0 ? MOCK_STUDENTS : PRESET_MOCK_STUDENTS
   try {
     const res = await studentApi.getStudents({
       campusId: selectedCampus.value === 'all' ? undefined : selectedCampus.value,
       keyword: keyword.value || undefined,
       status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
       pageSize: 200
-    }, fallbackStudents)
+    })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.list || res.data.items || fallbackStudents)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.list || res.data.items || [])
+      if (Array.isArray(list)) {
         studentList.value = list.map((s: any) => ({
           id: s.id,
           studentNo: s.studentNo,
@@ -442,9 +439,9 @@ async function loadStudents() {
           campusName: s.campus?.name || s.campusName || tenantStore.currentCampus.name,
           status: s.status || 'normal',
           createdAt: s.createdAt ? s.createdAt.split('T')[0] : '2026-09-01',
-          remainingLessons: s.totalRemainingLessons !== undefined ? s.totalRemainingLessons : (s.packages?.reduce((sum: number, p: any) => sum + (p.remainingLessons || 0), 0) || 48),
+          remainingLessons: s.totalRemainingLessons !== undefined ? s.totalRemainingLessons : (s.packages?.reduce((sum: number, p: any) => sum + (p.remainingLessons || 0), 0) || 0),
           consumedLessons: s.totalConsumedLessons !== undefined ? s.totalConsumedLessons : (s.packages?.reduce((sum: number, p: any) => sum + (p.consumedLessons || 0), 0) || 0),
-          totalLessons: s.totalLessons || (s.totalRemainingLessons || 0) + (s.totalConsumedLessons || 0) || 48,
+          totalLessons: s.totalLessons || (s.totalRemainingLessons || 0) + (s.totalConsumedLessons || 0) || 0,
           balance: Number(s.principalBalance || s.wallet?.principalBalance || 0),
           warningLevel: s.warningLevel || 'none',
           wechatBound: !!s.wechatOpenId || !!s.wechatBound,
@@ -469,9 +466,9 @@ async function loadStudents() {
       }
     }
   } catch (err) {
-    console.warn('[AllStudent] 远程学员拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[AllStudent] 远程学员拉取失败:', err)
   }
-  studentList.value = [...fallbackStudents]
+  studentList.value = []
 }
 
 onMounted(() => {
@@ -548,7 +545,7 @@ const campusStats = computed(() => {
     total: list.length,
     normal: list.filter(s => s.status === 'normal').length,
     suspended: list.filter(s => s.status === 'suspended').length,
-    unassigned: MOCK_UNASSIGNED_STUDENTS.length
+    unassigned: list.filter(s => !s.coursePackages || s.coursePackages.length === 0).length
   }
 })
 
@@ -633,8 +630,11 @@ async function handleCommand(cmd: string, row: Student) {
     activeStudent.value = row
     faceDialogVisible.value = true
   } else if (cmd === 'wechat') {
-    updateStudent(row.id, { wechatBound: !row.wechatBound })
-    ElMessage.success(row.wechatBound ? '已成功解绑家长微信' : '已成功绑定家长微信公众号')
+    row.wechatBound = !row.wechatBound
+    try {
+      await studentApi.updateStudent(row.id, { wechatOpenId: row.wechatBound ? 'wx_mock_bind' : null })
+    } catch {}
+    ElMessage.success(row.wechatBound ? '已成功绑定家长微信公众号' : '已成功解绑家长微信')
   } else if (cmd === 'resetPwd') {
     ElMessage.success(`已重置学员 [${row.name}] 密码为默认密码: 123456`)
   } else if (cmd === 'delete') {
@@ -646,11 +646,10 @@ async function handleCommand(cmd: string, row: Student) {
       })
       try {
         await studentApi.deleteStudent(row.id)
-      } catch (apiErr) {
-        console.warn('[AllStudent] 远程删除学员异常，执行本地删除:', apiErr)
+        ElMessage.success('学员档案已从数据库彻底删除！')
+      } catch (apiErr: any) {
+        ElMessage.error(apiErr.message || '删除失败')
       }
-      deleteStudent(row.id)
-      ElMessage.success('学员档案已从数据库彻底删除！')
       await loadStudents()
     } catch {
       // cancelled

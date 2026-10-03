@@ -330,19 +330,30 @@ export class StudentService {
    * 报名单开单与合同签约向导
    */
   async enrollStudent(dto: EnrollStudentDto, currentUser: any) {
-    const student = await this.prisma.student.findUnique({
-      where: { id: dto.studentId },
+    const student = await this.prisma.student.findFirst({
+      where: {
+        OR: [
+          { id: dto.studentId },
+          { studentNo: dto.studentId },
+        ],
+      },
       include: { wallet: true },
     });
     if (!student) {
-      throw new NotFoundException(`未找到对应学员 ID: ${dto.studentId}`);
+      throw new NotFoundException(`未找到对应学员 (ID/学号: ${dto.studentId})`);
     }
 
-    const course = await this.prisma.course.findUnique({
-      where: { id: dto.courseId },
+    const course = await this.prisma.course.findFirst({
+      where: {
+        OR: [
+          { id: dto.courseId },
+          { code: dto.courseId },
+          { name: dto.courseId },
+        ],
+      },
     });
     if (!course) {
-      throw new NotFoundException(`未找到对应课程 ID: ${dto.courseId}`);
+      throw new NotFoundException(`未找到对应课程 (ID/编码: ${dto.courseId})`);
     }
 
     // 价格与金额核算
@@ -771,8 +782,13 @@ export class StudentService {
    * 彻底删除学员档案及级联清理关联测试订单与资产
    */
   async deleteStudent(id: string) {
-    const student = await this.prisma.student.findUnique({
-      where: { id },
+    const student = await this.prisma.student.findFirst({
+      where: {
+        OR: [
+          { id },
+          { studentNo: id },
+        ],
+      },
       include: {
         orders: {
           include: {
@@ -785,6 +801,8 @@ export class StudentService {
     if (!student) {
       throw new NotFoundException('学员档案不存在');
     }
+
+    const targetId = student.id;
 
     await this.prisma.$transaction(async (tx) => {
       // 1. 清理关联订单的多级审批流节点与流程
@@ -800,23 +818,23 @@ export class StudentService {
       }
 
       // 2. 清理关联订单
-      await tx.order.deleteMany({ where: { studentId: id } });
+      await tx.order.deleteMany({ where: { studentId: targetId } });
 
       // 3. 清理消课考勤记录
-      await tx.attendanceRecord.deleteMany({ where: { studentId: id } });
+      await tx.attendanceRecord.deleteMany({ where: { studentId: targetId } });
 
       // 4. 清理签约课包
-      await tx.studentCoursePackage.deleteMany({ where: { studentId: id } });
+      await tx.studentCoursePackage.deleteMany({ where: { studentId: targetId } });
 
       // 5. 清理零钱包及账本流水
-      await tx.walletLedger.deleteMany({ where: { studentId: id } });
-      await tx.studentWallet.deleteMany({ where: { studentId: id } });
+      await tx.walletLedger.deleteMany({ where: { studentId: targetId } });
+      await tx.studentWallet.deleteMany({ where: { studentId: targetId } });
 
       // 6. 清理异动审批工单
-      await tx.studentAbnormalMovement.deleteMany({ where: { studentId: id } });
+      await tx.studentAbnormalMovement.deleteMany({ where: { studentId: targetId } });
 
       // 7. 最终彻底删除学员主体
-      await tx.student.delete({ where: { id } });
+      await tx.student.delete({ where: { id: targetId } });
     });
 
     return {

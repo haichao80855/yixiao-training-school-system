@@ -387,15 +387,14 @@ const batchSelectedCampuses = ref<string[]>([])
 const allCourses = ref<CourseItem[]>([])
 
 async function reloadCourses() {
-  const fallbackList = getCoursesByCampus(tenantStore.currentCampusId)
   try {
     const res = await curriculumApi.getCourses({
       campusId: tenantStore.currentCampusId,
       pageSize: 200
-    }, fallbackList)
+    })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list)) {
         allCourses.value = list.map((item: any) => ({
           id: item.id,
           code: item.code,
@@ -415,9 +414,9 @@ async function reloadCourses() {
       }
     }
   } catch (err) {
-    console.warn('[CourseManage] 远程课程拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[CourseManage] 远程课程拉取失败:', err)
   }
-  allCourses.value = fallbackList
+  allCourses.value = []
 }
 
 // 监听校区切换

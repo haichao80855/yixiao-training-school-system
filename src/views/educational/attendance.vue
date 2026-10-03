@@ -295,17 +295,13 @@ const attendanceRecords = ref<AttendanceRecord[]>([])
 const teachers = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'teacher'))
 
 async function loadData() {
-  const fallbackEvents = getScheduleEvents({
-    campusId: tenantStore.currentCampusId
-  })
-
   try {
     const res = await educationalApi.getSchedules({
       campusId: tenantStore.currentCampusId
-    }, fallbackEvents)
+    })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackEvents)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list)) {
         schedules.value = list.map((evt: any) => ({
           id: evt.id,
           classId: evt.classId,
@@ -330,14 +326,14 @@ async function loadData() {
           studentIds: evt.studentIds || []
         }))
       } else {
-        schedules.value = fallbackEvents
+        schedules.value = []
       }
     } else {
-      schedules.value = fallbackEvents
+      schedules.value = []
     }
   } catch (err) {
-    console.warn('[Attendance] 远程排课日程拉取未就绪，使用本地双轨模式:', err)
-    schedules.value = fallbackEvents
+    console.warn('[Attendance] 远程排课日程拉取失败:', err)
+    schedules.value = []
   }
 
   attendanceRecords.value = getAttendanceRecords(tenantStore.currentCampusId)

@@ -236,24 +236,22 @@ const searchKeyword = ref('')
 
 async function loadData() {
   try {
-    const res = await curriculumApi.getCourses({}, [])
+    const res = await curriculumApi.getCourses({})
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         subjects.value.forEach(subj => {
           const matched = list.filter((c: any) =>
             c.subject === subj.id ||
             c.subject === subj.code.toLowerCase() ||
             (c.name && c.name.includes(subj.name))
           )
-          if (matched.length > 0) {
-            subj.courseCount = matched.length
-          }
+          subj.courseCount = matched.length
         })
       }
     }
   } catch (err) {
-    console.warn('[SubjectView] 课程统计远程拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[SubjectView] 课程统计远程拉取失败:', err)
   }
 }
 

@@ -377,24 +377,15 @@ function getStatusLabel(status: string) {
 
 async function loadData() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (teacherFilter.value || undefined)
-  const tName = isDataScopeSelf.value ? currentTeacherName.value : undefined
-  const fallbackList = getClasses({
-    campusId: tenantStore.currentCampusId,
-    search: searchQuery.value || undefined,
-    status: statusFilter.value || undefined,
-    teacherId: tId,
-    teacherName: tName
-  })
-
   try {
     const res = await educationalApi.getClasses({
       campusId: tenantStore.currentCampusId,
       status: statusFilter.value || undefined,
       teacherId: tId
-    }, fallbackList)
+    })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list)) {
         classList.value = list.map((c: any) => ({
           id: c.id,
           code: c.code,
@@ -420,10 +411,10 @@ async function loadData() {
       }
     }
   } catch (err) {
-    console.warn('[ClassManagement] 远程班级拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[ClassManagement] 远程班级拉取失败:', err)
   }
 
-  classList.value = fallbackList
+  classList.value = []
 }
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {

@@ -394,14 +394,13 @@ const statusTabs = [
 const remoteApprovals = ref<ApprovalRecord[]>([])
 
 async function loadApprovals() {
-  const fallbackList = getApprovalRecords(tenantStore.currentCampusId)
   try {
     const res = await financialApi.getApprovals({
       campusId: tenantStore.currentCampusId
     })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || fallbackList)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list)) {
         remoteApprovals.value = list.map((a: any) => ({
           id: a.id,
           approvalNo: a.approvalNo || a.id,
@@ -436,13 +435,13 @@ async function loadApprovals() {
       }
     }
   } catch (err) {
-    console.warn('[ApprovalFlow] 远程审批单拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[ApprovalFlow] 远程审批单拉取失败:', err)
   }
-  remoteApprovals.value = fallbackList
+  remoteApprovals.value = []
 }
 
 const allApprovals = computed(() => {
-  return remoteApprovals.value.length > 0 ? remoteApprovals.value : getApprovalRecords(tenantStore.currentCampusId)
+  return remoteApprovals.value
 })
 
 const businessCounts = computed(() => {

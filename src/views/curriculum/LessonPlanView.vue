@@ -222,12 +222,11 @@ const courses = ref<CourseItem[]>([])
 const loadedUnits = ref<CourseUnit[]>([])
 
 async function reloadCourses() {
-  restoreCoursesFromStorage()
   try {
-    const res = await curriculumApi.getCourses({}, MOCK_COURSES)
+    const res = await curriculumApi.getCourses({})
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || MOCK_COURSES)
-      if (Array.isArray(list) && list.length > 0) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      if (Array.isArray(list)) {
         courses.value = list.map((item: any) => ({
           id: item.id,
           code: item.code,
@@ -243,23 +242,25 @@ async function reloadCourses() {
           units: item.units || [],
           authorizedCampusIds: item.authorizedCampusIds || ['campus-bj-hq']
         }))
-        if (!courses.value.some(c => c.id === selectedCourseId.value)) {
+        if (courses.value.length > 0 && !courses.value.some(c => c.id === selectedCourseId.value)) {
           selectedCourseId.value = courses.value[0].id
         }
-        await loadCourseUnits(selectedCourseId.value)
+        if (selectedCourseId.value) {
+          await loadCourseUnits(selectedCourseId.value)
+        }
         return
       }
     }
   } catch (err) {
-    console.warn('[LessonPlanView] 远程课程拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[LessonPlanView] 远程课程拉取失败:', err)
   }
-  courses.value = [...MOCK_COURSES]
+  courses.value = []
 }
 
 async function loadCourseUnits(courseId: string) {
   try {
     const res = await curriculumApi.getUnits(courseId)
-    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+    if (res && res.success && Array.isArray(res.data)) {
       loadedUnits.value = res.data.map((u: any) => ({
         id: u.id,
         title: u.unitName || u.title || '核心教学单元',
@@ -275,10 +276,12 @@ async function loadCourseUnits(courseId: string) {
           pptUrl: l.courseware || ''
         }))
       }))
+      return
     }
   } catch {
-    loadedUnits.value = []
+    // ignore
   }
+  loadedUnits.value = []
 }
 
 onMounted(() => {

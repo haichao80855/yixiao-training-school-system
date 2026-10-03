@@ -284,15 +284,14 @@ const filterKeyword = ref('')
 const remoteLedgers = ref<LedgerRecord[]>([])
 
 async function loadLedgers() {
-  const fallbackList = getLedgerRecords(tenantStore.currentCampusId)
   try {
     const res = await financialApi.getOrders({
       campusId: filterCampus.value === 'all' ? undefined : filterCampus.value,
       pageSize: 200
-    }, [])
+    })
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-      if (Array.isArray(list) && list.length > 0) {
+      if (Array.isArray(list)) {
         remoteLedgers.value = list.map((o: any) => ({
           transNo: `TX${o.orderNo ? o.orderNo.replace(/\D/g, '') : Date.now()}`,
           orderNo: o.orderNo,
@@ -311,13 +310,13 @@ async function loadLedgers() {
       }
     }
   } catch (err) {
-    console.warn('[ChargingLedger] 远程流水拉取未就绪，使用本地双轨模式:', err)
+    console.warn('[ChargingLedger] 远程流水拉取失败:', err)
   }
-  remoteLedgers.value = fallbackList
+  remoteLedgers.value = []
 }
 
 const allLedgers = computed(() => {
-  return remoteLedgers.value.length > 0 ? remoteLedgers.value : getLedgerRecords(tenantStore.currentCampusId)
+  return remoteLedgers.value
 })
 
 const displayLedgers = computed(() => {
