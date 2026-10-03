@@ -15,7 +15,10 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed": "ts-node prisma/seed.ts",
+    "prisma:use:postgres": "cp prisma/schema.postgresql.prisma prisma/schema.prisma && npx prisma generate",
+    "prisma:use:sqlite": "cp prisma/schema.sqlite.prisma prisma/schema.prisma && npx prisma generate",
+    "prisma:import:coursewares": "ts-node scripts/import-coursewares-stream.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

@@ -60,12 +60,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
+    // 计算最高有效数据权限范围 (all > campus > department > self)
+    let effectiveDataScope = 'self';
+    const scopes = user.userRoles.map((ur) => ur.role.dataScope || 'campus');
+    if (permissions.has('*') || permissions.has('admin:all') || scopes.includes('all')) {
+      effectiveDataScope = 'all';
+    } else if (scopes.includes('campus')) {
+      effectiveDataScope = 'campus';
+    } else if (scopes.includes('department')) {
+      effectiveDataScope = 'department';
+    }
+
     return {
       id: user.id,
       account: user.account,
       realName: user.realName,
       campusId: user.campusId,
       campusName: user.campus.name,
+      teacherId: user.id,
+      dataScope: effectiveDataScope,
       roles: user.userRoles.map((ur) => ({ id: ur.role.id, code: ur.role.code, name: ur.role.name, dataScope: ur.role.dataScope })),
       permissions: Array.from(permissions),
     };
