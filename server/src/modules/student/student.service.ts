@@ -29,7 +29,7 @@ export class StudentService {
 
     const where: any = {};
 
-    if (query.campusId) {
+    if (query.campusId && query.campusId !== 'all') {
       where.campusId = query.campusId;
     }
 

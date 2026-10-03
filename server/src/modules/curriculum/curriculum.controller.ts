@@ -18,6 +18,7 @@ import {
   CreateCourseUnitDto,
 } from './dto/course.dto';
 import { CurrentCampus } from '../../common/decorators/current-campus.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('api/curriculum')
 export class CurriculumController {
@@ -34,7 +35,27 @@ export class CurriculumController {
     @Query('status') status?: string,
     @Query('campusId') campusId?: string,
     @CurrentCampus() headerCampusId?: string,
+    @CurrentUser() user?: any,
   ) {
+    const isSuperAdmin =
+      user?.dataScope === 'all' ||
+      user?.roles?.some(
+        (r: any) =>
+          r.code === 'super_admin' ||
+          r.code === 'admin' ||
+          r.dataScope === 'all' ||
+          r === 'super_admin',
+      ) ||
+      user?.permissions?.includes('*') ||
+      user?.permissions?.includes('admin:all');
+
+    const targetCampusId =
+      campusId && campusId !== 'all'
+        ? campusId
+        : isSuperAdmin
+          ? undefined
+          : headerCampusId;
+
     return this.curriculumService.getCourses({
       page,
       pageSize,
@@ -43,7 +64,7 @@ export class CurriculumController {
       grade,
       attribute,
       status,
-      campusId: campusId || headerCampusId,
+      campusId: targetCampusId,
     });
   }
 

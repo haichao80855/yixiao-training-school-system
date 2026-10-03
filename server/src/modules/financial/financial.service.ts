@@ -19,7 +19,7 @@ export class FinancialService {
     const where: any = {};
 
     const activeCampus = query.campusId || campusId;
-    if (activeCampus) {
+    if (activeCampus && activeCampus !== 'all') {
       where.campusId = activeCampus;
     }
 

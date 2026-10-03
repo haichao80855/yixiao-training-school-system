@@ -117,7 +117,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
-  (e: 'success'): void
+  (e: 'success', data?: any): void
 }>()
 
 const tenantStore = useTenantStore()
@@ -211,20 +211,15 @@ async function handleSubmit() {
     submitting.value = true
     try {
       if (isEdit.value && props.student) {
-        // 优先向真实后端发送更新请求
-        try {
-          await studentApi.updateStudent(props.student.id, {
-            name: form.name,
-            gender: form.gender,
-            phone: form.phone,
-            campusId: form.campusId,
-            parentName: form.parentName,
-            school: form.school,
-            status: form.status,
-          })
-        } catch (apiErr) {
-          console.warn('[StudentFormDialog] 远程更新异常，使用本地双轨模式:', apiErr)
-        }
+        await studentApi.updateStudent(props.student.id, {
+          name: form.name,
+          gender: form.gender,
+          phone: form.phone,
+          campusId: form.campusId,
+          parentName: form.parentName,
+          school: form.school,
+          status: form.status,
+        })
 
         // 更新本地状态
         updateStudent(props.student.id, {
@@ -244,31 +239,25 @@ async function handleSubmit() {
           status: form.status
         })
         ElMessage.success('学员档案更新成功并同步入库！')
+        emit('success', { campusId: form.campusId })
       } else {
-        let backendSaved = false
-        // 1. 优先向真实后端发送持久化请求
-        try {
-          const apiRes = await studentApi.createStudent({
-            name: form.name,
-            gender: form.gender,
-            phone: form.phone,
-            campusId: form.campusId,
-            parentName: form.parentName,
-            school: form.school,
-            birthday: form.age ? `${2026 - form.age}-06-01` : undefined,
-          })
-          if (apiRes.success && apiRes.data?.studentNo) {
-            form.studentNo = apiRes.data.studentNo
-            backendSaved = true
-          }
-        } catch (apiErr) {
-          console.warn('[StudentFormDialog] 后端持久化接口调用异常，自动无缝降级至本地模式:', apiErr)
-        }
+        // 向真实后端发送持久化请求
+        const apiRes = await studentApi.createStudent({
+          name: form.name,
+          gender: form.gender,
+          phone: form.phone,
+          campusId: form.campusId,
+          parentName: form.parentName,
+          school: form.school,
+          birthday: form.age ? `${2026 - form.age}-06-01` : undefined,
+        })
 
-        // 2. 同步注入本地响应式状态库
+        const createdStudentNo = apiRes.data?.studentNo || form.studentNo
+
+        // 同步注入本地响应式状态库兜底
         addStudent({
           name: form.name,
-          studentNo: form.studentNo,
+          studentNo: createdStudentNo,
           gender: form.gender,
           age: form.age,
           phone: form.phone,
@@ -284,13 +273,9 @@ async function handleSubmit() {
           status: form.status
         })
 
-        ElMessage.success(
-          backendSaved
-            ? `新增学员建档成功！学号已同步入库：${form.studentNo}`
-            : `新增学员建档成功 (学号：${form.studentNo})`
-        )
+        ElMessage.success(`新增学员建档成功！学号已同步入库：${createdStudentNo}`)
+        emit('success', { campusId: form.campusId, studentNo: createdStudentNo })
       }
-      emit('success')
       visible.value = false
     } catch (err: any) {
       ElMessage.error(err.message || '学员录入失败')

@@ -28,13 +28,33 @@ export class StudentController {
     @Query('campusId') campusId?: string,
     @Query('warningLevel') warningLevel?: string,
     @CurrentCampus() headerCampusId?: string,
+    @CurrentUser() user?: any,
   ) {
+    const isSuperAdmin =
+      user?.dataScope === 'all' ||
+      user?.roles?.some(
+        (r: any) =>
+          r.code === 'super_admin' ||
+          r.code === 'admin' ||
+          r.dataScope === 'all' ||
+          r === 'super_admin',
+      ) ||
+      user?.permissions?.includes('*') ||
+      user?.permissions?.includes('admin:all');
+
+    let targetCampusId: string | undefined = undefined;
+    if (campusId && campusId !== 'all') {
+      targetCampusId = campusId;
+    } else if (!isSuperAdmin) {
+      targetCampusId = headerCampusId || user?.campusId;
+    }
+
     return this.studentService.getStudents({
       page,
       pageSize,
       keyword,
       status,
-      campusId: campusId || headerCampusId,
+      campusId: targetCampusId,
       warningLevel,
     });
   }

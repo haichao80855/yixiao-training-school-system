@@ -678,8 +678,11 @@ function handleFinanceExport() {
   ElMessage.success('已生成学员缴费明细与财务对账单导出流水')
 }
 
-function refreshData() {
+function refreshData(createdInfo?: any) {
   refreshTrigger.value++
+  if (createdInfo?.campusId && selectedCampus.value !== 'all' && selectedCampus.value !== createdInfo.campusId) {
+    selectedCampus.value = 'all'
+  }
   loadStudents()
 }
 </script>

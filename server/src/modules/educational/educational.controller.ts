@@ -28,8 +28,16 @@ export class EducationalController {
   async getClassrooms(
     @Query('campusId') campusId?: string,
     @CurrentCampus() headerCampusId?: string,
+    @CurrentUser() user?: any,
   ) {
-    return this.educationalService.getClassrooms(campusId || headerCampusId);
+    const isSuperAdmin =
+      user?.dataScope === 'all' ||
+      user?.roles?.some((r: any) => r.code === 'super_admin' || r.code === 'admin' || r.dataScope === 'all' || r === 'super_admin') ||
+      user?.permissions?.includes('*') ||
+      user?.permissions?.includes('admin:all');
+
+    const targetCampusId = campusId && campusId !== 'all' ? campusId : (isSuperAdmin ? undefined : headerCampusId);
+    return this.educationalService.getClassrooms(targetCampusId);
   }
 
   @Post('classrooms')
@@ -69,14 +77,23 @@ export class EducationalController {
     @Query('teacherId') teacherId?: string,
     @Query('campusId') campusId?: string,
     @CurrentCampus() headerCampusId?: string,
+    @CurrentUser() user?: any,
   ) {
+    const isSuperAdmin =
+      user?.dataScope === 'all' ||
+      user?.roles?.some((r: any) => r.code === 'super_admin' || r.code === 'admin' || r.dataScope === 'all' || r === 'super_admin') ||
+      user?.permissions?.includes('*') ||
+      user?.permissions?.includes('admin:all');
+
+    const targetCampusId = campusId && campusId !== 'all' ? campusId : (isSuperAdmin ? undefined : headerCampusId);
+
     return this.educationalService.getClasses({
       page,
       pageSize,
       keyword,
       courseId,
       teacherId,
-      campusId: campusId || headerCampusId,
+      campusId: targetCampusId,
     });
   }
 
@@ -131,7 +148,16 @@ export class EducationalController {
     @Query('classId') classId?: string,
     @Query('campusId') campusId?: string,
     @CurrentCampus() headerCampusId?: string,
+    @CurrentUser() user?: any,
   ) {
+    const isSuperAdmin =
+      user?.dataScope === 'all' ||
+      user?.roles?.some((r: any) => r.code === 'super_admin' || r.code === 'admin' || r.dataScope === 'all' || r === 'super_admin') ||
+      user?.permissions?.includes('*') ||
+      user?.permissions?.includes('admin:all');
+
+    const targetCampusId = campusId && campusId !== 'all' ? campusId : (isSuperAdmin ? undefined : headerCampusId);
+
     return this.educationalService.getSchedules({
       startDate,
       endDate,
@@ -139,7 +165,7 @@ export class EducationalController {
       teacherId,
       classroomId,
       classId,
-      campusId: campusId || headerCampusId,
+      campusId: targetCampusId,
     });
   }
 
