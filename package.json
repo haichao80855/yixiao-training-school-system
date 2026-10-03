@@ -13,7 +13,8 @@
     "test:server": "cd server && node test-auth-and-system.js && node test-curriculum-and-student.js && node test-educational-and-attendance.js && node test-financial-and-approval.js",
     "test:fullstack": "node tests/e2e_full_stack_integration.cjs",
     "test:e2e:walkthrough": "node scripts/e2e_all_functions_browser_walkthrough.cjs",
-    "test:all": "node tests/run_all_unified.cjs"
+    "test:all": "node tests/run_all_unified.cjs",
+    "db:stats": "node scripts/db_stats.cjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
