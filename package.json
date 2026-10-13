@@ -10,7 +10,7 @@
     "type-check": "vue-tsc --noEmit",
     "server:dev": "cd server && npm run start:dev",
     "server:build": "cd server && npm run build",
-    "test:server": "cd server && node test-auth-and-system.js && node test-curriculum-and-student.js && node test-educational-and-attendance.js && node test-financial-and-approval.js",
+    "test:server": "cd server && node test-auth-and-system.js && node test-curriculum-and-student.js && node test-educational-and-attendance.js && node test-financial-and-approval.js && node test-rbac-permissions.js && node test-organization-campus-unification.js && node test-role-permission-contract.js && node test-dict-cache-and-binding.js && node test-org-admin-persistence.js && node test-admin-reset-pwd-flow.js && node test-user-phone-login.js && node test-teacher-page-permissions.js",
     "test:fullstack": "node tests/e2e_full_stack_integration.cjs",
     "test:e2e:walkthrough": "node scripts/e2e_all_functions_browser_walkthrough.cjs",
     "test:all": "node tests/run_all_unified.cjs",

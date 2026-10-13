@@ -441,9 +441,11 @@ function resetCurrentRolePerms() {
 async function handleSaveRoleAuth() {
   if (!currentRole.value) return
 
-  // 获取勾选节点
+  // 获取勾选节点与半选父级节点
   const checkedKeys = permTreeRef.value ? permTreeRef.value.getCheckedKeys() : []
-  const savedKeys = isSuperAdmin.value ? ['*'] : checkedKeys
+  const halfCheckedKeys = permTreeRef.value ? permTreeRef.value.getHalfCheckedKeys() : []
+  const combined = Array.from(new Set([...checkedKeys, ...halfCheckedKeys])).filter(k => k !== '*')
+  const savedKeys = isSuperAdmin.value ? ['*'] : combined
 
   try {
     await Promise.all([

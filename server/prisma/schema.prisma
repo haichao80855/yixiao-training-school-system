@@ -17,16 +17,24 @@ datasource db {
 // -------------------------------------------------------
 
 model Company {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  name        String   // 如：北京拓视未来教育科技集团股份有限公司
-  stockCode   String   @default("002599") // A股股票代码
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String   // 如：北京拓视未来教育科技集团股份有限公司
+  stockCode     String   @default("002599") // A股股票代码
+  legalPerson   String?  @default("贾洪波")
+  phone         String?  @default("010-88880000")
+  validUntil    String?  @default("2028-12-31")
+  adminUserId   String?  // 超级管理员关联的用户ID
+  adminName     String?  @default("冬海潮")
+  logoUrl       String?
+  faviconUrl    String?
+  reportLogoUrl String?
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  campuses    Campus[]
-  orgNodes    OrgNode[]
+  campuses      Campus[]
+  orgNodes      OrgNode[]
 }
 
 model Campus {
@@ -42,6 +50,10 @@ model Campus {
   updatedAt      DateTime @updatedAt
 
   company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // 1:1 锚定关联的组织架构树节点
+  orgNodeId      String?  @unique
+  orgNode        OrgNode? @relation("CampusOrgNode", fields: [orgNodeId], references: [id], onDelete: SetNull)
 
   users          User[]
   classrooms     Classroom[]
@@ -70,6 +82,9 @@ model OrgNode {
   parent         OrgNode?  @relation("OrgTreeRelation", fields: [parentId], references: [id])
   children       OrgNode[] @relation("OrgTreeRelation")
   users          User[]
+
+  // 当 type === 'campus' 时关联物理校区实体
+  campus         Campus?   @relation("CampusOrgNode")
 }
 
 model User {
@@ -83,6 +98,7 @@ model User {
   email          String?
   avatar         String?
   status         String    @default("active") // active | disabled
+  dataScope      String?   // 独立个性化数据范围覆写 (all | campus | department | self)，为空时继承角色默认范围
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -147,12 +163,14 @@ model RolePermission {
 
 model DictItem {
   id        String   @id @default(uuid())
-  category  String   // 如 学员异动原因, 预警规则
+  category  String   // 业务分类标识，如 trans_reason, warning_rule, lesson_duration, payment_method
   dictKey   String   // 如 TRANS_REASON_DISTANCE
   label     String   // 如 家庭搬迁/距离过远
   order     Int      @default(0)
   enabled   Boolean  @default(true)
+  remark    String?  // 业务说明与应用场景备注
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }
 
 // -------------------------------------------------------

@@ -3,8 +3,25 @@ import type {
   SystemUser,
   RoleItem,
   DictItem,
-  DataScope
+  DataScope,
+  PermissionNode
 } from '@/types/system';
+
+export function normalizePermissionNode(raw: any): PermissionNode {
+  if (!raw) return {} as PermissionNode;
+  const children = Array.isArray(raw.children) ? raw.children.map(normalizePermissionNode) : [];
+  return {
+    id: raw.id || raw.code,
+    code: raw.code || '',
+    name: raw.name || raw.label || '',
+    label: raw.label || raw.name || raw.code || '',
+    level: raw.level || 'page',
+    parentId: raw.parentId || null,
+    checked: Boolean(raw.checked),
+    indeterminate: Boolean(raw.indeterminate),
+    children,
+  };
+}
 
 export function normalizeOrgNode(raw: any): OrgNode {
   if (!raw) return {} as OrgNode;
@@ -17,6 +34,10 @@ export function normalizeOrgNode(raw: any): OrgNode {
     level: Number(raw.level || 3),
     parentId: raw.parentId || null,
     boundUserCount: Number(raw.boundUserCount || 0),
+    subtreeUserCount: Number(raw.subtreeUserCount || raw.boundUserCount || 0),
+    descendantIds: Array.isArray(raw.descendantIds) ? raw.descendantIds : [raw.id],
+    campusId: raw.campusId || null,
+    campus: raw.campus || null,
     leader: raw.leader || '',
     phone: raw.phone || '',
     status: (raw.status || 'active') as 'active' | 'disabled',
@@ -36,9 +57,10 @@ export function normalizeUser(raw: any): SystemUser {
     campusId: raw.campusId || raw.campus?.id || 'campus-bj-hq',
     campusName: raw.campus?.name || raw.campusName || '总部校区',
     departmentId: raw.departmentId || '',
-    departmentName: raw.departmentName || '教学教务部',
+    departmentName: raw.departmentName || '',
     postId: raw.postId || '',
-    postName: raw.postName || '授课讲师',
+    postName: raw.postName || '',
+    orgPath: raw.orgPath || '',
     roleId: raw.roleId || (raw.roles?.[0]?.id) || 'r1',
     roleName: raw.roleName || (raw.roles?.[0]?.name) || '员工',
     dataScope: (raw.dataScope || 'campus') as DataScope,

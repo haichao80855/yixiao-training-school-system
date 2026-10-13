@@ -4,10 +4,12 @@ export class CreateDictItemDto {
   label: string;
   order?: number;
   enabled?: boolean;
+  remark?: string;
 }
 
 export class UpdateDictItemDto {
   label?: string;
   order?: number;
   enabled?: boolean;
+  remark?: string;
 }

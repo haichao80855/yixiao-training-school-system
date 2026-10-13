@@ -16,21 +16,37 @@ import { RollCallDto } from './dto/attendance.dto';
 import { CurrentCampus } from '../../common/decorators/current-campus.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @Controller('api/educational')
 export class EducationalController {
   constructor(private readonly educationalService: EducationalService) {}
 
   // ----------------------------------------------------------------
+  // 0. 授课教师/讲师列表（教务业务专用端点，无需人事系统最高权限）
+  // ----------------------------------------------------------------
+
+  @Get('teachers')
+  async getTeachers(
+    @CampusScope() scope: CampusScopeResult,
+    @Query('campusId') campusId?: string,
+  ) {
+    const targetCampusId = campusId && campusId !== 'all' ? campusId : scope?.targetCampusId;
+    return this.educationalService.getTeachers(targetCampusId);
+  }
+
+  // ----------------------------------------------------------------
   // 1. 教室管理
   // ----------------------------------------------------------------
 
   @Get('classrooms')
+  @RequirePermissions('educational:classManagement')
   async getClassrooms(@CampusScope() scope: CampusScopeResult) {
     return this.educationalService.getClassrooms(scope.targetCampusId);
   }
 
   @Post('classrooms')
+  @RequirePermissions('educational:class:add')
   async createClassroom(
     @Body() dto: CreateClassroomDto,
     @CampusScope() scope: CampusScopeResult,
@@ -42,6 +58,7 @@ export class EducationalController {
   }
 
   @Put('classrooms/:id')
+  @RequirePermissions('educational:class:edit')
   async updateClassroom(
     @Param('id') id: string,
     @Body() dto: UpdateClassroomDto,
@@ -50,6 +67,7 @@ export class EducationalController {
   }
 
   @Delete('classrooms/:id')
+  @RequirePermissions('educational:class:edit')
   async deleteClassroom(@Param('id') id: string) {
     return this.educationalService.deleteClassroom(id);
   }
@@ -59,6 +77,7 @@ export class EducationalController {
   // ----------------------------------------------------------------
 
   @Get('classes')
+  @RequirePermissions('educational:classManagement')
   async getClasses(
     @Query('page') page?: number,
     @Query('pageSize') pageSize?: number,
@@ -78,11 +97,13 @@ export class EducationalController {
   }
 
   @Get('classes/:id')
+  @RequirePermissions('educational:classManagement')
   async getClassById(@Param('id') id: string) {
     return this.educationalService.getClassById(id);
   }
 
   @Post('classes')
+  @RequirePermissions('educational:class:add')
   async createClass(
     @Body() dto: CreateClassDto,
     @CampusScope() scope: CampusScopeResult,
@@ -94,6 +115,7 @@ export class EducationalController {
   }
 
   @Put('classes/:id')
+  @RequirePermissions('educational:class:edit')
   async updateClass(
     @Param('id') id: string,
     @Body() dto: UpdateClassDto,
@@ -102,11 +124,13 @@ export class EducationalController {
   }
 
   @Delete('classes/:id')
+  @RequirePermissions('educational:class:edit')
   async deleteClass(@Param('id') id: string) {
     return this.educationalService.deleteClass(id);
   }
 
   @Post('classes/:id/students')
+  @RequirePermissions('educational:class:assign')
   async assignStudentToClass(
     @Param('id') classId: string,
     @Body('studentId') studentId: string,
@@ -119,11 +143,13 @@ export class EducationalController {
   // ----------------------------------------------------------------
 
   @Post('schedules/check-collision')
+  @RequirePermissions('educational:schedule:collision')
   async checkCollision(@Body() dto: CheckCollisionDto) {
     return this.educationalService.checkCollision(dto);
   }
 
   @Get('schedules')
+  @RequirePermissions('educational:timeSchedule')
   async getSchedules(
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
@@ -145,6 +171,7 @@ export class EducationalController {
   }
 
   @Post('schedules')
+  @RequirePermissions('educational:schedule:add')
   async createSchedule(
     @Body() dto: CreateScheduleDto,
     @CampusScope() scope: CampusScopeResult,
@@ -156,6 +183,7 @@ export class EducationalController {
   }
 
   @Put('schedules/:id')
+  @RequirePermissions('educational:schedule:add')
   async updateSchedule(
     @Param('id') id: string,
     @Body() body: any,
@@ -164,6 +192,7 @@ export class EducationalController {
   }
 
   @Delete('schedules/:id')
+  @RequirePermissions('educational:schedule:delete')
   async deleteSchedule(@Param('id') id: string) {
     return this.educationalService.deleteSchedule(id);
   }
@@ -173,11 +202,13 @@ export class EducationalController {
   // ----------------------------------------------------------------
 
   @Get('schedules/:id/roll-call-students')
+  @RequirePermissions('educational:workbench')
   async getRollCallStudents(@Param('id') scheduleId: string) {
     return this.educationalService.getRollCallStudents(scheduleId);
   }
 
   @Post('attendances/roll-call')
+  @RequirePermissions('educational:workbench:attend')
   async rollCall(
     @Body() dto: RollCallDto,
     @CurrentUser() user: any,
@@ -187,6 +218,7 @@ export class EducationalController {
   }
 
   @Post('schedules/:id/reverse')
+  @RequirePermissions('educational:attendance:reverse')
   async reverseScheduleAttendance(
     @Param('id') scheduleId: string,
     @CurrentUser() user: any,
@@ -196,6 +228,7 @@ export class EducationalController {
   }
 
   @Get('attendances')
+  @RequirePermissions('educational:attendance')
   async getAttendanceRecords(
     @Query('classId') classId?: string,
     @Query('scheduleEventId') scheduleEventId?: string,

@@ -13,11 +13,18 @@ let tokenPromise: Promise<string> | null = null
 async function getValidAuthToken(): Promise<string> {
   if (typeof window === 'undefined' || typeof localStorage === 'undefined') return ''
   const currentToken = localStorage.getItem('yixiao_auth_token') || ''
-  if (currentToken && !currentToken.startsWith('mock-')) {
+  if (currentToken && !currentToken.startsWith('mock-') && !currentToken.startsWith('st-token-')) {
     return currentToken
   }
 
-  // 若无有效真实 JWT Token，发起静默自动登录获取真实凭证
+  // 若用户处于登录页或已显式退出登录，严禁静默覆盖为超管会话
+  const hasLoggedOut = localStorage.getItem('yixiao_auth_has_logged_out') === 'true'
+  const isLoginPage = typeof window !== 'undefined' && window.location?.pathname?.includes('/login')
+  if (hasLoggedOut || isLoginPage) {
+    return ''
+  }
+
+  // 若无有效真实 JWT Token 且非登录页环境，发起自动换取真实凭证
   if (!tokenPromise) {
     tokenPromise = (async () => {
       try {

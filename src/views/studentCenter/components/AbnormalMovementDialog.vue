@@ -149,8 +149,23 @@
             <el-form-item label="停课天数（到期日顺延天数）" required>
               <el-input-number v-model="suspendForm.days" :min="7" :max="365" class="w-full" />
             </el-form-item>
-            <el-form-item label="停课休学原因" required>
-              <el-input v-model="suspendForm.reason" type="textarea" :rows="2" placeholder="请输入停课原因，如：身体不适、公立校考试冲突、家庭搬迁等" />
+            <el-form-item label="停课休学原因分类" required>
+              <el-select v-model="suspendForm.reasonCategory" class="w-full" placeholder="请选择标准异动原因">
+                <el-option
+                  v-for="item in transReasonDict"
+                  :key="item.dictKey"
+                  :label="item.label"
+                  :value="item.label"
+                >
+                  <div class="flex items-center justify-between w-full">
+                    <span>{{ item.label }}</span>
+                    <span v-if="item.remark" class="text-[11px] text-st-muted ml-2">({{ item.remark }})</span>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="详细说明与事由备注">
+              <el-input v-model="suspendForm.reason" type="textarea" :rows="2" placeholder="补充详细事由，如家长申请、突发情况等" />
             </el-form-item>
             <div class="bg-yellow-50 border border-yellow-200 rounded p-2.5 text-xs text-yellow-800">
               办理后，学员在读状态将转为「停课休学」，{{ activePackages.length }} 个有效课包将冻结，到期日统一顺延 {{ suspendForm.days }} 天。
@@ -275,6 +290,9 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { Student, MovementType } from '@/types/student'
 import { studentApi, educationalApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
+import { useDict } from '@/composables/useDict'
+
+const { items: transReasonDict } = useDict('trans_reason')
 
 const props = defineProps<{
   modelValue: boolean
@@ -361,8 +379,19 @@ const changeCourseForm = reactive({
 
 const suspendForm = reactive({
   days: 30,
+  reasonCategory: '家庭搬迁/距离过远',
   reason: ''
 })
+
+watch(
+  transReasonDict,
+  (list) => {
+    if (list && list.length > 0 && !suspendForm.reasonCategory) {
+      suspendForm.reasonCategory = list[0].label
+    }
+  },
+  { immediate: true }
+)
 
 const transferCampusForm = reactive({
   targetCampusId: ''
@@ -554,8 +583,8 @@ async function handleSubmit() {
   try {
     const flatDto = {
       type: currentMovement.value,
-      reasonCategory: '学业或家庭调整',
-      reasonDetail: `学员异动业务流转: ${currentMovement.value}`,
+      reasonCategory: suspendForm.reasonCategory || '学业或家庭调整',
+      reasonDetail: suspendForm.reason || `学员异动业务流转: ${currentMovement.value}`,
       packageId:
         currentMovement.value === 'transfer_class'
           ? transferForm.packageId

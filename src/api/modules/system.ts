@@ -3,12 +3,19 @@ import {
   normalizeOrgNode,
   normalizeUser,
   normalizeRole,
-  normalizeDictItem
+  normalizeDictItem,
+  normalizePermissionNode
 } from '../normalizers/system';
 
 export const systemApi = {
   getCompanyInfo: (fallbackData?: any) =>
     request('/api/system/company', { fallbackData }),
+
+  updateCompanyInfo: (data: any) =>
+    request('/api/system/company', { method: 'PUT', body: JSON.stringify(data) }),
+
+  transferSuperAdmin: (data: { targetUserId: string; password: string }) =>
+    request('/api/system/company/transfer-admin', { method: 'POST', body: JSON.stringify(data) }),
 
   getCampuses: (fallbackData?: any) =>
     request('/api/system/campuses', { fallbackData }),
@@ -30,8 +37,13 @@ export const systemApi = {
   deleteOrgNode: (id: string) =>
     request(`/api/system/org-tree/${id}`, { method: 'DELETE' }),
 
-  getPermissions: (fallbackData?: any) =>
-    request('/api/system/permissions', { fallbackData }),
+  getPermissions: async (params?: any, fallbackData?: any) => {
+    const res = await request('/api/system/permissions', { params, fallbackData });
+    if (res && res.data && Array.isArray(res.data)) {
+      res.data = res.data.map(normalizePermissionNode) as any;
+    }
+    return res;
+  },
 
   getRoles: async (fallbackData?: any) => {
     const res = await request('/api/system/roles', { fallbackData });

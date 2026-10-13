@@ -15,6 +15,46 @@ export class EducationalService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ----------------------------------------------------------------
+  // 0. 在职讲师与教务人员列表 (Teachers)
+  // ----------------------------------------------------------------
+
+  async getTeachers(campusId?: string) {
+    const where: any = { status: 'active' };
+    if (campusId && campusId !== 'all') {
+      where.campusId = campusId;
+    }
+
+    const users = await this.prisma.user.findMany({
+      where,
+      include: {
+        campus: true,
+        userRoles: {
+          include: { role: true },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return users.map((u) => {
+      const primaryRole = u.userRoles[0]?.role;
+      return {
+        id: u.id,
+        account: u.account,
+        name: u.realName,
+        realName: u.realName,
+        phone: u.phone || '',
+        campusId: u.campusId,
+        campusName: u.campus?.name || '总部校区',
+        roleId: primaryRole?.id || '',
+        role: primaryRole?.code || 'teacher',
+        roleName: primaryRole?.name || '授课讲师',
+        subjects: ['少儿编程', 'Python', 'C++信奥'],
+        status: u.status,
+      };
+    });
+  }
+
+  // ----------------------------------------------------------------
   // 1. 教室资源管理 (Classroom)
   // ----------------------------------------------------------------
 

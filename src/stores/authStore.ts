@@ -6,6 +6,7 @@ export interface UserProfile {
   id: string
   account: string
   realName: string
+  phone?: string
   campusId: string
   campusName: string
   roles: string[]
@@ -220,9 +221,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function login(account: string, _password?: string): { success: boolean; user: UserProfile } {
-    const key = (account || '').toLowerCase().trim()
-    const preset = PRESET_USERS[key]
+  function login(accountOrPhone: string, _password?: string): { success: boolean; user: UserProfile } {
+    const key = (accountOrPhone || '').toLowerCase().trim()
+    const preset = PRESET_USERS[key] || Object.values(PRESET_USERS).find((p) => p.phone && p.phone.trim() === key)
 
     let targetUser: UserProfile
     if (preset) {
@@ -235,6 +236,7 @@ export const useAuthStore = defineStore('auth', () => {
         id: `u-${Date.now()}`,
         account: key,
         realName: isTeacherRole ? '张老师' : key,
+        phone: key.length === 11 && /^\d+$/.test(key) ? key : undefined,
         campusId: 'campus-bj-hq',
         campusName: '总部校区',
         teacherId: isTeacherRole ? 't-001' : undefined,
@@ -282,15 +284,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function loginAsync(account: string, password = '123456'): Promise<{ success: boolean; user: UserProfile }> {
+  async function loginAsync(accountOrPhone: string, password = '123456'): Promise<{ success: boolean; user: UserProfile }> {
     try {
-      const res = await authApi.login({ account, password })
-      if (res && res.success && res.data?.token && res.data?.user) {
+      const res = await authApi.login({ account: accountOrPhone, password })
+      const rawToken = res?.data?.accessToken || res?.data?.token
+      if (res && res.success && rawToken && res.data?.user) {
         const u = res.data.user
         const mappedUser: UserProfile = {
           id: u.id,
           account: u.account,
           realName: u.realName,
+          phone: u.phone,
           campusId: u.campusId,
           campusName: u.campusName,
           roles: u.roles?.map((r: any) => typeof r === 'string' ? r : (r.code || r.name)) || ['staff'],
@@ -300,13 +304,25 @@ export const useAuthStore = defineStore('auth', () => {
           permissions: u.permissions || ['*'],
           dataScope: u.dataScope || 'campus'
         }
-        setLoginSession(res.data.token, mappedUser)
+        setLoginSession(rawToken, mappedUser)
         return { success: true, user: mappedUser }
       }
-    } catch (e) {
+    } catch (e: any) {
+      // 关键防线：若后端返回明确鉴权业务错误（如密码错误、账号锁定停用、账号不存在），真实抛出阻断，绝不假双写！
+      const errMsg = e?.message || ''
+      if (
+        errMsg.includes('密码错误') ||
+        errMsg.includes('账号不存在') ||
+        errMsg.includes('锁定') ||
+        errMsg.includes('停用') ||
+        errMsg.includes('401') ||
+        errMsg.includes('403')
+      ) {
+        throw new Error(errMsg || '用户名或密码错误')
+      }
       console.warn('[AuthStore] 远程后端认证未就绪，使用本地双轨模式登录:', e)
     }
-    return login(account, password)
+    return login(accountOrPhone, password)
   }
 
   async function refreshProfile(): Promise<void> {

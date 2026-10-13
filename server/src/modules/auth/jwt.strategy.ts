@@ -60,15 +60,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
-    // 计算最高有效数据权限范围 (all > campus > department > self)
-    let effectiveDataScope = 'self';
-    const scopes = user.userRoles.map((ur) => ur.role.dataScope || 'campus');
-    if (permissions.has('*') || permissions.has('admin:all') || scopes.includes('all')) {
-      effectiveDataScope = 'all';
-    } else if (scopes.includes('campus')) {
-      effectiveDataScope = 'campus';
-    } else if (scopes.includes('department')) {
-      effectiveDataScope = 'department';
+    // 计算最高有效数据权限范围 (优先使用个人独立配置 user.dataScope，若无则从角色范围计算)
+    let effectiveDataScope = user.dataScope || 'self';
+    if (!user.dataScope) {
+      const scopes = user.userRoles.map((ur) => ur.role.dataScope || 'campus');
+      if (permissions.has('*') || permissions.has('admin:all') || scopes.includes('all')) {
+        effectiveDataScope = 'all';
+      } else if (scopes.includes('campus')) {
+        effectiveDataScope = 'campus';
+      } else if (scopes.includes('department')) {
+        effectiveDataScope = 'department';
+      }
+    } else {
+      if (permissions.has('*') || permissions.has('admin:all')) {
+        effectiveDataScope = 'all';
+      }
     }
 
     return {
@@ -77,6 +83,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       realName: user.realName,
       campusId: user.campusId,
       campusName: user.campus.name,
+      departmentId: user.orgNodeId || undefined,
       teacherId: user.id,
       dataScope: effectiveDataScope,
       roles: user.userRoles.map((ur) => ({ id: ur.role.id, code: ur.role.code, name: ur.role.name, dataScope: ur.role.dataScope })),

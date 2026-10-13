@@ -192,17 +192,17 @@ export const educationalApi = {
     return res;
   },
 
-  // 讲师与人员
+  // 讲师与教务人员列表 (教务业务专属端点)
   getTeachers: async (campusId?: string, fallbackData?: any) => {
-    const res = await request('/api/system/users', {
-      params: { campusId: campusId && campusId !== 'all' ? campusId : undefined, pageSize: 100 },
+    const res = await request('/api/educational/teachers', {
+      params: { campusId: campusId && campusId !== 'all' ? campusId : undefined },
       fallbackData,
     });
     if (res && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.list || []);
       const teachers = list.filter((u: any) => {
         const role = u.roleName || u.postName || '';
-        return role.includes('讲师') || role.includes('教师') || role.includes('学管') || role.includes('班主任') || u.roleId === 'r3';
+        return role.includes('讲师') || role.includes('教师') || role.includes('学管') || role.includes('班主任') || u.roleId === 'r3' || u.role === 'teacher';
       }).map(normalizeTeacher);
       return { success: true, data: teachers.length > 0 ? teachers : list.map(normalizeTeacher) };
     }

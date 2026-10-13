@@ -14,6 +14,17 @@ export interface OrgNode {
   level: number // 1: 集团(group), 2: 大区(region), 3: 校区(campus), 4: 部门(department), 5: 岗位(post)
   parentId?: string | null
   boundUserCount?: number
+  subtreeUserCount?: number
+  descendantIds?: string[]
+  campusId?: string | null
+  campus?: {
+    id: string
+    code: string
+    name: string
+    address?: string | null
+    phone?: string | null
+    isHeadquarter?: boolean
+  } | null
   leader?: string
   phone?: string
   status?: 'active' | 'disabled'
@@ -82,6 +93,7 @@ export interface SystemUser {
   departmentName: string
   postId: string
   postName: string
+  orgPath?: string
   roleId: string
   roleName: string
   dataScope: DataScope
@@ -102,4 +114,30 @@ export interface DictItem {
   enabled: boolean
   remark?: string
   createdAt?: string
+}
+
+// --- 6. 机构工商与品牌授权模型 ---
+export interface CompanyInfo {
+  id: string
+  code: string
+  name: string
+  stockCode: string
+  legalPerson?: string
+  phone?: string
+  validUntil?: string
+  adminUserId?: string
+  adminName?: string
+  logoUrl?: string
+  faviconUrl?: string
+  reportLogoUrl?: string
+  status?: string
+  childCount?: number
+  campusCount?: number
+  memberLimit?: number
+  metrics?: {
+    campusCount: number
+    activeEmployeeCount: number
+    subjectCount: number
+    operationalStatus: string
+  }
 }

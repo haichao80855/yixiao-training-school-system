@@ -6,12 +6,16 @@ import { createParamDecorator, ExecutionContext, ForbiddenException } from '@nes
 export interface CampusScopeResult {
   /** 有效过滤校区 ID；若为 undefined 则表示全集团跨校区透视 */
   targetCampusId?: string;
+  /** 若数据权限为仅本部门 (department)，则绑定所属组织架构部门节点 ID */
+  departmentId?: string;
   /** 若数据权限为仅本人 (self)，则绑定教师/员工本人 ID */
   teacherId?: string;
   /** 是否拥有全集团透视权限 */
   canAccessAll: boolean;
   /** 是否为仅本人 (self) 数据权限 */
   isSelfScope: boolean;
+  /** 是否为仅本部门 (department) 数据权限 */
+  isDepartmentScope: boolean;
 }
 
 /**
@@ -35,7 +39,7 @@ export function isSuperAdminUser(user?: any): boolean {
 }
 
 /**
- * 统一解析校区作用域与数据权限边界
+ * 统一解析校区作用域与数据权限边界 (4 级 RBAC 数据范围)
  */
 export function resolveCampusScope(
   user: any,
@@ -43,21 +47,22 @@ export function resolveCampusScope(
   headerCampusId?: string,
 ): CampusScopeResult {
   const isSuper = isSuperAdminUser(user);
-  const isSelf = user?.dataScope === 'self' || user?.roleId === 'r3';
+  const isSelf = user?.dataScope === 'self';
+  const isDepartment = user?.dataScope === 'department';
 
   // 1. 超管 / 全校区数据权限
   if (isSuper) {
-    // 显式指定具体分校时，按分校过滤；否则（'all' 或未传）为全集团透视 (undefined)
     const targetCampusId =
       queryCampusId && queryCampusId !== 'all' ? queryCampusId : undefined;
     return {
       targetCampusId,
       canAccessAll: true,
       isSelfScope: false,
+      isDepartmentScope: false,
     };
   }
 
-  // 2. 普通分校角色
+  // 2. 普通分校角色：以 Token 绑定的 user.campusId 为准，安全回退到 header
   const userCampusId = user?.campusId || headerCampusId || 'campus-bj-hq';
 
   // 防越权：如果前端请求试图访问非本人所属校区（且非 'all'），直接拦截
@@ -69,9 +74,11 @@ export function resolveCampusScope(
 
   return {
     targetCampusId: userCampusId,
+    departmentId: isDepartment ? (user?.departmentId || user?.orgNodeId) : undefined,
     teacherId: isSelf ? (user?.id || user?.teacherId) : undefined,
     canAccessAll: false,
     isSelfScope: isSelf,
+    isDepartmentScope: isDepartment,
   };
 }
 

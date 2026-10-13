@@ -87,6 +87,12 @@ async function main() {
     execSync('node test-curriculum-and-student.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-educational-and-attendance.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-financial-and-approval.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-rbac-permissions.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-organization-campus-unification.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-role-permission-contract.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-dict-cache-and-binding.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-org-admin-persistence.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-admin-reset-pwd-flow.js', { stdio: 'inherit', cwd: serverDir });
 
     // 运行候选 1 & 候选 2 数据持久化与防假双写对抗性测试
     console.log('\n>>> [Step 4/4] 运行数据持久化、防假双写与无异常吞噬对抗性实测套件...\n');

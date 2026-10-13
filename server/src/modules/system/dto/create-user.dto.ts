@@ -8,6 +8,7 @@ export class CreateUserDto {
   roleId: string;
   password?: string;
   status?: string;
+  dataScope?: string;
 }
 
 export class UpdateUserDto {
@@ -18,6 +19,7 @@ export class UpdateUserDto {
   orgNodeId?: string;
   roleId?: string;
   status?: string;
+  dataScope?: string;
 }
 
 export class ResetPasswordDto {

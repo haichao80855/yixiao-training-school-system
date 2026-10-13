@@ -16,12 +16,14 @@ import { RechargeWalletDto, WithdrawWalletDto } from './dto/wallet.dto';
 import { CurrentCampus } from '../../common/decorators/current-campus.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @Controller('api/students')
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
   @Get()
+  @RequirePermissions('student:allStudent')
   async getStudents(
     @Query('page') page?: number,
     @Query('pageSize') pageSize?: number,
@@ -41,6 +43,7 @@ export class StudentController {
   }
 
   @Post()
+  @RequirePermissions('student:add')
   async createStudent(
     @Body() dto: CreateStudentDto,
     @CampusScope() scope?: CampusScopeResult,
@@ -52,11 +55,13 @@ export class StudentController {
   }
 
   @Get(':id')
+  @RequirePermissions('student:allStudent')
   async getStudentById(@Param('id') id: string) {
     return this.studentService.getStudentById(id);
   }
 
   @Put(':id')
+  @RequirePermissions('student:edit')
   async updateStudent(
     @Param('id') id: string,
     @Body() dto: UpdateStudentDto,
@@ -65,11 +70,13 @@ export class StudentController {
   }
 
   @Get(':id/profile')
+  @RequirePermissions('student:profile')
   async getStudentProfile(@Param('id') id: string) {
     return this.studentService.getStudentProfile(id);
   }
 
   @Post('enroll')
+  @RequirePermissions('student:enroll')
   async enrollStudent(
     @Body() dto: EnrollStudentDto,
     @CurrentUser() user: any,
@@ -78,6 +85,7 @@ export class StudentController {
   }
 
   @Post(':id/wallet/recharge')
+  @RequirePermissions('student:wallet:recharge')
   async rechargeWallet(
     @Param('id') studentId: string,
     @Body() dto: RechargeWalletDto,
@@ -87,6 +95,7 @@ export class StudentController {
   }
 
   @Post(':id/wallet/withdraw')
+  @RequirePermissions('student:wallet:withdraw')
   async withdrawWallet(
     @Param('id') studentId: string,
     @Body() dto: WithdrawWalletDto,
@@ -96,6 +105,7 @@ export class StudentController {
   }
 
   @Post([':id/movement', ':id/movements'])
+  @RequirePermissions('student:movement')
   async executeMovement(
     @Param('id') studentId: string,
     @Body() dto: CreateMovementDto,
@@ -105,6 +115,7 @@ export class StudentController {
   }
 
   @Delete(':id')
+  @RequirePermissions('student:edit')
   async deleteStudent(@Param('id') id: string) {
     return this.studentService.deleteStudent(id);
   }

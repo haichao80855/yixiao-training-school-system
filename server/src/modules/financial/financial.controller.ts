@@ -13,6 +13,7 @@ import { OrderFilterDto, UpdateVoucherDto, LockOrderDto, UpdateOrderDto } from '
 import { CreateApprovalDto, AuditApprovalDto } from './dto/approval.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 
 @Controller('api/financial')
 export class FinancialController {
@@ -23,6 +24,7 @@ export class FinancialController {
   // ----------------------------------------------------------------
 
   @Get('orders')
+  @RequirePermissions('financial:orderManagement')
   async getOrders(
     @Query() query: OrderFilterDto,
     @CampusScope() scope?: CampusScopeResult,
@@ -31,6 +33,7 @@ export class FinancialController {
   }
 
   @Get('orders/summary')
+  @RequirePermissions('financial:orderManagement')
   async getOrderSummary(
     @Query() query: OrderFilterDto,
     @CampusScope() scope?: CampusScopeResult,
@@ -39,11 +42,13 @@ export class FinancialController {
   }
 
   @Get('orders/:id')
+  @RequirePermissions('financial:orderManagement')
   async getOrderById(@Param('id') id: string) {
     return this.financialService.getOrderById(id);
   }
 
   @Put('orders/:id')
+  @RequirePermissions('financial:order:voucher')
   async updateOrder(
     @Param('id') id: string,
     @Body() dto: UpdateOrderDto,
@@ -53,6 +58,7 @@ export class FinancialController {
   }
 
   @Patch('orders/:id/voucher')
+  @RequirePermissions('financial:order:voucher')
   async updateVoucher(
     @Param('id') id: string,
     @Body() dto: UpdateVoucherDto,
@@ -61,6 +67,7 @@ export class FinancialController {
   }
 
   @Patch('orders/:id/lock')
+  @RequirePermissions('financial:order:lock')
   async lockOrder(
     @Param('id') id: string,
     @Body() dto: LockOrderDto,
@@ -69,6 +76,7 @@ export class FinancialController {
   }
 
   @Post('orders/:id/void')
+  @RequirePermissions('financial:order:void')
   async voidOrder(@Param('id') id: string) {
     return this.financialService.voidOrder(id);
   }
@@ -78,6 +86,7 @@ export class FinancialController {
   // ----------------------------------------------------------------
 
   @Get('approvals')
+  @RequirePermissions('financial:approvalFlow')
   async getApprovals(
     @Query('status') status?: string,
     @Query('businessType') businessType?: string,
@@ -95,11 +104,13 @@ export class FinancialController {
   }
 
   @Post('approvals')
+  @RequirePermissions('financial:approvalFlow')
   async createApprovalFlow(@Body() dto: CreateApprovalDto) {
     return this.financialService.createApprovalFlow(dto);
   }
 
   @Post('approvals/:id/audit')
+  @RequirePermissions('financial:approval:audit')
   async auditApproval(
     @Param('id') id: string,
     @Body() dto: AuditApprovalDto,

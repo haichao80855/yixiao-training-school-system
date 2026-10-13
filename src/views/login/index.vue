@@ -90,7 +90,7 @@
           <!-- 标题栏 -->
           <div class="mb-5 text-center">
             <h2 class="text-xl font-bold text-slate-900">欢迎登录系统</h2>
-            <p class="text-xs text-slate-500 mt-1">请输入工号或点击下方角色卡片快捷进入</p>
+            <p class="text-xs text-slate-500 mt-1">支持工号或手机号登录，也可点击下方快捷角色卡片体验</p>
           </div>
 
           <!-- 表单区 -->
@@ -98,7 +98,7 @@
             <el-form-item class="!mb-3">
               <el-input
                 v-model="loginForm.account"
-                placeholder="请输入用户名/工号 (如 zhangls / donghaichao)"
+                placeholder="请输入用户名/工号或手机号 (如 13800000001 / donghaichao)"
                 size="large"
                 clearable
                 class="w-full"
@@ -256,14 +256,13 @@ const rememberMe = ref(true)
 
 const loginForm = reactive({
   account: 'zhangls',
-  password: '123'
+  password: '123456'
 })
 
-function executeLogin(account: string, _password?: string) {
+async function executeLogin(account: string, password?: string) {
   loading.value = true
-  setTimeout(() => {
-    const res = authStore.login(account, _password)
-    loading.value = false
+  try {
+    const res = await authStore.loginAsync(account, password || '123456')
 
     // 联动校区
     if (res.user.campusId) {
@@ -278,12 +277,16 @@ function executeLogin(account: string, _password?: string) {
     } else {
       router.push('/dashboard')
     }
-  }, 250)
+  } catch (err: any) {
+    ElMessage.error(err.message || '登录失败，请检查用户名与密码是否正确')
+  } finally {
+    loading.value = false
+  }
 }
 
 function handleFormLogin() {
   if (!loginForm.account) {
-    ElMessage.warning('请输入用户名/工号')
+    ElMessage.warning('请输入用户名、工号或手机号')
     return
   }
   executeLogin(loginForm.account, loginForm.password)
@@ -291,7 +294,8 @@ function handleFormLogin() {
 
 function handleQuickLogin(account: string) {
   loginForm.account = account
-  executeLogin(account)
+  loginForm.password = '123456'
+  executeLogin(account, '123456')
 }
 </script>
 

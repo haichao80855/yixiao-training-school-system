@@ -10,6 +10,8 @@ import { EducationalModule } from './modules/educational/educational.module';
 import { FinancialModule } from './modules/financial/financial.module';
 import { AppController } from './app.controller';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from './modules/auth/guards/permissions.guard';
+import { DataScopeGuard } from './modules/auth/guards/data-scope.guard';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
@@ -26,10 +28,20 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
   ],
   controllers: [AppController],
   providers: [
-    // 全局自动启用 JWT 登录守卫 (带有 @Public() 的接口自动放行)
+    // 1. 全局自动启用 JWT 登录守卫 (带有 @Public() 的接口自动放行)
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // 2. 全局启用 RBAC 操作权限码守卫 (带有 @RequirePermissions() 的接口自动按码核验)
+    {
+      provide: APP_GUARD,
+      useClass: PermissionsGuard,
+    },
+    // 3. 全局启用数据范围透视守卫 (带有 @RequireDataScope() 的接口自动按层级核验)
+    {
+      provide: APP_GUARD,
+      useClass: DataScopeGuard,
     },
     // 全局统一统一响应格式包装拦截器
     {
