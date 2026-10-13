@@ -688,21 +688,8 @@ import {
   Delete,
   WarningFilled
 } from '@element-plus/icons-vue'
-import type { OrgNode, SystemUser, DataScope } from '@/types/system'
-import {
-  MOCK_ORG_NODES,
-  MOCK_SYSTEM_USER_LIST,
-  MOCK_ROLES_LIST,
-  RBACEngine,
-  addOrgNode,
-  deleteOrgNode,
-  addSystemUser,
-  deleteSystemUser,
-  resetUserPassword,
-  toggleUserStatus,
-  updateSystemUser,
-  restoreSystemUsersFromStorage
-} from '@/mocks/system'
+import type { OrgNode, SystemUser, DataScope, RoleItem } from '@/types/system'
+import { RBACEngine } from '@/utils/rbacEngine'
 
 // --- 状态定义 ---
 const router = useRouter()
@@ -725,32 +712,32 @@ const orgMeta = reactive({
 })
 
 // 组织架构树与员工数据 (响应式内存状态)
-const orgTree = ref<OrgNode[]>(MOCK_ORG_NODES)
-const systemUsers = ref<SystemUser[]>(MOCK_SYSTEM_USER_LIST)
-const roles = ref(MOCK_ROLES_LIST)
+const orgTree = ref<OrgNode[]>([])
+const systemUsers = ref<SystemUser[]>([])
+const roles = ref<RoleItem[]>([])
 
 async function loadData() {
   try {
     const [treeRes, usersRes, rolesRes, companyRes] = await Promise.all([
-      systemApi.getOrgTree(MOCK_ORG_NODES),
-      systemApi.getUsers({}, MOCK_SYSTEM_USER_LIST),
-      systemApi.getRoles(MOCK_ROLES_LIST),
-      systemApi.getCompanyInfo(orgMeta)
+      systemApi.getOrgTree(),
+      systemApi.getUsers({ pageSize: 200 }),
+      systemApi.getRoles(),
+      systemApi.getCompanyInfo()
     ])
-    if (treeRes && treeRes.success && Array.isArray(treeRes.data) && treeRes.data.length > 0) {
+    if (treeRes && treeRes.data && Array.isArray(treeRes.data)) {
       orgTree.value = treeRes.data
     }
-    if (usersRes && usersRes.success && Array.isArray(usersRes.data) && usersRes.data.length > 0) {
-      systemUsers.value = usersRes.data
+    if (usersRes && usersRes.data) {
+      systemUsers.value = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data.list || [])
     }
-    if (rolesRes && rolesRes.success && Array.isArray(rolesRes.data) && rolesRes.data.length > 0) {
+    if (rolesRes && rolesRes.data && Array.isArray(rolesRes.data)) {
       roles.value = rolesRes.data
     }
-    if (companyRes && companyRes.success && companyRes.data) {
+    if (companyRes && companyRes.data) {
       Object.assign(orgMeta, companyRes.data)
     }
-  } catch (err) {
-    console.warn('[AuthoritiesInfo] 远程接口未就绪，使用本地双轨模式:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载系统组织与员工数据失败')
   }
 }
 
@@ -950,17 +937,12 @@ async function submitAddNode() {
       level: computedNewNodeLevel.value,
       parentId
     })
-  } catch {
-    addOrgNode(parentId, {
-      name: nodeForm.name,
-      code: nodeForm.code,
-      leader: nodeForm.leader,
-      phone: nodeForm.phone
-    })
+    showAddNodeDialog.value = false
+    ElMessage.success('组织节点添加成功！')
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '添加组织节点失败')
   }
-  showAddNodeDialog.value = false
-  ElMessage.success('组织节点添加成功！')
-  await loadData()
 }
 
 // 删除节点前置风控拦截 (严格调用 RBACEngine.validateNodeDeletion)
@@ -981,14 +963,14 @@ function handleDeleteNode(node: OrgNode) {
     ).then(async () => {
       try {
         await systemApi.deleteOrgNode(node.id)
-      } catch {
-        deleteOrgNode(node.id)
+        if (selectedNode.value?.id === node.id) {
+          selectedNode.value = null
+        }
+        ElMessage.success(`组织节点 [${node.name}] 已成功删除！`)
+        await loadData()
+      } catch (err: any) {
+        ElMessage.error(err.message || '删除组织节点失败')
       }
-      if (selectedNode.value?.id === node.id) {
-        selectedNode.value = null
-      }
-      ElMessage.success(`组织节点 [${node.name}] 已成功删除！`)
-      await loadData()
     }).catch(() => {})
   } catch (err: any) {
     // 3. 校验失败，触发前置风控拦截提示！
@@ -1046,17 +1028,12 @@ async function submitAddUser() {
       roleId: userForm.roleId,
       password: '123456'
     })
-  } catch {
-    addSystemUser({
-      ...userForm,
-      dataScope: userForm.dataScope || 'self',
-      postId: 'post-hq-teacher',
-      departmentId: 'dept-hq-edu'
-    })
+    showAddUserDialog.value = false
+    ElMessage.success(`员工 [${userForm.name}] 已成功录入系统！默认初始密码为 123456`)
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '录入员工失败')
   }
-  showAddUserDialog.value = false
-  ElMessage.success(`员工 [${userForm.name}] 已成功录入系统！默认初始密码为 123456`)
-  await loadData()
 }
 
 function handleQuickSwitchUser(user: SystemUser) {
@@ -1080,12 +1057,12 @@ async function submitResetPassword() {
   if (!activeUser.value) return
   try {
     await systemApi.resetUserPassword(activeUser.value.id, newPassword.value)
-  } catch {
-    resetUserPassword(activeUser.value.id, newPassword.value)
+    showResetPasswordDialog.value = false
+    ElMessage.success(`员工 [${activeUser.value.name}] 密码已成功重置为：${newPassword.value}`)
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '重置密码失败')
   }
-  showResetPasswordDialog.value = false
-  ElMessage.success(`员工 [${activeUser.value.name}] 密码已成功重置为：${newPassword.value}`)
-  await loadData()
 }
 
 function openUserAuthDrawer(user: SystemUser) {
@@ -1109,30 +1086,26 @@ async function saveUserAuth() {
       roleId: activeUser.value.roleId,
       campusId: activeUser.value.campusId
     })
-  } catch {
-    updateSystemUser(activeUser.value.id, {
-      roleId: activeUser.value.roleId,
-      roleName: activeUser.value.roleName,
-      dataScope: activeUser.value.dataScope
-    })
+    if (authStore.user?.id === activeUser.value.id || authStore.user?.account === activeUser.value.account) {
+      authStore.updateUserDataScope(activeUser.value.dataScope)
+    }
+    showAuthDrawer.value = false
+    ElMessage.success(`员工 [${activeUser.value.name}] 角色与数据权限配置已生效！`)
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '配置权限失败')
   }
-  if (authStore.user?.id === activeUser.value.id || authStore.user?.account === activeUser.value.account) {
-    authStore.updateUserDataScope(activeUser.value.dataScope)
-  }
-  showAuthDrawer.value = false
-  ElMessage.success(`员工 [${activeUser.value.name}] 角色与数据权限配置已生效！`)
-  await loadData()
 }
 
 async function handleToggleUserStatus(user: SystemUser) {
   const nextStatus = user.status === 'active' ? 'disabled' : 'active'
   try {
     await systemApi.toggleUserStatus(user.id, nextStatus)
-  } catch {
-    toggleUserStatus(user.id)
+    ElMessage.success(`员工 [${user.name}] 账号状态已变更为：${nextStatus === 'active' ? '正常启用' : '已锁定'}`)
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '变更账号状态失败')
   }
-  ElMessage.success(`员工 [${user.name}] 账号状态已变更为：${nextStatus === 'active' ? '正常启用' : '已锁定'}`)
-  await loadData()
 }
 
 function handleDeleteUser(user: SystemUser) {
@@ -1147,11 +1120,11 @@ function handleDeleteUser(user: SystemUser) {
   ).then(async () => {
     try {
       await systemApi.deleteUser(user.id)
-    } catch {
-      deleteSystemUser(user.id)
+      ElMessage.success(`员工 [${user.name}] 已成功注销`)
+      await loadData()
+    } catch (err: any) {
+      ElMessage.error(err.message || '注销员工失败')
     }
-    ElMessage.success(`员工 [${user.name}] 已成功注销`)
-    await loadData()
   }).catch(() => {})
 }
 
@@ -1183,8 +1156,6 @@ function saveOrgMeta() {
 }
 
 onMounted(async () => {
-  restoreSystemUsersFromStorage()
-  systemUsers.value = [...MOCK_SYSTEM_USER_LIST]
   await loadData()
 })
 </script>

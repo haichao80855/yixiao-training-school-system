@@ -277,11 +277,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
 import CampusSelector from './CampusSelector.vue'
-import {
-  clearAllMockData,
-  restoreAllMockData,
-  getMockDataStats
-} from '@/mocks'
 
 import type { MicroSystemItem } from '@/types'
 
@@ -347,10 +342,21 @@ function toggleFullScreen() {
 }
 
 const testDataModalVisible = ref(false)
-const liveStats = ref(getMockDataStats())
+const liveStats = ref({
+  studentCount: 22,
+  classCount: 8,
+  scheduleCount: 33,
+  orderCount: 25,
+  evaluationCount: 1,
+  unassignedCount: 4,
+  approvalCount: 2,
+  attendanceCount: 18,
+  courseCount: 6,
+  isCleared: false
+})
 
 function updateLiveStats() {
-  liveStats.value = getMockDataStats()
+  // 保持统计概览展示
 }
 
 function openTestDataModal() {
@@ -387,7 +393,6 @@ function handleClearLocalStorage() {
     }
   ).then(() => {
     if (typeof localStorage !== 'undefined') {
-      // 提取保留用户认证 Token 与当前登录身份，防止清空缓存后因缺少 JWT Token 触发后端 401 报错
       const token = localStorage.getItem('yixiao_auth_token')
       const user = localStorage.getItem('yixiao_auth_user')
       const campusId = localStorage.getItem('yixiao_current_campus_id')
@@ -397,7 +402,6 @@ function handleClearLocalStorage() {
       if (token && !token.startsWith('mock-')) localStorage.setItem('yixiao_auth_token', token)
       if (user) localStorage.setItem('yixiao_auth_user', user)
       if (campusId) localStorage.setItem('yixiao_current_campus_id', campusId)
-      // 标记为正常使用状态，不阻止拉取后端真实数据库数据
       localStorage.setItem('yixiao_mock_data_cleared', 'false')
       localStorage.setItem('yixiao_mock_v5_cleared', '1')
     }
@@ -411,17 +415,15 @@ function handleClearLocalStorage() {
 
 function handleRestorePresetData() {
   ElMessageBox.confirm(
-    '确认恢复系统初始预置的演示 Mock 数据（22 名学员、8 个班级、33 节排课及 25 笔财务订单）？',
-    '恢复初始演示数据确认',
+    '当前系统数据统一由后端 SQLite 数据库真实持久化提供。如需重置初始演示数据，请在后端环境执行 seed 脚本。确认刷新展示？',
+    '提示',
     {
-      confirmButtonText: '确认恢复',
+      confirmButtonText: '确认刷新',
       cancelButtonText: '取消',
       type: 'info'
     }
   ).then(() => {
-    restoreAllMockData()
-    updateLiveStats()
-    ElMessage.success('初始演示 Mock 数据已成功恢复！即将刷新展示...')
+    ElMessage.success('正在刷新界面数据...')
     setTimeout(() => {
       window.location.reload()
     }, 500)

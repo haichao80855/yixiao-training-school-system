@@ -184,36 +184,21 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { DictItem } from '@/types/system'
 import { systemApi } from '@/api'
-import {
-  MOCK_DICTS_LIST,
-  addDict,
-  updateDict,
-  deleteDict,
-  toggleDictStatus
-} from '@/mocks/system'
 
 // --- 状态数据 ---
 const activeCategoryTab = ref('all')
 const searchQuery = ref('')
 const filterStatus = ref<boolean | ''>('')
-const dictList = ref<DictItem[]>(MOCK_DICTS_LIST)
+const dictList = ref<DictItem[]>([])
 
 async function loadData() {
   try {
-    const res = await systemApi.getDictItems(undefined, MOCK_DICTS_LIST)
-    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-      dictList.value = res.data.map((d: any) => ({
-        id: d.id,
-        category: d.category,
-        dictKey: d.dictKey,
-        label: d.label,
-        order: d.order ?? 0,
-        enabled: d.enabled ?? true,
-        remark: d.remark || ''
-      }))
+    const res = await systemApi.getDictItems()
+    if (res && res.data && Array.isArray(res.data)) {
+      dictList.value = res.data
     }
-  } catch (err) {
-    console.warn('[DictSetting] 远程接口未就绪，使用本地双轨模式:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取字典项失败')
   }
 }
 
@@ -319,7 +304,8 @@ async function submitDictForm() {
       await systemApi.updateDictItem(editingId.value, {
         label: dictForm.value.label,
         order: dictForm.value.order,
-        enabled: dictForm.value.enabled
+        enabled: dictForm.value.enabled,
+        remark: dictForm.value.remark
       })
       ElMessage.success(`字典项 [${dictForm.value.dictKey}] 修改成功！`)
     } else {
@@ -328,47 +314,28 @@ async function submitDictForm() {
         dictKey: dictForm.value.dictKey,
         label: dictForm.value.label,
         order: dictForm.value.order,
-        enabled: dictForm.value.enabled
+        enabled: dictForm.value.enabled,
+        remark: dictForm.value.remark
       })
       ElMessage.success(`字典项 [${dictForm.value.dictKey}] 创建成功！`)
     }
+    showDictModal.value = false
     await loadData()
-  } catch {
-    if (isEditMode.value) {
-      updateDict(editingId.value, {
-        label: dictForm.value.label,
-        order: dictForm.value.order,
-        enabled: dictForm.value.enabled,
-        remark: dictForm.value.remark
-      })
-      ElMessage.success(`字典项 [${dictForm.value.dictKey}] 修改成功！`)
-    } else {
-      addDict({
-        category: dictForm.value.category,
-        dictKey: dictForm.value.dictKey,
-        label: dictForm.value.label,
-        order: dictForm.value.order,
-        enabled: dictForm.value.enabled,
-        remark: dictForm.value.remark
-      })
-      ElMessage.success(`字典项 [${dictForm.value.dictKey}] 创建成功！`)
-    }
-    dictList.value = [...MOCK_DICTS_LIST]
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存字典项失败')
   }
-
-  showDictModal.value = false
 }
 
 async function handleToggleStatus(item: DictItem) {
   const nextEnabled = !item.enabled
   try {
     await systemApi.toggleDictItemStatus(item.id, nextEnabled)
-    await loadData()
-  } catch {
-    toggleDictStatus(item.id)
     item.enabled = nextEnabled
+    ElMessage.success(`字典项 [${item.dictKey}] 已变更为：${nextEnabled ? '启用中' : '已停用'}`)
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '切换字典状态失败')
   }
-  ElMessage.success(`字典项 [${item.dictKey}] 已变更为：${nextEnabled ? '启用中' : '已停用'}`)
 }
 
 function handleDelete(item: DictItem) {
@@ -383,12 +350,11 @@ function handleDelete(item: DictItem) {
   ).then(async () => {
     try {
       await systemApi.deleteDictItem(item.id)
+      ElMessage.success(`字典项 [${item.dictKey}] 已成功删除`)
       await loadData()
-    } catch {
-      deleteDict(item.id)
-      dictList.value = [...MOCK_DICTS_LIST]
+    } catch (err: any) {
+      ElMessage.error(err.message || '删除字典项失败')
     }
-    ElMessage.success(`字典项 [${item.dictKey}] 已成功删除`)
   }).catch(() => {})
 }
 

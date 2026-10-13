@@ -102,8 +102,8 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { EducationalCollisionEngine, deleteScheduleEvent } from '@/mocks/educational'
-import { MOCK_STUDENTS } from '@/mocks/student'
+import { educationalApi } from '@/api'
+import { EducationalCollisionEngine } from '@/utils/collisionEngine'
 import type { ScheduleEvent } from '@/types/educational'
 
 const router = useRouter()
@@ -120,24 +120,21 @@ const chipStyle = computed(() => {
   return EducationalCollisionEngine.getSemanticChipStyle(event.value)
 })
 
-const studentList = computed(() => {
-  if (!event.value || !event.value.studentIds) return []
-  return event.value.studentIds.map(id => {
-    const s = MOCK_STUDENTS.find(x => x.id === id)
-    const pkg = s?.coursePackages?.find(p => p.courseId === event.value?.courseId) || s?.coursePackages?.[0]
-    return {
-      id,
-      name: s?.name || '未知学员',
-      studentNo: s?.studentNo || '-',
-      phone: s?.phone || '-',
-      remainingLessons: pkg?.remainingLessons ?? 0
-    }
-  })
-})
+const studentList = ref<Array<{ id?: string; name?: string; studentNo?: string; phone?: string; remainingLessons: number }>>([])
 
-function open(evt: ScheduleEvent) {
+async function open(evt: ScheduleEvent) {
   event.value = evt
   visible.value = true
+  try {
+    const res = await educationalApi.getRollCallStudents(evt.id)
+    if (res && res.data && Array.isArray(res.data)) {
+      studentList.value = res.data
+      return
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取排课学员名单失败')
+  }
+  studentList.value = []
 }
 
 function handleEdit() {
@@ -171,13 +168,13 @@ async function handleDelete() {
         type: 'warning'
       }
     )
-    const ok = deleteScheduleEvent(event.value.id)
-    if (ok) {
+    try {
+      await educationalApi.deleteSchedule(event.value.id)
       ElMessage.success('排课已成功删除！')
       visible.value = false
       emit('refresh')
-    } else {
-      ElMessage.error('删除失败')
+    } catch (err: any) {
+      ElMessage.error(err.message || '删除排课失败')
     }
   } catch {
     // cancelled

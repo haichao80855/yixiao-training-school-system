@@ -227,10 +227,10 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { curriculumApi } from '@/api'
-import { MOCK_SUBJECTS } from '@/mocks'
+import { PRESET_SUBJECTS } from '@/constants/curriculum'
 import type { SubjectItem } from '@/types/curriculum'
 
-const subjects = ref<SubjectItem[]>([...MOCK_SUBJECTS])
+const subjects = ref<SubjectItem[]>([...PRESET_SUBJECTS])
 const selectedCategory = ref('all')
 const searchKeyword = ref('')
 

@@ -506,18 +506,8 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
-import type { WorkbenchLessonCard, LessonEvaluation } from '@/types/educational'
-import {
-  getWorkbenchLessons,
-  getClassrooms,
-  getTeachers,
-  getClassById,
-  submitRollCall,
-  startLesson,
-  finishLesson
-} from '@/mocks/educational'
 import { educationalApi } from '@/api'
-import { MOCK_STUDENTS } from '@/mocks/student'
+import type { WorkbenchLessonCard, LessonEvaluation, Teacher, Classroom } from '@/types/educational'
 import LessonEvaluationDialog from './components/LessonEvaluationDialog.vue'
 import LessonLessonPlanDrawer from './components/LessonLessonPlanDrawer.vue'
 import LessonPlaybackDialog from './components/LessonPlaybackDialog.vue'
@@ -595,8 +585,24 @@ const filters = reactive({
   date: ''
 })
 
-const classroomOptions = computed(() => getClassrooms(tenantStore.currentCampusId))
-const teacherOptions = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'teacher'))
+const classroomList = ref<Classroom[]>([])
+const teacherList = ref<Teacher[]>([])
+
+async function loadOptions() {
+  try {
+    const [roomsRes, teachersRes] = await Promise.all([
+      educationalApi.getClassrooms(tenantStore.currentCampusId),
+      educationalApi.getTeachers(tenantStore.currentCampusId)
+    ])
+    classroomList.value = Array.isArray(roomsRes?.data) ? roomsRes.data : []
+    teacherList.value = Array.isArray(teachersRes?.data) ? teachersRes.data : []
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载教室与讲师筛选列表失败')
+  }
+}
+
+const classroomOptions = computed(() => classroomList.value)
+const teacherOptions = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
 
 // 弹窗引用
 const evaluationDialogRef = ref<InstanceType<typeof LessonEvaluationDialog>>()
@@ -608,7 +614,8 @@ const signInDialogVisible = ref(false)
 const activeLessonForSignIn = ref<WorkbenchLessonCard | null>(null)
 const tempAttendanceList = ref<{ studentId: string; studentName: string; status: 'present' | 'late' | 'leave' | 'absent' }[]>([])
 
-function loadData() {
+async function loadData() {
+  await loadOptions()
   const isTeacher = isTeacherUser.value
   const isSuper = isSuperAdminUser.value
 
@@ -630,19 +637,24 @@ function loadData() {
 
   const queryDate = filters.date || undefined
 
-  const res = getWorkbenchLessons({
-    campusId: tenantStore.currentCampusId,
-    date: queryDate,
-    status: filters.status || undefined,
-    mode: filters.mode || undefined,
-    search: filters.search || undefined,
-    classroomId: filters.classroomId || undefined,
-    teacherId: teacherIdParam,
-    teacherName: teacherNameParam
-  })
+  try {
+    const res = await educationalApi.getWorkbenchLessons({
+      campusId: tenantStore.currentCampusId,
+      date: queryDate,
+      status: filters.status || undefined,
+      mode: filters.mode || undefined,
+      search: filters.search || undefined,
+      classroomId: filters.classroomId || undefined,
+      teacherId: teacherIdParam,
+    })
 
-  cardList.value = res.cards
-  Object.assign(stats, res.stats)
+    if (res?.data) {
+      cardList.value = res.data.cards || []
+      Object.assign(stats, res.data.stats || {})
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载教学工作台排课日程失败')
+  }
 }
 
 function handleResetFilters() {
@@ -671,12 +683,14 @@ watch(() => tenantStore.currentCampusId, () => {
 })
 
 // 上课
-function handleStartLesson(card: WorkbenchLessonCard) {
-  const res = startLesson(card.id)
-  if (res.success) {
+async function handleStartLesson(card: WorkbenchLessonCard) {
+  try {
+    await educationalApi.updateScheduleStatus(card.id, 'in_progress')
     card.status = 'in_progress'
-    ElMessage.success(res.message)
+    ElMessage.success('已开始上课')
     loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '更新上课状态失败')
   }
 }
 
@@ -688,13 +702,17 @@ async function handleFinishLesson(card: WorkbenchLessonCard) {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    const res = finishLesson(card.id)
-    if (res.success) {
+    try {
+      await educationalApi.updateScheduleStatus(card.id, 'completed')
       card.status = 'completed'
-      ElMessage.success(res.message)
+      ElMessage.success('已结课，授课记录已自动归档！')
       loadData()
+    } catch (err: any) {
+      ElMessage.error(err.message || '结课操作失败')
     }
-  } catch {}
+  } catch {
+    // 弹窗取消
+  }
 }
 
 // 唤起各弹窗
@@ -711,37 +729,19 @@ function handleOpenPlayback(card: WorkbenchLessonCard) {
 }
 
 // 签到相关
-function handleOpenSignIn(card: WorkbenchLessonCard) {
+async function handleOpenSignIn(card: WorkbenchLessonCard) {
   activeLessonForSignIn.value = card
 
-  // 严密联动：获取该班级真实学员花名册 (优先使用卡片/日程 studentIds，次之从班级获取)
-  const cls = getClassById(card.classId || '')
-  let realStudentIds: string[] = []
-  if (card.studentIds && card.studentIds.length > 0) {
-    realStudentIds = [...card.studentIds]
-  } else if (cls && cls.studentIds && cls.studentIds.length > 0) {
-    realStudentIds = [...cls.studentIds]
-  }
-
-  if (realStudentIds.length > 0) {
-    tempAttendanceList.value = realStudentIds.map((id, index) => {
-      const s = MOCK_STUDENTS.find(x => x.id === id)
-      const isPresent = index < card.signedCount
-      return {
-        studentId: id,
-        studentName: s?.name || ('学员 ' + id),
-        status: isPresent ? 'present' : 'present'
-      }
-    })
-  } else {
-    // 班级尚无学员时的默认真实名单
-    const count = card.totalStudents || 6
-    const sampleStudents = MOCK_STUDENTS.slice(0, count)
-    tempAttendanceList.value = sampleStudents.map((s, index) => ({
-      studentId: s.id,
-      studentName: s.name,
-      status: index < card.signedCount ? 'present' : 'present'
-    }))
+  try {
+    const res = await educationalApi.getRollCallStudents(card.id)
+    if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+      tempAttendanceList.value = res.data
+    } else {
+      tempAttendanceList.value = []
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取点名学员名单失败')
+    tempAttendanceList.value = []
   }
 
   signInDialogVisible.value = true
@@ -754,41 +754,28 @@ function handleBatchAllPresent() {
 
 async function handleSaveSignIn() {
   if (!activeLessonForSignIn.value) return
-
-  // 联动真实消课逻辑 submitRollCall 扣减真实学员课时
-  const attendancePayload = tempAttendanceList.value.map(item => ({
-    studentId: item.studentId,
-    studentName: item.studentName,
-    status: item.status,
-    deductionLessons: item.status === 'present' || item.status === 'late' ? 1 : 0
-  }))
+  if (tempAttendanceList.value.length === 0) {
+    ElMessage.warning('当前课次暂无可签到考勤学员')
+    return
+  }
 
   try {
     await educationalApi.rollCall({
       scheduleId: activeLessonForSignIn.value.id,
-      attendances: attendancePayload.map(a => ({
-        studentId: a.studentId,
-        status: a.status,
-        deductLessons: a.deductionLessons
+      attendances: tempAttendanceList.value.map(item => ({
+        studentId: item.studentId,
+        status: item.status,
+        deductLessons: item.status === 'present' || item.status === 'late' ? 1 : 0
       }))
     })
-  } catch (apiErr) {
-    console.warn('[Workbench] 远程点名消课落库异常，双轨执行:', apiErr)
-  }
-
-  const res = submitRollCall(activeLessonForSignIn.value.id, attendancePayload, authStore.user?.realName || '授课讲师')
-
-  const attended = tempAttendanceList.value.filter(s => s.status === 'present' || s.status === 'late').length
-  activeLessonForSignIn.value.signedCount = attended
-
-  if (res.success) {
+    const attended = tempAttendanceList.value.filter(s => s.status === 'present' || s.status === 'late').length
+    activeLessonForSignIn.value.signedCount = attended
     ElMessage.success('随堂签到打卡完成！实到 ' + attended + ' 人，已真实扣减在读学员课时并同步消课台账！')
-  } else {
-    ElMessage.success('随堂签到打卡完成！实到 ' + attended + ' 人！')
+    signInDialogVisible.value = false
+    loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '随堂点名消课失败')
   }
-
-  signInDialogVisible.value = false
-  loadData()
 }
 
 function handleEvaluationSuccess(evalRecord: LessonEvaluation) {

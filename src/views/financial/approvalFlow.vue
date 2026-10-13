@@ -365,10 +365,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, Close, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi } from '@/api'
-import {
-  getApprovalRecords,
-  processApprovalRecord
-} from '@/mocks/financial'
 import type { ApprovalRecord, ApprovalBusinessType } from '@/types/financial'
 
 const tenantStore = useTenantStore()
@@ -401,36 +397,7 @@ async function loadApprovals() {
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       if (Array.isArray(list)) {
-        remoteApprovals.value = list.map((a: any) => ({
-          id: a.id,
-          approvalNo: a.approvalNo || a.id,
-          orderId: a.orderId,
-          orderNo: a.order?.orderNo || a.orderNo || 'ORD-001',
-          sourceId: a.orderId || a.id,
-          applicantName: a.applicantName || a.applicant || '经办人',
-          applicantId: a.applicantId || '',
-          studentName: a.order?.student?.name || a.studentName || '学员',
-          studentNo: a.order?.student?.studentNo || a.studentNo || 'S001',
-          campusId: a.order?.campusId || a.campusId || tenantStore.currentCampusId,
-          campusName: a.order?.campus?.name || a.campusName || tenantStore.currentCampus.name,
-          businessType: a.businessType || 'payment',
-          amount: Number(a.order?.actualAmount || a.amount || 0),
-          currentStep: a.currentStep || 1,
-          totalSteps: a.totalSteps || 3,
-          status: a.status || 'pending',
-          applicant: a.applicantName || a.applicant || '经办人',
-          applyTime: a.createdAt ? a.createdAt.split('T')[0] : '2026-09-01',
-          createdAt: a.createdAt ? a.createdAt.split('T')[0] : '2026-09-01',
-          timeline: (a.nodes || []).map((n: any) => ({
-            step: n.step,
-            stepName: n.stepName,
-            operator: n.reviewer?.realName || n.operator || '审核人',
-            action: n.action,
-            comment: n.comment || '',
-            time: n.createdAt ? n.createdAt.replace('T', ' ').slice(0, 19) : '2026-09-21 10:00:00'
-          })),
-          auditNodes: a.nodes || []
-        }))
+        remoteApprovals.value = list
         return
       }
     }
@@ -528,28 +495,11 @@ function openPassDialog(record: ApprovalRecord) {
 
 async function confirmPass() {
   if (!currentActiveRecord.value) return
-  const operator = currentActiveRecord.value.currentStep === 1
-    ? '教学核查专员'
-    : currentActiveRecord.value.currentStep === 2
-      ? '校区执行校长'
-      : '总部财务总监'
-
   try {
     await financialApi.auditApproval(currentActiveRecord.value.id, {
       action: 'pass',
       comment: passComment.value || '审核通过'
     })
-  } catch (apiErr) {
-    console.warn('[ApprovalFlow] 远程审批流转异常，双轨执行:', apiErr)
-  }
-
-  try {
-    processApprovalRecord(
-      currentActiveRecord.value.id,
-      'pass',
-      operator,
-      passComment.value || '审核通过'
-    )
     passDialogVisible.value = false
     ElMessage.success('审批已成功推进至下一节点并同步落盘')
     await loadApprovals()
@@ -576,17 +526,6 @@ async function confirmReject() {
       action: 'reject',
       comment: rejectComment.value.trim()
     })
-  } catch (apiErr) {
-    console.warn('[ApprovalFlow] 远程驳回异常，双轨执行:', apiErr)
-  }
-
-  try {
-    processApprovalRecord(
-      currentActiveRecord.value.id,
-      'reject',
-      '审核风控专员',
-      rejectComment.value.trim()
-    )
     rejectDialogVisible.value = false
     ElMessage.warning('审批单已驳回并中断流转，状态已同步落盘')
     await loadApprovals()
@@ -600,49 +539,6 @@ function openTimelineDialog(record: ApprovalRecord) {
   timelineDialogVisible.value = true
 }
 
-// 批量通过
-function handleBatchPass() {
-  const count = selectedPendingRows.value.length
-  ElMessageBox.confirm(
-    `确定要批量通过选中的 ${count} 笔待审单据吗？系统将推进其当前审批节点。`,
-    '批量审批确认',
-    {
-      confirmButtonText: '确定批量通过',
-      cancelButtonText: '取消',
-      type: 'info'
-    }
-  ).then(() => {
-    for (const item of selectedPendingRows.value) {
-      try {
-        processApprovalRecord(item.id, 'pass', '批量审核专员', '批量快速审批通过')
-      } catch {
-        // ignore
-      }
-    }
-    ElMessage.success(`成功批量通过 ${count} 笔审批单据`)
-  })
-}
-
-// 批量驳回
-function handleBatchReject() {
-  const count = selectedPendingRows.value.length
-  ElMessageBox.prompt('请输入批量驳回的统一说明附言：', '批量驳回确认', {
-    confirmButtonText: '确定驳回',
-    cancelButtonText: '取消',
-    inputPattern: /.+/,
-    inputErrorMessage: '驳回说明不能为空'
-  }).then(({ value }) => {
-    for (const item of selectedPendingRows.value) {
-      try {
-        processApprovalRecord(item.id, 'reject', '批量审核专员', value)
-      } catch {
-        // ignore
-      }
-    }
-    ElMessage.warning(`已批量驳回 ${count} 笔审批单据`)
-  })
-}
-
 function copyText(text: string, title: string) {
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text).then(() => {
@@ -650,6 +546,68 @@ function copyText(text: string, title: string) {
     }).catch(() => {})
   }
 }
+
+// 批量通过
+async function handleBatchPass() {
+  const count = selectedPendingRows.value.length
+  try {
+    await ElMessageBox.confirm(
+      `确定要批量通过选中的 ${count} 笔待审单据吗？系统将推进其当前审批节点。`,
+      '批量审批确认',
+      {
+        confirmButtonText: '确定批量通过',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+    try {
+      await Promise.all(
+        selectedPendingRows.value.map(item =>
+          financialApi.auditApproval(item.id, {
+            action: 'pass',
+            comment: '批量快速审批通过'
+          })
+        )
+      )
+      ElMessage.success(`成功批量通过 ${count} 笔审批单据`)
+      await loadApprovals()
+    } catch (err: any) {
+      ElMessage.error(err.message || '批量审批推进失败')
+    }
+  } catch {
+    // 弹窗取消
+  }
+}
+
+// 批量驳回
+async function handleBatchReject() {
+  const count = selectedPendingRows.value.length
+  try {
+    const { value } = await ElMessageBox.prompt('请输入批量驳回的统一说明附言：', '批量驳回确认', {
+      confirmButtonText: '确定驳回',
+      cancelButtonText: '取消',
+      inputPattern: /.+/,
+      inputErrorMessage: '驳回说明不能为空'
+    })
+    try {
+      await Promise.all(
+        selectedPendingRows.value.map(item =>
+          financialApi.auditApproval(item.id, {
+            action: 'reject',
+            comment: value
+          })
+        )
+      )
+      ElMessage.warning(`已批量驳回 ${count} 笔审批单据`)
+      await loadApprovals()
+    } catch (err: any) {
+      ElMessage.error(err.message || '批量驳回失败')
+    }
+  } catch {
+    // 弹窗取消
+  }
+}
+
 onMounted(async () => {
   await loadApprovals()
 })

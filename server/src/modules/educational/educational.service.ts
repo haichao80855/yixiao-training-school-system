@@ -228,6 +228,71 @@ export class EducationalService {
     });
   }
 
+  /**
+   * 班级删除 (三级数据完整性与风控边界检查)
+   */
+  async deleteClass(id: string) {
+    const cls = await this.prisma.class.findUnique({
+      where: { id },
+      include: {
+        studentPackages: true,
+        schedules: {
+          include: { attendances: true },
+        },
+      },
+    });
+
+    if (!cls) {
+      throw new NotFoundException(`未找到班级 ID: ${id}`);
+    }
+
+    // 1. 检查是否存在在读学员 (active 课包)
+    const activeStudentsCount = cls.studentPackages.filter(
+      (p) => p.status === 'active',
+    ).length;
+
+    if (activeStudentsCount > 0 || cls.currentStudentCount > 0) {
+      throw new BadRequestException(
+        `该班级下仍有 ${activeStudentsCount || cls.currentStudentCount} 名在读学员，禁止删除！请先为学员办理转班或移出班级。`,
+      );
+    }
+
+    // 2. 检查是否存在已结课或有点名消课考勤记录的排课
+    const hasAttendanceRecords = cls.schedules.some(
+      (s) => s.attendances.length > 0 || s.status === 'completed',
+    );
+
+    if (hasAttendanceRecords) {
+      throw new BadRequestException(
+        '该班级已存在已结课或有点名考勤消课记录的排课日程，禁止删除！如需停用请调整班级状态为已结业(completed)。',
+      );
+    }
+
+    // 3. 安全事务执行
+    return this.prisma.$transaction(async (tx) => {
+      // 3.1 解除历史课包的外键绑定 (避免外键约束冲突)
+      await tx.studentCoursePackage.updateMany({
+        where: { classId: id },
+        data: { classId: null },
+      });
+
+      // 3.2 清理未执行的空排课日程
+      await tx.scheduleEvent.deleteMany({
+        where: { classId: id },
+      });
+
+      // 3.3 删除班级实体
+      await tx.class.delete({
+        where: { id },
+      });
+
+      return {
+        success: true,
+        message: '班级删除成功',
+      };
+    });
+  }
+
   // ----------------------------------------------------------------
   // 3. 7×15 动态甘特排课矩阵与三维碰撞检测引擎 (Collision Engine)
   // ----------------------------------------------------------------
@@ -632,6 +697,69 @@ export class EducationalService {
         refundedLessons: refundedLessonTotal,
         message: `反结课冲正成功！已回滚 ${activeAttendances.length} 条点名记录，原路退还 ${refundedLessonTotal} 课时`,
       };
+    });
+  }
+
+  /**
+   * 更新排课日程状态或基础信息
+   */
+  async updateSchedule(id: string, data: any) {
+    const existing = await this.prisma.scheduleEvent.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException(`未找到排课日程 ${id}`);
+    }
+
+    return this.prisma.scheduleEvent.update({
+      where: { id },
+      data: {
+        ...(data.date ? { date: data.date } : {}),
+        ...(data.startTime ? { startTime: data.startTime } : {}),
+        ...(data.endTime ? { endTime: data.endTime } : {}),
+        ...(data.teacherId ? { teacherId: data.teacherId } : {}),
+        ...(data.classroomId ? { classroomId: data.classroomId } : {}),
+        ...(data.status ? { status: data.status } : {}),
+        ...(data.lessonTitle ? { lessonTitle: data.lessonTitle } : {}),
+        ...(data.lessonPeriod ? { lessonPeriod: data.lessonPeriod } : {}),
+        ...(data.color ? { color: data.color } : {}),
+        ...(data.semanticType ? { semanticType: data.semanticType } : {}),
+        ...(data.lane !== undefined ? { lane: data.lane } : {}),
+        ...(data.isConflict !== undefined ? { isConflict: data.isConflict } : {}),
+      },
+      include: {
+        class: true,
+        teacher: true,
+        classroom: true,
+      },
+    });
+  }
+
+  /**
+   * 获取考勤点名台账流水记录
+   */
+  async getAttendanceRecords(query: { campusId?: string; classId?: string; scheduleEventId?: string; studentId?: string }) {
+    const where: any = {};
+    if (query.scheduleEventId) where.scheduleEventId = query.scheduleEventId;
+    if (query.studentId) where.studentId = query.studentId;
+    if (query.classId) {
+      where.scheduleEvent = { classId: query.classId };
+    }
+    if (query.campusId && query.campusId !== 'all') {
+      where.scheduleEvent = { ...(where.scheduleEvent || {}), campusId: query.campusId };
+    }
+
+    return this.prisma.attendanceRecord.findMany({
+      where,
+      include: {
+        scheduleEvent: {
+          include: {
+            class: true,
+            teacher: true,
+            classroom: true,
+          },
+        },
+        student: true,
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 }

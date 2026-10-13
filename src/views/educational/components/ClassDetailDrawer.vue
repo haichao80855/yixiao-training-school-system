@@ -161,13 +161,15 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { MOCK_STUDENTS } from '@/mocks/student'
-import { getScheduleEvents, getAttendanceRecords } from '@/mocks/educational'
+import { ElMessage } from 'element-plus'
+import { educationalApi } from '@/api'
 import type { ClassItem, ScheduleEvent, AttendanceRecord } from '@/types/educational'
 
 const visible = ref(false)
 const activeTab = ref('students')
 const classItem = ref<ClassItem | null>(null)
+const classSchedulesList = ref<ScheduleEvent[]>([])
+const classAttendancesList = ref<AttendanceRecord[]>([])
 
 const emit = defineEmits<{
   (e: 'batchSchedule', cls: ClassItem): void
@@ -192,29 +194,16 @@ function getStatusLabel(status: string) {
 }
 
 const studentList = computed(() => {
-  if (!classItem.value || !classItem.value.studentIds) return []
-  return classItem.value.studentIds.map(id => {
-    const s = MOCK_STUDENTS.find(x => x.id === id)
-    const pkg = s?.coursePackages?.find(p => p.courseId === classItem.value?.courseId || p.classId === classItem.value?.id) || s?.coursePackages?.[0]
-    return {
-      id,
-      name: s?.name || '未知学员',
-      studentNo: s?.studentNo || '-',
-      phone: s?.phone || '-',
-      remainingLessons: pkg?.remainingLessons ?? 0,
-      consumedLessons: pkg?.consumedLessons ?? 0
-    }
-  })
+  if (!classItem.value) return []
+  return (classItem.value as any).students || []
 })
 
 const classSchedules = computed<ScheduleEvent[]>(() => {
-  if (!classItem.value) return []
-  return getScheduleEvents().filter(e => e.classId === classItem.value?.id)
+  return classSchedulesList.value
 })
 
 const classAttendances = computed<AttendanceRecord[]>(() => {
-  if (!classItem.value) return []
-  return getAttendanceRecords(undefined, classItem.value.id)
+  return classAttendancesList.value
 })
 
 const totalDeductedLessons = computed(() => {
@@ -223,10 +212,25 @@ const totalDeductedLessons = computed(() => {
     .reduce((sum, r) => sum + (r.deductedLessonsTotal || 0), 0)
 })
 
-function open(item: ClassItem) {
+async function open(item: ClassItem) {
   classItem.value = item
   activeTab.value = 'students'
   visible.value = true
+
+  try {
+    const [detailRes, schedRes, attRes] = await Promise.all([
+      educationalApi.getClassById(item.id),
+      educationalApi.getSchedules({ classId: item.id }),
+      educationalApi.getAttendanceRecords({ classId: item.id })
+    ])
+    if (detailRes?.data) {
+      classItem.value = detailRes.data
+    }
+    classSchedulesList.value = Array.isArray(schedRes?.data) ? schedRes.data : (schedRes?.data?.list || [])
+    classAttendancesList.value = Array.isArray(attRes?.data) ? attRes.data : (attRes?.data?.list || [])
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载班级详情失败')
+  }
 }
 
 function handleOpenBatchSchedule() {

@@ -2,16 +2,17 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Param,
   Body,
   Query,
 } from '@nestjs/common';
 import { FinancialService } from './financial.service';
-import { OrderFilterDto, UpdateVoucherDto, LockOrderDto } from './dto/order.dto';
+import { OrderFilterDto, UpdateVoucherDto, LockOrderDto, UpdateOrderDto } from './dto/order.dto';
 import { CreateApprovalDto, AuditApprovalDto } from './dto/approval.dto';
-import { CurrentCampus } from '../../common/decorators/current-campus.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
 
 @Controller('api/financial')
 export class FinancialController {
@@ -24,22 +25,31 @@ export class FinancialController {
   @Get('orders')
   async getOrders(
     @Query() query: OrderFilterDto,
-    @CurrentCampus() headerCampusId?: string,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
-    return this.financialService.getOrders(query, headerCampusId);
+    return this.financialService.getOrders(query, scope?.targetCampusId);
   }
 
   @Get('orders/summary')
   async getOrderSummary(
     @Query() query: OrderFilterDto,
-    @CurrentCampus() headerCampusId?: string,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
-    return this.financialService.getOrderSummary(query, headerCampusId);
+    return this.financialService.getOrderSummary(query, scope?.targetCampusId);
   }
 
   @Get('orders/:id')
   async getOrderById(@Param('id') id: string) {
     return this.financialService.getOrderById(id);
+  }
+
+  @Put('orders/:id')
+  async updateOrder(
+    @Param('id') id: string,
+    @Body() dto: UpdateOrderDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.financialService.updateOrder(id, dto, user);
   }
 
   @Patch('orders/:id/voucher')

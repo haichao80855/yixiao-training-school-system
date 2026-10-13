@@ -65,7 +65,6 @@ import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { Student } from '@/types/student'
 import { studentApi } from '@/api'
-import { updateStudent } from '@/mocks'
 
 const props = defineProps<{
   modelValue: boolean
@@ -86,24 +85,20 @@ const scanning = ref(false)
 const progress = ref(0)
 const capturedImage = ref('')
 
-function handleCapture() {
+async function handleCapture() {
   if (progress.value === 100) {
     if (props.student) {
       const faceUrl = capturedImage.value || props.student.avatar || ''
       try {
-        studentApi.updateStudent(props.student.id, {
+        await studentApi.updateStudent(props.student.id, {
           avatar: faceUrl
         })
-      } catch {
-        // dual-track
+        ElMessage.success('学员人脸底库已成功录入并同步至校区考勤闸机！')
+        emit('success')
+        visible.value = false
+      } catch (err: any) {
+        ElMessage.error(err.message || '人脸信息更新失败')
       }
-      updateStudent(props.student.id, {
-        faceEntered: true,
-        faceImageUrl: faceUrl
-      })
-      ElMessage.success('学员人脸底库已成功录入并同步至校区考勤闸机！')
-      emit('success')
-      visible.value = false
     }
     return
   }

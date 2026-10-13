@@ -201,9 +201,7 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { Student } from '@/types/student'
-import { MOCK_STUDENTS, enrollStudent, getCoursesByCampus, restoreCoursesFromStorage } from '@/mocks'
-import { PRESET_MOCK_STUDENTS } from '@/mocks/student'
-import { studentApi } from '@/api'
+import { studentApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 import type { CourseItem } from '@/types/curriculum'
 
@@ -226,22 +224,35 @@ const visible = computed({
 const currentStep = ref(0)
 const submitting = ref(false)
 
-const candidateStudents = computed(() => {
-  if (props.student) {
-    const fallback = MOCK_STUDENTS.length > 0 ? MOCK_STUDENTS : PRESET_MOCK_STUDENTS
-    return [props.student, ...fallback.filter(s => s.id !== props.student?.id)]
-  }
-  return MOCK_STUDENTS.length > 0 ? MOCK_STUDENTS : PRESET_MOCK_STUDENTS
-})
-
+const studentList = ref<Student[]>([])
 const availableCoursesList = ref<CourseItem[]>([])
 
-function refreshCourses() {
-  restoreCoursesFromStorage()
-  const targetCampus = props.student?.campusId || tenantStore.currentCampusId
-  const list = getCoursesByCampus(targetCampus).filter(c => c.status === 'enabled')
-  availableCoursesList.value = list
+async function loadData() {
+  try {
+    const targetCampus = props.student?.campusId || tenantStore.currentCampusId
+    const [crsRes, stdRes] = await Promise.all([
+      curriculumApi.getCourses({ campusId: targetCampus }),
+      studentApi.getStudents({ campusId: targetCampus })
+    ])
+    if (crsRes?.data) {
+      const list = Array.isArray(crsRes.data) ? crsRes.data : (crsRes.data.items || crsRes.data.list || [])
+      availableCoursesList.value = list.filter((c: any) => c.status === 'enabled')
+    }
+    if (stdRes?.data) {
+      const list = Array.isArray(stdRes.data) ? stdRes.data : (stdRes.data.items || stdRes.data.list || [])
+      studentList.value = list
+    }
+  } catch (err) {
+    console.warn('[EnrollDialog] 加载数据异常:', err)
+  }
 }
+
+const candidateStudents = computed(() => {
+  if (props.student) {
+    return [props.student, ...studentList.value.filter(s => s.id !== props.student?.id)]
+  }
+  return studentList.value
+})
 
 const availableCourses = computed(() => {
   return availableCoursesList.value
@@ -285,8 +296,8 @@ const walletInsufficient = computed(() => {
   return total < finalActualAmount.value
 })
 
-function resetForm() {
-  refreshCourses()
+async function resetForm() {
+  await loadData()
   currentStep.value = 0
   formData.couponAmount = 0
   formData.discountAmount = 0
@@ -295,8 +306,8 @@ function resetForm() {
   if (props.student) {
     formData.studentId = props.student.id
     formData.campusId = props.student.campusId || tenantStore.currentCampusId
-  } else if (MOCK_STUDENTS.length > 0) {
-    formData.studentId = MOCK_STUDENTS[0].id
+  } else if (candidateStudents.value.length > 0) {
+    formData.studentId = candidateStudents.value[0].id
     formData.campusId = tenantStore.currentCampusId
   }
   if (availableCourses.value.length > 0) {
@@ -370,55 +381,24 @@ function getPaymentMethodLabel(method: string) {
 async function handleSubmit() {
   submitting.value = true
   try {
-    // 1. 尝试向真实后端发送开单签约请求
-    let orderNoGenerated = ''
-    try {
-      const apiRes = await studentApi.enroll({
-        studentId: formData.studentId,
-        courseId: formData.courseId,
-        totalLessons: formData.lessonCount,
-        bonusLessons: formData.bonusLessons,
-        pricePerLesson: formData.pricePerLesson,
-        discountAmount: formData.discountAmount,
-        couponAmount: formData.couponAmount,
-        paymentMethod: formData.paymentMethod,
-        channel: 'ground',
-        remark: '前端签约开单向导提交',
-      })
-      if (apiRes.success && apiRes.data?.orderNo) {
-        orderNoGenerated = apiRes.data.orderNo
-      }
-    } catch (apiErr) {
-      console.warn('[EnrollDialog] 后端开单接口异常，自动降级至本地模式:', apiErr)
-    }
-
-    // 2. 本地响应式状态库同步生效 (若后端已成功，则静默更新或兜底)
-    const res = enrollStudent({
+    const apiRes = await studentApi.enroll({
       studentId: formData.studentId,
       courseId: formData.courseId,
-      lessonCount: formData.lessonCount,
+      totalLessons: formData.lessonCount,
       bonusLessons: formData.bonusLessons,
       pricePerLesson: formData.pricePerLesson,
       discountAmount: formData.discountAmount,
       couponAmount: formData.couponAmount,
-      actualAmount: finalActualAmount.value,
       paymentMethod: formData.paymentMethod,
-      campusId: formData.campusId,
-      operator: '教务学管'
+      channel: 'ground',
+      remark: '前端签约开单向导提交',
     })
 
-    if (orderNoGenerated || res.success) {
-      ElMessage.success(
-        orderNoGenerated
-          ? `签约开单成功！订单已落盘：${orderNoGenerated}`
-          : (res.message || '签约开单成功！')
-      )
-      emit('success')
-      visible.value = false
-      currentStep.value = 0
-    } else {
-      ElMessage.error(res.message || '签约开单失败')
-    }
+    const orderNo = apiRes?.data?.orderNo || ''
+    ElMessage.success(orderNo ? `签约开单成功！订单已落盘：${orderNo}` : '签约开单成功！')
+    emit('success')
+    visible.value = false
+    currentStep.value = 0
   } catch (err: any) {
     ElMessage.error(err.message || '签约失败')
   } finally {

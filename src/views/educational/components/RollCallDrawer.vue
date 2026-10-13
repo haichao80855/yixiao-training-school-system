@@ -120,8 +120,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MOCK_STUDENTS } from '@/mocks/student'
-import { submitRollCall } from '@/mocks/educational'
+import { educationalApi } from '@/api'
 import type { ScheduleEvent, StudentAttendanceItem, AttendanceStatus } from '@/types/educational'
 
 const visible = ref(false)
@@ -162,33 +161,34 @@ function handleAllPresent() {
   ElMessage.success('已全部设置为“到课”出勤！')
 }
 
-function open(evt: ScheduleEvent) {
+async function open(evt: ScheduleEvent) {
   event.value = evt
   visible.value = true
 
-  // 构建学员点名数据列表
-  studentRows.value = (evt.studentIds || []).map(id => {
-    const s = MOCK_STUDENTS.find(x => x.id === id)
-    const pkg = s?.coursePackages?.find(p => p.courseId === evt.courseId || p.classId === evt.classId) || s?.coursePackages?.[0]
-    return {
-      studentId: id,
-      studentName: s?.name || '未知学员',
-      studentNo: s?.studentNo || '-',
-      remainingLessons: pkg?.remainingLessons ?? 0,
-      status: 'present' as AttendanceStatus,
-      deductionLessons: 1,
-      pricePerLesson: pkg?.pricePerLesson || 280,
-      remark: '课堂实操任务达成优秀'
+  // 从真实后端接口拉取该课次绑定的学员名单与课包
+  try {
+    const res = await educationalApi.getRollCallStudents(evt.id)
+    if (res && res.data && Array.isArray(res.data)) {
+      studentRows.value = res.data
+      return
     }
-  })
+  } catch (err: any) {
+    ElMessage.error(err.message || '拉取排课学员列表失败')
+  }
+
+  studentRows.value = []
 }
 
 async function handleSubmitRollCall() {
   if (!event.value) return
+  if (studentRows.value.length === 0) {
+    ElMessage.warning('当前班级暂无可考勤学员')
+    return
+  }
 
   try {
     await ElMessageBox.confirm(
-      `确定对班级 [${event.value.className}] 执行下课结算吗？系统将正式扣减 ${totalDeductLessons.value} 课时。`,
+      `确定对班级 [${event.value.className}] 执行下课结算吗？系统将正式扣减 ${totalDeductLessons.value} 课时并入账。`,
       '下课消课确认',
       {
         confirmButtonText: '确认消课',
@@ -196,18 +196,31 @@ async function handleSubmitRollCall() {
         type: 'warning'
       }
     )
+  } catch {
+    return
+  }
 
-    submitting.value = true
-    const res = submitRollCall(event.value.id, studentRows.value)
-    if (res.success) {
-      ElMessage.success(res.message)
+  submitting.value = true
+  try {
+    const res = await educationalApi.rollCall({
+      scheduleId: event.value.id,
+      attendances: studentRows.value.map(r => ({
+        studentId: r.studentId,
+        status: r.status,
+        deductLessons: r.deductionLessons,
+        comment: r.remark
+      }))
+    })
+
+    if (res && res.success !== false) {
+      ElMessage.success(res.message || '随堂点名消课结算成功并已真实落库！')
       visible.value = false
       emit('success')
     } else {
-      ElMessage.error(res.message)
+      ElMessage.error(res?.message || '点名消课失败')
     }
-  } catch {
-    // cancelled
+  } catch (apiErr: any) {
+    ElMessage.error(apiErr.message || '随堂点名消课执行失败，已拦截')
   } finally {
     submitting.value = false
   }

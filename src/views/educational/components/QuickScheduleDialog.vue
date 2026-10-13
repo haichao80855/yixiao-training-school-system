@@ -156,15 +156,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { educationalApi } from '@/api'
-import {
-  EducationalCollisionEngine,
-  getClasses,
-  getTeachers,
-  getClassrooms,
-  addScheduleEvent,
-  updateScheduleEvent
-} from '@/mocks/educational'
-import type { ScheduleEvent, CollisionResult, LessonClassType } from '@/types/educational'
+import type { ScheduleEvent, CollisionResult, LessonClassType, ClassItem, Teacher, Classroom } from '@/types/educational'
 
 const props = defineProps<{
   campusId: string
@@ -182,9 +174,28 @@ const collisionResult = ref<CollisionResult | null>(null)
 const formRef = ref<FormInstance>()
 const currentEventId = ref<string | null>(null)
 
-const availableClasses = computed(() => getClasses({ campusId: props.campusId }))
-const teachers = computed(() => getTeachers(props.campusId))
-const classrooms = computed(() => getClassrooms(props.campusId))
+const availableClassesList = ref<ClassItem[]>([])
+const teacherList = ref<Teacher[]>([])
+const classroomList = ref<Classroom[]>([])
+
+async function reloadOptions() {
+  try {
+    const [clsRes, teaRes, roomRes] = await Promise.all([
+      educationalApi.getClasses({ campusId: props.campusId }),
+      educationalApi.getTeachers(props.campusId),
+      educationalApi.getClassrooms(props.campusId)
+    ])
+    availableClassesList.value = Array.isArray(clsRes?.data) ? clsRes.data : (clsRes?.data?.list || [])
+    teacherList.value = Array.isArray(teaRes?.data) ? teaRes.data : (teaRes?.data?.list || [])
+    classroomList.value = Array.isArray(roomRes?.data) ? roomRes.data : (roomRes?.data?.list || [])
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载排课选项数据失败')
+  }
+}
+
+const availableClasses = computed(() => availableClassesList.value)
+const teachers = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
+const classrooms = computed(() => classroomList.value)
 
 const form = reactive({
   classId: '',
@@ -241,7 +252,7 @@ function handleClassChange(classId: string) {
   triggerCollisionCheck()
 }
 
-function triggerCollisionCheck() {
+async function triggerCollisionCheck() {
   if (!form.date || !form.startTime || !form.endTime) {
     collisionResult.value = null
     return
@@ -254,22 +265,26 @@ function triggerCollisionCheck() {
   if (r) form.classroomName = r.name
 
   try {
-    const res = EducationalCollisionEngine.detectCollision({
+    const res = await educationalApi.checkCollision({
+      campusId: props.campusId,
       date: form.date,
       startTime: form.startTime,
       endTime: form.endTime,
       teacherId: form.teacherId,
       classroomId: form.classroomId,
-      studentIds: form.studentIds,
+      classId: form.classId,
       excludeEventId: currentEventId.value || undefined
     })
-    collisionResult.value = res
-  } catch {
+    const data = res?.data || res
+    collisionResult.value = (data && data.hasConflict) ? data : null
+  } catch (err: any) {
     collisionResult.value = null
+    ElMessage.error(err.message || '时段冲突检测失败')
   }
 }
 
-function open(payload?: { date?: string; startTime?: string; endTime?: string; event?: ScheduleEvent }) {
+async function open(payload?: { date?: string; startTime?: string; endTime?: string; event?: ScheduleEvent }) {
+  await reloadOptions()
   visible.value = true
   forceSchedule.value = false
   collisionResult.value = null
@@ -328,8 +343,20 @@ async function handleSubmit() {
 
     submitting.value = true
     try {
-      // 优先向真实后端数据库持久化排课日程
-      try {
+      if (isEdit.value && currentEventId.value) {
+        await educationalApi.updateSchedule(currentEventId.value, {
+          campusId: props.campusId,
+          classId: form.classId,
+          teacherId: form.teacherId,
+          classroomId: form.classroomId,
+          date: form.date,
+          startTime: form.startTime,
+          endTime: form.endTime,
+          classType: form.classType || 'formal',
+          semanticType: collisionResult.value?.hasConflict ? 'conflict' : 'regular'
+        })
+        ElMessage.success('修改排课成功并同步落库！')
+      } else {
         await educationalApi.createSchedule({
           campusId: props.campusId,
           classId: form.classId,
@@ -341,35 +368,12 @@ async function handleSubmit() {
           classType: form.classType || 'formal',
           semanticType: collisionResult.value?.hasConflict ? 'conflict' : 'regular'
         })
-      } catch (apiErr) {
-        console.warn('[QuickSchedule] 远程排课异常，执行双轨平滑排课:', apiErr)
+        ElMessage.success('新建排课成功并同步落库！')
       }
-
-      if (isEdit.value && currentEventId.value) {
-        const res = updateScheduleEvent(currentEventId.value, {
-          ...form,
-          campusId: props.campusId
-        })
-        if (res.success) {
-          ElMessage.success('修改排课成功并同步落库！')
-          visible.value = false
-          emit('success')
-        } else {
-          ElMessage.error(res.message || '修改排课失败')
-        }
-      } else {
-        const res = addScheduleEvent({
-          ...form,
-          campusId: props.campusId
-        }, forceSchedule.value)
-        if (res.success) {
-          ElMessage.success('新建排课成功并同步落库！')
-          visible.value = false
-          emit('success')
-        } else {
-          ElMessage.error(res.message || '新建排课失败')
-        }
-      }
+      visible.value = false
+      emit('success')
+    } catch (err: any) {
+      ElMessage.error(err.message || '排课失败')
     } finally {
       submitting.value = false
     }

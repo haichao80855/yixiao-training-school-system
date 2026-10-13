@@ -31,6 +31,9 @@ browser_walkthrough_error.png
 
 # Internal agent working directory
 .agents/
+.claude/
+.pi/
+skills-lock.json
 
 # Editor & OS files
 .DS_Store

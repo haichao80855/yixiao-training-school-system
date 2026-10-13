@@ -106,7 +106,6 @@ import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import type { Student, StudentStatus } from '@/types/student'
-import { addStudent, updateStudent } from '@/mocks'
 import { studentApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 
@@ -221,23 +220,6 @@ async function handleSubmit() {
           status: form.status,
         })
 
-        // 更新本地状态
-        updateStudent(props.student.id, {
-          name: form.name,
-          gender: form.gender,
-          age: form.age,
-          phone: form.phone,
-          campusId: form.campusId,
-          school: form.school,
-          publicSchool: form.school,
-          grade: form.grade,
-          parentName: form.parentName,
-          parentPhone: form.parentPhone,
-          parentWechat: form.parentWechat,
-          boundWechat: form.parentWechat,
-          wechatBound: form.wechatBound,
-          status: form.status
-        })
         ElMessage.success('学员档案更新成功并同步入库！')
         emit('success', { campusId: form.campusId })
       } else {
@@ -253,25 +235,6 @@ async function handleSubmit() {
         })
 
         const createdStudentNo = apiRes.data?.studentNo || form.studentNo
-
-        // 同步注入本地响应式状态库兜底
-        addStudent({
-          name: form.name,
-          studentNo: createdStudentNo,
-          gender: form.gender,
-          age: form.age,
-          phone: form.phone,
-          campusId: form.campusId,
-          school: form.school,
-          publicSchool: form.school,
-          grade: form.grade,
-          parentName: form.parentName,
-          parentPhone: form.parentPhone,
-          parentWechat: form.parentWechat,
-          boundWechat: form.parentWechat,
-          wechatBound: form.wechatBound,
-          status: form.status
-        })
 
         ElMessage.success(`新增学员建档成功！学号已同步入库：${createdStudentNo}`)
         emit('success', { campusId: form.campusId, studentNo: createdStudentNo })

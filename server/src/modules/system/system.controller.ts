@@ -14,6 +14,7 @@ import { CreateOrgNodeDto, UpdateOrgNodeDto } from './dto/create-org-node.dto';
 import { CreateRoleDto, UpdateRoleDto, AssignPermissionsDto } from './dto/update-role.dto';
 import { CreateUserDto, UpdateUserDto, ResetPasswordDto } from './dto/create-user.dto';
 import { CreateDictItemDto, UpdateDictItemDto } from './dto/create-dict.dto';
+import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
 
 @Controller('api/system')
 export class SystemController {
@@ -90,12 +91,12 @@ export class SystemController {
   // 6. 员工档案管理
   @Get('users')
   getUsers(
-    @Query('campusId') campusId?: string,
     @Query('keyword') keyword?: string,
     @Query('roleId') roleId?: string,
     @Query('status') status?: string,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
-    return this.systemService.getUsers({ campusId, keyword, roleId, status });
+    return this.systemService.getUsers({ campusId: scope?.targetCampusId, keyword, roleId, status });
   }
 
   @Post('users')

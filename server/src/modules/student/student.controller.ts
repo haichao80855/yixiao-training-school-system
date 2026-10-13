@@ -12,8 +12,10 @@ import { StudentService } from './student.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { EnrollStudentDto } from './dto/enroll.dto';
 import { CreateMovementDto } from './dto/movement.dto';
+import { RechargeWalletDto, WithdrawWalletDto } from './dto/wallet.dto';
 import { CurrentCampus } from '../../common/decorators/current-campus.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
 
 @Controller('api/students')
 export class StudentController {
@@ -25,36 +27,15 @@ export class StudentController {
     @Query('pageSize') pageSize?: number,
     @Query('keyword') keyword?: string,
     @Query('status') status?: string,
-    @Query('campusId') campusId?: string,
     @Query('warningLevel') warningLevel?: string,
-    @CurrentCampus() headerCampusId?: string,
-    @CurrentUser() user?: any,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
-    const isSuperAdmin =
-      user?.dataScope === 'all' ||
-      user?.roles?.some(
-        (r: any) =>
-          r.code === 'super_admin' ||
-          r.code === 'admin' ||
-          r.dataScope === 'all' ||
-          r === 'super_admin',
-      ) ||
-      user?.permissions?.includes('*') ||
-      user?.permissions?.includes('admin:all');
-
-    let targetCampusId: string | undefined = undefined;
-    if (campusId && campusId !== 'all') {
-      targetCampusId = campusId;
-    } else if (!isSuperAdmin) {
-      targetCampusId = headerCampusId || user?.campusId;
-    }
-
     return this.studentService.getStudents({
       page,
       pageSize,
       keyword,
       status,
-      campusId: targetCampusId,
+      campusId: scope?.targetCampusId,
       warningLevel,
     });
   }
@@ -62,10 +43,10 @@ export class StudentController {
   @Post()
   async createStudent(
     @Body() dto: CreateStudentDto,
-    @CurrentCampus() headerCampusId?: string,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
-    if (!dto.campusId && headerCampusId) {
-      dto.campusId = headerCampusId;
+    if (!dto.campusId && scope?.targetCampusId) {
+      dto.campusId = scope.targetCampusId;
     }
     return this.studentService.createStudent(dto);
   }
@@ -96,7 +77,25 @@ export class StudentController {
     return this.studentService.enrollStudent(dto, user);
   }
 
-  @Post(':id/movement')
+  @Post(':id/wallet/recharge')
+  async rechargeWallet(
+    @Param('id') studentId: string,
+    @Body() dto: RechargeWalletDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.studentService.rechargeWallet(studentId, dto, user);
+  }
+
+  @Post(':id/wallet/withdraw')
+  async withdrawWallet(
+    @Param('id') studentId: string,
+    @Body() dto: WithdrawWalletDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.studentService.withdrawWallet(studentId, dto, user);
+  }
+
+  @Post([':id/movement', ':id/movements'])
   async executeMovement(
     @Param('id') studentId: string,
     @Body() dto: CreateMovementDto,

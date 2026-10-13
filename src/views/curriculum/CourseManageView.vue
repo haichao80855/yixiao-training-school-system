@@ -327,7 +327,6 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { curriculumApi } from '@/api'
-import { getCoursesByCampus, toggleCourseStatus } from '@/mocks'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import CourseEditorDialog from './components/CourseEditorDialog.vue'
 import type { CourseItem, CourseAttribute } from '@/types/curriculum'
@@ -395,26 +394,12 @@ async function reloadCourses() {
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       if (Array.isArray(list)) {
-        allCourses.value = list.map((item: any) => ({
-          id: item.id,
-          code: item.code,
-          name: item.name,
-          cover: item.cover,
-          pricePerLesson: Number(item.pricePerLesson || 280),
-          totalLessons: Number(item.totalLessons || 48),
-          subject: item.subject || 'scratch',
-          grade: item.grade || '中级课程',
-          attribute: item.attribute || 'regular',
-          status: item.status || 'enabled',
-          description: item.description || '',
-          authorizedCampusIds: item.authorizedCampusIds || item.campusAuths?.map((a: any) => a.campusId) || [tenantStore.currentCampusId],
-          createdAt: item.createdAt || new Date().toISOString()
-        }))
+        allCourses.value = list as any
         return
       }
     }
-  } catch (err) {
-    console.warn('[CourseManage] 远程课程拉取失败:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取课程列表失败')
   }
   allCourses.value = []
 }
@@ -576,16 +561,18 @@ function formatPrice(price: number): string {
 // 快速启/禁用切换与 Toast 反馈
 async function handleToggleStatus(course: CourseItem, val: boolean) {
   const targetStatus = val ? 'enabled' : 'disabled'
+  const oldStatus = course.status
   course.status = targetStatus
   try {
     await curriculumApi.updateStatus(course.id, targetStatus)
-  } catch {
-    toggleCourseStatus(course.id, targetStatus)
-  }
-  if (val) {
-    ElMessage.success(`课程「${course.name}」已成功启用并同步落库！`)
-  } else {
-    ElMessage.warning(`课程「${course.name}」已禁用，将阻断新建排课与前台选课！`)
+    if (val) {
+      ElMessage.success(`课程「${course.name}」已成功启用并同步落库！`)
+    } else {
+      ElMessage.warning(`课程「${course.name}」已禁用，将阻断新建排课与前台选课！`)
+    }
+  } catch (err: any) {
+    course.status = oldStatus
+    ElMessage.error(err.message || '更新课程状态失败')
   }
 }
 
@@ -644,18 +631,15 @@ async function confirmBatchAuth() {
   try {
     await Promise.all(
       filteredCourses.value.map(c =>
-        curriculumApi.authorizeCampuses(c.id, batchSelectedCampuses.value).catch(() => {})
+        curriculumApi.authorizeCampuses(c.id, batchSelectedCampuses.value)
       )
     )
-  } catch {
-    // 双轨降级
+    batchAuthVisible.value = false
+    ElMessage.success(`批量授权成功！已同步至 ${filteredCourses.value.length} 门课程并落库。`)
+    await reloadCourses()
+  } catch (err: any) {
+    ElMessage.error(err.message || '批量授权失败')
   }
-  filteredCourses.value.forEach(c => {
-    c.authorizedCampusIds = Array.from(new Set([...c.authorizedCampusIds, ...batchSelectedCampuses.value]))
-  })
-  batchAuthVisible.value = false
-  ElMessage.success(`批量授权成功！已同步至 ${filteredCourses.value.length} 门课程并落库。`)
-  await reloadCourses()
 }
 </script>
 

@@ -7,6 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { EnrollStudentDto } from './dto/enroll.dto';
 import { CreateMovementDto } from './dto/movement.dto';
+import { RechargeWalletDto, WithdrawWalletDto } from './dto/wallet.dto';
 
 @Injectable()
 export class StudentService {
@@ -647,12 +648,8 @@ export class StudentService {
 
         // 6. 转让 (Transfer Student)
         case 'transfer_student': {
-          if (!dto.packageId || !dto.targetStudentId) {
-            throw new BadRequestException('转赠课包必须指定课包 ID 与受让学员 ID');
-          }
-          const pkg = student.packages.find((p) => p.id === dto.packageId);
-          if (!pkg) {
-            throw new NotFoundException(`学员未持有课包 ${dto.packageId}`);
+          if (!dto.targetStudentId) {
+            throw new BadRequestException('转赠课包必须指定受让学员 ID');
           }
           const targetStudent = await tx.student.findUnique({
             where: { id: dto.targetStudentId },
@@ -661,22 +658,49 @@ export class StudentService {
             throw new NotFoundException(`受让学员 ${dto.targetStudentId} 不存在`);
           }
 
-          originalSnapshot = {
-            fromStudentId: student.id,
-            fromStudentName: student.name,
-            packageId: pkg.id,
-            remainingLessons: pkg.remainingLessons,
-          };
-          targetSnapshot = {
-            toStudentId: targetStudent.id,
-            toStudentName: targetStudent.name,
-          };
+          if (dto.packageId) {
+            const pkg = student.packages.find((p) => p.id === dto.packageId);
+            if (!pkg) {
+              throw new NotFoundException(`学员未持有课包 ${dto.packageId}`);
+            }
 
-          // 转让课包所有权
-          await tx.studentCoursePackage.update({
-            where: { id: pkg.id },
-            data: { studentId: targetStudent.id, classId: null },
-          });
+            originalSnapshot = {
+              fromStudentId: student.id,
+              fromStudentName: student.name,
+              packageId: pkg.id,
+              remainingLessons: pkg.remainingLessons,
+            };
+            targetSnapshot = {
+              toStudentId: targetStudent.id,
+              toStudentName: targetStudent.name,
+            };
+
+            // 转让课包所有权
+            await tx.studentCoursePackage.update({
+              where: { id: pkg.id },
+              data: { studentId: targetStudent.id, classId: null },
+            });
+          } else {
+            const activePackages = student.packages.filter((p) => p.status === 'active');
+            if (activePackages.length === 0) {
+              throw new BadRequestException('学员暂无有效课包可转让');
+            }
+
+            originalSnapshot = {
+              fromStudentId: student.id,
+              fromStudentName: student.name,
+              packagesCount: activePackages.length,
+            };
+            targetSnapshot = {
+              toStudentId: targetStudent.id,
+              toStudentName: targetStudent.name,
+            };
+
+            await tx.studentCoursePackage.updateMany({
+              where: { studentId: student.id, status: 'active' },
+              data: { studentId: targetStudent.id, classId: null },
+            });
+          }
           break;
         }
 
@@ -774,6 +798,132 @@ export class StudentService {
         type: dto.type,
         originalData: originalSnapshot,
         targetData: targetSnapshot,
+      };
+    });
+  }
+
+  /**
+   * 电子钱包充值 (本金 + 赠送金入账与流水记录)
+   */
+  async rechargeWallet(
+    studentId: string,
+    dto: RechargeWalletDto,
+    currentUser?: any,
+  ) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      include: { wallet: true },
+    });
+
+    if (!student) {
+      throw new NotFoundException(`未找到学员 ID: ${studentId}`);
+    }
+
+    const bonusAmount = dto.bonus && dto.bonus > 0 ? dto.bonus : 0;
+    const totalAmount = Number((dto.amount + bonusAmount).toFixed(2));
+    const operatorName = dto.operator || currentUser?.realName || '财务主管';
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. upsert 确保钱包记录必定存在并累加余额
+      const wallet = await tx.studentWallet.upsert({
+        where: { studentId },
+        create: {
+          studentId,
+          principalBalance: dto.amount,
+          bonusBalance: bonusAmount,
+          goldPoints: 0,
+        },
+        update: {
+          principalBalance: { increment: dto.amount },
+          bonusBalance: { increment: bonusAmount },
+        },
+      });
+
+      // 2. 写入财务记账明细 (WalletLedger)
+      await tx.walletLedger.create({
+        data: {
+          studentId,
+          type: 'recharge',
+          amount: totalAmount,
+          principalChange: dto.amount,
+          bonusChange: bonusAmount,
+          description:
+            dto.remark ||
+            `电子钱包充值 (本金 ¥${dto.amount}${bonusAmount > 0 ? ' + 赠送 ¥' + bonusAmount : ''})`,
+          operator: operatorName,
+        },
+      });
+
+      return {
+        success: true,
+        balance: Number(
+          (wallet.principalBalance + wallet.bonusBalance).toFixed(2),
+        ),
+        principalBalance: Number(wallet.principalBalance.toFixed(2)),
+        bonusBalance: Number(wallet.bonusBalance.toFixed(2)),
+        message: `充值成功！本金上账 ¥${dto.amount}${bonusAmount > 0 ? '，赠送金上账 ¥' + bonusAmount : ''}`,
+      };
+    });
+  }
+
+  /**
+   * 电子钱包本金提现 (合规风控：严禁动用赠送金，严禁超额透支)
+   */
+  async withdrawWallet(
+    studentId: string,
+    dto: WithdrawWalletDto,
+    currentUser?: any,
+  ) {
+    const student = await this.prisma.student.findUnique({
+      where: { id: studentId },
+      include: { wallet: true },
+    });
+
+    if (!student) {
+      throw new NotFoundException(`未找到学员 ID: ${studentId}`);
+    }
+
+    const principal = student.wallet?.principalBalance || 0;
+    if (dto.amount > principal) {
+      throw new BadRequestException('提现金额不得超过本金余额（赠送金不可提现）');
+    }
+
+    const operatorName = dto.operator || currentUser?.realName || '财务核销';
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. 原子扣减本金余额
+      const updatedWallet = await tx.studentWallet.update({
+        where: { studentId },
+        data: {
+          principalBalance: { decrement: dto.amount },
+        },
+      });
+
+      // 2. 写入出账记账明细
+      await tx.walletLedger.create({
+        data: {
+          studentId,
+          type: 'withdraw',
+          amount: -dto.amount,
+          principalChange: -dto.amount,
+          bonusChange: 0,
+          description: dto.reason
+            ? `合规提现出账 ¥${dto.amount}: ${dto.reason}`
+            : `合规提现出账 ¥${dto.amount}`,
+          operator: operatorName,
+        },
+      });
+
+      return {
+        success: true,
+        balance: Number(
+          (updatedWallet.principalBalance + updatedWallet.bonusBalance).toFixed(
+            2,
+          ),
+        ),
+        principalBalance: Number(updatedWallet.principalBalance.toFixed(2)),
+        bonusBalance: Number(updatedWallet.bonusBalance.toFixed(2)),
+        message: `本金提现成功，扣减 ¥${dto.amount}`,
       };
     });
   }

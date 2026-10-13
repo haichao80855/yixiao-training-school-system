@@ -6,6 +6,7 @@
 export type StudentStatus = 'normal' | 'suspended' | 'transferred' | 'dropped_out';
 
 export interface StudentCoursePackage {
+  id?: string;
   packageId: string;
   courseId: string;
   courseName: string;

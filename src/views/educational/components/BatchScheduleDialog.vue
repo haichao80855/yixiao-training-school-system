@@ -146,8 +146,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { educationalApi } from '@/api'
-import { getTeachers, getClassrooms, batchScheduleClass } from '@/mocks/educational'
-import type { ClassItem } from '@/types/educational'
+import type { ClassItem, Teacher, Classroom } from '@/types/educational'
 
 const props = defineProps<{
   campusId: string
@@ -166,8 +165,24 @@ const currentClass = ref<ClassItem | null>(null)
 const formRef = ref<FormInstance>()
 
 const effectiveCampusId = computed(() => currentClass.value?.campusId || props.campusId)
-const teachers = computed(() => getTeachers(effectiveCampusId.value).filter(t => t.role === 'teacher'))
-const classrooms = computed(() => getClassrooms(effectiveCampusId.value))
+const teacherList = ref<Teacher[]>([])
+const classroomList = ref<Classroom[]>([])
+
+async function reloadOptions() {
+  try {
+    const [teaRes, roomRes] = await Promise.all([
+      educationalApi.getTeachers(effectiveCampusId.value),
+      educationalApi.getClassrooms(effectiveCampusId.value)
+    ])
+    teacherList.value = Array.isArray(teaRes?.data) ? teaRes.data : (teaRes?.data?.list || [])
+    classroomList.value = Array.isArray(roomRes?.data) ? roomRes.data : (roomRes?.data?.list || [])
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载批量排课选项失败')
+  }
+}
+
+const teachers = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
+const classrooms = computed(() => classroomList.value)
 
 const form = reactive({
   startDate: '2026-09-26',
@@ -240,7 +255,7 @@ function triggerPreview() {
   // preview calculated reactive
 }
 
-function open(clsOrList: ClassItem | ClassItem[]) {
+async function open(clsOrList: ClassItem | ClassItem[]) {
   if (Array.isArray(clsOrList)) {
     classList.value = clsOrList
     currentClass.value = clsOrList[0] || null
@@ -252,6 +267,8 @@ function open(clsOrList: ClassItem | ClassItem[]) {
     selectedClassId.value = clsOrList.id
     applyToAllSelected.value = false
   }
+
+  await reloadOptions()
 
   if (currentClass.value) {
     syncFormFromClass(currentClass.value)
@@ -270,42 +287,36 @@ async function handleSubmit() {
         : [currentClass.value!]
 
       let totalSuccessCount = 0
-      let totalConflicts = 0
 
       for (const targetCls of targets) {
-        const res = batchScheduleClass(targetCls.id, {
-          startDate: form.startDate,
-          startTime: form.startTime,
-          endTime: form.endTime,
-          repeatCount: form.repeatCount,
-          teacherId: form.teacherId,
-          classroomId: form.classroomId,
-          forceIfConflict: form.forceIfConflict
-        })
-        if (res.success) {
-          totalSuccessCount += res.createdEvents.length
-          totalConflicts += res.conflicts.length
+        const [startY, startM, startD] = form.startDate.split('-').map(Number)
+        const currentDate = new Date(startY, (startM || 1) - 1, startD || 1)
 
-          // 异步批量持久化到数据库
-          for (const ev of res.createdEvents) {
-            educationalApi.createSchedule({
-              campusId: props.campusId,
-              classId: targetCls.id,
-              teacherId: ev.teacherId,
-              classroomId: ev.classroomId,
-              date: ev.date,
-              startTime: ev.startTime,
-              endTime: ev.endTime,
-              classType: ev.classType || 'formal',
-              semanticType: ev.semanticType || 'regular'
-            }).catch(() => {})
-          }
+        for (let i = 0; i < form.repeatCount; i++) {
+          const year = currentDate.getFullYear()
+          const month = String(currentDate.getMonth() + 1).padStart(2, '0')
+          const day = String(currentDate.getDate()).padStart(2, '0')
+          const dateStr = `${year}-${month}-${day}`
+
+          await educationalApi.createSchedule({
+            campusId: targetCls.campusId || props.campusId,
+            classId: targetCls.id,
+            teacherId: form.teacherId || targetCls.teacherId,
+            classroomId: form.classroomId || targetCls.classroomId,
+            date: dateStr,
+            startTime: form.startTime,
+            endTime: form.endTime,
+            classType: 'formal',
+            semanticType: 'regular'
+          })
+          totalSuccessCount++
+          currentDate.setDate(currentDate.getDate() + 7)
         }
       }
 
       if (totalSuccessCount > 0) {
         ElMessage.success({
-          message: `批量排课执行成功！已成功生成 ${totalSuccessCount} 节课次日程${totalConflicts > 0 ? `（包含 ${totalConflicts} 处冲突预警）` : ''}，已即时同步至甘特排课看板！`,
+          message: `批量排课执行成功！已成功生成 ${totalSuccessCount} 节课次日程，已即时同步至甘特排课看板！`,
           duration: 4000
         })
         visible.value = false
@@ -313,6 +324,8 @@ async function handleSubmit() {
       } else {
         ElMessage.error('批量排课未能成功生成有效课次')
       }
+    } catch (err: any) {
+      ElMessage.error(err.message || '批量排课失败')
     } finally {
       submitting.value = false
     }

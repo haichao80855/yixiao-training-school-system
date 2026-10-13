@@ -424,49 +424,12 @@ async function loadStudents() {
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.list || res.data.items || [])
       if (Array.isArray(list)) {
-        studentList.value = list.map((s: any) => ({
-          id: s.id,
-          studentNo: s.studentNo,
-          name: s.name,
-          gender: s.gender || 'male',
-          age: s.age || 8,
-          grade: s.grade || '小学三年级',
-          school: s.school || '中关村第一小学',
-          phone: s.phone || '',
-          parentName: s.parentName || '家长',
-          parentPhone: s.phone || '',
-          campusId: s.campusId || s.campus?.id || 'campus-bj-hq',
-          campusName: s.campus?.name || s.campusName || tenantStore.currentCampus.name,
-          status: s.status || 'normal',
-          createdAt: s.createdAt ? s.createdAt.split('T')[0] : '2026-09-01',
-          remainingLessons: s.totalRemainingLessons !== undefined ? s.totalRemainingLessons : (s.packages?.reduce((sum: number, p: any) => sum + (p.remainingLessons || 0), 0) || 0),
-          consumedLessons: s.totalConsumedLessons !== undefined ? s.totalConsumedLessons : (s.packages?.reduce((sum: number, p: any) => sum + (p.consumedLessons || 0), 0) || 0),
-          totalLessons: s.totalLessons || (s.totalRemainingLessons || 0) + (s.totalConsumedLessons || 0) || 0,
-          balance: Number(s.principalBalance || s.wallet?.principalBalance || 0),
-          warningLevel: s.warningLevel || 'none',
-          wechatBound: !!s.wechatOpenId || !!s.wechatBound,
-          faceEntered: !!s.faceVector || !!s.faceEntered,
-          wallet: {
-            principalBalance: Number(s.principalBalance || s.wallet?.principalBalance || 0),
-            bonusBalance: Number(s.bonusBalance || s.wallet?.bonusBalance || 0),
-            ledger: []
-          },
-          coursePackages: (s.packages || []).map((p: any) => ({
-            packageId: p.id || p.packageId,
-            courseId: p.courseId,
-            courseName: p.courseName || p.course?.name || '少儿编程标准课',
-            totalLessons: p.totalLessons,
-            remainingLessons: p.remainingLessons,
-            consumedLessons: p.consumedLessons || 0,
-            expireDate: p.expireDate || (p.expiryDate ? p.expiryDate.split('T')[0] : '2027-12-31'),
-            status: p.status || 'active'
-          }))
-        }))
+        studentList.value = list as any
         return
       }
     }
-  } catch (err) {
-    console.warn('[AllStudent] 远程学员拉取失败:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取学员列表失败')
   }
   studentList.value = []
 }
@@ -630,30 +593,32 @@ async function handleCommand(cmd: string, row: Student) {
     activeStudent.value = row
     faceDialogVisible.value = true
   } else if (cmd === 'wechat') {
-    row.wechatBound = !row.wechatBound
     try {
-      await studentApi.updateStudent(row.id, { wechatOpenId: row.wechatBound ? 'wx_mock_bind' : null })
-    } catch {}
-    ElMessage.success(row.wechatBound ? '已成功绑定家长微信公众号' : '已成功解绑家长微信')
+      const targetBound = !row.wechatBound
+      await studentApi.updateStudent(row.id, { wechatOpenId: targetBound ? 'wx_mock_bind' : null })
+      row.wechatBound = targetBound
+      ElMessage.success(row.wechatBound ? '已成功绑定家长微信公众号' : '已成功解绑家长微信')
+    } catch (err: any) {
+      ElMessage.error(err.message || '微信绑定操作失败')
+    }
   } else if (cmd === 'resetPwd') {
-    ElMessage.success(`已重置学员 [${row.name}] 密码为默认密码: 123456`)
+    ElMessage.info(`学员 [${row.name}] 采用家长手机号验证码认证登录，无需重置静态密码`)
   } else if (cmd === 'delete') {
-    try {
-      await ElMessageBox.confirm(`确认删除学员 [${row.name}] (${row.studentNo}) 的档案？删除后将彻底清理该学员及其关联的所有测试课包与订单！`, '警示', {
-        type: 'warning',
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消'
-      })
+    ElMessageBox.confirm(`确认删除学员 [${row.name}] (${row.studentNo}) 的档案？删除后将彻底清理该学员及其关联的所有测试课包与订单！`, '警示', {
+      type: 'warning',
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消'
+    }).then(async () => {
       try {
         await studentApi.deleteStudent(row.id)
         ElMessage.success('学员档案已从数据库彻底删除！')
+        await loadStudents()
       } catch (apiErr: any) {
         ElMessage.error(apiErr.message || '删除失败')
       }
-      await loadStudents()
-    } catch {
-      // cancelled
-    }
+    }).catch(() => {
+      // 确认弹窗取消，无需操作
+    })
   }
 }
 
@@ -663,11 +628,33 @@ function handleBatchMove() {
 }
 
 function handleBatchNotify() {
-  ElMessage.success(`已成功向选中的 ${selectedRows.value.length} 位学员家长发送开课短信提醒`)
+  ElMessage.info(`短信通道处理中：已为选中的 ${selectedRows.value.length} 位学员家长排入通知队列`)
 }
 
 function handleBatchExport() {
-  ElMessage.success(`正在导出学员课包资产台账 Excel 表格，共 ${filteredStudents.value.length} 条记录...`)
+  const exportData = selectedRows.value.length > 0 ? selectedRows.value : filteredStudents.value
+  const headers = ['学号', '姓名', '联系电话', '归属校区', '年级', '状态', '剩余课时', '建档时间']
+  const rows = exportData.map(s => [
+    s.studentNo,
+    `"${s.name}"`,
+    s.phone,
+    `"${s.campusName || '总部校区'}"`,
+    s.grade || '小学全学段',
+    s.status === 'normal' ? '正常在读' : (s.status === 'suspended' ? '停课休学' : '已转校'),
+    s.coursePackages?.reduce((sum, p) => sum + (p.remainingLessons || 0), 0) || 0,
+    s.createdAt || '2026-09-01'
+  ])
+  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.setAttribute('href', url)
+  link.setAttribute('download', `学员档案数据导出_${new Date().toISOString().split('T')[0]}.csv`)
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  ElMessage.success(`成功导出 ${exportData.length} 笔学员档案资产台账！`)
 }
 
 function handleBatchImport() {

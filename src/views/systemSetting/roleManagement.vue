@@ -289,39 +289,22 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { RoleItem, PermissionNode, DataScope } from '@/types/system'
 import { systemApi } from '@/api'
-import {
-  MOCK_ROLES_LIST,
-  MOCK_PERMISSION_TREE_DATA,
-  RBACEngine,
-  addRole,
-  deleteRole,
-  saveRolePermissions
-} from '@/mocks/system'
 
 // --- 状态数据 ---
-const roles = ref<RoleItem[]>(MOCK_ROLES_LIST)
+const roles = ref<RoleItem[]>([])
 const activeRoleId = ref('r1')
-const permissionTree = ref<PermissionNode[]>(MOCK_PERMISSION_TREE_DATA)
+const permissionTree = ref<PermissionNode[]>([])
 const permTreeRef = ref()
 const isExpandAll = ref(true)
 
 async function loadData() {
   try {
     const [rolesRes, permsRes] = await Promise.all([
-      systemApi.getRoles(MOCK_ROLES_LIST),
-      systemApi.getPermissions(MOCK_PERMISSION_TREE_DATA)
+      systemApi.getRoles(),
+      systemApi.getPermissions()
     ])
     if (rolesRes && rolesRes.success && Array.isArray(rolesRes.data) && rolesRes.data.length > 0) {
-      roles.value = rolesRes.data.map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        code: r.code,
-        description: r.description || '',
-        dataScope: r.dataScope || 'campus',
-        isSystem: r.isSystem || ['super_admin', 'principal', 'teacher', 'admin', 'r1', 'r2', 'r3', 'r4'].includes(r.code),
-        permissions: r.permissions || ['curriculum:view'],
-        userCount: r.userCount || 0
-      }))
+      roles.value = rolesRes.data
     }
     if (permsRes && permsRes.success && Array.isArray(permsRes.data) && permsRes.data.length > 0) {
       permissionTree.value = permsRes.data
@@ -330,8 +313,8 @@ async function loadData() {
     if (current) {
       selectRole(current)
     }
-  } catch (err) {
-    console.warn('[RoleManagement] 远程接口未就绪，使用本地双轨模式:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载角色与权限数据失败')
   }
 }
 
@@ -467,12 +450,11 @@ async function handleSaveRoleAuth() {
       systemApi.assignRolePermissions(currentRole.value.id, savedKeys),
       systemApi.updateRole(currentRole.value.id, { dataScope: currentDataScope.value })
     ])
-  } catch {
-    saveRolePermissions(currentRole.value.id, savedKeys, currentDataScope.value)
+    ElMessage.success(`角色 [${currentRole.value.name}] 细粒度权限与数据范围已成功保存并实时生效！`)
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存角色权限配置失败')
   }
-
-  ElMessage.success(`角色 [${currentRole.value.name}] 细粒度权限与数据范围已成功保存并实时生效！`)
-  await loadData()
 }
 
 // --- 角色创建与删除 ---
@@ -495,43 +477,29 @@ async function submitAddRole() {
     if (res?.data?.id) {
       activeRoleId.value = res.data.id
     }
-  } catch {
-    const created = addRole({
-      name: newRoleForm.value.name,
-      code: newRoleForm.value.code,
-      description: newRoleForm.value.description,
-      dataScope: newRoleForm.value.dataScope,
-      permissions: ['curriculum:view', 'student:view']
-    })
-    roles.value = [...MOCK_ROLES_LIST]
-    showAddRoleModal.value = false
-    selectRole(created)
-    ElMessage.success(`角色组 [${created.name}] 创建成功！`)
+  } catch (err: any) {
+    ElMessage.error(err.message || '创建角色组失败')
   }
 }
 
 function handleDeleteRole(role: RoleItem) {
-  try {
-    ElMessageBox.confirm(
-      `确定要删除角色组 [${role.name}] 吗？该操作将解除该角色下所有用户的关联。`,
-      '删除角色确认',
-      {
-        confirmButtonText: '确认删除',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    ).then(async () => {
-      try {
-        await systemApi.deleteRole(role.id)
-      } catch {
-        deleteRole(role.id)
-      }
+  ElMessageBox.confirm(
+    `确定要删除角色组 [${role.name}] 吗？该操作将解除该角色下所有用户的关联。`,
+    '删除角色确认',
+    {
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      await systemApi.deleteRole(role.id)
       ElMessage.success(`角色组 [${role.name}] 已删除`)
       await loadData()
-    }).catch(() => {})
-  } catch (err: any) {
-    ElMessage.error(err.message)
-  }
+    } catch (err: any) {
+      ElMessage.error(err.message || '删除角色组失败')
+    }
+  }).catch(() => {})
 }
 
 // --- 样式与字典方法 ---

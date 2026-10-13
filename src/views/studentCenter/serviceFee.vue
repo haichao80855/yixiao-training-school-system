@@ -196,7 +196,7 @@
           <el-form-item label="报考学员" required>
             <el-select v-model="newRecordForm.studentId" filterable class="w-full" @change="handleStudentSelect">
               <el-option
-                v-for="s in MOCK_STUDENTS"
+                v-for="s in studentsList"
                 :key="s.id"
                 :label="`${s.name} (${s.studentNo})`"
                 :value="s.id"
@@ -251,24 +251,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
-  MOCK_SERVICE_FEES,
-  MOCK_STUDENTS,
-  addServiceFeeRecord,
-  verifyServiceFeeRecord,
-  batchVerifyServiceFeeRecords
-} from '@/mocks'
-import type { ServiceFeeRecord } from '@/types/student'
+import { studentApi } from '@/api'
+import { serviceFeeManager } from '@/utils/serviceFeeManager'
+import type { ServiceFeeRecord, Student } from '@/types/student'
 
 const activeTab = ref('all')
 const keyword = ref('')
 const selectedCategory = ref('')
 const selectedRows = ref<ServiceFeeRecord[]>([])
 
+const studentsList = ref<Student[]>([])
+const feeRecords = ref<ServiceFeeRecord[]>(serviceFeeManager.getRecords())
+
+async function loadStudents() {
+  try {
+    const res = await studentApi.getStudents({})
+    if (res && res.data) {
+      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      studentsList.value = list
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载学员列表失败')
+    studentsList.value = []
+  }
+}
+
+onMounted(() => {
+  loadStudents()
+})
+
 const records = computed(() => {
-  return MOCK_SERVICE_FEES
+  return feeRecords.value
 })
 
 const pendingList = computed(() => {
@@ -336,7 +351,7 @@ const newRecordForm = reactive({
 })
 
 function handleStudentSelect(sId: string) {
-  const s = MOCK_STUDENTS.find(item => item.id === sId)
+  const s = studentsList.value.find(item => item.id === sId)
   if (s) {
     newRecordForm.studentName = s.name
     newRecordForm.studentNo = s.studentNo
@@ -349,16 +364,19 @@ function handleConfirmAdd() {
     ElMessage.warning('请输入考级或赛事项目名称')
     return
   }
-  addServiceFeeRecord({
+  serviceFeeManager.addRecord({
     studentId: newRecordForm.studentId,
     studentName: newRecordForm.studentName,
     studentNo: newRecordForm.studentNo,
     campusId: newRecordForm.campusId,
+    campusName: '总部校区',
     examType: newRecordForm.examType,
     category: newRecordForm.category,
     fee: newRecordForm.fee,
-    invoiceTitle: newRecordForm.invoiceTitle || `${newRecordForm.studentName} (个人)`
+    invoiceTitle: newRecordForm.invoiceTitle || `${newRecordForm.studentName} (个人)`,
+    operator: '学管财务'
   })
+  feeRecords.value = serviceFeeManager.getRecords()
   ElMessage.success('代报考记录已添加，并推送至易快报待审池！')
   showAddDialog.value = false
   newRecordForm.examType = ''
@@ -377,7 +395,8 @@ function handleSingleVerify(row: ServiceFeeRecord) {
 
 function confirmSingleVerify() {
   if (!verifyTarget.value) return
-  verifyServiceFeeRecord(verifyTarget.value.id, verifyVoucherNo.value)
+  serviceFeeManager.verifyRecord(verifyTarget.value.id, verifyVoucherNo.value)
+  feeRecords.value = serviceFeeManager.getRecords()
   ElMessage.success(`核销入账成功！易快报凭证号: ${verifyVoucherNo.value}`)
   singleVerifyDialog.value = false
 }
@@ -389,7 +408,8 @@ function handleBatchVerify() {
     ElMessage.info('所选项中没有待核销记录')
     return
   }
-  const count = batchVerifyServiceFeeRecords(pendingIds)
+  const count = serviceFeeManager.batchVerifyRecords(pendingIds)
+  feeRecords.value = serviceFeeManager.getRecords()
   ElMessage.success(`成功批量核销 ${count} 笔代报考费用，凭证已回写易快报系统！`)
   selectedRows.value = []
 }

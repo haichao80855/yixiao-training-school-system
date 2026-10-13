@@ -88,8 +88,14 @@ async function main() {
     execSync('node test-educational-and-attendance.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-financial-and-approval.js', { stdio: 'inherit', cwd: serverDir });
 
+    // 运行候选 1 & 候选 2 数据持久化与防假双写对抗性测试
+    console.log('\n>>> [Step 4/4] 运行数据持久化、防假双写与无异常吞噬对抗性实测套件...\n');
+    execSync('node tests/adversarial_challenger_m1_swallowed_errors.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/adversarial_challenger_m1_request.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/adversarial_m1_2_suite.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+
     console.log('\n================================================================================');
-    console.log('🏆 恭喜！全栈端到端、双轨分层与后端微服务所有测试断言 100% 全部通过！');
+    console.log('🏆 恭喜！全栈端到端、双轨分层、后端微服务与对抗性持久化所有测试断言 100% 全部通过！');
     console.log('================================================================================\n');
   } catch (err) {
     testError = err;

@@ -359,7 +359,7 @@ import {
   getEvaluationTemplates,
   getLessonEvaluationByLessonId,
   saveLessonEvaluation
-} from '@/mocks/educational'
+} from '@/constants/evaluation'
 
 const emit = defineEmits<{
   (e: 'success', evaluation: LessonEvaluation): void
@@ -454,7 +454,9 @@ function handleAdjustLessonTime() {
       form.lessonTitle = value.trim()
       ElMessage.success('课次名称已更新')
     }
-  }).catch(() => {})
+  }).catch(() => {
+    // 弹窗取消
+  })
 }
 
 // 语音点评录制与清除

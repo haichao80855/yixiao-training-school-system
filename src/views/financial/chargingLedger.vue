@@ -270,7 +270,7 @@ import { ElMessage } from 'element-plus'
 import { Refresh, Download, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi } from '@/api'
-import { getLedgerRecords, isCampusMatch } from '@/mocks/financial'
+import { isCampusMatch } from '@/utils/financeAggregator'
 import type { LedgerRecord } from '@/types/financial'
 
 const tenantStore = useTenantStore()
@@ -285,32 +285,16 @@ const remoteLedgers = ref<LedgerRecord[]>([])
 
 async function loadLedgers() {
   try {
-    const res = await financialApi.getOrders({
+    const res = await financialApi.getLedgers({
       campusId: filterCampus.value === 'all' ? undefined : filterCampus.value,
       pageSize: 200
     })
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-      if (Array.isArray(list)) {
-        remoteLedgers.value = list.map((o: any) => ({
-          transNo: `TX${o.orderNo ? o.orderNo.replace(/\D/g, '') : Date.now()}`,
-          orderNo: o.orderNo,
-          date: o.payTime ? o.payTime.replace('T', ' ').slice(0, 19) : (o.createdAt ? o.createdAt.replace('T', ' ').slice(0, 19) : '2026-09-21 10:00:00'),
-          campusId: o.campusId,
-          campusName: o.campus?.name || tenantStore.currentCampus.name,
-          student: o.student?.name || o.studentName || '学员',
-          studentNo: o.student?.studentNo || o.studentNo || 'S001',
-          type: o.orderType === 'refund' ? '退费冲减' : (o.orderType === 'quarterly' ? '季度学费' : '常规学费'),
-          amount: o.orderType === 'refund' ? -Math.abs(Number(o.actualAmount || 0)) : Number(o.actualAmount || 0),
-          method: o.paymentMethod === 'wechat' ? '微信商户号' : (o.paymentMethod === 'alipay' ? '支付宝生活号' : (o.paymentMethod === 'bank_transfer' ? '招商银行对公' : '银联POS')),
-          verifier: o.creator?.realName || o.creator || '系统财务',
-          status: o.status === 'paid' ? '已核销' : (o.status === 'void' ? '已作废' : '待处理')
-        }))
-        return
-      }
+      remoteLedgers.value = Array.isArray(res.data) ? res.data : []
+      return
     }
-  } catch (err) {
-    console.warn('[ChargingLedger] 远程流水拉取失败:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取财务流水账本失败')
   }
   remoteLedgers.value = []
 }

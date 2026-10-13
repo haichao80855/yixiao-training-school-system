@@ -826,16 +826,8 @@ import {
   Upload
 } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
-import { financialApi } from '@/api'
-import {
-  FinanceAggregator,
-  getOrdersByCampus,
-  voidOrder,
-  updateOrder,
-  updateOrderVoucher,
-  MOCK_ORDERS_DATA
-} from '@/mocks'
-import { MOCK_AVAILABLE_CLASSES, MOCK_STUDENTS } from '@/mocks/student'
+import { financialApi, studentApi, educationalApi } from '@/api'
+import { FinanceAggregator } from '@/utils/financeAggregator'
 import SummaryStrip from '@/components/SummaryStrip.vue'
 import HighDensityGrid from '@/components/HighDensityGrid.vue'
 import type {
@@ -905,41 +897,12 @@ async function loadOrders() {
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       if (Array.isArray(list)) {
-        remoteOrders.value = list.map((o: any) => ({
-          id: o.id,
-          orderNo: o.orderNo,
-          studentId: o.studentId,
-          studentName: o.student?.name || o.studentName || '学员',
-          studentNo: o.student?.studentNo || o.studentNo || 'S001',
-          phone: o.student?.phone || o.phone || '',
-          courseId: o.courseId || '',
-          courseName: o.course?.name || o.courseName || 'Scratch图形化编程精品班',
-          campusId: o.campusId || tenantStore.currentCampusId,
-          campusName: o.campus?.name || tenantStore.currentCampus.name,
-          orderType: o.orderType || 'regular',
-          chargeType: o.orderType || 'regular',
-          originalPrice: Number(o.originalPrice || 0),
-          discountAmount: Number(o.discountAmount || 0),
-          couponAmount: Number(o.couponAmount || 0),
-          actualAmount: Number(o.actualAmount || 0),
-          paymentMethod: o.paymentMethod || 'wechat',
-          status: o.status || 'paid',
-          orderStatus: o.status || 'paid',
-          isLocked: !!o.isLocked,
-          goodsDelivery: o.deliveryStatus || 'none',
-          invoiceStatus: o.invoiceStatus || 'unissued',
-          creator: o.creator?.realName || o.creator || '教务顾问',
-          performanceOwner: o.owner?.realName || o.owner || '校区校长',
-          signupTime: o.createdAt ? o.createdAt.split('T')[0] : '2026-09-01',
-          payTime: o.payTime ? o.payTime.split('T')[0] : '2026-09-01',
-          voucherUrl: o.voucherUrl || '',
-          remark: o.remark || ''
-        }))
+        remoteOrders.value = list
         return
       }
     }
-  } catch (err) {
-    console.warn('[OrderManagement] 远程订单拉取失败:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取订单列表失败')
   }
   remoteOrders.value = []
 }
@@ -1113,11 +1076,6 @@ function handleVoidOrder(order: OrderRecord) {
   ).then(async () => {
     try {
       await financialApi.voidOrder(order.id)
-    } catch {
-      // dual-track
-    }
-    try {
-      voidOrder(order.id)
       ElMessage.success('订单已作废并成功释放预留名额并落库')
       await loadOrders()
     } catch (err: any) {
@@ -1146,18 +1104,18 @@ function simulateUploadVoucher() {
 async function saveVoucherAudit() {
   if (!currentVoucherOrder.value) return
   try {
-    await financialApi.updateVoucher(currentVoucherOrder.value.id, currentVoucherOrder.value.voucherUrl || '')
-  } catch {
-    // dual track
+    await financialApi.updateVoucher(currentVoucherOrder.value.id, {
+      voucherUrl: currentVoucherOrder.value.voucherUrl || '',
+      auditRemark: voucherAuditRemark.value,
+      auditor: '财务审核专员'
+    })
+    currentVoucherOrder.value.verifyRemark = voucherAuditRemark.value
+    voucherDialogVisible.value = false
+    ElMessage.success('收款凭证审核附言已保存入账并同步落盘')
+    await loadOrders()
+  } catch (err: any) {
+    ElMessage.error(err.message || '更新凭证失败')
   }
-  updateOrderVoucher(currentVoucherOrder.value.id, {
-    auditRemark: voucherAuditRemark.value,
-    auditor: '财务审核专员'
-  })
-  currentVoucherOrder.value.verifyRemark = voucherAuditRemark.value
-  voucherDialogVisible.value = false
-  ElMessage.success('收款凭证审核附言已保存入账并同步落盘')
-  await loadOrders()
 }
 
 // 弹窗 2: 修改订单逻辑
@@ -1181,21 +1139,19 @@ function openModifyDialog(order: OrderRecord) {
   modifyDialogVisible.value = true
 }
 
-function saveOrderModification() {
+async function saveOrderModification() {
   if (!currentEditOrder.value) return
   try {
-    updateOrder({
-      id: currentEditOrder.value.id,
+    await financialApi.updateOrder(currentEditOrder.value.id, {
       creator: editOrderForm.creator,
-      submitter: editOrderForm.creator,
       performanceOwner: editOrderForm.performanceOwner,
-      salesOwner: editOrderForm.performanceOwner,
-      actualAmount: editOrderForm.actualAmount,
+      actualAmount: Number(editOrderForm.actualAmount),
       goodsDelivery: editOrderForm.goodsDelivery,
       remark: editOrderForm.remark
     })
     modifyDialogVisible.value = false
     ElMessage.success('订单信息更新成功')
+    await loadOrders()
   } catch (err: any) {
     ElMessage.error(err.message || '更新失败')
   }
@@ -1206,17 +1162,30 @@ const classSelectDialogVisible = ref(false)
 const classDisplayName = ref('')
 const classSearchKeyword = ref('')
 const selectedClassRow = ref<any>(null)
+const classList = ref<any[]>([])
 
 const filteredClassList = computed(() => {
-  if (!classSearchKeyword.value.trim()) return MOCK_AVAILABLE_CLASSES
+  if (!classSearchKeyword.value.trim()) return classList.value
   const kw = classSearchKeyword.value.trim().toLowerCase()
-  return MOCK_AVAILABLE_CLASSES.filter(c =>
-    c.name.toLowerCase().includes(kw) || c.teacherName.toLowerCase().includes(kw)
+  return classList.value.filter(c =>
+    (c.name || '').toLowerCase().includes(kw) || (c.teacherName || '').toLowerCase().includes(kw)
   )
 })
 
-function openClassSelectModal() {
+async function openClassSelectModal() {
   classSelectDialogVisible.value = true
+  if (classList.value.length === 0) {
+    try {
+      const res = await educationalApi.getClasses({ campusId: tenantStore.currentCampusId })
+      if (res && res.data) {
+        const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+        classList.value = list
+      }
+    } catch (err: any) {
+      ElMessage.error(err.message || '加载班级列表失败')
+      classList.value = []
+    }
+  }
 }
 
 function handleClassCurrentChange(row: any) {
@@ -1240,27 +1209,27 @@ function clearClassSelection() {
 const studentDrawerVisible = ref(false)
 const currentSelectedStudent = ref<any>(null)
 
-function openStudentDrawer(row: OrderRecord) {
-  const std = MOCK_STUDENTS.find(s => s.id === row.studentId || s.studentNo === row.studentNo)
-  if (std) {
-    currentSelectedStudent.value = std
-  } else {
-    currentSelectedStudent.value = {
-      name: row.studentName,
-      studentNo: row.studentNo,
-      phone: row.phone,
-      campusName: row.campusName,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-      grade: '小学四年级',
-      school: '盛通未来学院附小'
-    }
+async function openStudentDrawer(row: OrderRecord) {
+  if (!row.studentId) {
+    ElMessage.warning('该订单记录暂未关联学员ID')
+    return
   }
-  studentDrawerVisible.value = true
+  try {
+    const res = await studentApi.getStudentById(row.studentId)
+    if (res && res.data) {
+      currentSelectedStudent.value = res.data
+      studentDrawerVisible.value = true
+      return
+    }
+    ElMessage.error('未找到对应学员的档案记录')
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取学员档案详情失败')
+  }
 }
 
 const studentOrderHistory = computed(() => {
   if (!currentSelectedStudent.value) return []
-  return MOCK_ORDERS_DATA.filter(o =>
+  return allOrders.value.filter(o =>
     o.studentNo === currentSelectedStudent.value.studentNo ||
     o.studentName === currentSelectedStudent.value.name
   )

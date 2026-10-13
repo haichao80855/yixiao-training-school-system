@@ -296,7 +296,6 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
-import { getClasses, getTeachers, deleteClass, getClassrooms, addClassroom } from '@/mocks/educational'
 import type { ClassItem, Classroom } from '@/types/educational'
 import ClassDetailDrawer from './components/ClassDetailDrawer.vue'
 import BatchScheduleDialog from './components/BatchScheduleDialog.vue'
@@ -314,22 +313,40 @@ const showClassroomManageModal = ref(false)
 const newRoomName = ref('')
 const newRoomCapacity = ref(20)
 const newRoomType = ref<'maker' | 'computer' | 'regular' | 'vip'>('computer')
-const campusClassrooms = computed(() => getClassrooms(tenantStore.currentCampusId))
+const classroomsList = ref<Classroom[]>([])
 
-function handleAddNewRoom() {
+async function loadClassrooms() {
+  try {
+    const res = await educationalApi.getClassrooms(tenantStore.currentCampusId)
+    if (res && res.data) {
+      classroomsList.value = Array.isArray(res.data) ? res.data : []
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载教室列表失败')
+    classroomsList.value = []
+  }
+}
+
+const campusClassrooms = computed(() => classroomsList.value)
+
+async function handleAddNewRoom() {
   if (!newRoomName.value.trim()) {
     ElMessage.warning('请输入教室名称！')
     return
   }
-  addClassroom({
-    name: newRoomName.value.trim(),
-    capacity: newRoomCapacity.value,
-    type: newRoomType.value,
-    campusId: tenantStore.currentCampusId,
-    campusName: tenantStore.currentCampus?.name
-  })
-  newRoomName.value = ''
-  ElMessage.success('教室创建成功并已录入校区资源库！')
+  try {
+    await educationalApi.createClassroom({
+      name: newRoomName.value.trim(),
+      capacity: newRoomCapacity.value,
+      type: newRoomType.value,
+      campusId: tenantStore.currentCampusId
+    })
+    newRoomName.value = ''
+    ElMessage.success('教室创建成功并已录入校区资源库！')
+    await loadClassrooms()
+  } catch (err: any) {
+    ElMessage.error(err.message || '创建教室失败')
+  }
 }
 
 const searchQuery = ref('')
@@ -337,8 +354,21 @@ const statusFilter = ref('')
 const teacherFilter = ref('')
 
 const classList = ref<ClassItem[]>([])
+const teachersList = ref<any[]>([])
 
-const teachers = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'teacher'))
+async function loadTeachers() {
+  try {
+    const res = await educationalApi.getTeachers(tenantStore.currentCampusId)
+    if (res && res.data) {
+      teachersList.value = (Array.isArray(res.data) ? res.data : []).filter((t: any) => t.role === 'teacher')
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载讲师列表失败')
+    teachersList.value = []
+  }
+}
+
+const teachers = computed(() => teachersList.value)
 
 // 统计指标
 const classStats = computed(() => {
@@ -386,32 +416,12 @@ async function loadData() {
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       if (Array.isArray(list)) {
-        classList.value = list.map((c: any) => ({
-          id: c.id,
-          code: c.code,
-          name: c.name,
-          campusId: c.campusId || tenantStore.currentCampusId,
-          courseId: c.courseId,
-          courseName: c.course?.name || 'Scratch图形化编程精品班',
-          teacherId: c.teacherId,
-          teacherName: c.teacher?.realName || c.teacherName || '张老师',
-          classroomId: c.classroomId,
-          classroomName: c.classroom?.name || c.classroomName || '创客教室1',
-          capacity: c.capacity || 8,
-          currentStudentCount: c.currentStudentCount || c.studentPackages?.length || 0,
-          currentCount: c.currentStudentCount || c.studentPackages?.length || 0,
-          status: c.status || 'in_progress',
-          startDate: c.startDate ? c.startDate.split('T')[0] : '2026-09-01',
-          endDate: c.endDate ? c.endDate.split('T')[0] : '2027-01-31',
-          totalLessons: 48,
-          completedLessons: 6,
-          studentIds: (c.studentPackages || []).map((p: any) => p.studentId)
-        }))
+        classList.value = list as any
         return
       }
     }
-  } catch (err) {
-    console.warn('[ClassManagement] 远程班级拉取失败:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取班级列表失败')
   }
 
   classList.value = []
@@ -480,17 +490,21 @@ async function handleDeleteClass(id: string) {
     await ElMessageBox.confirm('确定要删除该班级吗？删除后该班级将从当前校区移除。', '删除确认', {
       type: 'warning'
     })
-    const ok = deleteClass(id)
-    if (ok) {
+    try {
+      await educationalApi.deleteClass(id)
       ElMessage.success('班级删除成功！')
       loadData()
+    } catch (err: any) {
+      ElMessage.error(err.message || '删除班级失败')
     }
   } catch {
-    // cancelled
+    // 弹窗取消
   }
 }
 
 onMounted(() => {
   loadData()
+  loadClassrooms()
+  loadTeachers()
 })
 </script>

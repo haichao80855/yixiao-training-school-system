@@ -143,39 +143,57 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTenantStore } from '@/stores/tenantStore'
-import { request } from '@/utils/request'
-import { getCampusStats } from '@/mocks'
+import { financialApi, studentApi, curriculumApi, educationalApi } from '@/api'
 
 const router = useRouter()
 const tenantStore = useTenantStore()
 const currentCampus = computed(() => tenantStore.currentCampus)
 
-const remoteStats = ref<any>(null)
+const defaultStats = {
+  studentCount: 0,
+  courseCount: 0,
+  orderCount: 0,
+  paidOrderCount: 0,
+  totalRevenue: 0,
+  scheduleCount: 0,
+  conflictCount: 0
+}
+
+const remoteStats = ref<any>({ ...defaultStats })
 
 async function loadStats() {
   try {
-    const res = await request('/api/stats/overview')
-    if (res && res.success && res.data) {
-      remoteStats.value = res.data
+    const campusId = tenantStore.currentCampusId
+    const [ordersRes, studentsRes, coursesRes, schedulesRes] = await Promise.all([
+      financialApi.getOrders({ campusId }),
+      studentApi.getStudents({ campusId }),
+      curriculumApi.getCourses({ campusId }),
+      educationalApi.getScheduleEvents({ campusId })
+    ])
+    const orders = Array.isArray(ordersRes?.data) ? ordersRes.data : (ordersRes?.data?.list || ordersRes?.data?.items || [])
+    const students = Array.isArray(studentsRes?.data) ? studentsRes.data : (studentsRes?.data?.list || studentsRes?.data?.items || [])
+    const courses = Array.isArray(coursesRes?.data) ? coursesRes.data : (coursesRes?.data?.list || coursesRes?.data?.items || [])
+    const schedules = Array.isArray(schedulesRes?.data) ? schedulesRes.data : (schedulesRes?.data?.list || schedulesRes?.data?.items || [])
+
+    const paidOrders = orders.filter((o: any) => o.status === 'paid')
+    const totalRevenue = paidOrders.reduce((sum: number, o: any) => sum + (Number(o.actualAmount) || 0), 0)
+    const conflictCount = schedules.filter((s: any) => s.semanticType === 'conflict' || s.isConflict).length
+
+    remoteStats.value = {
+      studentCount: students.length,
+      courseCount: courses.length,
+      orderCount: orders.length,
+      paidOrderCount: paidOrders.length,
+      totalRevenue,
+      scheduleCount: schedules.length,
+      conflictCount
     }
-  } catch {
-    // dual track
+  } catch (err) {
+    console.warn('[Dashboard] 加载统计数据异常:', err)
   }
 }
 
-const stats = computed(() => {
-  const local = getCampusStats(tenantStore.currentCampusId)
-  if (remoteStats.value) {
-    return {
-      ...local,
-      studentCount: remoteStats.value.studentCount || local.studentCount,
-      courseCount: remoteStats.value.courseCount || local.courseCount,
-      scheduleCount: remoteStats.value.scheduleCount || local.scheduleCount,
-      orderCount: remoteStats.value.orderCount || local.orderCount
-    }
-  }
-  return local
-})
+const stats = computed(() => remoteStats.value)
 
 onMounted(() => {
   loadStats()

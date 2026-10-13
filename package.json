@@ -14,7 +14,9 @@
     "test:fullstack": "node tests/e2e_full_stack_integration.cjs",
     "test:e2e:walkthrough": "node scripts/e2e_all_functions_browser_walkthrough.cjs",
     "test:all": "node tests/run_all_unified.cjs",
-    "db:stats": "node scripts/db_stats.cjs"
+    "db:stats": "node scripts/db_stats.cjs",
+    "db:clear:students": "node scripts/clear_student_data.cjs",
+    "db:clear:classes": "node scripts/clear_class_data.cjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

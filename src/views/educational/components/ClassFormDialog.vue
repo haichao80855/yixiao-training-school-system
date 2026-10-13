@@ -23,7 +23,7 @@
           <el-option
             v-for="c in courses"
             :key="c.id"
-            :label="`${c.name} (¥${c.pricePerLesson}/课时)`"
+            :label="`${c.name} (¥${c.pricePerLesson ?? 0}/课时)`"
             :value="c.id"
           />
         </el-select>
@@ -159,10 +159,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { educationalApi } from '@/api'
-import { getTeachers, getClassrooms, addClass, updateClass, addClassroom, restoreClassroomsFromStorage, restoreClassesFromStorage } from '@/mocks/educational'
-import { getCoursesByCampus } from '@/mocks'
+import { educationalApi, curriculumApi } from '@/api'
 import type { ClassItem, ClassStatus, Classroom, Teacher } from '@/types/educational'
+import type { CourseItem } from '@/types/curriculum'
 
 const props = defineProps<{
   campusId: string
@@ -193,23 +192,28 @@ function openAddClassroomModal() {
   showAddClassroomModal.value = true
 }
 
-function handleCreateClassroom() {
+async function handleCreateClassroom() {
   if (!classroomForm.name.trim()) {
     ElMessage.warning('请输入教室名称！')
     return
   }
-  const created = addClassroom({
-    name: classroomForm.name.trim(),
-    capacity: classroomForm.capacity,
-    type: classroomForm.type,
-    campusId: props.campusId
-  })
-  reloadClassrooms()
-  form.classroomId = created.id
-  form.classroomName = created.name
-  form.capacity = created.capacity
-  showAddClassroomModal.value = false
-  ElMessage.success(`教室「${created.name}」已创建并自动选用！`)
+  try {
+    const res = await educationalApi.createClassroom({
+      name: classroomForm.name.trim(),
+      capacity: classroomForm.capacity,
+      type: classroomForm.type,
+      campusId: props.campusId
+    })
+    const created = res.data || res
+    await reloadClassrooms()
+    form.classroomId = created.id
+    form.classroomName = created.name
+    form.capacity = created.capacity
+    showAddClassroomModal.value = false
+    ElMessage.success(`教室「${created.name}」已创建并自动选用！`)
+  } catch (err: any) {
+    ElMessage.error(err.message || '创建教室失败')
+  }
 }
 
 function handleClassroomChange(roomId: string) {
@@ -221,19 +225,45 @@ function handleClassroomChange(roomId: string) {
 }
 
 const classroomList = ref<Classroom[]>([])
-function reloadClassrooms() {
-  restoreClassroomsFromStorage()
-  classroomList.value = getClassrooms(props.campusId)
+async function reloadClassrooms() {
+  try {
+    const res = await educationalApi.getClassrooms(props.campusId)
+    classroomList.value = res?.data || []
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载教室列表失败')
+    classroomList.value = []
+  }
 }
-const classrooms = computed(() => classroomList.value)
+const classrooms = computed(() => classroomList.value.filter(r => Boolean(r && r.id)))
 
 const teacherList = ref<Teacher[]>([])
-function reloadTeachers() {
-  teacherList.value = getTeachers(props.campusId)
+async function reloadTeachers() {
+  try {
+    const res = await educationalApi.getTeachers(props.campusId)
+    teacherList.value = Array.isArray(res?.data) ? res.data : (res?.data?.list || [])
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载讲师列表失败')
+    teacherList.value = []
+  }
 }
-const teachers = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
-const advisors = computed(() => teacherList.value.filter(t => t.role === 'advisor'))
-const courses = computed(() => getCoursesByCampus(props.campusId))
+const teachers = computed(() => teacherList.value.filter(t => Boolean(t && t.id && t.role === 'teacher')))
+const advisors = computed(() => teacherList.value.filter(t => Boolean(t && t.id && t.role === 'advisor')))
+
+const courseList = ref<CourseItem[]>([])
+async function reloadCourses() {
+  try {
+    const res = await curriculumApi.getCourses({
+      campusId: props.campusId && props.campusId !== 'all' ? props.campusId : undefined,
+      pageSize: 200
+    })
+    const list = Array.isArray(res?.data) ? res.data : (res?.data?.list || res?.data?.items || [])
+    courseList.value = list
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载课程列表失败')
+    courseList.value = []
+  }
+}
+const courses = computed(() => courseList.value.filter(c => Boolean(c && c.id)))
 
 const form = reactive({
   name: '',
@@ -271,10 +301,8 @@ function handleCourseChange(courseId: string) {
   }
 }
 
-function open(cls?: ClassItem) {
-  reloadClassrooms()
-  reloadTeachers()
-  restoreClassesFromStorage()
+async function open(cls?: ClassItem) {
+  await Promise.all([reloadClassrooms(), reloadTeachers(), reloadCourses()])
   visible.value = true
   if (cls) {
     isEdit.value = true
@@ -318,15 +346,9 @@ function open(cls?: ClassItem) {
 }
 
 async function handleSubmit() {
-  console.log('[ClassForm] handleSubmit invoked! name=', form.name, 'courseId=', form.courseId, 'teacherId=', form.teacherId, 'classroomId=', form.classroomId)
-  if (!formRef.value) {
-    console.warn('[ClassForm] formRef is null')
-    return
-  }
-  await formRef.value.validate(async (valid, fields) => {
-    console.log('[ClassForm] validate result:', valid, fields)
+  if (!formRef.value) return
+  await formRef.value.validate(async (valid) => {
     if (!valid) {
-      console.warn('[ClassForm] validation failed:', fields)
       ElMessage.warning('请检查表单必填项！')
       return
     }
@@ -338,58 +360,39 @@ async function handleSubmit() {
       if (a) form.assistantName = a.name
       const r = classrooms.value.find(x => x.id === form.classroomId)
       if (r) form.classroomName = r.name
+      const c = courses.value.find(x => x.id === form.courseId)
+      if (c) form.courseName = c.name
 
-      console.log('[ClassForm] ready to add/update class. isEdit=', isEdit.value)
       if (isEdit.value && currentId.value) {
-        try {
-          await educationalApi.updateClass(currentId.value, {
-            name: form.name,
-            capacity: form.capacity,
-            teacherId: form.teacherId,
-            classroomId: form.classroomId,
-            startDate: form.startDate,
-            endDate: form.endDate,
-            status: form.status,
-          })
-        } catch (apiErr) {
-          console.warn('[ClassForm] 远程更新班级异常，双轨平滑执行:', apiErr)
-        }
-
-        updateClass(currentId.value, {
-          ...form,
-          campusId: props.campusId
+        await educationalApi.updateClass(currentId.value, {
+          name: form.name,
+          capacity: form.capacity,
+          teacherId: form.teacherId,
+          classroomId: form.classroomId,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          status: form.status,
         })
         ElMessage.success('班级信息已更新并同步落库！')
       } else {
-        try {
-          await educationalApi.createClass({
-            campusId: props.campusId,
-            courseId: form.courseId,
-            code: form.code,
-            name: form.name,
-            capacity: form.capacity,
-            teacherId: form.teacherId,
-            classroomId: form.classroomId,
-            startDate: form.startDate,
-            endDate: form.endDate,
-            status: form.status,
-          })
-        } catch (apiErr) {
-          console.warn('[ClassForm] 远程新建班级异常，双轨平滑执行:', apiErr)
-        }
-
-        const added = addClass({
-          ...form,
-          campusId: props.campusId
+        await educationalApi.createClass({
+          campusId: props.campusId,
+          courseId: form.courseId,
+          code: form.code,
+          name: form.name,
+          capacity: form.capacity,
+          teacherId: form.teacherId,
+          classroomId: form.classroomId,
+          startDate: form.startDate,
+          endDate: form.endDate,
+          status: form.status,
         })
-        console.log('[ClassForm] addClass succeeded:', added.id, added.name)
         ElMessage.success('新建班级成功并已同步落库！')
       }
       visible.value = false
-      console.log('[ClassForm] emit success!')
       emit('success')
-    } catch (err) {
-      console.error('[ClassForm] handleSubmit error:', err)
+    } catch (err: any) {
+      ElMessage.error(err.message || '保存班级失败')
     } finally {
       submitting.value = false
     }

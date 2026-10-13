@@ -223,7 +223,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import platformData from '@/mocks/shengtongPlatformCourses.json'
+import { platformData } from '@/constants/platformCourse'
 import PlatformCourseDetailDrawer from './components/PlatformCourseDetailDrawer.vue'
 
 interface PlatformCourse {

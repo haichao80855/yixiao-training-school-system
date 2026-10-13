@@ -105,7 +105,10 @@ export async function request<T = any>(
 
     if (!res.ok) {
       const errorJson = await res.json().catch(() => ({}))
-      throw new Error(errorJson.message || `HTTP ${res.status}: ${res.statusText}`)
+      const errorMsg = Array.isArray(errorJson.message)
+        ? errorJson.message.join('; ')
+        : (errorJson.message || errorJson.error || `HTTP ${res.status}: ${res.statusText}`)
+      throw new Error(errorMsg)
     }
 
     const responseData = await res.json()
@@ -116,8 +119,10 @@ export async function request<T = any>(
       fromMock: false,
     }
   } catch (err: any) {
-    // 双轨降级容错机制：当后端离线或未启动时，若提供了 fallbackData 则无缝使用本地数据
-    if (fallbackData !== undefined) {
+    // 关键防线：写操作绝对禁止回退 fallbackData！必须直接抛出异常阻断业务流程！
+    const method = (fetchOptions.method || 'GET').toUpperCase()
+    const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+    if (!isWriteOperation && fallbackData !== undefined) {
       console.warn(`[Dual-Track Request] 后端服务未连接，使用高保真本地数据: ${url}`)
       return {
         success: true,

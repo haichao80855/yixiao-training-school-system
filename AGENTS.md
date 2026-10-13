@@ -45,3 +45,18 @@ Run commands from the repository root:
   - Specify the affected domain (e.g., `[教务/排课]`, `[财务/退费]`).
   - Provide a concise summary of changes and reference relevant tasks or issues.
   - Include verification command results or UI screenshots when modifying views.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub issues (`haichao80855/yixiao-training-school-system`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`GLOSSARY.md` + `docs/adr/`). See `docs/agents/domain.md`.
+

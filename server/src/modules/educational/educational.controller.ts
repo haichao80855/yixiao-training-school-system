@@ -15,6 +15,7 @@ import { CreateScheduleDto, CheckCollisionDto } from './dto/schedule.dto';
 import { RollCallDto } from './dto/attendance.dto';
 import { CurrentCampus } from '../../common/decorators/current-campus.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
 
 @Controller('api/educational')
 export class EducationalController {
@@ -25,28 +26,17 @@ export class EducationalController {
   // ----------------------------------------------------------------
 
   @Get('classrooms')
-  async getClassrooms(
-    @Query('campusId') campusId?: string,
-    @CurrentCampus() headerCampusId?: string,
-    @CurrentUser() user?: any,
-  ) {
-    const isSuperAdmin =
-      user?.dataScope === 'all' ||
-      user?.roles?.some((r: any) => r.code === 'super_admin' || r.code === 'admin' || r.dataScope === 'all' || r === 'super_admin') ||
-      user?.permissions?.includes('*') ||
-      user?.permissions?.includes('admin:all');
-
-    const targetCampusId = campusId && campusId !== 'all' ? campusId : (isSuperAdmin ? undefined : headerCampusId);
-    return this.educationalService.getClassrooms(targetCampusId);
+  async getClassrooms(@CampusScope() scope: CampusScopeResult) {
+    return this.educationalService.getClassrooms(scope.targetCampusId);
   }
 
   @Post('classrooms')
   async createClassroom(
     @Body() dto: CreateClassroomDto,
-    @CurrentCampus() headerCampusId?: string,
+    @CampusScope() scope: CampusScopeResult,
   ) {
-    if (!dto.campusId && headerCampusId) {
-      dto.campusId = headerCampusId;
+    if (!dto.campusId && scope.targetCampusId) {
+      dto.campusId = scope.targetCampusId;
     }
     return this.educationalService.createClassroom(dto);
   }
@@ -75,25 +65,15 @@ export class EducationalController {
     @Query('keyword') keyword?: string,
     @Query('courseId') courseId?: string,
     @Query('teacherId') teacherId?: string,
-    @Query('campusId') campusId?: string,
-    @CurrentCampus() headerCampusId?: string,
-    @CurrentUser() user?: any,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
-    const isSuperAdmin =
-      user?.dataScope === 'all' ||
-      user?.roles?.some((r: any) => r.code === 'super_admin' || r.code === 'admin' || r.dataScope === 'all' || r === 'super_admin') ||
-      user?.permissions?.includes('*') ||
-      user?.permissions?.includes('admin:all');
-
-    const targetCampusId = campusId && campusId !== 'all' ? campusId : (isSuperAdmin ? undefined : headerCampusId);
-
     return this.educationalService.getClasses({
       page,
       pageSize,
       keyword,
       courseId,
-      teacherId,
-      campusId: targetCampusId,
+      teacherId: teacherId || scope?.teacherId,
+      campusId: scope?.targetCampusId,
     });
   }
 
@@ -105,10 +85,10 @@ export class EducationalController {
   @Post('classes')
   async createClass(
     @Body() dto: CreateClassDto,
-    @CurrentCampus() headerCampusId?: string,
+    @CampusScope() scope: CampusScopeResult,
   ) {
-    if (!dto.campusId && headerCampusId) {
-      dto.campusId = headerCampusId;
+    if (!dto.campusId && scope.targetCampusId) {
+      dto.campusId = scope.targetCampusId;
     }
     return this.educationalService.createClass(dto);
   }
@@ -121,8 +101,13 @@ export class EducationalController {
     return this.educationalService.updateClass(id, dto);
   }
 
+  @Delete('classes/:id')
+  async deleteClass(@Param('id') id: string) {
+    return this.educationalService.deleteClass(id);
+  }
+
   @Post('classes/:id/students')
-  async bindStudentToClass(
+  async assignStudentToClass(
     @Param('id') classId: string,
     @Body('studentId') studentId: string,
   ) {
@@ -130,7 +115,7 @@ export class EducationalController {
   }
 
   // ----------------------------------------------------------------
-  // 3. 排课矩阵与碰撞检测
+  // 3. 排课与日程管理
   // ----------------------------------------------------------------
 
   @Post('schedules/check-collision')
@@ -146,38 +131,36 @@ export class EducationalController {
     @Query('teacherId') teacherId?: string,
     @Query('classroomId') classroomId?: string,
     @Query('classId') classId?: string,
-    @Query('campusId') campusId?: string,
-    @CurrentCampus() headerCampusId?: string,
-    @CurrentUser() user?: any,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
-    const isSuperAdmin =
-      user?.dataScope === 'all' ||
-      user?.roles?.some((r: any) => r.code === 'super_admin' || r.code === 'admin' || r.dataScope === 'all' || r === 'super_admin') ||
-      user?.permissions?.includes('*') ||
-      user?.permissions?.includes('admin:all');
-
-    const targetCampusId = campusId && campusId !== 'all' ? campusId : (isSuperAdmin ? undefined : headerCampusId);
-
     return this.educationalService.getSchedules({
       startDate,
       endDate,
       date,
-      teacherId,
+      teacherId: teacherId || scope?.teacherId,
       classroomId,
       classId,
-      campusId: targetCampusId,
+      campusId: scope?.targetCampusId,
     });
   }
 
   @Post('schedules')
   async createSchedule(
     @Body() dto: CreateScheduleDto,
-    @CurrentCampus() headerCampusId?: string,
+    @CampusScope() scope: CampusScopeResult,
   ) {
-    if (!dto.campusId && headerCampusId) {
-      dto.campusId = headerCampusId;
+    if (!dto.campusId && scope.targetCampusId) {
+      dto.campusId = scope.targetCampusId;
     }
     return this.educationalService.createSchedule(dto);
+  }
+
+  @Put('schedules/:id')
+  async updateSchedule(
+    @Param('id') id: string,
+    @Body() body: any,
+  ) {
+    return this.educationalService.updateSchedule(id, body);
   }
 
   @Delete('schedules/:id')
@@ -210,5 +193,20 @@ export class EducationalController {
   ) {
     const operator = user?.realName || '教务主管';
     return this.educationalService.reverseScheduleAttendance(scheduleId, operator);
+  }
+
+  @Get('attendances')
+  async getAttendanceRecords(
+    @Query('classId') classId?: string,
+    @Query('scheduleEventId') scheduleEventId?: string,
+    @Query('studentId') studentId?: string,
+    @CampusScope() scope?: CampusScopeResult,
+  ) {
+    return this.educationalService.getAttendanceRecords({
+      classId,
+      scheduleEventId,
+      studentId,
+      campusId: scope?.targetCampusId,
+    });
   }
 }

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { OrderFilterDto, UpdateVoucherDto, LockOrderDto } from './dto/order.dto';
+import { OrderFilterDto, UpdateVoucherDto, LockOrderDto, UpdateOrderDto } from './dto/order.dto';
 import { CreateApprovalDto, AuditApprovalDto } from './dto/approval.dto';
 
 @Injectable()
@@ -183,7 +183,58 @@ export class FinancialService {
   }
 
   /**
-   * 上传/维护收款凭证
+   * 订单信息修改 (带财务封账锁与作废保护)
+   */
+  async updateOrder(id: string, dto: UpdateOrderDto, currentUser?: any) {
+    const order = await this.getOrderById(id);
+
+    if (order.isLocked) {
+      throw new BadRequestException('该订单账期已被财务加锁保护，禁止修改');
+    }
+
+    if (order.status === 'void') {
+      throw new BadRequestException('已作废的订单严禁修改');
+    }
+
+    const updateData: any = {};
+    if (dto.actualAmount !== undefined) updateData.actualAmount = dto.actualAmount;
+    if (dto.originalPrice !== undefined) updateData.originalPrice = dto.originalPrice;
+    if (dto.discountAmount !== undefined) updateData.discountAmount = dto.discountAmount;
+    if (dto.couponAmount !== undefined) updateData.couponAmount = dto.couponAmount;
+    if (dto.paymentMethod) updateData.paymentMethod = dto.paymentMethod;
+    if (dto.deliveryStatus) updateData.deliveryStatus = dto.deliveryStatus;
+    if (dto.invoiceStatus) updateData.invoiceStatus = dto.invoiceStatus;
+    if (dto.creatorId) updateData.creatorId = dto.creatorId;
+    if (dto.ownerId) updateData.ownerId = dto.ownerId;
+    if (dto.channel) updateData.channel = dto.channel;
+    if (dto.voucherUrl) updateData.voucherUrl = dto.voucherUrl;
+
+    // 附言与备注合并逻辑
+    if (dto.remark !== undefined) {
+      updateData.remark = dto.remark;
+    }
+    if (dto.auditRemark) {
+      const auditorName = dto.auditor || currentUser?.realName || '财务专员';
+      const auditNote = `[凭证审核 ${auditorName}]: ${dto.auditRemark}`;
+      updateData.remark = updateData.remark
+        ? `${updateData.remark} | ${auditNote}`
+        : (order.remark ? `${order.remark} | ${auditNote}` : auditNote);
+    }
+
+    return this.prisma.order.update({
+      where: { id },
+      data: updateData,
+      include: {
+        campus: true,
+        student: true,
+        creator: { select: { id: true, realName: true } },
+        owner: { select: { id: true, realName: true } },
+      },
+    });
+  }
+
+  /**
+   * 上传/维护收款凭证 (支持附言同步落库)
    */
   async updateVoucher(id: string, dto: UpdateVoucherDto) {
     const order = await this.getOrderById(id);
@@ -191,9 +242,16 @@ export class FinancialService {
       throw new BadRequestException('该订单账期已加锁封账，禁止修改凭证');
     }
 
+    const updateData: any = { voucherUrl: dto.voucherUrl };
+    if (dto.auditRemark) {
+      const auditorName = dto.auditor || '财务专员';
+      const auditNote = `[凭证审核 ${auditorName}]: ${dto.auditRemark}`;
+      updateData.remark = order.remark ? `${order.remark} | ${auditNote}` : auditNote;
+    }
+
     return this.prisma.order.update({
       where: { id },
-      data: { voucherUrl: dto.voucherUrl },
+      data: updateData,
     });
   }
 

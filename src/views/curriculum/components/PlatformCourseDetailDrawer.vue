@@ -120,7 +120,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { curriculumApi } from '@/api'
-import allCoursewaresData from '@/mocks/allCoursesDetailsWithCoursewares.json'
+import { normalizePlatformLessons } from '@/api/normalizers/curriculum'
+import { allCoursewaresData } from '@/constants/platformCourse'
 import CoursewarePlayerDialog from './CoursewarePlayerDialog.vue'
 
 interface CourseItem {
@@ -158,20 +159,7 @@ async function open(targetCourse: CourseItem) {
   try {
     const res = await curriculumApi.getCourseById(targetCourse.courseCode)
     if (res && res.success && res.data) {
-      const units = res.data.units || []
-      const dbLessons: LessonItem[] = []
-      units.forEach((u: any) => {
-        (u.lessons || []).forEach((l: any, idx: number) => {
-          dbLessons.push({
-            sessionId: idx + 1,
-            sessionCode: l.id || `${targetCourse.courseCode}_${idx + 1}`,
-            sessionName: l.lessonName,
-            pptUrl: l.courseware || '',
-            downloadUrl: l.courseware || '',
-            pptFileName: `${l.lessonName}.pptx`
-          })
-        })
-      })
+      const dbLessons = normalizePlatformLessons(res.data.units || [], targetCourse.courseCode)
       if (dbLessons.length > 0) {
         lessonList.value = dbLessons
         visible.value = true

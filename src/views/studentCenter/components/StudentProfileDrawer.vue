@@ -70,7 +70,7 @@
           </div>
           <div class="bg-white rounded-lg p-2.5 border border-slate-200 shadow-2xs">
             <div class="text-[11px] text-st-muted">零花钱积分</div>
-            <div class="text-lg font-bold font-mono text-amber-600 mt-0.5">{{ student.wallet.goldPoints || 0 }} <span class="text-xs font-normal">分</span></div>
+            <div class="text-lg font-bold font-mono text-amber-600 mt-0.5">{{ student.wallet?.goldPoints || 0 }} <span class="text-xs font-normal">分</span></div>
           </div>
           <div class="bg-white rounded-lg p-2.5 border border-slate-200 shadow-2xs">
             <div class="text-[11px] text-st-muted">已获赛事考级荣誉</div>
@@ -423,7 +423,6 @@ import { ref, computed, reactive, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { Student, StudentCoursePackage, CompetitionRecord } from '@/types/student'
 import { studentApi } from '@/api'
-import { rechargeWallet, withdrawWallet } from '@/mocks'
 
 const props = defineProps<{
   modelValue: boolean
@@ -455,8 +454,8 @@ watch(() => visible.value, async (val) => {
           props.student.wallet.bonusBalance = Number(d.wallet.bonusBalance || 0)
         }
       }
-    } catch {
-      // dual-track fallback
+    } catch (err: any) {
+      ElMessage.error(err.message || '加载学员档案失败')
     }
   }
 })
@@ -478,10 +477,7 @@ const walletLedgerSorted = computed(() => {
 })
 
 const learningList = computed(() => {
-  return props.student?.learningRecords || [
-    { id: '1', date: '2026-09-12', lessonName: '第16讲：多角色协同与广播机制', courseName: 'Scratch创意图形编程', teacher: '张老师', status: 'attended', score: 95, comment: '逻辑严谨，出色完成海底世界场景。', homeworkRating: 'A+', quizScore: 96 },
-    { id: '2', date: '2026-09-05', lessonName: '第15讲：变量与分数计算系统', courseName: 'Scratch创意图形编程', teacher: '张老师', status: 'attended', score: 92, comment: '计算公式设计合理，已熟练掌握记分板功能。', homeworkRating: 'A', quizScore: 90 }
-  ]
+  return props.student?.learningRecords || []
 })
 
 function calcProgress(pkg: StudentCoursePackage) {
@@ -532,18 +528,30 @@ function getLedgerTypeLabel(type: string) {
 
 // 清空课包
 async function handleClearPackage(pkg: StudentCoursePackage) {
+  if (!props.student) return
   try {
     await ElMessageBox.confirm(`确认将课包 [${pkg.courseName}] 剩余的 ${pkg.remainingLessons} 课时清零归档？`, '课包清理', {
       type: 'warning',
       confirmButtonText: '清空课包',
       cancelButtonText: '取消'
     })
-    pkg.status = 'completed'
-    pkg.remainingLessons = 0
-    ElMessage.success('课包已清理归档')
-    emit('updated')
+    try {
+      await studentApi.executeMovement(props.student.id, {
+        type: 'refund',
+        packageId: pkg.packageId || pkg.id || '',
+        reasonCategory: '学业或家庭调整',
+        reasonDetail: '课包清零归档退费',
+        refundAmount: 0
+      })
+      pkg.status = 'refunded'
+      pkg.remainingLessons = 0
+      ElMessage.success('课包已清零归档并真实同步落库！')
+      emit('updated')
+    } catch (err: any) {
+      ElMessage.error(err.message || '课包清零归档失败')
+    }
   } catch {
-    // cancelled
+    // 弹窗取消
   }
 }
 
@@ -583,27 +591,38 @@ const rechargeForm = reactive({
   bonus: 200
 })
 
-function handleRecharge() {
+async function handleRecharge() {
   if (!props.student) return
-  rechargeWallet(props.student.id, rechargeForm.amount, rechargeForm.bonus, '学管财务')
-  ElMessage.success(`充值成功！本金上账 ¥${rechargeForm.amount}，赠送金上账 ¥${rechargeForm.bonus}`)
-  showRechargeDialog.value = false
-  emit('updated')
+  try {
+    await studentApi.rechargeWallet(props.student.id, {
+      amount: Number(rechargeForm.amount),
+      bonus: Number(rechargeForm.bonus),
+      operator: '学管财务'
+    })
+    ElMessage.success(`充值成功！本金上账 ¥${rechargeForm.amount}，赠送金上账 ¥${rechargeForm.bonus}`)
+    showRechargeDialog.value = false
+    emit('updated')
+  } catch (err: any) {
+    ElMessage.error(err.message || '钱包充值失败')
+  }
 }
 
 // 提现
 const showWithdrawDialog = ref(false)
 const withdrawAmount = ref(500)
 
-function handleWithdraw() {
+async function handleWithdraw() {
   if (!props.student) return
-  const res = withdrawWallet(props.student.id, withdrawAmount.value)
-  if (res.success) {
-    ElMessage.success(res.message)
+  try {
+    await studentApi.withdrawWallet(props.student.id, {
+      amount: Number(withdrawAmount.value),
+      operator: '学管财务'
+    })
+    ElMessage.success(`提现成功！已原路退回本金 ¥${withdrawAmount.value}`)
     showWithdrawDialog.value = false
     emit('updated')
-  } else {
-    ElMessage.error(res.message)
+  } catch (err: any) {
+    ElMessage.error(err.message || '提现失败')
   }
 }
 

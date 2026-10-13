@@ -440,8 +440,7 @@ import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { curriculumApi } from '@/api'
-import { COURSE_COVERS } from '@/mocks/curriculum'
-import { saveCourse } from '@/mocks'
+import { COURSE_COVERS } from '@/constants/curriculum'
 import type { CourseItem, CourseUnit, LessonItem } from '@/types/curriculum'
 
 const props = defineProps<{
@@ -707,7 +706,7 @@ async function handleSave() {
         cover: form.cover,
         description: form.description
       })
-      if (res && res.success && res.data) {
+      if (res && res.data) {
         savedCourse = res.data
       }
     } else {
@@ -723,18 +722,16 @@ async function handleSave() {
         description: form.description || '',
         campusIds: form.authorizedCampusIds || ['campus-bj-hq']
       })
-      if (res && res.success && res.data) {
+      if (res && res.data) {
         savedCourse = res.data
       }
     }
-  } catch (err) {
-    console.warn('[CourseEditor] 远程落库异常，执行双轨平滑保存:', err)
+    ElMessage.success(isEdit.value ? '课程修改已成功保存至数据库！' : '新课程已成功发布入库！')
+    emit('saved', savedCourse || { ...form })
+    visible.value = false
+  } catch (err: any) {
+    ElMessage.error(err.message || '保存课程失败')
   }
-
-  const saved = saveCourse({ ...form })
-  ElMessage.success(isEdit.value ? '课程修改已成功保存至数据库！' : '新课程已成功发布入库！')
-  emit('saved', savedCourse || saved)
-  visible.value = false
 }
 </script>
 

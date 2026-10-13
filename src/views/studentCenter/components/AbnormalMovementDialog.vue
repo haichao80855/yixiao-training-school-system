@@ -273,13 +273,7 @@
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { Student, MovementType } from '@/types/student'
-import { studentApi } from '@/api'
-import {
-  MOCK_STUDENTS,
-  MOCK_AVAILABLE_CLASSES,
-  MOCK_COURSES,
-  applyAbnormalMovement
-} from '@/mocks'
+import { studentApi, educationalApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 
 const props = defineProps<{
@@ -289,7 +283,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
-  (e: 'success', student: Student): void
+  (e: 'success', student?: Student): void
 }>()
 
 const tenantStore = useTenantStore()
@@ -307,14 +301,39 @@ const activePackages = computed(() => {
   return props.student.coursePackages.filter(p => p.status === 'active' || p.status === 'frozen')
 })
 
+const targetClasses = ref<any[]>([])
+const coursesList = ref<any[]>([])
+const candidateStudents = ref<any[]>([])
+
+async function loadOptions() {
+  try {
+    const [clsRes, crsRes, stdRes] = await Promise.all([
+      educationalApi.getClasses({ campusId: tenantStore.currentCampusId }),
+      curriculumApi.getCourses({}),
+      studentApi.getStudents({ campusId: tenantStore.currentCampusId })
+    ])
+    if (clsRes?.data) {
+      targetClasses.value = Array.isArray(clsRes.data) ? clsRes.data : (clsRes.data.items || clsRes.data.list || [])
+    }
+    if (crsRes?.data) {
+      coursesList.value = Array.isArray(crsRes.data) ? crsRes.data : (crsRes.data.items || crsRes.data.list || [])
+    }
+    if (stdRes?.data) {
+      candidateStudents.value = Array.isArray(stdRes.data) ? stdRes.data : (stdRes.data.items || stdRes.data.list || [])
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载异动选项数据失败')
+  }
+}
+
 // 目标班级列表
 const filteredTargetClasses = computed(() => {
-  return MOCK_AVAILABLE_CLASSES
+  return targetClasses.value
 })
 
 // 课程列表
 const availableCourses = computed(() => {
-  return MOCK_COURSES.filter(c => c.status === 'enabled')
+  return coursesList.value.filter(c => c.status === 'enabled')
 })
 
 // 可用校区
@@ -325,7 +344,7 @@ const authorizedCampuses = computed(() => {
 // 受让候选学员
 const otherStudents = computed(() => {
   if (!props.student) return []
-  return MOCK_STUDENTS.filter(s => s.id !== props.student?.id && s.status !== 'dropped_out')
+  return candidateStudents.value.filter(s => s.id !== props.student?.id && s.status !== 'dropped_out')
 })
 
 // --- 表单状态 ---
@@ -386,6 +405,7 @@ watch(
   () => props.modelValue,
   (val) => {
     if (val) {
+      loadOptions()
       initMovementForm()
     }
   },
@@ -402,7 +422,7 @@ watch(
 )
 
 const selectedTargetClass = computed(() => {
-  return MOCK_AVAILABLE_CLASSES.find(c => c.id === transferForm.toClassId)
+  return targetClasses.value.find(c => c.id === transferForm.toClassId)
 })
 
 // 换课核算
@@ -532,26 +552,10 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
-    // 优先向真实后端持久化异动工单与状态变更
-    try {
-      await studentApi.executeMovement(props.student.id, {
-        type: currentMovement.value,
-        reasonCategory: '学业或家庭调整',
-        reasonDetail: `学员异动业务流转: ${currentMovement.value}`,
-        targetData: {
-          toClassId: transferForm.toClassId,
-          targetCampusId: transferCampusForm.targetCampusId,
-          newCourseId: changeCourseForm.newCourseId,
-          deductionFee: refundForm.deductionFee
-        }
-      })
-    } catch (apiErr) {
-      console.warn('[AbnormalMovementDialog] 远程异动落库异常，双轨回退:', apiErr)
-    }
-
-    const res = applyAbnormalMovement({
-      movementType: currentMovement.value,
-      studentId: props.student.id,
+    const flatDto = {
+      type: currentMovement.value,
+      reasonCategory: '学业或家庭调整',
+      reasonDetail: `学员异动业务流转: ${currentMovement.value}`,
       packageId:
         currentMovement.value === 'transfer_class'
           ? transferForm.packageId
@@ -559,27 +563,24 @@ async function handleSubmit() {
           ? changeCourseForm.packageId
           : refundForm.packageId,
       toClassId: transferForm.toClassId,
-      targetClassCapacity: selectedTargetClass.value?.capacity,
-      targetClassCurrentCount: selectedTargetClass.value?.currentCount,
       newCourseId: changeCourseForm.newCourseId,
-      newPurchasedLessons: changeCourseForm.newLessons,
+      newLessons: changeCourseForm.newLessons,
       suspensionDays: suspendForm.days,
       targetCampusId: transferCampusForm.targetCampusId,
-      authorizedCampusIds: authorizedCampuses.value.map(c => c.id),
       targetStudentId: transferStudentForm.targetStudentId,
-      deductionFee: refundForm.deductionFee,
-      operator: '系统主管'
-    })
-
-    if (res.success) {
-      ElMessage.success(res.message)
-      if (res.student) {
-        emit('success', res.student)
-      }
-      visible.value = false
-    } else {
-      ElMessage.error(res.message)
+      deductionFee: refundForm.deductionFee
     }
+
+    await studentApi.executeMovement(props.student.id, flatDto)
+
+    ElMessage.success('学员异动流转已成功提交并实时生效落库！')
+    try {
+      const refreshed = await studentApi.getStudentById(props.student.id)
+      emit('success', refreshed?.data || props.student)
+    } catch {
+      emit('success', props.student)
+    }
+    visible.value = false
   } catch (err: any) {
     ElMessage.error(err.message || '异动操作失败')
   } finally {

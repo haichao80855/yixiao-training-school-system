@@ -427,15 +427,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
-import {
-  EducationalCollisionEngine,
-  getScheduleEvents,
-  getTeachers,
-  getClassrooms,
-  deleteScheduleEvent
-} from '@/mocks/educational'
-import { getCoursesByCampus } from '@/mocks'
-import type { ScheduleEvent, LaneEvent } from '@/types/educational'
+import { EducationalCollisionEngine } from '@/utils/collisionEngine'
+import { curriculumApi } from '@/api'
+import type { ScheduleEvent, LaneEvent, Teacher, Classroom } from '@/types/educational'
+import type { CourseItem } from '@/types/curriculum'
 import QuickScheduleDialog from './components/QuickScheduleDialog.vue'
 import ScheduleDetailDrawer from './components/ScheduleDetailDrawer.vue'
 import ConflictCenterDialog from './components/ConflictCenterDialog.vue'
@@ -516,10 +511,32 @@ const currentMinuteLineTop = computed(() => {
 })
 
 // 基础资源
-const teachers = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'teacher'))
-const advisors = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'advisor'))
-const classrooms = computed(() => getClassrooms(tenantStore.currentCampusId))
-const courses = computed(() => getCoursesByCampus(tenantStore.currentCampusId))
+const teacherList = ref<Teacher[]>([])
+const classroomList = ref<Classroom[]>([])
+const courseList = ref<CourseItem[]>([])
+
+async function loadOptions() {
+  try {
+    const [teaRes, roomRes, crsRes] = await Promise.all([
+      educationalApi.getTeachers(tenantStore.currentCampusId),
+      educationalApi.getClassrooms(tenantStore.currentCampusId),
+      curriculumApi.getCourses({
+        campusId: tenantStore.currentCampusId && tenantStore.currentCampusId !== 'all' ? tenantStore.currentCampusId : undefined,
+        pageSize: 200
+      })
+    ])
+    teacherList.value = Array.isArray(teaRes?.data) ? teaRes.data : (teaRes?.data?.list || [])
+    classroomList.value = Array.isArray(roomRes?.data) ? roomRes.data : (roomRes?.data?.list || [])
+    courseList.value = Array.isArray(crsRes?.data) ? crsRes.data : (crsRes?.data?.list || crsRes?.data?.items || [])
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载讲师与教室选项失败')
+  }
+}
+
+const teachers = computed(() => teacherList.value.filter(t => Boolean(t && t.id && t.role === 'teacher')))
+const advisors = computed(() => teacherList.value.filter(t => Boolean(t && t.id && t.role === 'advisor')))
+const classrooms = computed(() => classroomList.value.filter(r => Boolean(r && r.id)))
+const courses = computed(() => courseList.value.filter(c => Boolean(c && c.id)))
 
 // 弹窗组件引用
 const quickScheduleRef = ref<InstanceType<typeof QuickScheduleDialog>>()
@@ -532,6 +549,7 @@ const schedules = ref<ScheduleEvent[]>([])
 async function loadSchedules() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (filterTeacher.value || undefined)
   try {
+    await loadOptions()
     const res = await educationalApi.getSchedules({
       campusId: tenantStore.currentCampusId,
       teacherId: tId,
@@ -539,36 +557,11 @@ async function loadSchedules() {
     })
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-      if (Array.isArray(list)) {
-        schedules.value = list.map((evt: any) => ({
-          id: evt.id,
-          classId: evt.classId,
-          className: evt.class?.name || evt.className || 'Scratch精品班',
-          courseId: evt.class?.courseId || evt.courseId || 'crs-scratch-001',
-          courseName: evt.class?.course?.name || evt.courseName || 'Scratch图形化编程',
-          teacherId: evt.teacherId,
-          teacherName: evt.teacher?.realName || evt.teacherName || '张老师',
-          classroomId: evt.classroomId,
-          classroomName: evt.classroom?.name || evt.classroomName || '创客教室1',
-          campusId: evt.campusId || tenantStore.currentCampusId,
-          date: evt.date,
-          startTime: evt.startTime,
-          endTime: evt.endTime,
-          status: evt.status || 'scheduled',
-          semanticType: evt.semanticType || 'regular',
-          classType: evt.classType || 'formal',
-          laneIndex: evt.laneIndex || 0,
-          totalCount: evt.totalCount || 8,
-          attendanceCount: evt.attendanceCount || 0,
-          signedCount: evt.attendanceCount || 0,
-          studentIds: evt.studentIds || [],
-          hasConflict: evt.semanticType === 'conflict'
-        }))
-        return
-      }
+      schedules.value = list
+      return
     }
-  } catch (err) {
-    console.warn('[TimeSchedule] 远程排课日程拉取失败:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取排课日程失败')
   }
 
   schedules.value = []
@@ -709,11 +702,11 @@ async function handleDelete(id: string) {
     await ElMessageBox.confirm('确定取消该排课课次吗？', '提示', { type: 'warning' })
     try {
       await educationalApi.deleteSchedule(id)
-    } catch {
-      deleteScheduleEvent(id)
+      ElMessage.success('排课已取消并同步落盘')
+      await loadSchedules()
+    } catch (err: any) {
+      ElMessage.error(err.message || '取消排课失败')
     }
-    ElMessage.success('排课已取消并同步落盘')
-    await loadSchedules()
   } catch {
     // cancelled
   }

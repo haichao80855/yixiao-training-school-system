@@ -259,13 +259,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
-import {
-  getScheduleEvents,
-  getAttendanceRecords,
-  getTeachers,
-  revertAttendance
-} from '@/mocks/educational'
-import type { ScheduleEvent, AttendanceRecord } from '@/types/educational'
+import type { ScheduleEvent, AttendanceRecord, Teacher } from '@/types/educational'
 import RollCallDrawer from './components/RollCallDrawer.vue'
 import AttendanceDetailDialog from './components/AttendanceDetailDialog.vue'
 
@@ -291,52 +285,44 @@ const filterDate = ref(getTodayDateStr())
 
 const schedules = ref<ScheduleEvent[]>([])
 const attendanceRecords = ref<AttendanceRecord[]>([])
+const teacherList = ref<Teacher[]>([])
 
-const teachers = computed(() => getTeachers(tenantStore.currentCampusId).filter(t => t.role === 'teacher'))
+async function loadTeachers() {
+  try {
+    const res = await educationalApi.getTeachers(tenantStore.currentCampusId)
+    teacherList.value = Array.isArray(res?.data) ? res.data : []
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载讲师选项失败')
+    teacherList.value = []
+  }
+}
+
+const teachers = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
 
 async function loadData() {
   try {
-    const res = await educationalApi.getSchedules({
-      campusId: tenantStore.currentCampusId
-    })
-    if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-      if (Array.isArray(list)) {
-        schedules.value = list.map((evt: any) => ({
-          id: evt.id,
-          classId: evt.classId,
-          className: evt.class?.name || evt.className || 'Scratch精品班',
-          courseId: evt.class?.courseId || evt.courseId || 'crs-scratch-001',
-          courseName: evt.class?.course?.name || evt.courseName || 'Scratch图形化编程',
-          teacherId: evt.teacherId,
-          teacherName: evt.teacher?.realName || evt.teacherName || '张老师',
-          classroomId: evt.classroomId,
-          classroomName: evt.classroom?.name || evt.classroomName || '创客教室1',
-          campusId: evt.campusId || tenantStore.currentCampusId,
-          date: evt.date,
-          startTime: evt.startTime,
-          endTime: evt.endTime,
-          status: evt.status || 'scheduled',
-          semanticType: evt.semanticType || 'regular',
-          classType: evt.classType || 'formal',
-          laneIndex: evt.laneIndex || 0,
-          totalCount: evt.totalCount || 8,
-          attendanceCount: evt.attendanceCount || 0,
-          signedCount: evt.attendanceCount || 0,
-          studentIds: evt.studentIds || []
-        }))
-      } else {
-        schedules.value = []
-      }
+    const [schedRes, attRes] = await Promise.all([
+      educationalApi.getSchedules({ campusId: tenantStore.currentCampusId }),
+      educationalApi.getAttendanceRecords({ campusId: tenantStore.currentCampusId }),
+      loadTeachers()
+    ])
+    if (schedRes && schedRes.success && schedRes.data) {
+      const list = Array.isArray(schedRes.data) ? schedRes.data : (schedRes.data.items || schedRes.data.list || [])
+      schedules.value = list
     } else {
       schedules.value = []
     }
-  } catch (err) {
-    console.warn('[Attendance] 远程排课日程拉取失败:', err)
+    if (attRes && attRes.data) {
+      const list = Array.isArray(attRes.data) ? attRes.data : (attRes.data.items || attRes.data.list || [])
+      attendanceRecords.value = list
+    } else {
+      attendanceRecords.value = []
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取排课与考勤记录失败')
     schedules.value = []
+    attendanceRecords.value = []
   }
-
-  attendanceRecords.value = getAttendanceRecords(tenantStore.currentCampusId)
 }
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {
@@ -396,6 +382,11 @@ function handleViewRecord(record: AttendanceRecord) {
   detailDialogRef.value?.open(record)
 }
 
+async function handleFaceSync() {
+  await loadData()
+  ElMessage.success('已连接校区闸机人脸抓拍设备：考勤打卡日志已同步刷新！')
+}
+
 async function handleRevertAttendance(record: AttendanceRecord) {
   try {
     const { value: reason } = await ElMessageBox.prompt(
@@ -411,25 +402,15 @@ async function handleRevertAttendance(record: AttendanceRecord) {
     )
 
     try {
-      await educationalApi.reverseSchedule(record.scheduleEventId || record.id)
-    } catch (apiErr) {
-      console.warn('[Attendance] 远程反结课冲正异常，双轨执行:', apiErr)
-    }
-
-    const res = revertAttendance(record.id, reason, '教务主管')
-    if (res.success) {
-      ElMessage.success(res.message)
+      await educationalApi.reverseSchedule(record.scheduleEventId || record.id, reason)
+      ElMessage.success('反结课冲正成功，已退还学员课时！')
       handleReloadAll()
-    } else {
-      ElMessage.error(res.message)
+    } catch (err: any) {
+      ElMessage.error(err.message || '反结课冲正失败')
     }
   } catch {
     // cancelled
   }
-}
-
-function handleFaceSync() {
-  ElMessage.success('已连接校区闸机人脸抓拍设备：成功同步 12 条学员入校打卡日志！')
 }
 
 function handleBatchRollCall() {

@@ -166,14 +166,21 @@
     </el-dialog>
 
     <!-- 加入班级弹窗 -->
-    <el-dialog v-model="assignDialogVisible" title="分配入班排课" width="580px" destroy-on-close>
-      <div v-if="activeItem" class="space-y-3 text-xs">
-        <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-lg flex items-center justify-between">
+    <el-dialog v-model="assignDialogVisible" :title="activeItem ? '分配入班排课' : '批量分配入班排课'" width="580px" destroy-on-close>
+      <div v-if="activeItem || selectedRows.length > 0" class="space-y-3 text-xs">
+        <div v-if="activeItem" class="p-3 bg-blue-50/60 border border-blue-100 rounded-lg flex items-center justify-between">
           <div>
             正在为学员 <b class="text-st-title font-bold text-sm">{{ activeItem.name }}</b> 分配班级
             <div class="text-st-muted mt-0.5">待排课包：<span class="text-st-primary font-semibold">{{ activeItem.courseName }}</span> (待分配 {{ activeItem.unassignedLessons }} 课时)</div>
           </div>
           <el-tag size="small" type="primary">{{ activeItem.campusName }}</el-tag>
+        </div>
+        <div v-else class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-lg flex items-center justify-between">
+          <div>
+            正在批量为 <b class="text-st-title font-bold text-sm">{{ selectedRows.length }} 名学员</b> 统一分配班级
+            <div class="text-st-muted mt-0.5">待分班学员：{{ selectedRows.map(r => r.name).join('、') }}</div>
+          </div>
+          <el-tag size="small" type="warning">批量分配</el-tag>
         </div>
 
         <el-form label-position="top" size="small">
@@ -240,25 +247,81 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { educationalApi } from '@/api'
-import {
-  MOCK_UNASSIGNED_STUDENTS,
-  assignClassToStudent
-} from '@/mocks'
-import { getAvailableClasses, type AvailableClassOption } from '@/mocks/educational'
+import { educationalApi, studentApi } from '@/api'
 import type { UnassignedStudentItem } from '@/types/student'
+
+export interface AvailableClassOption {
+  id: string
+  name: string
+  courseName: string
+  courseId?: string
+  teacherName: string
+  classroomName: string
+  scheduleTime: string
+  capacity: number
+  currentCount: number
+  campusName?: string
+}
 
 const keyword = ref('')
 const selectedTimeFilter = ref('')
 const selectedRows = ref<UnassignedStudentItem[]>([])
-const refreshTrigger = ref(0)
+
+const unassignedStudents = ref<UnassignedStudentItem[]>([])
+const availableClassesList = ref<AvailableClassOption[]>([])
+
+async function loadData() {
+  try {
+    const [stdRes, clsRes] = await Promise.all([
+      studentApi.getStudents({}),
+      educationalApi.getClasses({})
+    ])
+    if (clsRes?.data) {
+      availableClassesList.value = Array.isArray(clsRes.data) ? clsRes.data : (clsRes.data.items || clsRes.data.list || [])
+    }
+    if (stdRes?.data) {
+      const list = Array.isArray(stdRes.data) ? stdRes.data : (stdRes.data.items || stdRes.data.list || [])
+      const unas: UnassignedStudentItem[] = []
+      list.forEach((s: any) => {
+        const pkgs = s.coursePackages || []
+        const unassignedPkg = pkgs.find((p: any) => !p.classId || p.classId === '')
+        if (unassignedPkg && unassignedPkg.remainingLessons > 0) {
+          unas.push({
+            id: `unas-${s.id}`,
+            studentId: s.id,
+            name: s.name,
+            studentNo: s.studentNo,
+            avatar: s.avatar || 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=60',
+            gender: s.gender || 'male',
+            phone: s.phone || '',
+            campusId: s.campusId,
+            campusName: s.campusName || '总部校区',
+            courseId: unassignedPkg.courseId || '',
+            courseName: unassignedPkg.courseName || '未分班课程',
+            unassignedLessons: unassignedPkg.remainingLessons,
+            preferredTime: '周六上午 09:00-10:30',
+            signupDate: s.createdAt ? s.createdAt.slice(0, 10) : '2026-09-01',
+            counselor: '学管老师',
+            assessmentScore: 90,
+            assessmentSummary: '建议根据水平编入相应班级。'
+          })
+        }
+      })
+      unassignedStudents.value = unas
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取待分班学员列表失败')
+  }
+}
+
+onMounted(() => {
+  loadData()
+})
 
 const unassignedList = computed(() => {
-  // 依赖 refreshTrigger 实现响应式数据重新计算
-  refreshTrigger.value
-  return [...MOCK_UNASSIGNED_STUDENTS]
+  return unassignedStudents.value
 })
 
 const totalUnassignedLessons = computed(() => {
@@ -282,8 +345,7 @@ const filteredList = computed(() => {
 })
 
 const availableClasses = computed<AvailableClassOption[]>(() => {
-  refreshTrigger.value
-  return getAvailableClasses()
+  return availableClassesList.value
 })
 
 function isMatchingCourse(cls: AvailableClassOption): boolean {
@@ -355,40 +417,48 @@ function assignFromReport() {
 }
 
 async function confirmAssign() {
-  if (!activeItem.value || !selectedClassId.value) {
+  const targetStudents = activeItem.value ? [activeItem.value] : selectedRows.value
+  if (targetStudents.length === 0 || !selectedClassId.value) {
     ElMessage.warning('请选择目标班级')
     return
   }
   const cls = chosenClass.value
   if (!cls) return
 
-  if (cls.currentCount >= cls.capacity) {
-    ElMessage.error('该班级已达满班上限，无法继续排入')
+  if (cls.currentCount + targetStudents.length > cls.capacity) {
+    ElMessage.error(`该班级剩余容量不足（剩余 ${cls.capacity - cls.currentCount} 人，待分配 ${targetStudents.length} 人）`)
     return
   }
 
+  const studentIds = targetStudents.map(s => s.studentId)
   try {
-    await educationalApi.assignStudentsToClass(cls.id, [activeItem.value.studentId])
-  } catch (err) {
-    console.warn('[Unassigned] 远程分班入库异常，双轨平滑执行:', err)
-  }
-
-  const ok = assignClassToStudent(activeItem.value.studentId, cls.id, cls.name)
-  if (ok) {
-    cls.currentCount++
-    refreshTrigger.value++
-    ElMessage.success(`学员 [${activeItem.value.name}] 已成功编入班级 [${cls.name}]！`)
+    await educationalApi.assignStudentsToClass(cls.id, studentIds)
+    cls.currentCount += targetStudents.length
+    const studentIdSet = new Set(studentIds)
+    unassignedStudents.value = unassignedStudents.value.filter(item => !studentIdSet.has(item.studentId))
+    if (activeItem.value) {
+      ElMessage.success(`学员 [${activeItem.value.name}] 已成功编入班级 [${cls.name}]！`)
+    } else {
+      ElMessage.success(`已成功为 ${studentIds.length} 名学员分配至班级 [${cls.name}] 并实时落库！`)
+    }
     assignDialogVisible.value = false
     activeItem.value = null
+    selectedRows.value = []
     selectedClassId.value = ''
-  } else {
-    ElMessage.error('分班操作失败，未找到该学员或有效课包')
+    await loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '分班操作失败')
   }
 }
 
 function handleBatchAssign() {
-  ElMessage.success(`已为选中的 ${selectedRows.value.length} 位学员智能分配至推荐班级！`)
-  selectedRows.value = []
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请先勾选待分班学员')
+    return
+  }
+  activeItem.value = null
+  selectedClassId.value = ''
+  assignDialogVisible.value = true
 }
 
 function handleExport() {

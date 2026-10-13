@@ -215,7 +215,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import CoursewarePlayerDialog from './components/CoursewarePlayerDialog.vue'
 import { curriculumApi } from '@/api'
-import { MOCK_COURSES, MOCK_LESSON_PLANS, restoreCoursesFromStorage } from '@/mocks'
+import { PRESET_LESSON_PLANS } from '@/constants/curriculum'
 import type { CourseItem, CourseUnit, LessonPlanItem } from '@/types/curriculum'
 
 const courses = ref<CourseItem[]>([])
@@ -227,21 +227,7 @@ async function reloadCourses() {
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       if (Array.isArray(list)) {
-        courses.value = list.map((item: any) => ({
-          id: item.id,
-          code: item.code,
-          name: item.name,
-          cover: item.cover,
-          pricePerLesson: Number(item.pricePerLesson || 280),
-          totalLessons: Number(item.totalLessons || 48),
-          subject: item.subject || 'scratch',
-          grade: item.grade || '中级课程',
-          attribute: item.attribute || 'regular',
-          status: item.status || 'enabled',
-          description: item.description || '',
-          units: item.units || [],
-          authorizedCampusIds: item.authorizedCampusIds || ['campus-bj-hq']
-        }))
+        courses.value = list as any
         if (courses.value.length > 0 && !courses.value.some(c => c.id === selectedCourseId.value)) {
           selectedCourseId.value = courses.value[0].id
         }
@@ -251,8 +237,8 @@ async function reloadCourses() {
         return
       }
     }
-  } catch (err) {
-    console.warn('[LessonPlanView] 远程课程拉取失败:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '获取课程列表失败')
   }
   courses.value = []
 }
@@ -261,25 +247,11 @@ async function loadCourseUnits(courseId: string) {
   try {
     const res = await curriculumApi.getUnits(courseId)
     if (res && res.success && Array.isArray(res.data)) {
-      loadedUnits.value = res.data.map((u: any) => ({
-        id: u.id,
-        title: u.unitName || u.title || '核心教学单元',
-        order: u.sort || 1,
-        lessons: (u.lessons || []).map((l: any, idx: number) => ({
-          id: l.id,
-          title: l.lessonName || `第 ${idx + 1} 课`,
-          name: l.lessonName || `第 ${idx + 1} 课`,
-          duration: l.durationMin || 90,
-          order: l.sort || idx + 1,
-          objective: '教学大纲核心知识与工程实操',
-          hasMedia: !!l.courseware,
-          pptUrl: l.courseware || ''
-        }))
-      }))
+      loadedUnits.value = res.data
       return
     }
-  } catch {
-    // ignore
+  } catch (err: any) {
+    ElMessage.error(err.message || '加载课程大纲单元失败')
   }
   loadedUnits.value = []
 }
@@ -292,7 +264,7 @@ const selectedCourseId = ref('course-scratch-001')
 const selectedCodeType = ref('all')
 const searchKeyword = ref('')
 
-const lessonPlans = ref<LessonPlanItem[]>([...MOCK_LESSON_PLANS])
+const lessonPlans = ref<LessonPlanItem[]>([...PRESET_LESSON_PLANS])
 
 const currentCourse = computed(() => {
   return courses.value.find(c => c.id === selectedCourseId.value) || courses.value[0]
@@ -416,7 +388,7 @@ async function handleSavePlan() {
   }
   const course = courses.value.find(c => c.id === planForm.value.courseId)
   
-  // 尝试持久化到后端数据库
+  // 持久化到后端数据库
   try {
     await curriculumApi.createUnit(planForm.value.courseId, {
       unitName: planForm.value.unitTitle || '核心进阶实战单元',
@@ -429,8 +401,9 @@ async function handleSavePlan() {
       ]
     })
     await loadCourseUnits(planForm.value.courseId)
-  } catch (err) {
-    console.warn('[LessonPlanView] 远程大纲落库异常，双轨回退:', err)
+  } catch (err: any) {
+    ElMessage.error(err.message || '大纲单元创建失败')
+    return
   }
 
   lessonPlans.value.unshift({
