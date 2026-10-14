@@ -48,13 +48,67 @@ export interface StudentRecord {
   date: string;
   lessonName: string;
   courseName: string;
+  className?: string;
   teacher: string;
+  classroomName?: string;
   status: 'attended' | 'leave' | 'absent' | 'late';
   score: number; // 0-100
+  rating?: string; // A+ | A | B+ | B
   comment: string;
-  homeworkRating: 'A+' | 'A' | 'B+' | 'B' | 'C';
+  homeworkRating: 'A+' | 'A' | 'B+' | 'B' | 'C' | string;
   artworkUrl?: string;
   quizScore?: number;
+  deductLessons?: number;
+  isReversed?: boolean;
+  reversalReason?: string;
+  reversedAt?: string;
+
+  // 多媒体课评相册流扩展
+  lessonTitle?: string;
+  photoList?: string[];
+  photos?: Array<{
+    id: string;
+    index: number;
+    thumbnailUrl: string;
+    fullUrl: string;
+    previewList: string[];
+    aspectRatio?: string;
+  }>;
+  videoUrl?: string;
+  videoMeta?: { videoUrl: string; posterUrl: string };
+  voiceUrl?: string;
+  voiceMeta?: { audioUrl: string; durationSeconds: number; durationFormatted: string; waveformPeaks: number[] };
+  studyContent?: string;
+  studyContentHtml?: string;
+  performanceTag?: string;
+  shareToken?: string;
+}
+
+export interface CompetencyRadar {
+  logic: number;
+  creativity: number;
+  focus: number;
+  handsOn: number;
+  expression: number;
+  averageScore: number;
+}
+
+export interface StudentConsumptionHealth {
+  weeklyBurnRate: number;
+  dailyBurnRate?: number;
+  estimatedDepletionDays: number;
+  estimatedDepletionDate?: string | null;
+  warningLevel: 'normal' | 'warning' | 'urgent' | 'critical';
+  visualBadge?: {
+    text: string;
+    type: 'danger' | 'warning' | 'success';
+    color: string;
+  };
+  dormantRisk: boolean | 'active' | 'mild_dormant' | 'deep_dormant';
+  renewalWindowOpen: boolean;
+  inactiveDays?: number;
+  lastAttendanceDate?: string | null;
+  futureScheduledLessons?: number;
 }
 
 export interface CommunicationRecord {
@@ -145,9 +199,24 @@ export interface Student {
   status: StudentStatus;
   wallet: StudentWallet;
   coursePackages: StudentCoursePackage[];
+  totalRemainingLessons?: number;
+  totalConsumedLessons?: number;
+  warningLevel?: 'urgent' | 'warning' | 'normal' | 'critical' | string;
+  riskLevel?: 'critical' | 'warning' | 'normal';
   learningRecords?: StudentRecord[];
+  growthRadar?: CompetencyRadar;
+  consumptionHealth?: StudentConsumptionHealth;
   communicationRecords?: CommunicationRecord[];
   competitionRecords?: CompetitionRecord[];
+  albumGallery?: Array<{
+    photoUrl: string;
+    thumbnailUrl: string;
+    date: string;
+    courseName: string;
+    lessonTitle: string;
+    teacherName: string;
+  }>;
+  portfolioShareToken?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -188,4 +257,184 @@ export interface AbnormalMovementPayload {
   targetStudentId?: string;
   // 7. 退费
   deductionFee?: number;
+}
+
+// ==========================================
+// 课消风控与续费决策协调器契约 (LessonRenewalCoordinator)
+// ==========================================
+
+export type RenewalWarningLevel = 'critical' | 'warning' | 'normal';
+export type RenewalDormantRisk = 'active' | 'mild_dormant' | 'deep_dormant';
+export type RenewalAdvice =
+  | 'URGENT_RENEWAL'
+  | 'DORMANT_FOLLOWUP'
+  | 'WINDOW_OPEN'
+  | 'HEALTHY_LEARNING'
+  | 'BLOCKED_REFUNDING';
+
+export interface StudentRiskDiagnosis {
+  studentId: string;
+  studentNo: string;
+  studentName: string;
+  phone: string;
+  campusId: string;
+  campusName: string;
+  currentStatus: string;
+  assetSummary: {
+    totalRemainingLessons: number;
+    totalConsumedLessons: number;
+    activePackageCount: number;
+    principalBalance: number;
+    bonusBalance: number;
+  };
+  consumptionHealth: {
+    weeklyBurnRate: number;
+    dailyBurnRate: number;
+    estimatedDepletionDays: number;
+    estimatedDepletionDate: string | null;
+    warningLevel: RenewalWarningLevel;
+    visualBadge: {
+      text: string;
+      type: 'danger' | 'warning' | 'success';
+      color: string;
+    };
+    lastAttendanceDate: string | null;
+    inactiveDays: number;
+    dormantRisk: RenewalDormantRisk;
+    futureScheduledLessons: number;
+  };
+  decision: {
+    renewalWindowOpen: boolean;
+    advice: RenewalAdvice;
+    targetPackageId: string | null;
+    targetCourseId: string | null;
+    targetCourseName: string | null;
+    isRefundLocked: boolean;
+    blockingReason?: string;
+  };
+}
+
+export interface RenewalRosterQuery {
+  page?: number;
+  pageSize?: number;
+  keyword?: string;
+  classId?: string;
+  warningLevel?: RenewalWarningLevel | 'dormant' | 'all';
+  riskLevel?: 'all' | 'critical' | 'warning' | 'normal' | 'dormant';
+  dormantOnly?: boolean;
+  renewalWindowOnly?: boolean;
+  sortBy?: 'depletion_days' | 'remaining_lessons' | 'inactive_days' | 'risk' | 'urgency' | 'remaining';
+  sortOrder?: 'asc' | 'desc';
+}
+
+export interface CampusRenewalRosterResult {
+  total: number;
+  page: number;
+  pageSize: number;
+  statistics: {
+    criticalCount: number;
+    warningCount: number;
+    normalCount: number;
+    dormantCount: number;
+    windowOpenCount: number;
+  };
+  list: StudentRiskDiagnosis[];
+}
+
+export interface ClassRosterStudentHealth {
+  studentId: string;
+  studentNo: string;
+  name: string;
+  phone: string;
+  packageId: string;
+  courseName: string;
+  totalLessons: number;
+  remainingLessons: number;
+  consumedLessons: number;
+  warningLevel: RenewalWarningLevel;
+  visualBadge: {
+    text: string;
+    type: 'danger' | 'warning' | 'success';
+    color: string;
+  };
+  lastAttendanceDate: string | null;
+  inactiveDays: number;
+  isDormant: boolean;
+  canQuickRenew: boolean;
+}
+
+export interface ClassRosterHealthReport {
+  classId: string;
+  className: string;
+  courseId: string;
+  courseName: string;
+  teacherName: string;
+  capacity: number;
+  currentStudentCount: number;
+  classHealthIndex: number;
+  statistics: {
+    criticalCount: number;
+    warningCount: number;
+    normalCount: number;
+    dormantCount: number;
+  };
+  roster: ClassRosterStudentHealth[];
+}
+
+export interface RenewalDraftOptions {
+  packageId?: string;
+  preferredPackageId?: string;
+  targetCourseId?: string;
+  targetClassId?: string;
+  customLessons?: number;
+  recommendedLessons?: number;
+  paymentMethod?: string;
+  customDiscount?: number;
+  operatorId?: string;
+}
+
+export interface RenewalOrderDraft {
+  draftId: string;
+  studentId: string;
+  studentName: string;
+  studentNo: string;
+  campusId: string;
+  campusName: string;
+  createdAt: string;
+  quote: {
+    courseId: string;
+    courseName: string;
+    classId: string | null;
+    className: string | null;
+    totalLessons: number;
+    bonusLessons: number;
+    pricePerLesson: number;
+    originalTotalPrice: number;
+    suggestedDiscount: number;
+    walletPrincipalBalance: number;
+    canUseWalletDeduction: boolean;
+    actualPayAmount: number;
+    paymentMethod: string;
+    remark: string;
+  };
+  validation: {
+    pass: boolean;
+    isClassFull: boolean;
+    isRefundLocked: boolean;
+    warningMessage?: string;
+  };
+  enrollCommand: {
+    studentId: string;
+    courseId: string;
+    classId?: string;
+    totalLessons: number;
+    bonusLessons: number;
+    pricePerLesson: number;
+    discountAmount: number;
+    couponAmount: number;
+    paymentMethod: string;
+    channel: string;
+    ownerId?: string;
+    remark?: string;
+  };
 }

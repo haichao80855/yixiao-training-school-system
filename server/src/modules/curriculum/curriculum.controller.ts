@@ -113,4 +113,10 @@ export class CurriculumController {
   async deleteLesson(@Param('lessonId') lessonId: string) {
     return this.curriculumService.deleteLesson(lessonId);
   }
+
+  @Get('delivery-catalog/:campusId')
+  @RequirePermissions('curriculum:courseManage')
+  async getDeliverableCatalog(@Param('campusId') campusId: string) {
+    return this.curriculumService.getDeliverableCatalog(campusId);
+  }
 }

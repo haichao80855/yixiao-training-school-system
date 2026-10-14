@@ -235,6 +235,8 @@ export function normalizeRollCallStudent(raw: any, evt?: Partial<ScheduleEvent>)
     remainingLessons,
     totalRemainingLessons: remainingLessons,
     pricePerLesson,
+    packageId: raw.packageId || pkg?.id || '',
+    isLowBalance: Boolean(raw.isLowBalance ?? (remainingLessons <= 3)),
     remark: raw.comment || raw.remark || '随堂实操任务完成良好',
   };
 }

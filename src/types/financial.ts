@@ -136,6 +136,7 @@ export interface FinanceSummaryResult {
   totalAmount: number;
   formattedAmount: string;
   summaryText: string;
+  statusCounts?: Record<string, number>;
 }
 
 export interface ApprovalTimelineNode {

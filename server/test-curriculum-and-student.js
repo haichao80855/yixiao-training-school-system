@@ -103,7 +103,7 @@ async function runTests() {
   assert(Array.isArray(courseDetailRes.body.data.authorizedCampuses), '课程详情包含授权校区列表');
 
   // 2.3 新增自定义课程
-  const testCourseCode = `CRS-AI-TEST-${Date.now().toString().slice(-4)}`;
+  const testCourseCode = `CRS-AI-TEST-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
   const newCourseRes = await request(
     {
       hostname: HOST,

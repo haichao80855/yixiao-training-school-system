@@ -328,7 +328,7 @@
             </el-timeline-item>
 
             <el-timeline-item
-              v-for="(node, index) in currentActiveRecord.timeline"
+              v-for="(node, index) in (serverTimelineNodes.length > 0 ? serverTimelineNodes : currentActiveRecord.timeline)"
               :key="index"
               :timestamp="node.time"
               placement="top"
@@ -534,9 +534,26 @@ async function confirmReject() {
   }
 }
 
-function openTimelineDialog(record: ApprovalRecord) {
+const serverTimelineNodes = ref<any[]>([])
+
+async function openTimelineDialog(record: ApprovalRecord) {
   currentActiveRecord.value = record
+  serverTimelineNodes.value = []
   timelineDialogVisible.value = true
+  try {
+    const res = await financialApi.getApprovalTimeline(record.id)
+    if (res && res.success && res.data && Array.isArray(res.data.nodes)) {
+      serverTimelineNodes.value = res.data.nodes.map((n: any) => ({
+        step: n.stepName,
+        operator: n.reviewerName,
+        comment: n.comment,
+        time: n.createdAt ? n.createdAt.replace('T', ' ').slice(0, 19) : '',
+        status: n.action === 'reject' ? 'rejected' : 'passed',
+      }))
+    }
+  } catch (err) {
+    console.warn('[ApprovalFlow] 后端时间轴拉取降级:', err)
+  }
 }
 
 function copyText(text: string, title: string) {
@@ -547,9 +564,11 @@ function copyText(text: string, title: string) {
   }
 }
 
-// 批量通过
+// 批量通过 (单请求调用后端 batchAudit 深模块接口)
 async function handleBatchPass() {
   const count = selectedPendingRows.value.length
+  if (count === 0) return
+
   try {
     await ElMessageBox.confirm(
       `确定要批量通过选中的 ${count} 笔待审单据吗？系统将推进其当前审批节点。`,
@@ -561,15 +580,19 @@ async function handleBatchPass() {
       }
     )
     try {
-      await Promise.all(
-        selectedPendingRows.value.map(item =>
-          financialApi.auditApproval(item.id, {
-            action: 'pass',
-            comment: '批量快速审批通过'
-          })
-        )
-      )
-      ElMessage.success(`成功批量通过 ${count} 笔审批单据`)
+      const approvalIds = selectedPendingRows.value.map(item => item.id)
+      const res = await financialApi.batchAudit({
+        approvalIds,
+        action: 'pass',
+        comment: '批量快速审批通过'
+      })
+      if (res && res.success) {
+        ElMessage.success(`成功批量通过 ${res.data?.successCount ?? count} 笔审批单据`)
+      } else {
+        const failedCount = res.data?.failedCount || 0
+        const successCount = res.data?.successCount || 0
+        ElMessage.warning(`批量处理完成：成功 ${successCount} 笔，失败 ${failedCount} 笔`)
+      }
       await loadApprovals()
     } catch (err: any) {
       ElMessage.error(err.message || '批量审批推进失败')
@@ -579,9 +602,11 @@ async function handleBatchPass() {
   }
 }
 
-// 批量驳回
+// 批量驳回 (单请求调用后端 batchAudit 深模块接口)
 async function handleBatchReject() {
   const count = selectedPendingRows.value.length
+  if (count === 0) return
+
   try {
     const { value } = await ElMessageBox.prompt('请输入批量驳回的统一说明附言：', '批量驳回确认', {
       confirmButtonText: '确定驳回',
@@ -590,15 +615,19 @@ async function handleBatchReject() {
       inputErrorMessage: '驳回说明不能为空'
     })
     try {
-      await Promise.all(
-        selectedPendingRows.value.map(item =>
-          financialApi.auditApproval(item.id, {
-            action: 'reject',
-            comment: value
-          })
-        )
-      )
-      ElMessage.warning(`已批量驳回 ${count} 笔审批单据`)
+      const approvalIds = selectedPendingRows.value.map(item => item.id)
+      const res = await financialApi.batchAudit({
+        approvalIds,
+        action: 'reject',
+        comment: value
+      })
+      if (res && res.success) {
+        ElMessage.warning(`已批量驳回 ${res.data?.successCount ?? count} 笔审批单据`)
+      } else {
+        const failedCount = res.data?.failedCount || 0
+        const successCount = res.data?.successCount || 0
+        ElMessage.warning(`批量驳回完成：已驳回 ${successCount} 笔，异常 ${failedCount} 笔`)
+      }
       await loadApprovals()
     } catch (err: any) {
       ElMessage.error(err.message || '批量驳回失败')

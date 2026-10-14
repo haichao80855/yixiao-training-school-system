@@ -77,6 +77,25 @@
             <div class="text-lg font-bold font-mono text-indigo-600 mt-0.5">{{ student.competitionRecords?.length || 0 }} <span class="text-xs font-normal">项</span></div>
           </div>
         </div>
+
+        <!-- 消课健康度与流失预警单一真值源 (SSOT) -->
+        <div
+          v-if="consumptionHealth"
+          class="mt-3 p-2.5 rounded-lg border text-xs flex items-center justify-between"
+          :class="consumptionHealth.warningLevel === 'urgent' ? 'bg-red-50 border-red-200 text-red-900' : consumptionHealth.warningLevel === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900'"
+        >
+          <div class="flex items-center space-x-3">
+            <span class="font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full" :class="consumptionHealth.warningLevel === 'urgent' ? 'bg-red-500' : consumptionHealth.warningLevel === 'warning' ? 'bg-amber-500' : 'bg-emerald-500'"></span>
+              消课健康度: {{ consumptionHealth.warningLevel === 'urgent' ? '急需续费 / 课时即将耗尽' : consumptionHealth.warningLevel === 'warning' ? '课时偏低预警' : '健康充裕' }}
+            </span>
+            <span class="text-slate-600">周均消课: <b class="font-mono text-slate-900">{{ consumptionHealth.weeklyBurnRate }} 课时/周</b></span>
+            <span class="text-slate-600">预计耗尽: <b class="font-mono text-slate-900">{{ consumptionHealth.estimatedDepletionDays }} 天</b></span>
+            <span v-if="consumptionHealth.dormantRisk" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">14天未消课休眠风险</span>
+            <span v-if="consumptionHealth.renewalWindowOpen" class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-semibold">处于续费跟进黄金期</span>
+          </div>
+          <el-button v-if="consumptionHealth.renewalWindowOpen" size="small" type="primary" link @click="emit('openEnroll', student)">发起续费跟进</el-button>
+        </div>
       </div>
 
       <!-- 2. 5 大全景 Tab 体系 -->
@@ -140,38 +159,210 @@
         <!-- Tab 2: 学习档案 (studentRecord) -->
         <el-tab-pane label="学习档案与成长轨迹" name="records">
           <div class="space-y-4 pt-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-st-muted">出勤签到记录、随堂表现星级、作业评级与作品集</span>
-              <el-button size="small" plain @click="handleAddRecord">+ 录入课评</el-button>
+            <!-- 五维能力星级雷达与综合学情卡片 -->
+            <div v-if="growthRadar" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-xs text-blue-950 flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                  学员五维能力发展雷达 (归一化分值)
+                </span>
+                <span class="text-xs font-mono font-bold text-blue-700 bg-white px-2 py-0.5 rounded border border-blue-200">
+                  综合均分: {{ growthRadar.averageScore }}
+                </span>
+              </div>
+              <div class="grid grid-cols-5 gap-2 text-center text-xs">
+                <div class="bg-white/80 p-2 rounded border border-blue-100">
+                  <div class="text-[11px] text-st-muted">逻辑思维</div>
+                  <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.logic }}</div>
+                </div>
+                <div class="bg-white/80 p-2 rounded border border-blue-100">
+                  <div class="text-[11px] text-st-muted">创新创意</div>
+                  <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.creativity }}</div>
+                </div>
+                <div class="bg-white/80 p-2 rounded border border-blue-100">
+                  <div class="text-[11px] text-st-muted">专注自律</div>
+                  <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.focus }}</div>
+                </div>
+                <div class="bg-white/80 p-2 rounded border border-blue-100">
+                  <div class="text-[11px] text-st-muted">动手实操</div>
+                  <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.handsOn }}</div>
+                </div>
+                <div class="bg-white/80 p-2 rounded border border-blue-100">
+                  <div class="text-[11px] text-st-muted">表达互动</div>
+                  <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.expression }}</div>
+                </div>
+              </div>
             </div>
 
-            <el-timeline class="pl-2">
+            <!-- 工具栏：双模切换与家长端分享 -->
+            <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="flex items-center space-x-3">
+                <el-radio-group v-model="viewMode" size="small">
+                  <el-radio-button label="timeline">时间轴详案</el-radio-button>
+                  <el-radio-button label="gallery">课堂相册墙 ({{ albumGallery.length }}张)</el-radio-button>
+                </el-radio-group>
+                <span class="text-xs text-st-muted hidden sm:inline">共 {{ learningList.length }} 课次随堂记录</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <el-button
+                  size="small"
+                  type="primary"
+                  plain
+                  @click="copyShareLink(profileDetail?.portfolioShareToken || student?.portfolioShareToken)"
+                >
+                  🔗 复制家长端总览链接
+                </el-button>
+                <el-button size="small" plain @click="handleAddRecord">+ 录入课评</el-button>
+              </div>
+            </div>
+
+            <!-- 模式 1：时间轴详案模式 (含 9 宫格相册、录音与视频播放器) -->
+            <el-timeline v-if="viewMode === 'timeline' && learningList.length > 0" class="pl-2">
               <el-timeline-item
                 v-for="rec in learningList"
                 :key="rec.id"
                 :timestamp="rec.date"
                 placement="top"
-                type="primary"
+                :type="rec.isReversed ? 'warning' : 'primary'"
               >
-                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs space-y-2">
+                <div class="bg-slate-50 border border-slate-200 rounded-lg p-3.5 text-xs space-y-2.5">
+                  <!-- 顶栏：课次名称、状态、分数、单课分享 -->
                   <div class="flex justify-between items-center">
-                    <span class="font-bold text-st-title">{{ rec.lessonName }} ({{ rec.courseName }})</span>
                     <div class="flex items-center space-x-2">
-                      <el-tag size="small" type="success">出勤已到</el-tag>
+                      <span class="font-bold text-st-title text-sm">{{ rec.lessonTitle || rec.lessonName }}</span>
+                      <span class="text-st-muted text-[11px]">({{ rec.courseName }})</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <el-tag v-if="rec.isReversed" size="small" type="danger">已反结课冲正</el-tag>
+                      <el-tag v-else size="small" :type="rec.status === 'attended' ? 'success' : rec.status === 'leave' ? 'warning' : 'danger'">
+                        {{ rec.status === 'attended' ? '出勤已到' : rec.status === 'leave' ? '请假' : '缺勤' }}
+                      </el-tag>
                       <span class="font-mono font-bold text-amber-600">{{ rec.score }} 分</span>
+                      <el-button
+                        v-if="rec.shareToken"
+                        size="small"
+                        link
+                        type="primary"
+                        @click="copySingleLessonShareLink(rec.shareToken, rec.scheduleEventId)"
+                      >
+                        分享本课
+                      </el-button>
                     </div>
                   </div>
-                  <div class="text-st-secondary bg-white p-2 rounded border border-gray-100">
-                    <span class="font-semibold text-st-primary">[{{ rec.teacher }} 评语]:</span>
-                    {{ rec.comment }}
+
+                  <!-- 核心素养知识点与教学大纲富文本 -->
+                  <div v-if="rec.studyContentHtml || rec.studyContent" class="text-slate-600 bg-white/90 p-2 rounded border border-slate-100 text-[11px] leading-relaxed">
+                    <span class="font-semibold text-slate-800">【教学大纲重难点】: </span>
+                    <span v-if="rec.studyContentHtml" v-html="rec.studyContentHtml" class="inline" />
+                    <span v-else>{{ rec.studyContent }}</span>
                   </div>
-                  <div class="flex items-center justify-between text-st-muted text-[11px]">
-                    <div>作业评级: <el-tag size="small" type="warning">{{ rec.homeworkRating }}</el-tag></div>
-                    <div v-if="rec.quizScore">随堂测验: <b class="font-mono text-st-title">{{ rec.quizScore }} 分</b></div>
+
+                  <!-- 教师个性化评语与表现亮点标签 -->
+                  <div class="text-st-secondary bg-white p-2.5 rounded border border-gray-100 space-y-1.5">
+                    <div class="flex items-center justify-between">
+                      <span class="font-semibold text-st-primary">[{{ rec.teacher }} 评语]:</span>
+                      <el-tag v-if="rec.performanceTag" size="small" type="success" effect="plain" class="font-medium">
+                        {{ rec.performanceTag }}
+                      </el-tag>
+                    </div>
+                    <div class="leading-relaxed">{{ rec.comment }}</div>
+                  </div>
+
+                  <!-- 开箱即用 9 宫格相册 (图片自带缩略图 thumbnailUrl 与全量预览 previewList) -->
+                  <div v-if="(rec.photos && rec.photos.length > 0) || (rec.photoList && rec.photoList.length > 0)" class="pt-1">
+                    <div class="text-[11px] text-st-muted mb-1 flex items-center gap-1">
+                      <span>📸 随堂精彩瞬间 ({{ rec.photos?.length || rec.photoList?.length }} 张)</span>
+                    </div>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                      <template v-if="rec.photos && rec.photos.length > 0">
+                        <el-image
+                          v-for="photo in rec.photos"
+                          :key="photo.id"
+                          :src="photo.thumbnailUrl"
+                          :preview-src-list="photo.previewList"
+                          preview-teleported
+                          class="w-20 h-20 rounded-lg object-cover border border-slate-200 shadow-2xs cursor-pointer hover:opacity-90 transition"
+                          loading="lazy"
+                          fit="cover"
+                        />
+                      </template>
+                      <template v-else>
+                        <el-image
+                          v-for="(imgUrl, idx) in rec.photoList"
+                          :key="idx"
+                          :src="imgUrl"
+                          :preview-src-list="rec.photoList"
+                          preview-teleported
+                          class="w-20 h-20 rounded-lg object-cover border border-slate-200 shadow-2xs cursor-pointer hover:opacity-90 transition"
+                          loading="lazy"
+                          fit="cover"
+                        />
+                      </template>
+                    </div>
+                  </div>
+
+                  <!-- 随堂原声语音条与视频录屏入口 -->
+                  <div v-if="rec.voiceUrl || rec.videoUrl" class="flex flex-wrap items-center gap-3 pt-1">
+                    <!-- 语音播放器 -->
+                    <div v-if="rec.voiceUrl" class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-full text-xs font-mono border border-emerald-200/60">
+                      <span>🎤 随堂原声点评</span>
+                      <span v-if="rec.voiceMeta">({{ rec.voiceMeta.durationFormatted }})</span>
+                      <audio controls :src="rec.voiceUrl" class="h-6 w-40" />
+                    </div>
+
+                    <!-- 视频链接 -->
+                    <div v-if="rec.videoUrl" class="inline-flex items-center gap-1.5 text-xs text-blue-600 font-semibold bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200/60">
+                      <span>🎥</span>
+                      <a :href="rec.videoUrl" target="_blank" class="hover:underline">查看实操编程视频作品</a>
+                    </div>
+                  </div>
+
+                  <!-- 底栏状态注记 -->
+                  <div class="flex items-center justify-between text-st-muted text-[11px] pt-1 border-t border-slate-100">
+                    <div class="flex items-center space-x-2">
+                      <span>作业评级: <el-tag size="small" type="warning">{{ rec.homeworkRating }}</el-tag></span>
+                      <span v-if="rec.rating">综合星级: <el-tag size="small" type="info">{{ rec.rating }}</el-tag></span>
+                      <span v-if="rec.classroomName">教室: {{ rec.classroomName }}</span>
+                    </div>
+                    <div v-if="rec.isReversed" class="text-red-500 font-mono text-[10px]">
+                      冲正说明: {{ rec.reversalReason || '教务审核冲正' }}
+                    </div>
+                    <div v-else-if="rec.quizScore">随堂测验: <b class="font-mono text-st-title">{{ rec.quizScore }} 分</b></div>
                   </div>
                 </div>
               </el-timeline-item>
             </el-timeline>
+
+            <!-- 模式 2：课堂相册墙模式 (画廊大盘) -->
+            <div v-else-if="viewMode === 'gallery' && albumGallery.length > 0" class="grid grid-cols-3 sm:grid-cols-4 gap-3 py-2">
+              <div
+                v-for="(photo, pIdx) in albumGallery"
+                :key="pIdx"
+                class="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs group hover:shadow-md transition"
+              >
+                <el-image
+                  :src="photo.thumbnailUrl"
+                  :preview-src-list="albumGallery.map((g: any) => g.photoUrl)"
+                  :initial-index="pIdx"
+                  preview-teleported
+                  class="w-full h-28 object-cover cursor-pointer"
+                  loading="lazy"
+                  fit="cover"
+                />
+                <div class="p-2 space-y-0.5">
+                  <div class="font-semibold text-xs text-slate-800 truncate">{{ photo.lessonTitle }}</div>
+                  <div class="flex justify-between text-[10px] text-slate-400">
+                    <span>{{ photo.date }}</span>
+                    <span>{{ photo.teacherName }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-else class="text-center py-8 text-xs text-st-muted bg-slate-50 rounded-lg border border-dashed border-slate-200">
+              {{ viewMode === 'gallery' ? '暂无随堂精彩相册，结课履约上传照片后将在此汇聚呈现。' : '暂无随堂学情记录。随堂点名消课后，系统将自动汇聚形成成长档案轨迹。' }}
+            </div>
           </div>
         </el-tab-pane>
 
@@ -443,15 +634,27 @@ const visible = computed({
 
 const activeTab = ref('courses')
 
+const profileDetail = ref<any>(null)
+
 watch(() => visible.value, async (val) => {
   if (val && props.student?.id) {
     try {
       const res = await studentApi.getStudentProfile(props.student.id)
       if (res && res.success && res.data) {
         const d = res.data
+        profileDetail.value = d
         if (d.wallet && props.student.wallet) {
           props.student.wallet.principalBalance = Number(d.wallet.principalBalance || 0)
           props.student.wallet.bonusBalance = Number(d.wallet.bonusBalance || 0)
+        }
+        if (d.learningRecords) {
+          props.student.learningRecords = d.learningRecords
+        }
+        if (d.growthRadar) {
+          props.student.growthRadar = d.growthRadar
+        }
+        if (d.consumptionHealth) {
+          props.student.consumptionHealth = d.consumptionHealth
         }
       }
     } catch (err: any) {
@@ -476,9 +679,88 @@ const walletLedgerSorted = computed(() => {
   return [...props.student.wallet.ledger].sort((a, b) => b.time.localeCompare(a.time))
 })
 
-const learningList = computed(() => {
-  return props.student?.learningRecords || []
+const consumptionHealth = computed(() => {
+  return profileDetail.value?.consumptionHealth || props.student?.consumptionHealth || null
 })
+
+const growthRadar = computed(() => {
+  return profileDetail.value?.growthRadar || props.student?.growthRadar || null
+})
+
+const learningList = computed(() => {
+  return profileDetail.value?.learningRecords || props.student?.learningRecords || []
+})
+
+const viewMode = ref<'timeline' | 'gallery'>('timeline')
+
+const albumGallery = computed(() => {
+  if (profileDetail.value?.albumGallery?.length) {
+    return profileDetail.value.albumGallery
+  }
+  if (props.student?.albumGallery?.length) {
+    return props.student.albumGallery
+  }
+  // 备用动态提取
+  const extracted: any[] = []
+  for (const item of (learningList.value as any[])) {
+    if (!item.isReversed && item.photos?.length) {
+      for (const p of item.photos) {
+        extracted.push({
+          photoUrl: p.fullUrl,
+          thumbnailUrl: p.thumbnailUrl,
+          date: item.date,
+          courseName: item.courseName,
+          lessonTitle: item.lessonTitle || item.lessonName || '随堂教学',
+          teacherName: item.teacher || '任课老师'
+        })
+      }
+    } else if (!item.isReversed && item.photoList?.length) {
+      for (const u of item.photoList) {
+        extracted.push({
+          photoUrl: u,
+          thumbnailUrl: u,
+          date: item.date,
+          courseName: item.courseName,
+          lessonTitle: item.lessonTitle || item.lessonName || '随堂教学',
+          teacherName: item.teacher || '任课老师'
+        })
+      }
+    }
+  }
+  return extracted
+})
+
+async function copyLinkSafely(url: string, modalTitle: string, successNotice: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(url)
+    ElMessage.success(successNotice)
+  } else {
+    ElMessageBox.alert(url, modalTitle, { confirmButtonText: '确定' })
+  }
+}
+
+async function copyShareLink(token?: string) {
+  let shareToken = token
+  if (!shareToken && props.student?.id) {
+    const res = await studentApi.getStudentProfile(props.student.id)
+    shareToken = res?.data?.portfolioShareToken
+  }
+  const origin = window.location.origin
+  const url = shareToken
+    ? `${origin}/public/growth-report?token=${shareToken}`
+    : `${origin}/public/growth-report?studentId=${props.student?.id || ''}`
+
+  await copyLinkSafely(url, '家长端全景学情报告分享链接', '已复制家长端全景学情报告分享链接，可直接发送给学员家长！')
+}
+
+async function copySingleLessonShareLink(token: string, scheduleEventId?: string) {
+  const origin = window.location.origin
+  const url = scheduleEventId
+    ? `${origin}/public/growth-report?token=${token}&scheduleEventId=${scheduleEventId}`
+    : `${origin}/public/growth-report?token=${token}`
+
+  await copyLinkSafely(url, '单课课评报告安全链接', '已复制单课课评报告安全链接，可直接发送给学员家长！')
+}
 
 function calcProgress(pkg: StudentCoursePackage) {
   const consumed = pkg.consumedLessons || (pkg.totalLessons - pkg.remainingLessons)

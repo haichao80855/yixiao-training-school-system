@@ -8,16 +8,20 @@ import { CurriculumModule } from './modules/curriculum/curriculum.module';
 import { StudentModule } from './modules/student/student.module';
 import { EducationalModule } from './modules/educational/educational.module';
 import { FinancialModule } from './modules/financial/financial.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { DataScopeModule } from './modules/data-scope/data-scope.module';
 import { AppController } from './app.controller';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from './modules/auth/guards/permissions.guard';
 import { DataScopeGuard } from './modules/auth/guards/data-scope.guard';
+import { ScopeContextInterceptor } from './modules/data-scope/adapters/scope-context.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    DataScopeModule,
     PrismaModule,
     AuthModule,
     SystemModule,
@@ -25,6 +29,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     StudentModule,
     EducationalModule,
     FinancialModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [
@@ -43,12 +48,17 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
       provide: APP_GUARD,
       useClass: DataScopeGuard,
     },
-    // 全局统一统一响应格式包装拦截器
+    // 4. 全局行级数据隔离上下文拦截器 (建立 AsyncLocalStorage 异步调用链作用域)
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ScopeContextInterceptor,
+    },
+    // 5. 全局统一响应格式包装拦截器
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
     },
-    // 全局统一 HTTP 异常过滤器
+    // 6. 全局统一 HTTP 异常过滤器
     {
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,

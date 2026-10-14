@@ -58,6 +58,18 @@
           </el-select>
         </div>
 
+        <!-- 课消风控与续费决策 -->
+        <div>
+          <label class="block text-xs text-st-secondary mb-1">课消风控与续费决策</label>
+          <el-select v-model="selectedWarningLevel" size="small" placeholder="全部风控" class="w-full" clearable>
+            <el-option label="全部风控状态" value="all" />
+            <el-option label="🚨 紧急续约 (<=4课时)" value="critical" />
+            <el-option label="⚠️ 预警跟进 (<=8课时)" value="warning" />
+            <el-option label="💤 停消休眠 (>=14天)" value="dormant" />
+            <el-option label="✅ 课消充沛正常" value="normal" />
+          </el-select>
+        </div>
+
         <!-- 录入时间 -->
         <div>
           <label class="block text-xs text-st-secondary mb-1">建档录入时间</label>
@@ -228,6 +240,49 @@
           </template>
         </el-table-column>
 
+        <!-- 课消风控与续费决策 -->
+        <el-table-column label="课消风控 / 续约建议" min-width="160">
+          <template #default="{ row }">
+            <div class="text-xs space-y-1">
+              <div class="flex items-center space-x-1.5">
+                <el-tag
+                  v-if="row.warningLevel === 'urgent' || row.warningLevel === 'critical'"
+                  type="danger"
+                  size="small"
+                  effect="dark"
+                >
+                  🚨 极度枯竭
+                </el-tag>
+                <el-tag
+                  v-else-if="row.warningLevel === 'warning'"
+                  type="warning"
+                  size="small"
+                  effect="light"
+                >
+                  ⚠️ 续费预警
+                </el-tag>
+                <el-tag
+                  v-else
+                  type="success"
+                  size="small"
+                  effect="plain"
+                >
+                  ✅ 充沛正常
+                </el-tag>
+                <span class="font-mono text-st-muted text-[11px]">
+                  余 {{ row.totalRemainingLessons ?? row.coursePackages?.reduce((s: number, p: any) => s + (p.remainingLessons || 0), 0) ?? 0 }} 课时
+                </span>
+              </div>
+              <div v-if="row.consumptionHealth?.dormantRisk && row.consumptionHealth.dormantRisk !== 'active'" class="text-[10px] text-purple-600 font-semibold">
+                💤 停消休眠 {{ row.consumptionHealth.inactiveDays }} 天
+              </div>
+              <div v-else-if="row.consumptionHealth?.estimatedDepletionDays !== undefined" class="text-[10px] text-st-muted">
+                预计 {{ row.consumptionHealth.estimatedDepletionDays }} 天后课时耗尽
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
         <!-- 电子钱包余额 -->
         <el-table-column label="电子钱包余额" width="120" align="right">
           <template #default="{ row }">
@@ -267,11 +322,20 @@
         </el-table-column>
 
         <!-- 操作栏 -->
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <div class="flex items-center space-x-1.5">
               <el-button link type="primary" size="small" @click="handleOpenDrawer(row)">
                 360°画像
+              </el-button>
+              <el-button
+                v-if="row.warningLevel === 'urgent' || row.warningLevel === 'critical' || row.warningLevel === 'warning' || row.consumptionHealth?.visualBadge"
+                link
+                type="warning"
+                size="small"
+                @click="handleQuickRenewal(row)"
+              >
+                一键续费
               </el-button>
               <el-button link type="success" size="small" @click="handleEnroll(row)">
                 报读
@@ -336,6 +400,7 @@
     <EnrollDialog
       v-model="enrollDialogVisible"
       :student="activeStudent"
+      :renewal-draft="activeRenewalDraft"
       @success="refreshData"
     />
 
@@ -384,6 +449,7 @@ const keyword = ref('')
 const selectedCampus = ref('all')
 const selectedGrade = ref('')
 const selectedStatus = ref('all')
+const selectedWarningLevel = ref('all')
 const dateRange = ref<[string, string] | null>(null)
 
 // 分页
@@ -399,6 +465,7 @@ const formDialogVisible = ref(false)
 const faceDialogVisible = ref(false)
 
 const activeStudent = ref<Student | null>(null)
+const activeRenewalDraft = ref<any>(null)
 const formStudent = ref<Student | null>(null)
 
 // 校区标题展示
@@ -419,6 +486,7 @@ async function loadStudents() {
       campusId: selectedCampus.value === 'all' ? undefined : selectedCampus.value,
       keyword: keyword.value || undefined,
       status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
+      warningLevel: selectedWarningLevel.value === 'all' ? undefined : selectedWarningLevel.value,
       pageSize: 200
     })
     if (res && res.success && res.data) {
@@ -439,6 +507,11 @@ onMounted(() => {
 })
 
 watch(() => selectedCampus.value, () => {
+  loadStudents()
+  currentPage.value = 1
+})
+
+watch(() => selectedWarningLevel.value, () => {
   loadStudents()
   currentPage.value = 1
 })
@@ -475,6 +548,21 @@ const filteredStudents = computed(() => {
     // 状态
     if (selectedStatus.value !== 'all' && s.status !== selectedStatus.value) {
       return false
+    }
+
+    // 课消风控与续费决策
+    if (selectedWarningLevel.value && selectedWarningLevel.value !== 'all') {
+      const risk = s.riskLevel || s.warningLevel
+      if (selectedWarningLevel.value === 'dormant') {
+        const dRisk = s.consumptionHealth?.dormantRisk
+        if (!dRisk || dRisk === 'active') return false
+      } else if (selectedWarningLevel.value === 'critical') {
+        if (risk !== 'urgent' && risk !== 'critical') return false
+      } else if (selectedWarningLevel.value === 'warning') {
+        if (risk !== 'warning') return false
+      } else if (selectedWarningLevel.value === 'normal') {
+        if (risk !== 'normal') return false
+      }
     }
 
     // 年级
@@ -541,6 +629,7 @@ function handleReset() {
   selectedCampus.value = 'all'
   selectedGrade.value = ''
   selectedStatus.value = 'all'
+  selectedWarningLevel.value = 'all'
   dateRange.value = null
   currentPage.value = 1
 }
@@ -556,8 +645,23 @@ function handleOpenDrawer(student: Student) {
 }
 
 function handleEnroll(student?: Student) {
+  activeRenewalDraft.value = null
   activeStudent.value = student || null
   enrollDialogVisible.value = true
+}
+
+async function handleQuickRenewal(student: Student) {
+  try {
+    const res = await studentApi.createRenewalOrderDraft(student.id)
+    if (res && res.data) {
+      activeRenewalDraft.value = res.data
+      activeStudent.value = student
+      enrollDialogVisible.value = true
+      ElMessage.success(`已为学员 [${student.name}] 生成智能续费草案，原课包单价与优惠已锁定`)
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '生成续费草案失败')
+  }
 }
 
 function handleMovement(student: Student) {

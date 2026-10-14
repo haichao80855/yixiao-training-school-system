@@ -186,7 +186,37 @@ async function runTests() {
   console.log('\n--- 4. 多级风控审批流中心 (Approval Flow) 三级状态机穿透验证 ---');
 
   // 4.1 查找或新建一个需要审批的订单
-  const refundOrder = ordersRes.body.data.list.find((o) => o.orderType === 'refund') || sampleOrder;
+  const studentListInit = await request({
+    hostname: HOST,
+    port: PORT,
+    path: '/api/students',
+    method: 'GET',
+    headers: authHeaders,
+  });
+  const coursesListInit = await request({
+    hostname: HOST,
+    port: PORT,
+    path: '/api/curriculum/courses',
+    method: 'GET',
+    headers: authHeaders,
+  });
+  const enrollForApproval = await request(
+    {
+      hostname: HOST,
+      port: PORT,
+      path: '/api/students/enroll',
+      method: 'POST',
+      headers: authHeaders,
+    },
+    {
+      studentId: studentListInit.body.data.list[0].id,
+      courseId: coursesListInit.body.data.list[0].id,
+      totalLessons: 20,
+      pricePerLesson: 200,
+      paymentMethod: 'alipay',
+    },
+  );
+  const refundOrder = { id: enrollForApproval.body.data.orderId };
 
   // 创建审批工单
   const createApprovalRes = await request(
@@ -199,7 +229,7 @@ async function runTests() {
     },
     {
       orderId: refundOrder.id,
-      businessType: 'refund',
+      businessType: 'payment',
       applicantName: '冬海潮（校区主管）',
     },
   );

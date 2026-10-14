@@ -206,6 +206,7 @@ async function handleSubmitRollCall() {
       scheduleId: event.value.id,
       attendances: studentRows.value.map(r => ({
         studentId: r.studentId,
+        packageId: r.packageId,
         status: r.status,
         deductLessons: r.deductionLessons,
         comment: r.remark

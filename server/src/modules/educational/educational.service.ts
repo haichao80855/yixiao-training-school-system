@@ -9,10 +9,20 @@ import { CreateClassroomDto, UpdateClassroomDto } from './dto/classroom.dto';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
 import { CreateScheduleDto, CheckCollisionDto } from './dto/schedule.dto';
 import { RollCallDto } from './dto/attendance.dto';
+import { LessonSettlementEngine } from './domain/lesson-settlement.engine';
+import { WorkbenchQuery } from './domain/lesson-settlement.types';
+
+import { CourseDeliveryEngine } from '../curriculum/domain/course-delivery.engine';
+import { ClassRosterCoordinator } from './domain/class-roster.coordinator';
 
 @Injectable()
 export class EducationalService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settlementEngine: LessonSettlementEngine,
+    private readonly deliveryEngine: CourseDeliveryEngine,
+    private readonly rosterCoordinator: ClassRosterCoordinator,
+  ) {}
 
   // ----------------------------------------------------------------
   // 0. 在职讲师与教务人员列表 (Teachers)
@@ -193,6 +203,9 @@ export class EducationalService {
   }
 
   async createClass(dto: CreateClassDto) {
+    // 跨校区课程交付准入强校验 (Delivery Access Invariant)
+    await this.deliveryEngine.assertDeliveryAccess(dto.courseId, dto.campusId);
+
     const existing = await this.prisma.class.findUnique({
       where: { code: dto.code },
     });
@@ -230,42 +243,18 @@ export class EducationalService {
   }
 
   async bindStudentToClass(classId: string, studentId: string) {
-    const cls = await this.getClassById(classId);
-
-    // 查找该学员是否持有该班级对应课程的有效课包
-    const pkg = await this.prisma.studentCoursePackage.findFirst({
-      where: {
-        studentId,
-        courseId: cls.courseId,
-        status: 'active',
-      },
+    const result = await this.rosterCoordinator.assignStudents({
+      classId,
+      studentIds: [studentId],
     });
 
-    if (!pkg) {
-      throw new BadRequestException(`学员尚未报读或未持有该班级对应课程的有效课包`);
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      await tx.studentCoursePackage.update({
-        where: { id: pkg.id },
-        data: { classId },
-      });
-
-      const updatedClass = await tx.class.update({
-        where: { id: classId },
-        data: {
-          currentStudentCount: { increment: 1 },
-        },
-      });
-
-      return {
-        success: true,
-        message: '学员已成功编入班级',
-        classId,
-        studentId,
-        currentStudentCount: updatedClass.currentStudentCount,
-      };
-    });
+    return {
+      success: true,
+      message: result.message,
+      classId: result.classId,
+      studentId,
+      currentStudentCount: result.currentStudentCount,
+    };
   }
 
   /**
@@ -396,6 +385,29 @@ export class EducationalService {
       }
     }
 
+    // 4. 教室容量三维冲突校验 (班级学员人数超限)
+    if (dto.classroomId && dto.classId) {
+      const [classroom, cls] = await Promise.all([
+        this.prisma.classroom.findUnique({ where: { id: dto.classroomId } }),
+        this.prisma.class.findUnique({
+          where: { id: dto.classId },
+          include: { studentPackages: true },
+        }),
+      ]);
+      if (classroom && cls) {
+        const studentCount = cls.studentPackages.filter(
+          (p) => p.status === 'active',
+        ).length;
+        if (classroom.capacity && studentCount > classroom.capacity) {
+          conflicts.push({
+            type: 'classroom',
+            message: `教室【${classroom.name}】容量上限为 ${classroom.capacity} 人，但班级【${cls.name}】在读学员为 ${studentCount} 人，超出教室容量上限`,
+            conflictingScheduleId: '',
+          });
+        }
+      }
+    }
+
     return {
       hasConflict: conflicts.length > 0,
       conflicts,
@@ -442,16 +454,29 @@ export class EducationalService {
           },
         },
         _count: { select: { attendances: true } },
+        evaluation: { select: { id: true, status: true, updatedAt: true } },
       },
     });
 
-    return schedules;
+    return schedules.map((s: any) => ({
+      ...s,
+      evaluationStatus: s.evaluation?.status || 'none',
+    }));
   }
 
   /**
    * 创建排课日程 (自适应冲突标记与 Lane 泳道计算)
    */
   async createSchedule(dto: CreateScheduleDto) {
+    // 跨校区排课准入核验：核验班级所属课程对该排课校区是否具备交付授权
+    const cls = await this.prisma.class.findUnique({
+      where: { id: dto.classId },
+    });
+    if (!cls) {
+      throw new NotFoundException(`未找到对应班级 ID: ${dto.classId}`);
+    }
+    await this.deliveryEngine.assertDeliveryAccess(cls.courseId, dto.campusId);
+
     // 碰撞检测
     const collisionCheck = await this.checkCollision({
       date: dto.date,
@@ -516,228 +541,36 @@ export class EducationalService {
   }
 
   // ----------------------------------------------------------------
-  // 4. 点名消课授课工作台与反结课冲正机制 (Attendance & Reversal)
+  // 4. 点名消课授课工作台与反结课冲正机制 (Attendance & Reversal - 委托至 LessonSettlementEngine)
   // ----------------------------------------------------------------
 
   /**
    * 获取排课日程对应的点名学员名单及课包余额
    */
   async getRollCallStudents(scheduleEventId: string) {
-    const schedule = await this.prisma.scheduleEvent.findUnique({
-      where: { id: scheduleEventId },
-      include: {
-        class: {
-          include: {
-            course: true,
-            studentPackages: {
-              where: { status: 'active' },
-              include: {
-                student: {
-                  select: {
-                    id: true,
-                    studentNo: true,
-                    name: true,
-                    phone: true,
-                    gender: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-        attendances: true,
-      },
-    });
-
-    if (!schedule) {
-      throw new NotFoundException(`未找到排课日程 ID: ${scheduleEventId}`);
-    }
-
-    const attendanceMap = new Map(schedule.attendances.map((a) => [a.studentId, a]));
-
-    return schedule.class.studentPackages.map((pkg) => {
-      const recorded = attendanceMap.get(pkg.studentId);
-      return {
-        studentId: pkg.student.id,
-        studentNo: pkg.student.studentNo,
-        name: pkg.student.name,
-        phone: pkg.student.phone,
-        packageId: pkg.id,
-        remainingLessons: pkg.remainingLessons,
-        bonusLessons: pkg.bonusLessons,
-        totalLessons: pkg.totalLessons,
-        attendanceStatus: recorded ? recorded.status : 'present',
-        isRecorded: !!recorded,
-        score: recorded ? recorded.score : null,
-        rating: recorded ? recorded.rating : null,
-        comment: recorded ? recorded.comment : '',
-      };
-    });
+    const session = await this.settlementEngine.prepareRollCallSession(scheduleEventId);
+    return session.students;
   }
 
   /**
    * 随堂点名消课 (批量事务扣除课时)
    */
   async rollCall(dto: RollCallDto, operatorName: string) {
-    const schedule = await this.prisma.scheduleEvent.findUnique({
-      where: { id: dto.scheduleEventId },
-      include: {
-        class: true,
-        attendances: true,
-      },
-    });
-
-    if (!schedule) {
-      throw new NotFoundException(`未找到排课日程 ${dto.scheduleEventId}`);
-    }
-
-    if (schedule.status === 'completed') {
-      throw new BadRequestException('该排课日程已点名结课，如需变更请先执行反结课冲正');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      const records = [];
-
-      for (const item of dto.items) {
-        const deductLessons = item.deductLessons !== undefined ? item.deductLessons : 1;
-
-        // 1. 创建 AttendanceRecord
-        const rec = await tx.attendanceRecord.create({
-          data: {
-            scheduleEventId: schedule.id,
-            studentId: item.studentId,
-            status: item.status,
-            deductLessons: item.status === 'present' || item.status === 'late' ? deductLessons : 0,
-            comment: item.comment || null,
-            score: item.score || null,
-            rating: item.rating || null,
-            operator: operatorName,
-            isReversed: false,
-          },
-        });
-        records.push(rec);
-
-        // 2. 如果出勤，原子级扣减学员课包剩余课时
-        if (item.status === 'present' || item.status === 'late') {
-          const pkg = await tx.studentCoursePackage.findFirst({
-            where: {
-              studentId: item.studentId,
-              courseId: schedule.class.courseId,
-              status: 'active',
-            },
-          });
-
-          if (pkg) {
-            await tx.studentCoursePackage.update({
-              where: { id: pkg.id },
-              data: {
-                remainingLessons: { decrement: deductLessons },
-                consumedLessons: { increment: deductLessons },
-              },
-            });
-          }
-        }
-      }
-
-      // 3. 更新排课日程状态为 completed，语义类型为已结课 completed (盛通绿色标签)
-      await tx.scheduleEvent.update({
-        where: { id: schedule.id },
-        data: {
-          status: 'completed',
-          semanticType: 'completed',
-        },
-      });
-
-      return {
-        success: true,
-        scheduleEventId: schedule.id,
-        completedCount: records.length,
-        message: `成功完成 ${records.length} 名学员的点名消课`,
-      };
-    });
+    return this.settlementEngine.settleRollCall(dto, operatorName);
   }
 
   /**
    * 盛通反结课 / 撤销点名冲正机制 (防重放与课时原路退还)
    */
-  async reverseScheduleAttendance(scheduleEventId: string, operatorName: string) {
-    const schedule = await this.prisma.scheduleEvent.findUnique({
-      where: { id: scheduleEventId },
-      include: {
-        class: true,
-        attendances: true,
-      },
-    });
+  async reverseScheduleAttendance(scheduleEventId: string, operatorName: string, reason?: string) {
+    return this.settlementEngine.reverseRollCall(scheduleEventId, operatorName, reason);
+  }
 
-    if (!schedule) {
-      throw new NotFoundException(`未找到排课日程 ${scheduleEventId}`);
-    }
-
-    if (schedule.attendances.length === 0) {
-      throw new BadRequestException('该日程尚未点名，无需反结课冲正');
-    }
-
-    // 检查是否已经全被冲正
-    const activeAttendances = schedule.attendances.filter((a) => !a.isReversed);
-    if (activeAttendances.length === 0) {
-      throw new BadRequestException('该排课日程的点名记录已被冲正，严禁重复反结课（抵御重放刷课）');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      let refundedLessonTotal = 0;
-
-      for (const att of activeAttendances) {
-        // 1. 如果该条记录曾经扣减过课时，原路退还学员课包
-        if (att.deductLessons > 0) {
-          const pkg = await tx.studentCoursePackage.findFirst({
-            where: {
-              studentId: att.studentId,
-              courseId: schedule.class.courseId,
-            },
-          });
-
-          if (pkg) {
-            await tx.studentCoursePackage.update({
-              where: { id: pkg.id },
-              data: {
-                remainingLessons: { increment: att.deductLessons },
-                consumedLessons: { decrement: att.deductLessons },
-              },
-            });
-            refundedLessonTotal += att.deductLessons;
-          }
-        }
-
-        // 2. 打上不可逆冲正标记
-        await tx.attendanceRecord.update({
-          where: { id: att.id },
-          data: {
-            isReversed: true,
-            reversedAt: new Date(),
-            comment: att.comment
-              ? `${att.comment} [已由 ${operatorName} 执行反结课冲正]`
-              : `[已由 ${operatorName} 执行反结课冲正]`,
-          },
-        });
-      }
-
-      // 3. 排课日程状态回滚为 scheduled，语义类型恢复为 regular
-      await tx.scheduleEvent.update({
-        where: { id: schedule.id },
-        data: {
-          status: 'scheduled',
-          semanticType: 'regular',
-        },
-      });
-
-      return {
-        success: true,
-        scheduleEventId,
-        reversedCount: activeAttendances.length,
-        refundedLessons: refundedLessonTotal,
-        message: `反结课冲正成功！已回滚 ${activeAttendances.length} 条点名记录，原路退还 ${refundedLessonTotal} 课时`,
-      };
-    });
+  /**
+   * 获取授课工作台就绪快照与看板指标
+   */
+  async getWorkbenchSnapshot(query: WorkbenchQuery) {
+    return this.settlementEngine.getWorkbenchSnapshot(query);
   }
 
   /**
@@ -777,29 +610,37 @@ export class EducationalService {
    * 获取考勤点名台账流水记录
    */
   async getAttendanceRecords(query: { campusId?: string; classId?: string; scheduleEventId?: string; studentId?: string }) {
-    const where: any = {};
-    if (query.scheduleEventId) where.scheduleEventId = query.scheduleEventId;
-    if (query.studentId) where.studentId = query.studentId;
-    if (query.classId) {
-      where.scheduleEvent = { classId: query.classId };
-    }
-    if (query.campusId && query.campusId !== 'all') {
-      where.scheduleEvent = { ...(where.scheduleEvent || {}), campusId: query.campusId };
+    if (query.studentId || query.scheduleEventId) {
+      const where: any = {};
+      if (query.scheduleEventId) where.scheduleEventId = query.scheduleEventId;
+      if (query.studentId) where.studentId = query.studentId;
+      if (query.classId) {
+        where.scheduleEvent = { classId: query.classId };
+      }
+      if (query.campusId && query.campusId !== 'all') {
+        where.scheduleEvent = { ...(where.scheduleEvent || {}), campusId: query.campusId };
+      }
+
+      return this.prisma.attendanceRecord.findMany({
+        where,
+        include: {
+          scheduleEvent: {
+            include: {
+              class: true,
+              teacher: true,
+              classroom: true,
+            },
+          },
+          student: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
     }
 
-    return this.prisma.attendanceRecord.findMany({
-      where,
-      include: {
-        scheduleEvent: {
-          include: {
-            class: true,
-            teacher: true,
-            classroom: true,
-          },
-        },
-        student: true,
-      },
-      orderBy: { createdAt: 'desc' },
+    const snapshot = await this.settlementEngine.getWorkbenchSnapshot({
+      campusId: query.campusId,
+      classId: query.classId,
     });
+    return snapshot.history;
   }
 }

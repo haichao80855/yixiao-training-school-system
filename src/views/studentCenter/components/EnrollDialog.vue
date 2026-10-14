@@ -15,6 +15,26 @@
         <el-step title="支付结算入库" />
       </el-steps>
 
+      <!-- 续费决策智能草案横条 -->
+      <div v-if="props.renewalDraft" class="bg-amber-50 border border-amber-200 rounded p-3 text-xs flex items-center justify-between text-amber-900">
+        <div class="flex items-center space-x-2">
+          <span class="text-base">📋</span>
+          <div>
+            <div class="font-bold flex items-center space-x-1.5">
+              <span>续费开单智能预填草案已就绪</span>
+              <el-tag size="small" type="warning" effect="dark">{{ props.renewalDraft.draftId }}</el-tag>
+            </div>
+            <div class="text-[11px] text-amber-700 mt-0.5">
+              原课程: {{ props.renewalDraft.quote.courseName }} | 单价: ¥{{ props.renewalDraft.quote.pricePerLesson }}/课时 | 课时: {{ props.renewalDraft.quote.totalLessons }}讲 (+赠{{ props.renewalDraft.quote.bonusLessons }}讲)
+            </div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="font-bold text-amber-800">立减 ¥{{ props.renewalDraft.quote.suggestedDiscount }}</div>
+          <div class="text-[11px] text-amber-600 font-mono">应收: ¥{{ props.renewalDraft.quote.actualPayAmount }}</div>
+        </div>
+      </div>
+
       <!-- Step 1: 确认学员与校区 -->
       <div v-if="currentStep === 0" class="border border-st-border rounded-lg p-5 bg-white space-y-4">
         <h4 class="text-sm font-bold text-st-title border-b pb-2">第 1 步：确认报读学员与合同签约校区</h4>
@@ -208,6 +228,7 @@ import type { CourseItem } from '@/types/curriculum'
 const props = defineProps<{
   modelValue: boolean
   student?: Student | null
+  renewalDraft?: any | null
 }>()
 
 const emit = defineEmits<{
@@ -303,6 +324,21 @@ async function resetForm() {
   formData.discountAmount = 0
   formData.paymentMethod = 'wechat'
 
+  if (props.renewalDraft) {
+    const draft = props.renewalDraft
+    formData.studentId = draft.studentId
+    formData.campusId = draft.campusId || tenantStore.currentCampusId
+    formData.courseId = draft.quote.courseId
+    formData.pricePerLesson = draft.quote.pricePerLesson
+    formData.lessonCount = draft.quote.totalLessons
+    formData.bonusLessons = draft.quote.bonusLessons || 2
+    formData.discountAmount = draft.quote.suggestedDiscount || 0
+    formData.couponAmount = 0
+    formData.paymentMethod = draft.quote.paymentMethod || (draft.quote.canUseWalletDeduction ? 'wallet' : 'wechat')
+    currentStep.value = 1
+    return
+  }
+
   if (props.student) {
     formData.studentId = props.student.id
     formData.campusId = props.student.campusId || tenantStore.currentCampusId
@@ -332,6 +368,15 @@ watch(
 
 watch(
   () => props.student,
+  () => {
+    if (props.modelValue) {
+      resetForm()
+    }
+  }
+)
+
+watch(
+  () => props.renewalDraft,
   () => {
     if (props.modelValue) {
       resetForm()
@@ -381,18 +426,33 @@ function getPaymentMethodLabel(method: string) {
 async function handleSubmit() {
   submitting.value = true
   try {
-    const apiRes = await studentApi.enroll({
-      studentId: formData.studentId,
-      courseId: formData.courseId,
-      totalLessons: formData.lessonCount,
-      bonusLessons: formData.bonusLessons,
-      pricePerLesson: formData.pricePerLesson,
-      discountAmount: formData.discountAmount,
-      couponAmount: formData.couponAmount,
-      paymentMethod: formData.paymentMethod,
-      channel: 'ground',
-      remark: '前端签约开单向导提交',
-    })
+    const draftCmd = props.renewalDraft?.enrollCommand
+    const payload = draftCmd
+      ? {
+          ...draftCmd,
+          studentId: formData.studentId,
+          courseId: formData.courseId,
+          totalLessons: formData.lessonCount,
+          bonusLessons: formData.bonusLessons,
+          pricePerLesson: formData.pricePerLesson,
+          discountAmount: formData.discountAmount,
+          couponAmount: formData.couponAmount,
+          paymentMethod: formData.paymentMethod,
+        }
+      : {
+          studentId: formData.studentId,
+          courseId: formData.courseId,
+          totalLessons: formData.lessonCount,
+          bonusLessons: formData.bonusLessons,
+          pricePerLesson: formData.pricePerLesson,
+          discountAmount: formData.discountAmount,
+          couponAmount: formData.couponAmount,
+          paymentMethod: formData.paymentMethod,
+          channel: 'ground',
+          remark: '前端签约开单向导提交',
+        }
+
+    const apiRes = await studentApi.enroll(payload)
 
     const orderNo = apiRes?.data?.orderNo || ''
     ElMessage.success(orderNo ? `签约开单成功！订单已落盘：${orderNo}` : '签约开单成功！')

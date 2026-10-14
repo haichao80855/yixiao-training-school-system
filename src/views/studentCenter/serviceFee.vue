@@ -94,7 +94,7 @@
         :data="filteredRecords"
         style="width: 100%"
         stripe
-        @selection-change="(rows: ServiceFeeRecord[]) => selectedRows = rows"
+        @selection-change="(rows: ServiceFeeRecordItem[]) => selectedRows = rows"
       >
         <el-table-column type="selection" width="45" align="center" />
         <el-table-column prop="certNo" label="报考单号" width="150">
@@ -254,16 +254,16 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { studentApi } from '@/api'
-import { serviceFeeManager } from '@/utils/serviceFeeManager'
-import type { ServiceFeeRecord, Student } from '@/types/student'
+import type { Student } from '@/types/student'
+import type { ServiceFeeRecordItem } from '@/api/modules/student'
 
 const activeTab = ref('all')
 const keyword = ref('')
 const selectedCategory = ref('')
-const selectedRows = ref<ServiceFeeRecord[]>([])
+const selectedRows = ref<ServiceFeeRecordItem[]>([])
 
 const studentsList = ref<Student[]>([])
-const feeRecords = ref<ServiceFeeRecord[]>(serviceFeeManager.getRecords())
+const feeRecords = ref<ServiceFeeRecordItem[]>([])
 
 async function loadStudents() {
   try {
@@ -272,14 +272,29 @@ async function loadStudents() {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       studentsList.value = list
     }
-  } catch (err: any) {
-    ElMessage.error(err.message || '加载学员列表失败')
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '加载学员列表失败')
     studentsList.value = []
+  }
+}
+
+async function loadRecords() {
+  try {
+    const res = await studentApi.getServiceFees()
+    if (res && res.data && Array.isArray(res.data)) {
+      feeRecords.value = res.data
+      return
+    }
+    feeRecords.value = []
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '加载考务代报考账本失败')
+    feeRecords.value = []
   }
 }
 
 onMounted(() => {
   loadStudents()
+  loadRecords()
 })
 
 const records = computed(() => {
@@ -330,9 +345,9 @@ function handleReset() {
 
 // 凭证查看
 const voucherDialogVisible = ref(false)
-const activeRecord = ref<ServiceFeeRecord | null>(null)
+const activeRecord = ref<ServiceFeeRecordItem | null>(null)
 
-function handleViewVoucher(row: ServiceFeeRecord) {
+function handleViewVoucher(row: ServiceFeeRecordItem) {
   activeRecord.value = row
   voucherDialogVisible.value = true
 }
@@ -359,12 +374,12 @@ function handleStudentSelect(sId: string) {
   }
 }
 
-function handleConfirmAdd() {
+async function handleConfirmAdd() {
   if (!newRecordForm.examType.trim()) {
     ElMessage.warning('请输入考级或赛事项目名称')
     return
   }
-  serviceFeeManager.addRecord({
+  const payload = {
     studentId: newRecordForm.studentId,
     studentName: newRecordForm.studentName,
     studentNo: newRecordForm.studentNo,
@@ -375,43 +390,57 @@ function handleConfirmAdd() {
     fee: newRecordForm.fee,
     invoiceTitle: newRecordForm.invoiceTitle || `${newRecordForm.studentName} (个人)`,
     operator: '学管财务'
-  })
-  feeRecords.value = serviceFeeManager.getRecords()
-  ElMessage.success('代报考记录已添加，并推送至易快报待审池！')
-  showAddDialog.value = false
-  newRecordForm.examType = ''
+  }
+  try {
+    await studentApi.createServiceFee(payload)
+    await loadRecords()
+    ElMessage.success('代报考记录已添加，并推送至易快报待审池！')
+    showAddDialog.value = false
+    newRecordForm.examType = ''
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '添加代报考记录失败')
+  }
 }
 
 // 单条核销
 const singleVerifyDialog = ref(false)
-const verifyTarget = ref<ServiceFeeRecord | null>(null)
+const verifyTarget = ref<ServiceFeeRecordItem | null>(null)
 const verifyVoucherNo = ref('')
 
-function handleSingleVerify(row: ServiceFeeRecord) {
+function handleSingleVerify(row: ServiceFeeRecordItem) {
   verifyTarget.value = row
   verifyVoucherNo.value = `YKB-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
   singleVerifyDialog.value = true
 }
 
-function confirmSingleVerify() {
+async function confirmSingleVerify() {
   if (!verifyTarget.value) return
-  serviceFeeManager.verifyRecord(verifyTarget.value.id, verifyVoucherNo.value)
-  feeRecords.value = serviceFeeManager.getRecords()
-  ElMessage.success(`核销入账成功！易快报凭证号: ${verifyVoucherNo.value}`)
-  singleVerifyDialog.value = false
+  try {
+    await studentApi.verifyServiceFee(verifyTarget.value.id, verifyVoucherNo.value)
+    await loadRecords()
+    ElMessage.success(`核销入账成功！易快报凭证号: ${verifyVoucherNo.value}`)
+    singleVerifyDialog.value = false
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '核销入账失败')
+  }
 }
 
 // 批量核销
-function handleBatchVerify() {
+async function handleBatchVerify() {
   const pendingIds = selectedRows.value.filter(r => r.status === 'pending').map(r => r.id)
   if (pendingIds.length === 0) {
     ElMessage.info('所选项中没有待核销记录')
     return
   }
-  const count = serviceFeeManager.batchVerifyRecords(pendingIds)
-  feeRecords.value = serviceFeeManager.getRecords()
-  ElMessage.success(`成功批量核销 ${count} 笔代报考费用，凭证已回写易快报系统！`)
-  selectedRows.value = []
+  try {
+    const vNo = `YKB-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
+    await studentApi.batchVerifyServiceFees({ ids: pendingIds, yikuaibaoVoucherNo: vNo })
+    await loadRecords()
+    ElMessage.success(`成功批量核销 ${pendingIds.length} 笔代报考费用，凭证已回写易快报系统！`)
+    selectedRows.value = []
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '批量核销失败')
+  }
 }
 
 function handleExportReport() {

@@ -180,7 +180,7 @@ async function runTests() {
 
   // 5. 验证双轨合一联动写操作 (新建校区节点自动创建物理 Campus 表)
   console.log('\n--- 4. 双轨合一联动写操作验证 (新建校区自动落盘物理 Campus) ---');
-  const newCampusCode = `NODE-TEST-${Date.now().toString().slice(-4)}`;
+  const newCampusCode = `NODE-TEST-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
   const createCampusNodeRes = await request(
     {
       hostname: HOST,

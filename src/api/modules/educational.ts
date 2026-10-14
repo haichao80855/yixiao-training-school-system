@@ -22,6 +22,7 @@ export function adaptRollCallDto(input: any): { scheduleEventId: string; items: 
 
     return {
       studentId: item.studentId,
+      packageId: item.packageId || undefined,
       status: item.status || 'present',
       deductLessons,
       ...(comment ? { comment } : {}),
@@ -100,26 +101,32 @@ export const educationalApi = {
 
   assignStudentsToClass: async (classId: string, studentIds: string[] | string) => {
     const ids = Array.isArray(studentIds) ? studentIds : [studentIds];
-    if (ids.length === 1) {
-      return request(`/api/educational/classes/${classId}/students`, {
-        method: 'POST',
-        body: JSON.stringify({ studentId: ids[0] }),
-      });
-    }
-    const results = await Promise.all(
-      ids.map((id) =>
-        request(`/api/educational/classes/${classId}/students`, {
-          method: 'POST',
-          body: JSON.stringify({ studentId: id }),
-        })
-      )
-    );
-    return {
-      success: true,
-      data: results.map((r) => r.data),
-      message: `成功为班级关联 ${results.length} 名在读学员`,
-    };
+    return request('/api/educational/roster/assign', {
+      method: 'POST',
+      body: JSON.stringify({ classId, studentIds: ids }),
+    });
   },
+
+  // 班级花名册与分班履约调度深模块接缝 (Class Roster Coordinator)
+  assignStudents: (data: { classId: string; studentIds: string[]; packageIds?: string[]; dryRun?: boolean }) =>
+    request('/api/educational/roster/assign', { method: 'POST', body: JSON.stringify(data) }),
+
+  previewAssignStudents: (data: { classId: string; studentIds: string[]; packageIds?: string[] }) =>
+    request('/api/educational/roster/preview', { method: 'POST', body: JSON.stringify(data) }),
+
+  removeStudent: (data: { classId: string; studentId: string; reason?: string }) =>
+    request('/api/educational/roster/remove', { method: 'POST', body: JSON.stringify(data) }),
+
+  getUnassignedRoster: (params?: { campusId?: string; courseId?: string; keyword?: string; page?: number; pageSize?: number }) =>
+    request('/api/educational/roster/unassigned', { params }),
+
+  getClassRoster: (classId: string) =>
+    request(`/api/educational/roster/class/${classId}`),
+
+  // 班级花名册学员消课健康度与续费预警 (LessonRenewalCoordinator)
+  getClassRosterHealth: (classId: string, fallbackData?: any) =>
+    request(`/api/educational/classes/${classId}/roster-health`, { fallbackData }),
+
 
   // 排课与日程管理
   getSchedules: async (params?: any, fallbackData?: any) => {
@@ -160,6 +167,18 @@ export const educationalApi = {
     return res;
   },
 
+  previewSchedules: (data: any) =>
+    request<any>('/api/educational/schedules/preview', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  commitBatchSchedules: (data: any) =>
+    request<any>('/api/educational/schedules/batch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
   // 点名考勤与反结课
   getRollCallStudents: async (scheduleId: string, fallbackData?: any) => {
     const res = await request(`/api/educational/schedules/${scheduleId}/roll-call-students`, { fallbackData });
@@ -182,6 +201,14 @@ export const educationalApi = {
       method: 'POST',
       body: JSON.stringify({ reason }),
     }),
+
+  // 授课工作台就绪快照与看板聚合 (一站式获取指标、待上课次与历史冲正流水)
+  getWorkbenchSnapshot: async (params?: { campusId?: string; date?: string; classId?: string }, fallbackData?: any) => {
+    return request('/api/educational/settlement/workbench', {
+      params,
+      fallbackData,
+    });
+  },
 
   getAttendanceRecords: async (params?: any, fallbackData?: any) => {
     const res = await request('/api/educational/attendances', { params, fallbackData });
@@ -264,4 +291,111 @@ export const educationalApi = {
       },
     };
   },
+
+  // ----------------------------------------------------------------------------
+  // 班级全生命周期协调器 (Class Lifecycle Coordinator 接缝)
+  // ----------------------------------------------------------------------------
+  activateClass: (data: { classId: string; actualStartDate?: string; minStudentCount?: number }) =>
+    request(`/api/educational/classes/${data.classId}/activate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  completeClass: (data: {
+    classId: string;
+    disposition: { mode: 'fallback_unassigned' } | { mode: 'transfer_next_class'; targetClassId: string } | { mode: 'archive_completed' };
+    cancelFutureSchedules?: boolean;
+    remark?: string;
+  }) =>
+    request(`/api/educational/classes/${data.classId}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  cancelClass: (data: { classId: string; reason: string }) =>
+    request(`/api/educational/classes/${data.classId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  mergeClasses: (data: {
+    sourceClassIds: string[];
+    targetClassId: string;
+    sourceDisposition?: 'complete' | 'keep_empty';
+    reason?: string;
+  }) =>
+    request('/api/educational/classes/merge', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  previewClassLifecycle: (classId: string, data: any) =>
+    request(`/api/educational/classes/${classId}/preview-lifecycle`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  // 随堂课评与微信通知出站信箱协调器 (LessonEvaluationCoordinator)
+  getEvaluationWorkbench: (scheduleEventId: string) =>
+    request(`/api/educational/lesson-evaluations/workbench/${scheduleEventId}`),
+
+  commitEvaluation: (data: {
+    scheduleEventId: string;
+    publish: boolean;
+    dispatchStrategy?: 'ATTENDED_ONLY' | 'ALL_ROSTER' | 'UNSENT_RETRY';
+    idempotencyKey?: string;
+    payload: any;
+  }) =>
+    request('/api/educational/lesson-evaluations/commit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getEvaluationDetail: (scheduleEventId: string) =>
+    request(`/api/educational/lesson-evaluations/${scheduleEventId}`),
+
+  // 统一结课履约协调器 (LessonFulfillmentCoordinator)
+  getFulfillmentWorkbench: (scheduleEventId: string) =>
+    request(`/api/educational/fulfillment/workbench/${scheduleEventId}`),
+
+  fulfillLesson: (data: {
+    scheduleEventId: string;
+    mode?: 'FULL_SETTLE' | 'ATTENDANCE_ONLY' | 'PUBLISH_EVALUATION';
+    lessonTitle?: string;
+    templateId?: string;
+    templateName?: string;
+    studyContentHtml?: string;
+    overallRating?: number;
+    teacherComment?: string;
+    voiceUrl?: string;
+    voiceDuration?: number;
+    videoUrl?: string;
+    photoList?: string[];
+    aiPolished?: boolean;
+    anomalyOverrides?: Array<{
+      studentId: string;
+      status?: 'present' | 'late' | 'leave' | 'absent';
+      deductLessons?: number;
+      rating?: number;
+      personalizedComment?: string;
+      performanceTag?: string;
+    }>;
+    dispatchStrategy?: 'ATTENDED_ONLY' | 'ALL_ENROLLED' | 'NONE';
+    idempotencyKey?: string;
+  }) =>
+    request('/api/educational/fulfillment/fulfill', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  reverseFulfillment: (data: {
+    scheduleEventId: string;
+    strategy?: 'FULL_ROLLBACK' | 'REOPEN_EVALUATION';
+    reason?: string;
+  }) =>
+    request('/api/educational/fulfillment/reverse', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
+

@@ -116,7 +116,7 @@ async function runFullStackIntegration() {
   // --------------------------------------------------------------------------
   console.log('\n【链路 3: 教研课程中台与章节大纲发布闭环】');
 
-  const testCourseCode = `CRS-E2E-${Date.now().toString().slice(-4)}`;
+  const testCourseCode = `CRS-E2E-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
   const createCourseRes = await request(
     {
       hostname: HOST,
@@ -229,6 +229,16 @@ async function runFullStackIntegration() {
   console.log('\n【链路 5: 教务排课、三维碰撞检测、随堂点名消课与盛通反结课闭环】');
 
   // 创建班级
+  const classroomsRes = await request({
+    hostname: HOST,
+    port: PORT,
+    path: '/api/educational/classrooms',
+    method: 'GET',
+    headers: getHeaders(),
+  });
+  const classroomList = classroomsRes.body?.data || classroomsRes.body || [];
+  const testClassroomId = classroomList[0]?.id;
+
   const createClassRes = await request(
     {
       hostname: HOST,
@@ -240,15 +250,15 @@ async function runFullStackIntegration() {
     {
       campusId: activeCampusId,
       courseId,
-      code: `CLS-E2E-${Date.now().toString().slice(-4)}`,
+      code: `CLS-E2E-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`,
       name: '机器人周日高级精品班',
       teacherId: currentUser.id,
-      classroomId: (await request({ hostname: HOST, port: PORT, path: '/api/educational/classrooms', method: 'GET', headers: getHeaders() })).body.data[0].id,
+      classroomId: testClassroomId,
       startDate: '2026-09-01',
       endDate: '2027-01-20',
     },
   );
-  const classId = createClassRes.body.data.id;
+  const classId = createClassRes.body?.data?.id || createClassRes.body?.id;
 
   // 学员进班
   await request(

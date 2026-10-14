@@ -33,7 +33,7 @@
           {{ currentCampusName }}
         </el-tag>
         <span class="text-xs text-st-muted">
-          (系统订单池总数：<strong class="font-mono text-st-title">{{ allOrders.length }}</strong> 笔)
+          (系统订单池总数：<strong class="font-mono text-st-title">{{ totalCount }}</strong> 笔)
         </span>
       </div>
     </div>
@@ -317,7 +317,8 @@
     <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border">
       <el-table
         ref="orderTableRef"
-        :data="paginatedOrders"
+        v-loading="loading"
+        :data="remoteOrders"
         style="width: 100%"
         stripe
         size="small"
@@ -576,16 +577,18 @@
       <div class="flex items-center justify-between pt-3 mt-3 border-t border-gray-100 text-xs">
         <div class="text-st-muted">
           当前显示第 {{ (filterForm.page - 1) * filterForm.pageSize + 1 }} 至
-          {{ Math.min(filterForm.page * filterForm.pageSize, filteredOrders.length) }} 条，
-          共 {{ filteredOrders.length }} 条
+          {{ Math.min(filterForm.page * filterForm.pageSize, totalCount) }} 条，
+          共 {{ totalCount }} 条
         </div>
         <el-pagination
           v-model:current-page="filterForm.page"
           v-model:page-size="filterForm.pageSize"
           :page-sizes="[10, 20, 50, 100]"
           layout="sizes, prev, pager, next, jumper"
-          :total="filteredOrders.length"
+          :total="totalCount"
           size="small"
+          @current-change="loadOrders"
+          @size-change="() => { filterForm.page = 1; loadOrders(); }"
         />
       </div>
     </div>
@@ -835,7 +838,8 @@ import type {
   FinanceFilterForm,
   OrderStatus,
   PaymentMethod,
-  ColumnConfig
+  ColumnConfig,
+  FinanceSummaryResult
 } from '@/types'
 
 const tenantStore = useTenantStore()
@@ -885,42 +889,71 @@ function handleColumnsUpdated(newCols: ColumnConfig[]) {
   tableColumns.value = newCols
 }
 
-// 数据源
+// 数据源与加载状态
+const loading = ref(false)
 const remoteOrders = ref<OrderRecord[]>([])
+const totalCount = ref(0)
+const serverSummary = ref<FinanceSummaryResult | null>(null)
 
 async function loadOrders() {
+  loading.value = true
   try {
-    const res = await financialApi.getOrders({
+    const params: Record<string, string | number | undefined> = {
+      page: filterForm.page,
+      pageSize: filterForm.pageSize,
       campusId: tenantStore.currentCampusId,
-      pageSize: 200
-    })
+      orderType: activeMainTab.value === 'regular'
+        ? (filterForm.chargeType === 'all' ? 'regular' : filterForm.chargeType)
+        : (activeMainTab.value === 'quarterly' ? 'quarterly' : filterForm.chargeType),
+      status: activeStatusTab.value !== 'all' ? activeStatusTab.value : (filterForm.orderStatus !== 'all' ? filterForm.orderStatus : undefined),
+      keyword: filterForm.studentKeyword || undefined,
+      salesOwner: filterForm.salesOwner || undefined,
+      channel: filterForm.channel !== 'all' ? filterForm.channel : undefined,
+      paymentMethod: filterForm.paymentMethod !== 'all' ? filterForm.paymentMethod : undefined,
+      deliveryStatus: filterForm.goodsDelivery !== 'all' ? filterForm.goodsDelivery : undefined,
+      invoiceStatus: filterForm.invoiceStatus !== 'all' ? filterForm.invoiceStatus : undefined,
+      startDate: filterForm.startDate || undefined,
+      endDate: filterForm.endDate || undefined,
+      minAmount: filterForm.minAmount ?? undefined,
+      maxAmount: filterForm.maxAmount ?? undefined,
+    }
+    const res = await financialApi.getOrders(params)
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-      if (Array.isArray(list)) {
-        remoteOrders.value = list
+      if (res.data.list && Array.isArray(res.data.list)) {
+        remoteOrders.value = res.data.list
+        totalCount.value = Number(res.data.total ?? res.data.list.length)
+        if (res.data.summary) {
+          serverSummary.value = res.data.summary
+        }
+        return
+      } else if (Array.isArray(res.data)) {
+        remoteOrders.value = res.data
+        totalCount.value = res.data.length
         return
       }
     }
-  } catch (err: any) {
-    ElMessage.error(err.message || '获取订单列表失败')
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '获取订单列表失败')
+  } finally {
+    loading.value = false
   }
   remoteOrders.value = []
+  totalCount.value = 0
 }
 
-const allOrders = computed<OrderRecord[]>(() => {
-  return remoteOrders.value
-})
-
-// 各状态数量统计 Badge
+// 各状态数量统计 Badge (消费服务端全库 SSOT 统计，解决客户端单页切片失真)
 const statusCounts = computed(() => {
+  if (serverSummary.value?.statusCounts) {
+    return serverSummary.value.statusCounts
+  }
   const map: Record<string, number> = {
-    all: allOrders.value.length,
+    all: totalCount.value || remoteOrders.value.length,
     paid: 0,
     unpaid: 0,
     rejected: 0,
     void: 0
   }
-  for (const o of allOrders.value) {
+  for (const o of remoteOrders.value) {
     const s = o.status || o.orderStatus
     if (s && map[s] !== undefined) {
       map[s]++
@@ -929,36 +962,12 @@ const statusCounts = computed(() => {
   return map
 })
 
-// 筛选后的结果集 (调用核心算法引擎 FinanceAggregator.filterOrders)
-const filteredOrders = computed<OrderRecord[]>(() => {
-  const filters: Partial<FinanceFilterForm> = { ...filterForm }
-
-  // 若通过主分段 Tab 切换
-  if (activeMainTab.value === 'regular') {
-    if (filterForm.chargeType === 'all') {
-      filters.chargeType = 'regular'
-    }
-  } else if (activeMainTab.value === 'quarterly') {
-    filters.chargeType = 'quarterly'
+// 动态汇总小计横条计算 (优先使用后端整库高精汇总)
+const summaryResult = computed<FinanceSummaryResult>(() => {
+  if (serverSummary.value) {
+    return serverSummary.value
   }
-
-  // 若通过横向状态 Tab 切换
-  if (activeStatusTab.value !== 'all') {
-    filters.orderStatus = activeStatusTab.value
-  }
-
-  return FinanceAggregator.filterOrders(allOrders.value, filters)
-})
-
-// 分页数据
-const paginatedOrders = computed(() => {
-  const start = (filterForm.page - 1) * filterForm.pageSize
-  return filteredOrders.value.slice(start, start + filterForm.pageSize)
-})
-
-// 动态汇总小计横条计算 (严格分计算与千分位)
-const summaryResult = computed(() => {
-  return FinanceAggregator.calculateSummaryStrip(filteredOrders.value)
+  return FinanceAggregator.calculateSummaryStrip(remoteOrders.value)
 })
 
 // 顶部主分段切换
@@ -966,6 +975,7 @@ function handleMainTabChange(tab: 'regular' | 'quarterly') {
   activeMainTab.value = tab
   filterForm.chargeType = tab
   filterForm.page = 1
+  loadOrders()
 }
 
 // 状态分段 Tab 切换
@@ -973,13 +983,15 @@ function handleStatusTabChange(statusKey: string) {
   activeStatusTab.value = statusKey
   filterForm.orderStatus = statusKey
   filterForm.page = 1
+  loadOrders()
 }
 
 // 搜索操作
 function handleSearch() {
   filterForm.page = 1
+  loadOrders()
   ElMessage.success({
-    message: `筛选完成，共匹配到 ${filteredOrders.value.length} 笔订单流水`,
+    message: `筛选完成，已更新订单流水与统计汇总`,
     duration: 1500
   })
 }
@@ -991,12 +1003,14 @@ function handleReset() {
   activeMainTab.value = 'regular'
   activeStatusTab.value = 'all'
   classDisplayName.value = ''
+  filterForm.page = 1
+  loadOrders()
   ElMessage.info('已恢复默认筛选条件')
 }
 
 // 导出 Excel (真实导出下载模拟)
 function handleExport() {
-  const data = filteredOrders.value
+  const data = remoteOrders.value
   if (data.length === 0) {
     ElMessage.warning('当前条件下没有可导出的订单')
     return
@@ -1229,7 +1243,7 @@ async function openStudentDrawer(row: OrderRecord) {
 
 const studentOrderHistory = computed(() => {
   if (!currentSelectedStudent.value) return []
-  return allOrders.value.filter(o =>
+  return remoteOrders.value.filter(o =>
     o.studentNo === currentSelectedStudent.value.studentNo ||
     o.studentName === currentSelectedStudent.value.name
   )

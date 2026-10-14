@@ -149,6 +149,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '用户登录与角色切换' }
   },
   {
+    path: '/public/growth-report',
+    name: 'PublicGrowthReport',
+    component: () => import('@/views/public/ParentGrowthReportView.vue'),
+    meta: { title: '学员成长档案与随堂学情报告' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/dashboard'
   }
@@ -164,8 +170,9 @@ import { useAuthStore } from '@/stores/authStore'
 
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
-  if (to.path === '/login') {
-    if (authStore.isAuthenticated) {
+  // 登录页与公开学情报告落地页免登录放行
+  if (to.path === '/login' || to.path.startsWith('/public/')) {
+    if (to.path === '/login' && authStore.isAuthenticated) {
       next(authStore.isTeacher ? '/educational/workbench' : '/dashboard')
     } else {
       next()

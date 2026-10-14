@@ -29,6 +29,10 @@ coverage/
 walkthrough_screenshots/
 browser_walkthrough_error.png
 
+# Runtime uploaded media
+server/uploads/*
+!server/uploads/.gitkeep
+
 # Internal agent working directory
 .agents/
 .claude/

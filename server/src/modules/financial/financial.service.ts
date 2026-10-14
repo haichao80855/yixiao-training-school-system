@@ -5,11 +5,15 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { OrderFilterDto, UpdateVoucherDto, LockOrderDto, UpdateOrderDto } from './dto/order.dto';
-import { CreateApprovalDto, AuditApprovalDto } from './dto/approval.dto';
+import { CreateApprovalDto, AuditApprovalDto, BatchAuditDto } from './dto/approval.dto';
+import { FinancialApprovalOrchestrator } from './domain/financial-approval.orchestrator';
 
 @Injectable()
 export class FinancialService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly approvalOrchestrator: FinancialApprovalOrchestrator,
+  ) {}
 
   // ----------------------------------------------------------------
   // 1. 财务订单账本与高精算力 Summary Strip
@@ -23,46 +27,90 @@ export class FinancialService {
       where.campusId = activeCampus;
     }
 
-    if (query.orderType) {
+    if (query.orderType && query.orderType !== 'all') {
       where.orderType = query.orderType;
     }
 
-    if (query.status) {
+    if (query.status && query.status !== 'all') {
       where.status = query.status;
     }
 
-    if (query.paymentMethod) {
+    if (query.paymentMethod && query.paymentMethod !== 'all') {
       where.paymentMethod = query.paymentMethod;
     }
 
-    if (query.deliveryStatus) {
+    if (query.deliveryStatus && query.deliveryStatus !== 'all') {
       where.deliveryStatus = query.deliveryStatus;
     }
 
-    if (query.invoiceStatus) {
+    if (query.invoiceStatus && query.invoiceStatus !== 'all') {
       where.invoiceStatus = query.invoiceStatus;
+    }
+
+    if (query.channel && query.channel !== 'all') {
+      where.channel = query.channel;
+    }
+
+    if (query.salesOwner && query.salesOwner.trim()) {
+      const ownerKeyword = query.salesOwner.trim();
+      where.OR = [
+        { owner: { realName: { contains: ownerKeyword } } },
+        { creator: { realName: { contains: ownerKeyword } } },
+      ];
+    }
+
+    if (query.minAmount !== undefined && query.minAmount !== null && String(query.minAmount).trim() !== '') {
+      const minVal = Number(query.minAmount);
+      if (!isNaN(minVal)) {
+        where.actualAmount = where.actualAmount || {};
+        where.actualAmount.gte = minVal;
+      }
+    }
+
+    if (query.maxAmount !== undefined && query.maxAmount !== null && String(query.maxAmount).trim() !== '') {
+      const maxVal = Number(query.maxAmount);
+      if (!isNaN(maxVal)) {
+        where.actualAmount = where.actualAmount || {};
+        where.actualAmount.lte = maxVal;
+      }
     }
 
     if (query.startDate && query.endDate) {
       where.createdAt = {
         gte: new Date(query.startDate),
-        lte: new Date(query.endDate),
+        lte: new Date(query.endDate.includes('T') ? query.endDate : `${query.endDate}T23:59:59.999Z`),
+      };
+    } else if (query.startDate) {
+      where.createdAt = {
+        gte: new Date(query.startDate),
+      };
+    } else if (query.endDate) {
+      where.createdAt = {
+        lte: new Date(query.endDate.includes('T') ? query.endDate : `${query.endDate}T23:59:59.999Z`),
       };
     }
 
-    if (query.keyword) {
-      where.OR = [
-        { orderNo: { contains: query.keyword } },
-        { student: { name: { contains: query.keyword } } },
-        { student: { phone: { contains: query.keyword } } },
+    if (query.keyword && query.keyword.trim()) {
+      const kw = query.keyword.trim();
+      const kwConditions = [
+        { orderNo: { contains: kw } },
+        { student: { name: { contains: kw } } },
+        { student: { phone: { contains: kw } } },
+        { student: { studentNo: { contains: kw } } },
       ];
+      if (where.OR) {
+        where.AND = [{ OR: where.OR }, { OR: kwConditions }];
+        delete where.OR;
+      } else {
+        where.OR = kwConditions;
+      }
     }
 
     return where;
   }
 
   /**
-   * 订单账本列表分页查询
+   * 订单账本列表分页查询 (原子附加动态实收指标 Summary)
    */
   async getOrders(query: OrderFilterDto, campusId?: string) {
     const page = Number(query.page) || 1;
@@ -71,7 +119,7 @@ export class FinancialService {
 
     const where = this.buildOrderWhere(query, campusId);
 
-    const [total, list] = await Promise.all([
+    const [total, list, summary] = await Promise.all([
       this.prisma.order.count({ where }),
       this.prisma.order.findMany({
         where,
@@ -94,6 +142,7 @@ export class FinancialService {
           },
         },
       }),
+      this.getOrderSummary(query, campusId),
     ]);
 
     return {
@@ -101,6 +150,7 @@ export class FinancialService {
       page,
       pageSize,
       list,
+      summary,
     };
   }
 
@@ -111,16 +161,26 @@ export class FinancialService {
   async getOrderSummary(query: OrderFilterDto, campusId?: string) {
     const where = this.buildOrderWhere(query, campusId);
 
-    const orders = await this.prisma.order.findMany({
-      where,
-      select: {
-        status: true,
-        originalPrice: true,
-        discountAmount: true,
-        receivableAmount: true,
-        actualAmount: true,
-      },
-    });
+    const baseQuery = { ...query };
+    delete baseQuery.status;
+    const baseWhere = this.buildOrderWhere(baseQuery, campusId);
+
+    const [orders, allStatusOrders] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        select: {
+          status: true,
+          originalPrice: true,
+          discountAmount: true,
+          receivableAmount: true,
+          actualAmount: true,
+        },
+      }),
+      this.prisma.order.findMany({
+        where: baseWhere,
+        select: { status: true },
+      }),
+    ]);
 
     let totalOrders = orders.length;
     let totalPaidOrders = 0;
@@ -137,14 +197,35 @@ export class FinancialService {
       actualSumInCents += Math.round(ord.actualAmount * 100);
     }
 
+    const statusCounts: Record<string, number> = {
+      all: allStatusOrders.length,
+      paid: 0,
+      unpaid: 0,
+      rejected: 0,
+      void: 0,
+    };
+    for (const o of allStatusOrders) {
+      if (o.status && statusCounts[o.status] !== undefined) {
+        statusCounts[o.status]++;
+      }
+    }
+
+    const totalAmount = actualSumInCents / 100;
     return {
       totalOrders,
       totalPaidOrders,
       totalOriginalAmount: originalSumInCents / 100,
       totalDiscountAmount: discountSumInCents / 100,
-      totalActualAmount: actualSumInCents / 100,
+      totalActualAmount: totalAmount,
+      totalCount: totalOrders,
+      totalAmount,
+      formattedAmount: totalAmount.toLocaleString('zh-CN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+      statusCounts,
       currency: 'CNY',
-      summaryText: `当前条件下：共计 ${totalOrders} 笔订单（已支付 ${totalPaidOrders} 笔），实收总额 ¥ ${(actualSumInCents / 100).toFixed(2)} 元`,
+      summaryText: `当前条件下：共计 ${totalOrders} 笔订单（已支付 ${totalPaidOrders} 笔），实收总额 ¥ ${totalAmount.toFixed(2)} 元`,
     };
   }
 
@@ -286,7 +367,7 @@ export class FinancialService {
   }
 
   // ----------------------------------------------------------------
-  // 2. 多级风控审批流中心 (Approval Flow)
+  // 2. 多级风控审批流中心 (Approval Flow Deep Module Delegation)
   // ----------------------------------------------------------------
 
   /**
@@ -296,174 +377,57 @@ export class FinancialService {
     status?: string;
     businessType?: string;
     currentStep?: number;
+    campusId?: string;
     page?: number;
     pageSize?: number;
   }) {
-    const page = Number(query.page) || 1;
-    const pageSize = Number(query.pageSize) || 20;
-    const skip = (page - 1) * pageSize;
-
-    const where: any = {};
-    if (query.status) where.status = query.status;
-    if (query.businessType) where.businessType = query.businessType;
-    if (query.currentStep) where.currentStep = Number(query.currentStep);
-
-    const [total, list] = await Promise.all([
-      this.prisma.approvalFlow.count({ where }),
-      this.prisma.approvalFlow.findMany({
-        where,
-        skip,
-        take: pageSize,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          order: {
-            include: {
-              campus: { select: { id: true, name: true } },
-              student: { select: { id: true, name: true, phone: true } },
-            },
-          },
-          nodes: {
-            orderBy: { createdAt: 'asc' },
-            include: { reviewer: { select: { id: true, realName: true } } },
-          },
-        },
-      }),
-    ]);
-
-    return {
-      total,
-      page,
-      pageSize,
-      list,
-    };
+    return this.approvalOrchestrator.getApprovals(query);
   }
 
   /**
    * 发起多级审批流工单
    */
   async createApprovalFlow(dto: CreateApprovalDto) {
-    const order = await this.prisma.order.findUnique({
-      where: { id: dto.orderId },
-    });
-    if (!order) {
-      throw new NotFoundException(`未找到对应订单 ID: ${dto.orderId}`);
-    }
-
-    const existingFlow = await this.prisma.approvalFlow.findUnique({
-      where: { orderId: dto.orderId },
-    });
-    if (existingFlow) {
-      throw new BadRequestException('该订单已存在关联的审批工单，请勿重复发起');
-    }
-
-    return this.prisma.approvalFlow.create({
-      data: {
-        orderId: dto.orderId,
-        businessType: dto.businessType,
-        currentStep: 1, // 初始第一步：教学核实
-        totalSteps: 3,  // 三级风控：1教学核实 -> 2校长审批 -> 3财务终审
-        status: 'pending',
-        applicantName: dto.applicantName,
-      },
-      include: {
-        order: true,
-        nodes: true,
-      },
-    });
+    return this.approvalOrchestrator.submitApproval(dto);
   }
 
   /**
-   * 三级风控审批流转状态机
+   * 三级风控审批流转状态机 (委托深模块)
    */
   async auditApproval(
     approvalId: string,
     dto: AuditApprovalDto,
     currentUser: any,
   ) {
-    const flow = await this.prisma.approvalFlow.findUnique({
-      where: { id: approvalId },
-      include: { order: true, nodes: true },
+    return this.approvalOrchestrator.audit(approvalId, {
+      action: dto.action as any,
+      comment: dto.comment,
+      stepName: dto.stepName,
+      reviewerId: currentUser?.id,
+      reviewerName: currentUser?.realName || currentUser?.username,
     });
+  }
 
-    if (!flow) {
-      throw new NotFoundException(`未找到审批工单 ID: ${approvalId}`);
-    }
+  /**
+   * 单请求分块批处理审批 (batchAudit)
+   */
+  async batchAudit(dto: BatchAuditDto, currentUser: any) {
+    return this.approvalOrchestrator.batchAudit(
+      dto.approvalIds,
+      dto.action as any,
+      {
+        comment: dto.comment,
+        stepName: dto.stepName,
+        reviewerId: currentUser?.id,
+        reviewerName: currentUser?.realName || currentUser?.username,
+      },
+    );
+  }
 
-    // 终态防篡改屏障：已通过或已驳回的单据禁止重复审批
-    if (flow.status === 'approved' || flow.status === 'rejected') {
-      throw new BadRequestException(`该审批单已处于终态 [${flow.status}]，严禁二次篡改操作`);
-    }
-
-    const stepNames: Record<number, string> = {
-      1: '教学端考勤核实',
-      2: '校区校长行政复核',
-      3: '财务部资金终审',
-    };
-    const stepName = dto.stepName || stepNames[flow.currentStep] || `第${flow.currentStep}级审批`;
-
-    return this.prisma.$transaction(async (tx) => {
-      // 1. 记录审批节点历史
-      await tx.approvalNode.create({
-        data: {
-          approvalFlowId: flow.id,
-          step: flow.currentStep,
-          stepName,
-          reviewerId: currentUser?.id || 'system-reviewer',
-          action: dto.action,
-          comment: dto.comment,
-        },
-      });
-
-      // 2. 状态机推进逻辑
-      if (dto.action === 'reject') {
-        // 任何一步驳回，审批流直接终止并置为 rejected
-        const updatedFlow = await tx.approvalFlow.update({
-          where: { id: flow.id },
-          data: { status: 'rejected' },
-          include: { nodes: true },
-        });
-
-        return {
-          success: true,
-          status: 'rejected',
-          currentStep: flow.currentStep,
-          message: `审批已被驳回，工单流转已终止`,
-          flow: updatedFlow,
-        };
-      } else {
-        // 通过操作：如果当前已是最后一步 (3: 财务终审)，则全流程完结通过
-        if (flow.currentStep >= flow.totalSteps) {
-          const updatedFlow = await tx.approvalFlow.update({
-            where: { id: flow.id },
-            data: { status: 'approved' },
-            include: { nodes: true },
-          });
-
-          return {
-            success: true,
-            status: 'approved',
-            currentStep: flow.totalSteps,
-            message: `三级风控全流程终审通过！`,
-            flow: updatedFlow,
-          };
-        } else {
-          // 否则推进到下一审批节点
-          const nextStep = flow.currentStep + 1;
-          const updatedFlow = await tx.approvalFlow.update({
-            where: { id: flow.id },
-            data: { currentStep: nextStep },
-            include: { nodes: true },
-          });
-
-          return {
-            success: true,
-            status: 'pending',
-            currentStep: nextStep,
-            message: `第 ${flow.currentStep} 级【${stepName}】已核准，已流转至第 ${nextStep} 级【${stepNames[nextStep]}】`,
-            flow: updatedFlow,
-          };
-        }
-      }
-    });
+  /**
+   * 获取审批工单时间轴视图
+   */
+  async getApprovalTimeline(approvalId: string) {
+    return this.approvalOrchestrator.getApprovalTimeline(approvalId);
   }
 }

@@ -32,6 +32,27 @@
         </div>
       </div>
 
+      <!-- 随堂考勤与家长微信绑定透视条 -->
+      <div v-if="workbenchSummary" class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
+        <div class="flex items-center gap-3">
+          <span class="font-semibold text-slate-700">👥 参课学员: {{ workbenchSummary.totalEnrolled }} 人</span>
+          <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            实到: {{ workbenchSummary.attendedCount }} 人
+          </span>
+          <span v-if="workbenchSummary.absentCount > 0" class="text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+            请假/缺席: {{ workbenchSummary.absentCount }} 人
+          </span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+            📱 微信已绑定: {{ workbenchSummary.wechatBoundCount }} 人
+          </span>
+          <span v-if="workbenchSummary.wechatUnboundCount > 0" class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+            ⚠️ 未绑微信: {{ workbenchSummary.wechatUnboundCount }} 人
+          </span>
+        </div>
+      </div>
+
       <el-form label-position="left" label-width="85px" size="default" class="space-y-4">
         <!-- 课次名称 -->
         <el-form-item required>
@@ -186,42 +207,24 @@
           </div>
         </el-form-item>
 
-        <!-- 语音点评 -->
-        <el-form-item>
-          <template #label>
-            <span class="text-xs text-st-secondary">语音点评</span>
-          </template>
-          <div class="flex items-center gap-3 w-full">
-            <el-button
-              size="small"
-              :type="form.voiceUrl ? 'success' : 'default'"
-              plain
-              @click="handleToggleVoice"
-            >
-              🎙️ {{ form.voiceUrl ? '重新录制语音' : '添加语音' }}
-            </el-button>
-            <div v-if="form.voiceUrl" class="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1 rounded-full text-xs animate-pulse">
-              <span>▶ 教师语音讲解录音已生成</span>
-              <span class="font-mono text-[11px] font-bold">({{ form.voiceDuration || 45 }}s)</span>
-              <el-button link type="danger" size="small" class="!p-0 ml-1" @click="handleRemoveVoice">✕</el-button>
-            </div>
-            <span v-else class="text-[11px] text-st-muted">可录制 30~60 秒随堂个性化口播反馈</span>
-          </div>
-        </el-form-item>
-
         <!-- 课堂视频 -->
         <el-form-item>
           <template #label>
             <span class="text-xs text-st-secondary">课堂视频</span>
           </template>
           <div class="flex items-center gap-3">
-            <el-button size="small" plain @click="handleSelectVideo">
-              {{ form.videoUrl ? '重新选择' : '上传课堂实操视频' }}
+            <el-button size="small" plain :loading="uploadingVideo" @click="handleSelectVideo">
+              {{ uploadingVideo ? '正在上传视频...' : (form.videoUrl ? '重新选择' : '上传课堂实操视频') }}
             </el-button>
-            <div v-if="form.videoUrl" class="flex items-center gap-1.5 text-xs text-emerald-600 font-medium cursor-pointer" @click="handlePreviewVideo">
-              <span>查看视频</span>
-              <span class="text-emerald-700 bg-emerald-100 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">✓</span>
-            </div>
+            <template v-if="form.videoUrl">
+              <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-medium cursor-pointer hover:underline" @click="handlePreviewVideo">
+                <span>查看视频</span>
+                <span class="text-emerald-700 bg-emerald-100 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">▶</span>
+              </div>
+              <el-button link type="danger" size="small" class="!text-xs" @click="handleRemoveVideo">
+                移除视频
+              </el-button>
+            </template>
           </div>
         </el-form-item>
 
@@ -241,10 +244,12 @@
               <div
                 v-if="form.photoList.length < 9"
                 class="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-st-primary hover:bg-blue-50/30 transition-all text-gray-400 hover:text-st-primary"
+                :class="{ 'opacity-60 pointer-events-none': uploadingPhotos }"
                 @click="handleAddPhoto"
               >
-                <span class="text-2xl font-light leading-none">+</span>
-                <span class="text-[10px] mt-1">添加现场照</span>
+                <span v-if="!uploadingPhotos" class="text-2xl font-light leading-none">+</span>
+                <span v-else class="text-xs animate-spin mb-1">⏳</span>
+                <span class="text-[10px] mt-1">{{ uploadingPhotos ? '上传中...' : '添加现场照' }}</span>
               </div>
 
               <!-- 照片缩略图卡片 -->
@@ -349,30 +354,65 @@
       </div>
     </template>
   </el-dialog>
+
+  <!-- 课堂实况录像播放预览模态框 -->
+  <el-dialog
+    v-model="videoPreviewVisible"
+    title="课堂实况录像播放"
+    width="680px"
+    append-to-body
+    destroy-on-close
+  >
+    <div class="flex flex-col items-center justify-center bg-black rounded-lg overflow-hidden p-2">
+      <video
+        v-if="videoPreviewVisible && form.videoUrl"
+        :src="form.videoUrl"
+        controls
+        autoplay
+        class="w-full max-h-[60vh] rounded bg-black"
+      >
+        您的浏览器暂不支持内置视频播放，请直接下载后查看。
+      </video>
+    </div>
+    <template #footer>
+      <div class="flex justify-between items-center text-xs text-gray-500">
+        <span class="truncate max-w-[420px]" :title="form.videoUrl">视频地址: {{ form.videoUrl }}</span>
+        <el-button size="small" @click="videoPreviewVisible = false">关闭</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, nextTick } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
 import type { WorkbenchLessonCard, EvaluationTemplate, LessonEvaluation } from '@/types/educational'
-import {
-  getEvaluationTemplates,
-  getLessonEvaluationByLessonId,
-  saveLessonEvaluation
-} from '@/constants/evaluation'
+import { educationalApi, uploadApi } from '@/api'
+import { getEvaluationTemplates } from '@/constants/evaluation'
 
 const emit = defineEmits<{
-  (e: 'success', evaluation: LessonEvaluation): void
+  (e: 'success', evaluation: any): void
 }>()
 
 const visible = ref(false)
 const saving = ref(false)
 const polishing = ref(false)
+const uploadingPhotos = ref(false)
+const uploadingVideo = ref(false)
+const videoPreviewVisible = ref(false)
 const editorRef = ref<HTMLDivElement>()
 
 const currentLesson = ref<WorkbenchLessonCard | null>(null)
 const templateList = ref<EvaluationTemplate[]>([])
 const selectedTemplateId = ref('')
+const workbenchSummary = ref<{
+  totalEnrolled: number
+  attendedCount: number
+  absentCount: number
+  wechatBoundCount: number
+  wechatUnboundCount: number
+} | null>(null)
+const workbenchRoster = ref<any[]>([])
 
 const defaultPhotos = [
   'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=500&auto=format&fit=crop&q=60',
@@ -389,8 +429,6 @@ const form = reactive<{
   templateName: string
   studyContent: string
   rating: number
-  voiceUrl: string
-  voiceDuration: number
   videoUrl: string
   photoList: string[]
   teacherComment: string
@@ -406,8 +444,6 @@ const form = reactive<{
   templateName: '通用课评模板',
   studyContent: '',
   rating: 5,
-  voiceUrl: '',
-  voiceDuration: 0,
   videoUrl: '',
   photoList: [],
   teacherComment: '',
@@ -459,45 +495,145 @@ function handleAdjustLessonTime() {
   })
 }
 
-// 语音点评录制与清除
-function handleToggleVoice() {
-  if (!form.voiceUrl) {
-    form.voiceUrl = 'https://public-test-shengtong.oss-cn-zhangjiakou.aliyuncs.com/audio/eval_sample.mp3'
-    form.voiceDuration = 48
-    ElMessage.success('模拟录音完成！已录入 48 秒个性化随堂语音点评。')
-  } else {
-    form.voiceDuration = Math.floor(30 + Math.random() * 30)
-    ElMessage.success(`语音已重新录制完成 (${form.voiceDuration}s)`)
-  }
-}
-
-function handleRemoveVoice() {
-  form.voiceUrl = ''
-  form.voiceDuration = 0
-  ElMessage.info('已移除语音点评')
-}
-
-// 视频选择与预览
+// 视频选择与真实上传 (支持 <= 100MB 校验门禁)
 function handleSelectVideo() {
-  form.videoUrl = 'https://public-test-shengtong.oss-cn-zhangjiakou.aliyuncs.com/video/classroom_sample.mp4'
-  ElMessage.success('已关联本堂课精彩回放视频片段！')
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'video/mp4,video/quicktime,video/webm'
+  input.onchange = async (e: any) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const maxBytes = 100 * 1024 * 1024
+    if (file.size > maxBytes) {
+      ElMessageBox.alert(
+        `您选择的视频文件大小为 ${(file.size / 1024 / 1024).toFixed(1)}MB，超过系统 100MB 上限！请截取课堂核心亮点片段重新上传。`,
+        '视频文件超出限制',
+        { type: 'warning' }
+      )
+      return
+    }
+
+    uploadingVideo.value = true
+    try {
+      const campusId = currentLesson.value?.campusId || localStorage.getItem('yixiao_current_campus_id') || 'campus-bj-hq'
+      const scheduleEventId = currentLesson.value?.id || form.lessonTimeId || undefined
+
+      const res = await uploadApi.uploadClassroomVideo({
+        file,
+        campusId,
+        scheduleEventId,
+      })
+
+      if (res && res.data?.videoUrl) {
+        form.videoUrl = res.data.videoUrl
+        ElMessage.success(`课堂实操视频「${file.name}」(${(file.size / 1024 / 1024).toFixed(1)}MB) 上传成功！`)
+      }
+    } catch (err: any) {
+      ElMessage.error(err?.message || '上传课堂实操视频失败，请稍后重试')
+    } finally {
+      uploadingVideo.value = false
+    }
+  }
+  input.click()
 }
 
 function handlePreviewVideo() {
-  ElMessageBox.alert('课堂实况录像：单片机舵机避障对抗实录.mp4 (在线预览流播放正常)', '课堂视频回放预览', {
-    confirmButtonText: '关闭'
-  })
-}
-
-// 课堂照片墙管理
-function handleAddPhoto() {
-  if (form.photoList.length >= 9) {
-    ElMessage.warning('照片与视频合计最多支持 9 个')
+  if (!form.videoUrl) {
+    ElMessage.warning('当前暂未上传随堂实操视频')
     return
   }
-  const nextImg = defaultPhotos[form.photoList.length % defaultPhotos.length]
-  form.photoList.push(nextImg)
-  ElMessage.success(`已添加现场实录照片，当前共计 ${form.photoList.length} 张`)
+  videoPreviewVisible.value = true
+}
+
+function handleRemoveVideo() {
+  form.videoUrl = ''
+  ElMessage.info('已移除课堂实操视频')
+}
+
+// 课堂照片墙管理 (至多 9 张，单张 <= 10MB)
+function handleAddPhoto() {
+  const currentCount = form.photoList.length
+  if (currentCount >= 9) {
+    ElMessage.warning('随堂课堂照片最多允许上传 9 张')
+    return
+  }
+
+  const maxAllowed = 9 - currentCount
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/jpeg,image/png,image/webp,image/gif'
+  input.multiple = true
+
+  input.onchange = async (e: any) => {
+    const rawFiles: File[] = Array.from(e.target?.files || [])
+    if (rawFiles.length === 0) return
+
+    let selectedFiles = rawFiles
+    if (selectedFiles.length > maxAllowed) {
+      ElMessage.warning(`最多还可添加 ${maxAllowed} 张照片，已自动选取前 ${maxAllowed} 张`)
+      selectedFiles = selectedFiles.slice(0, maxAllowed)
+    }
+
+    // 10MB 体积前置校验
+    const MAX_BYTES = 10 * 1024 * 1024
+    const validFiles: File[] = []
+    const oversizedFiles: string[] = []
+
+    for (const file of selectedFiles) {
+      if (file.size > MAX_BYTES) {
+        oversizedFiles.push(file.name)
+      } else {
+        validFiles.push(file)
+      }
+    }
+
+    if (oversizedFiles.length > 0) {
+      ElMessageBox.alert(
+        `以下文件体积超过 10MB 系统上限，已自动跳过：\n${oversizedFiles.join('\n')}`,
+        '照片体积超出限制',
+        { type: 'warning' }
+      )
+    }
+
+    if (validFiles.length === 0) return
+
+    uploadingPhotos.value = true
+    try {
+      const campusId = currentLesson.value?.campusId || localStorage.getItem('yixiao_current_campus_id') || 'campus-bj-hq'
+      const scheduleEventId = currentLesson.value?.id || form.lessonTimeId || undefined
+
+      const res = await uploadApi.uploadClassroomPhotos({
+        files: validFiles,
+        campusId,
+        scheduleEventId,
+      })
+
+      if (res && res.data) {
+        const { persistedUrls, successCount, failureCount, errors } = res.data
+        if (persistedUrls && persistedUrls.length > 0) {
+          form.photoList.push(...persistedUrls)
+        }
+
+        if (failureCount > 0 && errors && errors.length > 0) {
+          const reasons = errors.map((err) => `${err.filename}: ${err.reason}`).join('; ')
+          ElNotification({
+            title: '部分照片上传受阻',
+            message: reasons,
+            type: 'warning',
+            duration: 6000,
+          })
+        }
+
+        ElMessage.success(`已成功添加 ${successCount} 张现场实录照片，当前共计 ${form.photoList.length} 张`)
+      }
+    } catch (err: any) {
+      ElMessage.error(err?.message || '上传现场实录照片失败，请稍后重试')
+    } finally {
+      uploadingPhotos.value = false
+    }
+  }
+
+  input.click()
 }
 
 function handleRemovePhoto(index: number) {
@@ -552,35 +688,48 @@ function handleCycleCommentTemplate() {
   ElMessage.info('已载入常用预设评语库')
 }
 
-// 打开弹窗并载入
-function open(lesson: WorkbenchLessonCard) {
+// 打开弹窗并载入 (调用协调器 hydrateEvaluation 接口)
+async function open(lesson: WorkbenchLessonCard) {
   currentLesson.value = lesson
   templateList.value = getEvaluationTemplates()
 
-  // 尝试读取已存课评
-  const existing = getLessonEvaluationByLessonId(lesson.id)
-  if (existing) {
-    Object.assign(form, existing)
-    selectedTemplateId.value = existing.templateId || 'tmpl-common'
-  } else {
-    // 默认初始值
-    const tpl = templateList.value[0]
+  try {
+    const res = await educationalApi.getEvaluationWorkbench(lesson.id)
+    if (res?.data) {
+      const { schedule, evaluation, roster, summary } = res.data
+      workbenchSummary.value = summary || null
+      workbenchRoster.value = roster || []
+
+      form.lessonTimeId = schedule.id
+      form.classId = schedule.classId
+      form.className = schedule.className
+      form.lessonTitle = evaluation.lessonTitle || `${schedule.className}-${schedule.courseName}`
+      form.templateId = evaluation.templateId || 'tmpl-common'
+      form.templateName = evaluation.templateName || '通用课评模板'
+      form.studyContent = evaluation.studyContentHtml || ''
+      form.rating = evaluation.overallRating || 5
+      form.photoList = Array.isArray(evaluation.photoList) && evaluation.photoList.length > 0 ? [...evaluation.photoList] : []
+      form.teacherComment = evaluation.teacherComment || ''
+      form.videoUrl = evaluation.videoUrl || ''
+      form.aiPolished = evaluation.aiPolished || false
+      form.status = evaluation.status || 'draft'
+      form.publishTime = evaluation.lastPublishedAt || undefined
+      selectedTemplateId.value = form.templateId
+    }
+  } catch (err: any) {
+    ElMessage.error(err.message || '水化课评数据失败，使用基础初始值')
     form.lessonTimeId = lesson.id
     form.classId = lesson.classId || ''
     form.className = lesson.className || ''
-    form.lessonTitle = lesson.lessonTitle || `${lesson.className || '教学班'}-${lesson.lessonNumber || 1}`
-    form.templateId = tpl?.id || 'tmpl-common'
-    form.templateName = tpl?.name || '通用课评模板'
-    form.studyContent = tpl?.defaultStudyContent || ''
+    form.lessonTitle = lesson.lessonTitle || `${lesson.className || '教学班'}`
+    form.templateId = 'tmpl-common'
+    form.templateName = '通用课评模板'
+    form.studyContent = ''
     form.rating = 5
-    form.voiceUrl = 'https://public-test-shengtong.oss-cn-zhangjiakou.aliyuncs.com/audio/eval_sample.mp3'
-    form.voiceDuration = 45
-    form.videoUrl = 'https://public-test-shengtong.oss-cn-zhangjiakou.aliyuncs.com/video/classroom_sample.mp4'
-    form.photoList = [...defaultPhotos]
-    form.teacherComment = tpl?.defaultTeacherComment || ''
-    form.aiPolished = false
+    form.photoList = []
+    form.videoUrl = ''
+    form.teacherComment = ''
     form.status = 'draft'
-    selectedTemplateId.value = form.templateId
   }
 
   visible.value = true
@@ -592,7 +741,7 @@ function open(lesson: WorkbenchLessonCard) {
   })
 }
 
-// 提交保存
+// 提交保存 (调用协调器 commitEvaluation 接口)
 async function handleSave(publish: boolean) {
   if (!form.studyContent || !form.studyContent.trim()) {
     ElMessage.warning('请输入学习内容')
@@ -609,22 +758,42 @@ async function handleSave(publish: boolean) {
 
   saving.value = true
   try {
-    const saved = saveLessonEvaluation({
-      ...form,
-      status: publish ? 'published' : 'draft'
-    }, publish)
+    const res = await educationalApi.commitEvaluation({
+      scheduleEventId: form.lessonTimeId,
+      publish,
+      dispatchStrategy: 'ATTENDED_ONLY',
+      payload: {
+        templateId: form.templateId,
+        templateName: form.templateName,
+        lessonTitle: form.lessonTitle,
+        studyContentHtml: form.studyContent,
+        overallRating: form.rating,
+        videoUrl: form.videoUrl,
+        photoList: form.photoList,
+        teacherComment: form.teacherComment,
+        aiPolished: form.aiPolished,
+      },
+    })
+
+    const receipt = res.data
 
     if (publish) {
-      ElMessage.success({
-        message: `课评发布成功！已即时同步并向「${form.className}」全部家长端推送随堂学情报告与课堂相册！`,
-        duration: 4000
+      const sentCount = receipt?.dispatchResult?.outboxEnqueuedCount || 0
+      const skippedCount = receipt?.dispatchResult?.wechatSkippedCount || 0
+      ElNotification({
+        title: '课评发布成功',
+        message: `课评已落盘并同步至学员考勤！已向 ${sentCount} 位绑定微信家长推送学情报告${skippedCount > 0 ? ` (另有 ${skippedCount} 位家长未绑定微信号)` : ''}。`,
+        type: 'success',
+        duration: 4500,
       })
     } else {
-      ElMessage.success('课评草稿暂存成功！数据已持久化落盘。')
+      ElMessage.success('课评草稿已持久化落盘至数据库！')
     }
 
-    emit('success', saved)
+    emit('success', receipt)
     visible.value = false
+  } catch (err: any) {
+    ElMessage.error(err.message || '提交课评失败')
   } finally {
     saving.value = false
   }

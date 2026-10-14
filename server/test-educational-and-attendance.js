@@ -106,7 +106,7 @@ async function runTests() {
   assert(classroomListRes.status === 200, '教室列表查询成功返回 200');
   assert(classroomListRes.body.data.length > 0, '种子数据包含初始化教室');
 
-  const testRoomCode = `CR-TEST-${Date.now().toString().slice(-4)}`;
+  const testRoomCode = `CR-TEST-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
   const createRoomRes = await request(
     {
       hostname: HOST,
@@ -131,7 +131,7 @@ async function runTests() {
   // ----------------------------------------------------------------
   console.log('\n--- 3. 班级档案管理与学员进班 API 验证 ---');
 
-  const testClassCode = `CLS-AUTO-${Date.now().toString().slice(-4)}`;
+  const testClassCode = `CLS-AUTO-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
   const createClassRes = await request(
     {
       hostname: HOST,

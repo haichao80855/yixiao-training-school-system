@@ -6,7 +6,7 @@
 export type ScheduleSemanticType = 'completed' | 'conflict' | 'personal' | 'regular';
 export type LessonClassType = 'formal' | 'make_up' | 'trial';
 export type ScheduleEventStatus = 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-export type ClassStatus = 'recruiting' | 'in_progress' | 'completed';
+export type ClassStatus = 'recruiting' | 'in_progress' | 'completed' | 'cancelled' | 'archived';
 export type AttendanceStatus = 'present' | 'leave' | 'absent' | 'late';
 
 // 教室属性
@@ -110,6 +110,8 @@ export interface StudentAttendanceItem {
   deductionLessons: number;
   pricePerLesson?: number;
   actualDeductAmount?: number;
+  packageId?: string;
+  isLowBalance?: boolean;
   remark?: string;
   remainingLessonsBefore?: number;
   remainingLessonsAfter?: number;
@@ -259,4 +261,191 @@ export interface WorkbenchLessonCard extends ScheduleEvent {
   evaluationStatus?: 'none' | 'draft' | 'published';
   playbackUrl?: string;
 }
+
+// ----------------------------------------------------------------------------
+// 班级花名册与分班履约调度类型契约 (Class Roster Coordinator)
+// ----------------------------------------------------------------------------
+
+export interface StudentAssignItemResult {
+  studentId: string;
+  studentName: string;
+  studentNo: string;
+  packageId: string;
+  previousClassId: string | null;
+  status: 'assigned' | 'transferred' | 'idempotent_noop';
+}
+
+export interface AssignStudentsResult {
+  success: boolean;
+  classId: string;
+  className: string;
+  assignedCount: number;
+  currentStudentCount: number;
+  capacity: number;
+  remainingCapacity: number;
+  isFull: boolean;
+  dryRun: boolean;
+  students: StudentAssignItemResult[];
+  message: string;
+}
+
+export interface RemoveStudentResult {
+  success: boolean;
+  classId: string;
+  className: string;
+  studentId: string;
+  studentName: string;
+  packageId: string;
+  unassignedLessons: number;
+  newClassStudentCount: number;
+  studentStatus: 'normal' | 'in_class';
+  fallbackToUnassignedPool: true;
+  message: string;
+}
+
+export interface UnassignedStudentItemView {
+  id: string;
+  studentId: string;
+  name: string;
+  studentNo: string;
+  avatar: string;
+  gender: string;
+  phone: string;
+  campusId: string;
+  campusName: string;
+  courseId: string;
+  courseName: string;
+  packageId: string;
+  unassignedLessons: number;
+  preferredTime: string;
+  signupDate: string;
+  waitDays: number;
+  counselor: string;
+  assessmentScore: number;
+  assessmentSummary: string;
+}
+
+export interface UnassignedRosterSummary {
+  totalStudents: number;
+  totalUnassignedLessons: number;
+  monthlyNewCount: number;
+  avgWaitDays: number;
+}
+
+export interface UnassignedRosterResult {
+  total: number;
+  page: number;
+  pageSize: number;
+  summary: UnassignedRosterSummary;
+  list: UnassignedStudentItemView[];
+}
+
+export interface ClassRosterStudentView {
+  studentId: string;
+  packageId: string;
+  name: string;
+  studentNo: string;
+  phone: string;
+  avatar: string;
+  remainingLessons: number;
+  consumedLessons: number;
+  bonusLessons: number;
+  isLessonDeficit: boolean;
+  joinDate: string;
+  status: string;
+}
+
+export interface ClassRosterResult {
+  classId: string;
+  className: string;
+  classCode: string;
+  courseId: string;
+  courseName: string;
+  teacherName: string;
+  classroomName: string;
+  capacity: number;
+  currentStudentCount: number;
+  occupancyRate: number;
+  isFull: boolean;
+  availableCapacity: number;
+  students: ClassRosterStudentView[];
+}
+
+// ----------------------------------------------------------------------------
+// 班级全生命周期协调器 (Class Lifecycle Coordinator) 契约
+// ----------------------------------------------------------------------------
+export type LifecycleActionType = 'activate' | 'complete' | 'cancel' | 'merge';
+
+export type StudentDispositionPolicy =
+  | { mode: 'fallback_unassigned' }
+  | { mode: 'transfer_next_class'; targetClassId: string }
+  | { mode: 'archive_completed' };
+
+export interface ActivateClassCommand {
+  classId: string;
+  actualStartDate?: string;
+  minStudentCount?: number;
+}
+
+export interface CompleteClassCommand {
+  classId: string;
+  disposition: StudentDispositionPolicy;
+  cancelFutureSchedules?: boolean;
+  remark?: string;
+}
+
+export interface CancelClassCommand {
+  classId: string;
+  reason: string;
+}
+
+export interface MergeClassesCommand {
+  sourceClassIds: string[];
+  targetClassId: string;
+  sourceDisposition?: 'complete' | 'keep_empty';
+  reason?: string;
+}
+
+export interface LifecycleCheckIssue {
+  code: string;
+  severity: 'blocking' | 'warning' | 'info';
+  message: string;
+}
+
+export interface ClassLifecyclePreview {
+  allowed: boolean;
+  classId: string;
+  className: string;
+  action: LifecycleActionType;
+  currentStatus: ClassStatus;
+  targetStatus: ClassStatus;
+  issues: LifecycleCheckIssue[];
+  impact: {
+    affectedStudentCount: number;
+    affectedPackageCount: number;
+    cancelledScheduleCount: number;
+    auditedHistoricalAttendanceCount: number;
+    freedClassroomSlots: number;
+    targetClassRemainingCapacityBefore?: number;
+    targetClassRemainingCapacityAfter?: number;
+  };
+  summary: string;
+}
+
+export interface ClassLifecycleReceipt {
+  receiptId: string;
+  classId: string;
+  className: string;
+  previousStatus: ClassStatus;
+  currentStatus: ClassStatus;
+  disposedStudentCount?: number;
+  disbandedStudentCount?: number;
+  migratedStudentCount?: number;
+  cancelledScheduleCount?: number;
+  revokedScheduleCount?: number;
+  preservedAttendanceCount?: number;
+  immutableFingerprint?: string;
+  message: string;
+}
+
 

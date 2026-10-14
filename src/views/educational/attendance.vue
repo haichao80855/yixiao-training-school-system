@@ -299,24 +299,35 @@ async function loadTeachers() {
 
 const teachers = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
 
+const serverMetrics = ref<any>(null)
+
 async function loadData() {
   try {
-    const [schedRes, attRes] = await Promise.all([
+    const [wbRes, schedRes] = await Promise.all([
+      educationalApi.getWorkbenchSnapshot({
+        campusId: tenantStore.currentCampusId,
+        date: filterDate.value,
+      }),
       educationalApi.getSchedules({ campusId: tenantStore.currentCampusId }),
-      educationalApi.getAttendanceRecords({ campusId: tenantStore.currentCampusId }),
       loadTeachers()
     ])
+    if (wbRes && wbRes.data) {
+      serverMetrics.value = wbRes.data.metrics
+      if (Array.isArray(wbRes.data.history)) {
+        attendanceRecords.value = wbRes.data.history
+      }
+    } else {
+      const attRes = await educationalApi.getAttendanceRecords({ campusId: tenantStore.currentCampusId })
+      if (attRes && attRes.data) {
+        const list = Array.isArray(attRes.data) ? attRes.data : (attRes.data.items || attRes.data.list || [])
+        attendanceRecords.value = list
+      }
+    }
     if (schedRes && schedRes.success && schedRes.data) {
       const list = Array.isArray(schedRes.data) ? schedRes.data : (schedRes.data.items || schedRes.data.list || [])
       schedules.value = list
     } else {
       schedules.value = []
-    }
-    if (attRes && attRes.data) {
-      const list = Array.isArray(attRes.data) ? attRes.data : (attRes.data.items || attRes.data.list || [])
-      attendanceRecords.value = list
-    } else {
-      attendanceRecords.value = []
     }
   } catch (err: any) {
     ElMessage.error(err.message || '获取排课与考勤记录失败')
@@ -324,6 +335,10 @@ async function loadData() {
     attendanceRecords.value = []
   }
 }
+
+watch(() => [tenantStore.currentCampusId, filterDate.value], () => {
+  loadData()
+})
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {
   if (isDataScopeSelf.value) {
@@ -348,8 +363,11 @@ const filteredSchedules = computed(() => {
   return list
 })
 
-// 看板统计数据（严格限定为所选日期或当天，避免统计全历史/未来排课）
+// 看板统计数据（优先直接消费服务端 SSOT 权威指标，回退则在内存计算）
 const workbenchStats = computed(() => {
+  if (serverMetrics.value) {
+    return serverMetrics.value
+  }
   const targetDate = filterDate.value || getTodayDateStr()
   const todaySchedules = schedules.value.filter(s => s.date === targetDate)
   const scheduledCount = todaySchedules.filter(s => s.status === 'scheduled').length
@@ -390,8 +408,8 @@ async function handleFaceSync() {
 async function handleRevertAttendance(record: AttendanceRecord) {
   try {
     const { value: reason } = await ElMessageBox.prompt(
-      `确定对班级 [${record.className}]（${record.date} 课次）发起反结课冲正吗？已扣减的 ${record.deductedLessonsTotal} 课时将原路退还学员课包。`,
-      '反结课冲正确认',
+      `确定对班级 [${record.className}]（${record.date} 课次）发起反结课冲正吗？已扣减的 ${record.deductedLessonsTotal} 课时将原路退还学员课包，并级联作废随堂课评与微信出站通知。`,
+      '反结课冲正确认 (级联安全防腐)',
       {
         confirmButtonText: '确定冲正退回课时',
         cancelButtonText: '取消',
@@ -402,8 +420,14 @@ async function handleRevertAttendance(record: AttendanceRecord) {
     )
 
     try {
-      await educationalApi.reverseSchedule(record.scheduleEventId || record.id, reason)
-      ElMessage.success('反结课冲正成功，已退还学员课时！')
+      const scheduleId = record.scheduleEventId || record.id
+      const res = await educationalApi.reverseFulfillment({
+        scheduleEventId: scheduleId,
+        strategy: 'FULL_ROLLBACK',
+        reason,
+      })
+      const msg = res?.data?.message || '反结课冲正成功，已退还学员课时并级联作废课评与在途通知！'
+      ElMessage.success(msg)
       handleReloadAll()
     } catch (err: any) {
       ElMessage.error(err.message || '反结课冲正失败')

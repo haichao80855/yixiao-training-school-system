@@ -14,11 +14,22 @@ export function adaptMovementDto(input: any): Record<string, any> {
   const targetCampusId = input.targetCampusId || td.targetCampusId;
   const targetStudentId = input.targetStudentId || td.targetStudentId;
 
+  const rawLessons = input.newPurchasedLessons ?? input.newLessons ?? td.newLessons ?? td.newPurchasedLessons;
+  const newPurchasedLessons = rawLessons !== undefined ? Number(rawLessons) : undefined;
+
   const rawDays = input.suspendDays ?? input.suspensionDays ?? input.days ?? td.days ?? td.suspensionDays;
   const suspendDays = rawDays !== undefined ? Number(rawDays) : undefined;
 
-  const rawRefund = input.refundAmount ?? input.deductionFee ?? td.deductionFee ?? td.refundAmount;
+  const rawExtend = input.extendExpiryDays ?? td.extendExpiryDays;
+  const extendExpiryDays = rawExtend !== undefined ? Number(rawExtend) : undefined;
+
+  const rawDeduction = input.deductionFee ?? td.deductionFee;
+  const deductionFee = rawDeduction !== undefined ? Number(rawDeduction) : undefined;
+
+  const rawRefund = input.refundAmount ?? input.customRefundAmount ?? td.customRefundAmount ?? td.refundAmount;
   const refundAmount = rawRefund !== undefined ? Number(rawRefund) : undefined;
+
+  const transferWallet = input.transferWallet !== undefined ? Boolean(input.transferWallet) : undefined;
 
   const dto: Record<string, any> = {
     type,
@@ -29,12 +40,64 @@ export function adaptMovementDto(input: any): Record<string, any> {
   if (packageId) dto.packageId = packageId;
   if (targetClassId) dto.targetClassId = targetClassId;
   if (targetCourseId) dto.targetCourseId = targetCourseId;
+  if (newPurchasedLessons !== undefined) dto.newPurchasedLessons = newPurchasedLessons;
   if (targetCampusId) dto.targetCampusId = targetCampusId;
   if (targetStudentId) dto.targetStudentId = targetStudentId;
+  if (transferWallet !== undefined) dto.transferWallet = transferWallet;
   if (suspendDays !== undefined) dto.suspendDays = suspendDays;
+  if (extendExpiryDays !== undefined) dto.extendExpiryDays = extendExpiryDays;
+  if (deductionFee !== undefined) dto.deductionFee = deductionFee;
   if (refundAmount !== undefined) dto.refundAmount = refundAmount;
 
   return dto;
+}
+
+export interface ServiceFeeRecordItem {
+  id: string;
+  certNo: string;
+  studentId: string;
+  studentName: string;
+  studentNo: string;
+  campusId: string;
+  campusName: string;
+  examType: string;
+  category: 'certification' | 'competition' | string;
+  fee: number;
+  invoiceTitle?: string;
+  yikuaibaoVoucherNo?: string;
+  status: 'pending' | 'verified' | string;
+  createTime: string;
+  verifyTime?: string | null;
+  operator: string;
+  voucherImage?: string;
+}
+
+export interface ServiceFeeQueryParams {
+  campusId?: string;
+  status?: string;
+  category?: string;
+  keyword?: string;
+}
+
+export interface CreateServiceFeeParams {
+  certNo?: string;
+  studentId: string;
+  studentName: string;
+  studentNo: string;
+  campusId: string;
+  campusName: string;
+  examType: string;
+  category: string;
+  fee: number;
+  invoiceTitle?: string;
+  yikuaibaoVoucherNo?: string;
+  voucherImage?: string;
+}
+
+export interface BatchVerifyServiceFeeParams {
+  ids: string[];
+  yikuaibaoVoucherNo?: string;
+  operator?: string;
 }
 
 export const studentApi = {
@@ -78,6 +141,11 @@ export const studentApi = {
   enroll: (data: any) =>
     request('/api/students/enroll', { method: 'POST', body: JSON.stringify(data) }),
 
+  previewMovement: (id: string, data: any) => {
+    const flatDto = adaptMovementDto(data);
+    return request(`/api/students/${id}/movement/preview`, { method: 'POST', body: JSON.stringify(flatDto) });
+  },
+
   executeMovement: (id: string, data: any) => {
     const flatDto = adaptMovementDto(data);
     return request(`/api/students/${id}/movement`, { method: 'POST', body: JSON.stringify(flatDto) });
@@ -91,4 +159,30 @@ export const studentApi = {
 
   getUnassignedStudents: async (params?: any, fallbackData?: any) =>
     request('/api/students', { params: { ...params, status: 'normal' }, fallbackData }),
+
+  // 考务代报名与服务费账本
+  getServiceFees: (params?: ServiceFeeQueryParams, fallbackData?: ServiceFeeRecordItem[]) =>
+    request<ServiceFeeRecordItem[]>('/api/students/service-fees', { params, fallbackData }),
+
+  createServiceFee: (data: CreateServiceFeeParams) =>
+    request<ServiceFeeRecordItem>('/api/students/service-fees', { method: 'POST', body: JSON.stringify(data) }),
+
+  verifyServiceFee: (id: string, yikuaibaoVoucherNo: string) =>
+    request<ServiceFeeRecordItem>('/api/students/service-fees/verify', { method: 'POST', body: JSON.stringify({ id, yikuaibaoVoucherNo }) }),
+
+  batchVerifyServiceFees: (data: BatchVerifyServiceFeeParams) =>
+    request<{ success: boolean; count: number; message: string }>('/api/students/service-fees/batch-verify', { method: 'POST', body: JSON.stringify(data) }),
+
+  deleteServiceFee: (id: string) =>
+    request<{ success: boolean }>(`/api/students/service-fees/${id}`, { method: 'DELETE' }),
+
+  // 课消风控与续费决策协调器 (LessonRenewalCoordinator)
+  getCampusRenewalRoster: (params?: any, fallbackData?: any) =>
+    request('/api/students/renewal/roster', { params, fallbackData }),
+
+  getStudentRenewalRisk: (studentId: string, fallbackData?: any) =>
+    request(`/api/students/${studentId}/renewal-risk`, { fallbackData }),
+
+  createRenewalOrderDraft: (studentId: string, data?: any) =>
+    request(`/api/students/${studentId}/renewal-draft`, { method: 'POST', body: JSON.stringify(data || {}) }),
 };

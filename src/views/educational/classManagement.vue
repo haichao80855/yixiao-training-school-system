@@ -210,13 +210,31 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="250" fixed="right">
           <template #default="{ row }">
             <div class="space-x-1">
+              <el-button
+                v-if="row.status === 'recruiting'"
+                link
+                type="success"
+                size="small"
+                @click="handleStartClass(row)"
+              >
+                开班
+              </el-button>
+              <el-button
+                v-if="row.status === 'in_progress'"
+                link
+                type="warning"
+                size="small"
+                @click="handleOpenCompleteModal(row)"
+              >
+                结课
+              </el-button>
               <el-button link type="primary" size="small" @click="handleViewDetail(row)">花名册</el-button>
-              <el-button link type="primary" size="small" @click="handleBatchSchedule(row)">批量排课</el-button>
+              <el-button link type="primary" size="small" @click="handleBatchSchedule(row)">排课</el-button>
               <el-button link type="primary" size="small" @click="handleEditClass(row)">编辑</el-button>
-              <el-button link type="danger" size="small" @click="handleDeleteClass(row.id)">删除</el-button>
+              <el-button link type="danger" size="small" @click="handleDeleteClass(row)">删除</el-button>
             </div>
           </template>
         </el-table-column>
@@ -227,6 +245,8 @@
     <ClassDetailDrawer
       ref="detailDrawerRef"
       @batch-schedule="handleBatchSchedule"
+      @complete-class="handleOpenCompleteModal"
+      @updated="loadData"
     />
 
     <BatchScheduleDialog
@@ -240,6 +260,88 @@
       :campus-id="tenantStore.currentCampusId"
       @success="handleClassSaveSuccess"
     />
+
+    <!-- 结课结业与学员安置向导弹窗 -->
+    <el-dialog
+      v-model="completeModalVisible"
+      :title="`班级正常结课与学员处置 - ${activeLifecycleClass?.name || ''}`"
+      width="540px"
+      class="rounded-xl"
+    >
+      <div v-loading="previewLoading" class="space-y-4">
+        <el-alert
+          v-if="lifecyclePreview"
+          :title="lifecyclePreview.summary"
+          type="info"
+          :closable="false"
+          show-icon
+        >
+          <template #default>
+            <div class="mt-2 text-xs space-y-1 text-slate-600">
+              <div>• 在读学员处置：<b>{{ lifecyclePreview.impact.affectedStudentCount }}</b> 人</div>
+              <div>• 将自动撤回释放未来排课：<b>{{ lifecyclePreview.impact.cancelledScheduleCount }}</b> 节</div>
+              <div>• 权威锁死保全历史消课考勤：<b>{{ lifecyclePreview.impact.auditedHistoricalAttendanceCount }}</b> 条</div>
+            </div>
+          </template>
+        </el-alert>
+
+        <el-form label-position="top">
+          <el-form-item label="在读学员课包安置方案" required>
+            <el-radio-group v-model="completeForm.dispositionMode" class="flex flex-col gap-2 !items-start">
+              <el-radio label="fallback_unassigned">
+                <span class="font-medium text-slate-800">全员回退待分班资产池</span>
+                <span class="text-xs text-slate-500 block">保全学员剩余课时，解绑班级外键，学籍自愈为正常在读</span>
+              </el-radio>
+              <el-radio label="transfer_next_class">
+                <span class="font-medium text-slate-800">整班批量升班晋级</span>
+                <span class="text-xs text-slate-500 block">原子平移至同校区同课程的进阶后继班级（CAS 班容校验）</span>
+              </el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item
+            v-if="completeForm.dispositionMode === 'transfer_next_class'"
+            label="目标进阶班级"
+            required
+          >
+            <el-select
+              v-model="completeForm.targetClassId"
+              placeholder="请选择目标班级"
+              class="w-full"
+              @change="refreshLifecyclePreview"
+            >
+              <el-option
+                v-for="c in targetClassCandidates"
+                :key="c.id"
+                :label="`${c.name} (余量: ${c.capacity - c.currentStudentCount} 人)`"
+                :value="c.id"
+                :disabled="c.capacity - c.currentStudentCount < (activeLifecycleClass?.currentStudentCount || 0)"
+              />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="结课结业说明备注">
+            <el-input
+              v-model="completeForm.remark"
+              type="textarea"
+              :rows="2"
+              placeholder="例如：秋季教学计划完成正常结课，学员表现优异"
+            />
+          </el-form-item>
+        </el-form>
+      </div>
+      <template #footer>
+        <el-button @click="completeModalVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="submittingLifecycle"
+          :disabled="lifecyclePreview && !lifecyclePreview.allowed"
+          @click="handleSubmitCompleteClass"
+        >
+          确认安全结课
+        </el-button>
+      </template>
+    </el-dialog>
 
     <!-- 教室管理对话框 -->
     <el-dialog
@@ -392,6 +494,8 @@ function getStatusTag(status: string) {
     case 'in_progress': return 'success'
     case 'recruiting': return 'warning'
     case 'completed': return 'info'
+    case 'cancelled': return 'danger'
+    case 'archived': return 'info'
     default: return 'primary'
   }
 }
@@ -401,6 +505,8 @@ function getStatusLabel(status: string) {
     case 'in_progress': return '开班中'
     case 'recruiting': return '招生中'
     case 'completed': return '已结课'
+    case 'cancelled': return '已解散'
+    case 'archived': return '已归档'
     default: return '未知'
   }
 }
@@ -485,20 +591,151 @@ function handleEditClass(cls: ClassItem) {
   formDialogRef.value?.open(cls)
 }
 
-async function handleDeleteClass(id: string) {
+// ----------------------------------------------------------------------------
+// 班级全生命周期操作 (Class Lifecycle Operations)
+// ----------------------------------------------------------------------------
+const completeModalVisible = ref(false)
+const activeLifecycleClass = ref<ClassItem | null>(null)
+const previewLoading = ref(false)
+const submittingLifecycle = ref(false)
+const lifecyclePreview = ref<any>(null)
+const completeForm = ref({
+  dispositionMode: 'fallback_unassigned' as 'fallback_unassigned' | 'transfer_next_class',
+  targetClassId: '',
+  remark: '',
+})
+
+const targetClassCandidates = computed(() => {
+  if (!activeLifecycleClass.value) return []
+  return classList.value.filter(
+    c => c.id !== activeLifecycleClass.value?.id &&
+         c.status !== 'completed' &&
+         c.status !== 'cancelled' &&
+         c.courseId === activeLifecycleClass.value?.courseId
+  )
+})
+
+// 1. 立即开班
+async function handleStartClass(cls: ClassItem) {
   try {
-    await ElMessageBox.confirm('确定要删除该班级吗？删除后该班级将从当前校区移除。', '删除确认', {
-      type: 'warning'
+    await ElMessageBox.confirm(
+      `确定为班级「${cls.name}」正式开班吗？开班后在读学员学籍将推进为正式在读。`,
+      '立即开班确认',
+      { confirmButtonText: '立即开班', cancelButtonText: '取消', type: 'success' }
+    )
+    const res = await educationalApi.activateClass({ classId: cls.id })
+    ElMessage.success(res.data?.message || '开班成功！')
+    loadData()
+  } catch (err: any) {
+    if (err !== 'cancel') {
+      ElMessage.error(err.message || '开班失败')
+    }
+  }
+}
+
+// 2. 打开结课结业弹窗
+async function handleOpenCompleteModal(cls: ClassItem) {
+  activeLifecycleClass.value = cls
+  completeForm.value = {
+    dispositionMode: 'fallback_unassigned',
+    targetClassId: '',
+    remark: '',
+  }
+  completeModalVisible.value = true
+  await refreshLifecyclePreview()
+}
+
+async function refreshLifecyclePreview() {
+  if (!activeLifecycleClass.value) return
+  previewLoading.value = true
+  try {
+    const res = await educationalApi.previewClassLifecycle(activeLifecycleClass.value.id, {
+      action: 'complete',
+      disposition: {
+        mode: completeForm.value.dispositionMode,
+        targetClassId: completeForm.value.targetClassId,
+      },
     })
-    try {
-      await educationalApi.deleteClass(id)
-      ElMessage.success('班级删除成功！')
-      loadData()
-    } catch (err: any) {
+    lifecyclePreview.value = res.data
+  } catch (err: any) {
+    lifecyclePreview.value = null
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+// 3. 提交结课处置
+async function handleSubmitCompleteClass() {
+  if (!activeLifecycleClass.value) return
+  if (completeForm.value.dispositionMode === 'transfer_next_class' && !completeForm.value.targetClassId) {
+    ElMessage.warning('请选择升班目标班级！')
+    return
+  }
+
+  submittingLifecycle.value = true
+  try {
+    const res = await educationalApi.completeClass({
+      classId: activeLifecycleClass.value.id,
+      disposition: completeForm.value.dispositionMode === 'transfer_next_class'
+        ? { mode: 'transfer_next_class', targetClassId: completeForm.value.targetClassId }
+        : { mode: 'fallback_unassigned' },
+      remark: completeForm.value.remark,
+      cancelFutureSchedules: true,
+    })
+    ElMessage.success(res.data?.message || '班级结课成功！')
+    completeModalVisible.value = false
+    loadData()
+  } catch (err: any) {
+    ElMessage.error(err.message || '结课失败')
+  } finally {
+    submittingLifecycle.value = false
+  }
+}
+
+// 4. 安全删除/解散处理
+async function handleDeleteClass(cls: ClassItem) {
+  try {
+    if (cls.currentStudentCount > 0) {
+      const confirmAction = await ElMessageBox.confirm(
+        `班级【${cls.name}】当前仍有 ${cls.currentStudentCount} 名在读学员，无法直接物理删除！\n\n是否执行【异常解散】，将学员课包安全回退至待分班池并释放未上排课？`,
+        '在读学员安全处置提示',
+        {
+          confirmButtonText: '确认解散班级',
+          cancelButtonText: '取消',
+          type: 'warning',
+          distinguishCancelAndClose: true,
+        }
+      )
+      if (confirmAction === 'confirm') {
+        const { value: reason } = await ElMessageBox.prompt(
+          '请输入解散原因：',
+          '异常解散班级',
+          {
+            confirmButtonText: '提交解散',
+            cancelButtonText: '取消',
+            inputPattern: /^.{2,}$/,
+            inputErrorMessage: '原因至少填写2个字',
+          }
+        )
+        if (reason) {
+          const cancelRes = await educationalApi.cancelClass({ classId: cls.id, reason })
+          ElMessage.success(cancelRes.data?.message || '班级解散成功！')
+          loadData()
+        }
+      }
+      return
+    }
+
+    await ElMessageBox.confirm('确定要删除该班级吗？删除后该班级将从当前校区移除。', '删除确认', {
+      type: 'warning',
+    })
+    await educationalApi.deleteClass(cls.id)
+    ElMessage.success('班级删除成功！')
+    loadData()
+  } catch (err: any) {
+    if (err !== 'cancel' && err !== 'close') {
       ElMessage.error(err.message || '删除班级失败')
     }
-  } catch {
-    // 弹窗取消
   }
 }
 

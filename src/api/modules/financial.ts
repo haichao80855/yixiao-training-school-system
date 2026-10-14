@@ -79,4 +79,16 @@ export const financialApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  batchAudit: (data: { approvalIds: string[]; action: string; comment?: string; stepName?: string }) =>
+    request('/api/financial/approvals/batch-audit', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getApprovalTimeline: (id: string) =>
+    request(`/api/financial/approvals/${id}/timeline`, {
+      method: 'GET',
+    }),
 };
+

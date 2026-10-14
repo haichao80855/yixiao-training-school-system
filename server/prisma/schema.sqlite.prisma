@@ -1,5 +1,5 @@
 // =======================================================
-// 拓视未来教育「一校教培系统」全业务领域数据库设计模型 (Prisma Schema - SQLite 本地与测试版)
+// 拓视未来教育「一校教培系统」全业务领域数据库设计模型 (Prisma Schema)
 // 包含 5 大核心业务模块完整实体关系与数据约束
 // =======================================================
 
@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "sqlite" // 支持无缝平滑切换为 mysql / postgresql
   url      = env("DATABASE_URL")
 }
 
@@ -17,16 +17,24 @@ datasource db {
 // -------------------------------------------------------
 
 model Company {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  name        String   // 如：北京拓视未来教育科技集团股份有限公司
-  stockCode   String   @default("002599") // A股股票代码
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String   @id @default(uuid())
+  code          String   @unique
+  name          String   // 如：北京拓视未来教育科技集团股份有限公司
+  stockCode     String   @default("002599") // A股股票代码
+  legalPerson   String?  @default("贾洪波")
+  phone         String?  @default("010-88880000")
+  validUntil    String?  @default("2028-12-31")
+  adminUserId   String?  // 超级管理员关联的用户ID
+  adminName     String?  @default("冬海潮")
+  logoUrl       String?
+  faviconUrl    String?
+  reportLogoUrl String?
+  status        String   @default("active")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  campuses    Campus[]
-  orgNodes    OrgNode[]
+  campuses      Campus[]
+  orgNodes      OrgNode[]
 }
 
 model Campus {
@@ -54,6 +62,8 @@ model Campus {
   orders         Order[]
   schedules      ScheduleEvent[]
   courseAuths    CourseCampusAuth[]
+  serviceFees    ServiceFeeRecord[]
+  evaluations    LessonEvaluation[]
 }
 
 model OrgNode {
@@ -252,6 +262,8 @@ model Student {
   attendances   AttendanceRecord[]
   orders        Order[]
   abnormals     StudentAbnormalMovement[]
+  serviceFees   ServiceFeeRecord[]
+  evaluationItems LessonEvaluationStudentItem[]
 }
 
 model StudentCoursePackage {
@@ -273,6 +285,8 @@ model StudentCoursePackage {
   student          Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   course           Course   @relation(fields: [courseId], references: [id])
   class            Class?   @relation(fields: [classId], references: [id])
+  attendances      AttendanceRecord[]
+  orders           Order[]  @relation("OrderPackage")
 }
 
 model StudentWallet {
@@ -385,6 +399,7 @@ model ScheduleEvent {
   classroom     Classroom @relation(fields: [classroomId], references: [id])
 
   attendances   AttendanceRecord[]
+  evaluation    LessonEvaluation?
 }
 
 model AttendanceRecord {
@@ -393,8 +408,13 @@ model AttendanceRecord {
   studentId       String
   status          String   // present | leave | absent | late
   deductLessons   Int      @default(1) // 扣减课时数
+  packageId       String?  // 关联扣减课包 ID
+  regularBurned   Int      @default(0) // 扣减实缴正课课时
+  bonusBurned     Int      @default(0) // 扣减赠送课时
   isReversed      Boolean  @default(false) // 盛通反结课冲正标记 (防重放刷课)
   reversedAt      DateTime?
+  reversalReason  String?  // 反结课冲正原因
+  reversedBy      String?  // 反结课操作人
   comment         String?  // 课堂评语
   score           Int?     // 随堂测验打分 (0-100)
   rating          String?  // A+ | A | B+ | B
@@ -403,6 +423,7 @@ model AttendanceRecord {
 
   scheduleEvent   ScheduleEvent @relation(fields: [scheduleEventId], references: [id], onDelete: Cascade)
   student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  package         StudentCoursePackage? @relation(fields: [packageId], references: [id])
 }
 
 // -------------------------------------------------------
@@ -430,6 +451,7 @@ model Order {
   isLocked          Boolean  @default(false) // 财务账期加锁保护
   remark            String?
   voucherUrl        String?  // 收款凭证图片
+  packageId         String?  // 关联履约/退费课包 ID
   payTime           DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -438,6 +460,7 @@ model Order {
   student           Student  @relation(fields: [studentId], references: [id])
   creator           User     @relation("OrderCreator", fields: [creatorId], references: [id])
   owner             User     @relation("OrderOwner", fields: [ownerId], references: [id])
+  package           StudentCoursePackage? @relation("OrderPackage", fields: [packageId], references: [id])
 
   approval          ApprovalFlow?
 }
@@ -470,3 +493,125 @@ model ApprovalNode {
   approvalFlow    ApprovalFlow @relation(fields: [approvalFlowId], references: [id], onDelete: Cascade)
   reviewer        User         @relation(fields: [reviewerId], references: [id])
 }
+
+model ServiceFeeRecord {
+  id                 String    @id @default(uuid())
+  certNo             String    @unique
+  studentId          String
+  studentName        String
+  studentNo          String
+  campusId           String
+  campusName         String
+  examType           String
+  category           String    // certification | competition
+  fee                Float     @default(0.0)
+  invoiceTitle       String?
+  yikuaibaoVoucherNo String?
+  status             String    @default("pending") // pending | verified
+  verifyTime         DateTime?
+  operator           String
+  voucherImage       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  campus             Campus    @relation(fields: [campusId], references: [id])
+  student            Student   @relation(fields: [studentId], references: [id])
+}
+
+// -------------------------------------------------------
+// 6. 随堂课评与微信通知出站信箱 (Lesson Evaluation & Outbox)
+// -------------------------------------------------------
+
+model LessonEvaluation {
+  id              String   @id @default(uuid())
+  campusId        String
+  scheduleEventId String   @unique // 1:1 锚定排课日程
+  classId         String
+  teacherId       String
+  lessonTitle     String   // 课次主题
+  templateId      String?  @default("tmpl-common")
+  templateName    String?  @default("通用课评模板")
+  studyContent    String   // 核心教学内容 (富文本 HTML)
+  overallRating   Float    @default(5.0) // 综合评级 (1.0-5.0 星)
+  teacherComment  String   // 通用教学评语
+  voiceUrl        String?
+  voiceDuration   Int?     @default(0)
+  videoUrl        String?
+  photoList       String   @default("[]") // JSON: string[]
+  aiPolished      Boolean  @default(false)
+  status          String   @default("draft") // draft | published
+  currentRevision Int      @default(0)
+  publishedAt     DateTime?
+  idempotencyKey  String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  scheduleEvent   ScheduleEvent @relation(fields: [scheduleEventId], references: [id], onDelete: Cascade)
+  campus          Campus        @relation(fields: [campusId], references: [id])
+  revisions       LessonEvaluationRevision[]
+  studentItems    LessonEvaluationStudentItem[]
+  outboxMessages  LessonEvaluationOutbox[]
+
+  @@index([campusId, status])
+}
+
+model LessonEvaluationStudentItem {
+  id              String   @id @default(uuid())
+  evaluationId    String
+  studentId       String
+  rating          Float?
+  comment         String?
+  performanceTag  String?
+  avatar          String?
+  growthScores    String?  // JSON
+  homeworkTask    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt
+
+  evaluation      LessonEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  student         Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, studentId])
+}
+
+model LessonEvaluationRevision {
+  id              String   @id @default(uuid())
+  evaluationId    String
+  revisionNumber  Int
+  snapshotData    String   // 全量快照 JSON
+  revisionReason  String?
+  fingerprint     String   // SHA-256 不可变数字指纹
+  publishedBy     String   // 操作人 ID/姓名
+  publishedAt     DateTime @default(now())
+
+  evaluation      LessonEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@unique([evaluationId, revisionNumber])
+}
+
+model LessonEvaluationOutbox {
+  id              String    @id @default(uuid())
+  campusId        String
+  evaluationId    String
+  revisionNumber  Int
+  studentId       String
+  channel         String    @default("wechat_template") // wechat_template | none
+  status          String    @default("pending") // pending | sent | failed | skipped_no_openid
+  idempotencyKey  String    @unique
+  recipientTarget String?   // wechatOpenId / phone
+  payload         String    // JSON: 微信模板消息数据
+  retryCount      Int       @default(0)
+  maxRetries      Int       @default(3)
+  nextRetryAt     DateTime  @default(now())
+  lastError       String?
+  receiptId       String?   // 微信 msgid
+  sentAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  evaluation      LessonEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextRetryAt])
+  @@index([campusId, status])
+}
+

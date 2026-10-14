@@ -430,7 +430,12 @@
       </el-table>
     </div>
 
-    <!-- 弹窗矩阵 -->
+    <!-- 0. 统一极速结课履约工作台 (随堂消课 + 课评 + 微信推送) -->
+    <LessonFulfillmentDialog
+      ref="fulfillmentDialogRef"
+      @success="handleFulfillmentSuccess"
+    />
+
     <!-- 1. 深度课评弹窗 -->
     <LessonEvaluationDialog
       ref="evaluationDialogRef"
@@ -508,6 +513,7 @@ import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
 import type { WorkbenchLessonCard, LessonEvaluation, Teacher, Classroom } from '@/types/educational'
+import LessonFulfillmentDialog from './components/LessonFulfillmentDialog.vue'
 import LessonEvaluationDialog from './components/LessonEvaluationDialog.vue'
 import LessonLessonPlanDrawer from './components/LessonLessonPlanDrawer.vue'
 import LessonPlaybackDialog from './components/LessonPlaybackDialog.vue'
@@ -605,6 +611,7 @@ const classroomOptions = computed(() => classroomList.value)
 const teacherOptions = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
 
 // 弹窗引用
+const fulfillmentDialogRef = ref<InstanceType<typeof LessonFulfillmentDialog>>()
 const evaluationDialogRef = ref<InstanceType<typeof LessonEvaluationDialog>>()
 const lessonPlanDrawerRef = ref<InstanceType<typeof LessonLessonPlanDrawer>>()
 const playbackDialogRef = ref<InstanceType<typeof LessonPlaybackDialog>>()
@@ -694,25 +701,25 @@ async function handleStartLesson(card: WorkbenchLessonCard) {
   }
 }
 
-// 结课
-async function handleFinishLesson(card: WorkbenchLessonCard) {
-  try {
-    await ElMessageBox.confirm(`确认将课次【${card.lessonTitle || card.className}】结课吗？结课后将自动归档授课记录并同步消课台账。`, '结课确认', {
-      confirmButtonText: '确定结课',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    try {
-      await educationalApi.updateScheduleStatus(card.id, 'completed')
-      card.status = 'completed'
-      ElMessage.success('已结课，授课记录已自动归档！')
-      loadData()
-    } catch (err: any) {
-      ElMessage.error(err.message || '结课操作失败')
-    }
-  } catch {
-    // 弹窗取消
+// 结课 (唤起统一结课履约工作台)
+function handleFinishLesson(card: WorkbenchLessonCard) {
+  if (card.status === 'completed') {
+    ElMessage.info('该排课日程已结课。如需查看或修订课评，请点击下方【课评】按钮。')
+    return
   }
+  fulfillmentDialogRef.value?.open(card)
+}
+
+function handleFulfillmentSuccess(receipt: any) {
+  const scheduleId = receipt?.scheduleEventId
+  const card = cardList.value.find(c => c.id === scheduleId)
+  if (card) {
+    card.status = 'completed'
+    if (receipt?.evaluation?.status) {
+      card.evaluationStatus = receipt.evaluation.status
+    }
+  }
+  loadData()
 }
 
 // 唤起各弹窗
@@ -778,9 +785,10 @@ async function handleSaveSignIn() {
   }
 }
 
-function handleEvaluationSuccess(evalRecord: LessonEvaluation) {
-  const card = cardList.value.find(c => c.id === evalRecord.lessonTimeId)
-  if (card) {
+function handleEvaluationSuccess(evalRecord: any) {
+  const scheduleId = evalRecord?.scheduleEventId || evalRecord?.lessonTimeId
+  const card = cardList.value.find(c => c.id === scheduleId)
+  if (card && evalRecord?.status) {
     card.evaluationStatus = evalRecord.status
   }
   loadData()

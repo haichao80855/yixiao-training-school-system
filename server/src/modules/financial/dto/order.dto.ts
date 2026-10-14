@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsIn, IsBoolean, IsNumber, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class OrderFilterDto {
   @IsOptional()
@@ -8,11 +9,11 @@ export class OrderFilterDto {
   pageSize?: number;
 
   @IsOptional()
-  @IsIn(['regular', 'quarterly', 'change_course_diff', 'refund', 'service_fee', 'wallet_recharge'])
+  @IsIn(['all', 'regular', 'quarterly', 'change_course_diff', 'refund', 'service_fee', 'wallet_recharge'])
   orderType?: string;
 
   @IsOptional()
-  @IsIn(['paid', 'unpaid', 'rejected', 'void'])
+  @IsIn(['all', 'paid', 'unpaid', 'rejected', 'void'])
   status?: string;
 
   @IsOptional()
@@ -20,15 +21,15 @@ export class OrderFilterDto {
   campusId?: string;
 
   @IsOptional()
-  @IsIn(['wechat', 'alipay', 'bank_transfer', 'pos', 'wallet'])
+  @IsIn(['all', 'wechat', 'alipay', 'bank_transfer', 'pos', 'wallet'])
   paymentMethod?: string;
 
   @IsOptional()
-  @IsIn(['delivered', 'undelivered', 'none'])
+  @IsIn(['all', 'delivered', 'undelivered', 'none'])
   deliveryStatus?: string;
 
   @IsOptional()
-  @IsIn(['unissued', 'issued', 'processing'])
+  @IsIn(['all', 'unissued', 'issued', 'processing'])
   invoiceStatus?: string;
 
   @IsOptional()
@@ -42,6 +43,24 @@ export class OrderFilterDto {
   @IsOptional()
   @IsString()
   keyword?: string;
+
+  @IsOptional()
+  @IsString()
+  salesOwner?: string;
+
+  @IsOptional()
+  @IsString()
+  channel?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  minAmount?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  maxAmount?: number;
 }
 
 export class UpdateOrderDto {

@@ -93,6 +93,18 @@ async function main() {
     execSync('node test-dict-cache-and-binding.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-org-admin-persistence.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-admin-reset-pwd-flow.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-lesson-settlement-engine.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-student-enrollment-coordinator.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-course-delivery-engine.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-batch-scheduling-deep-module.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-student-movement-deep-module.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-financial-approval-orchestrator.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-class-roster-coordinator.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-learning-growth-projector.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-lesson-renewal-coordinator.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-class-lifecycle-coordinator.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-lesson-evaluation-coordinator.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-lesson-fulfillment-coordinator.js', { stdio: 'inherit', cwd: serverDir });
 
     // 运行候选 1 & 候选 2 数据持久化与防假双写对抗性测试
     console.log('\n>>> [Step 4/4] 运行数据持久化、防假双写与无异常吞噬对抗性实测套件...\n');

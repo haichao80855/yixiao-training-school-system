@@ -8,12 +8,16 @@ export class RollCallItemDto {
 
   @IsString()
   @IsIn(['present', 'leave', 'absent', 'late'])
-  status: string;
+  status: 'present' | 'leave' | 'absent' | 'late';
 
   @IsOptional()
   @IsNumber()
   @Min(0)
   deductLessons?: number;
+
+  @IsOptional()
+  @IsString()
+  packageId?: string;
 
   @IsOptional()
   @IsString()

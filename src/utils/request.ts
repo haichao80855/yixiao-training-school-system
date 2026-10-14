@@ -84,11 +84,17 @@ export async function request<T = any>(
   }
   const campusId = localStorage.getItem('yixiao_current_campus_id') || 'campus-bj-hq'
 
+  const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData
+
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     'X-Campus-Id': campusId,
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(customHeaders as Record<string, string>),
+  }
+
+  // 若传入 body 不是 FormData，则设置默认的 application/json Content-Type
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json'
   }
 
   try {

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { FinancialService } from './financial.service';
 import { OrderFilterDto, UpdateVoucherDto, LockOrderDto, UpdateOrderDto } from './dto/order.dto';
-import { CreateApprovalDto, AuditApprovalDto } from './dto/approval.dto';
+import { CreateApprovalDto, AuditApprovalDto, BatchAuditDto } from './dto/approval.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -107,6 +107,21 @@ export class FinancialController {
   @RequirePermissions('financial:approvalFlow')
   async createApprovalFlow(@Body() dto: CreateApprovalDto) {
     return this.financialService.createApprovalFlow(dto);
+  }
+
+  @Post('approvals/batch-audit')
+  @RequirePermissions('financial:approval:audit')
+  async batchAudit(
+    @Body() dto: BatchAuditDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.financialService.batchAudit(dto, user);
+  }
+
+  @Get('approvals/:id/timeline')
+  @RequirePermissions('financial:approvalFlow')
+  async getApprovalTimeline(@Param('id') id: string) {
+    return this.financialService.getApprovalTimeline(id);
   }
 
   @Post('approvals/:id/audit')

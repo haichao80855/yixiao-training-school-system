@@ -1,11 +1,11 @@
 <template>
   <div class="p-5 space-y-4">
-    <!-- 顶部指标卡片 -->
+    <!-- 顶部指标卡片 (服务端全量聚合驱动，杜绝前端分页吞没) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">待分班学员总数</div>
-          <div class="text-2xl font-bold font-mono text-st-primary mt-1">{{ unassignedList.length }} <span class="text-xs font-normal">人</span></div>
+          <div class="text-2xl font-bold font-mono text-st-primary mt-1">{{ summary.totalStudents }} <span class="text-xs font-normal">人</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
           📋
@@ -14,7 +14,7 @@
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">待分配总课时数</div>
-          <div class="text-2xl font-bold font-mono text-emerald-600 mt-1">{{ totalUnassignedLessons }} <span class="text-xs font-normal">课时</span></div>
+          <div class="text-2xl font-bold font-mono text-emerald-600 mt-1">{{ summary.totalUnassignedLessons }} <span class="text-xs font-normal">课时</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
           ⏳
@@ -23,7 +23,7 @@
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">本月签约待入班新生</div>
-          <div class="text-2xl font-bold font-mono text-indigo-600 mt-1">{{ unassignedList.length }} <span class="text-xs font-normal">人</span></div>
+          <div class="text-2xl font-bold font-mono text-indigo-600 mt-1">{{ summary.monthlyNewCount }} <span class="text-xs font-normal">人</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
           🎒
@@ -32,7 +32,7 @@
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">平均入班响应时长</div>
-          <div class="text-2xl font-bold font-mono text-amber-600 mt-1">1.8 <span class="text-xs font-normal">天</span></div>
+          <div class="text-2xl font-bold font-mono text-amber-600 mt-1">{{ summary.avgWaitDays }} <span class="text-xs font-normal">天</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
           ⚡
@@ -45,10 +45,24 @@
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-3">
           <div class="w-64">
-            <el-input v-model="keyword" placeholder="搜索学员姓名、学号或课程..." size="small" clearable />
+            <el-input
+              v-model="keyword"
+              placeholder="搜索学员姓名、学号或课程..."
+              size="small"
+              clearable
+              @clear="handleSearch"
+              @keyup.enter="handleSearch"
+            />
           </div>
           <div class="w-48">
-            <el-select v-model="selectedTimeFilter" size="small" placeholder="意向时段" clearable class="w-full">
+            <el-select
+              v-model="selectedTimeFilter"
+              size="small"
+              placeholder="意向时段"
+              clearable
+              class="w-full"
+              @change="handleSearch"
+            >
               <el-option label="全部意向时段" value="" />
               <el-option label="周六上午" value="周六上午" />
               <el-option label="周六下午" value="周六下午" />
@@ -56,6 +70,7 @@
               <el-option label="周日下午" value="周日下午" />
             </el-select>
           </div>
+          <el-button size="small" type="primary" plain @click="handleSearch">查询</el-button>
           <el-button size="small" @click="handleReset">重置</el-button>
         </div>
 
@@ -71,10 +86,11 @@
     <!-- 待分班学员数据表格 -->
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
       <el-table
-        :data="filteredList"
+        v-loading="loading"
+        :data="unassignedList"
         style="width: 100%"
         stripe
-        @selection-change="(rows: UnassignedStudentItem[]) => selectedRows = rows"
+        @selection-change="(rows: UnassignedStudentItemView[]) => selectedRows = rows"
       >
         <el-table-column type="selection" width="45" align="center" />
         <el-table-column label="学员姓名" min-width="150">
@@ -116,6 +132,19 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 服务端分页组件 -->
+      <div class="flex justify-end mt-4">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="totalCount"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
     </div>
 
     <!-- 测评报告弹窗 -->
@@ -249,8 +278,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { educationalApi, studentApi } from '@/api'
-import type { UnassignedStudentItem } from '@/types/student'
+import { educationalApi } from '@/api'
+import type { UnassignedStudentItemView, UnassignedRosterSummary } from '@/types/educational'
 
 export interface AvailableClassOption {
   id: string
@@ -265,54 +294,65 @@ export interface AvailableClassOption {
   campusName?: string
 }
 
+const loading = ref(false)
 const keyword = ref('')
 const selectedTimeFilter = ref('')
-const selectedRows = ref<UnassignedStudentItem[]>([])
+const selectedRows = ref<UnassignedStudentItemView[]>([])
 
-const unassignedStudents = ref<UnassignedStudentItem[]>([])
+const currentPage = ref(1)
+const pageSize = ref(20)
+const totalCount = ref(0)
+
+const summary = ref<UnassignedRosterSummary>({
+  totalStudents: 0,
+  totalUnassignedLessons: 0,
+  monthlyNewCount: 0,
+  avgWaitDays: 0,
+})
+
+const unassignedList = ref<UnassignedStudentItemView[]>([])
 const availableClassesList = ref<AvailableClassOption[]>([])
 
 async function loadData() {
+  loading.value = true
   try {
-    const [stdRes, clsRes] = await Promise.all([
-      studentApi.getStudents({}),
+    const [rosterRes, clsRes] = await Promise.all([
+      educationalApi.getUnassignedRoster({
+        keyword: keyword.value.trim() || undefined,
+        page: currentPage.value,
+        pageSize: pageSize.value,
+      }),
       educationalApi.getClasses({})
     ])
-    if (clsRes?.data) {
-      availableClassesList.value = Array.isArray(clsRes.data) ? clsRes.data : (clsRes.data.items || clsRes.data.list || [])
+
+    if (rosterRes?.data) {
+      const data = rosterRes.data
+      unassignedList.value = data.list || []
+      totalCount.value = data.total || 0
+      if (data.summary) {
+        summary.value = data.summary
+      }
     }
-    if (stdRes?.data) {
-      const list = Array.isArray(stdRes.data) ? stdRes.data : (stdRes.data.items || stdRes.data.list || [])
-      const unas: UnassignedStudentItem[] = []
-      list.forEach((s: any) => {
-        const pkgs = s.coursePackages || []
-        const unassignedPkg = pkgs.find((p: any) => !p.classId || p.classId === '')
-        if (unassignedPkg && unassignedPkg.remainingLessons > 0) {
-          unas.push({
-            id: `unas-${s.id}`,
-            studentId: s.id,
-            name: s.name,
-            studentNo: s.studentNo,
-            avatar: s.avatar || 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=60',
-            gender: s.gender || 'male',
-            phone: s.phone || '',
-            campusId: s.campusId,
-            campusName: s.campusName || '总部校区',
-            courseId: unassignedPkg.courseId || '',
-            courseName: unassignedPkg.courseName || '未分班课程',
-            unassignedLessons: unassignedPkg.remainingLessons,
-            preferredTime: '周六上午 09:00-10:30',
-            signupDate: s.createdAt ? s.createdAt.slice(0, 10) : '2026-09-01',
-            counselor: '学管老师',
-            assessmentScore: 90,
-            assessmentSummary: '建议根据水平编入相应班级。'
-          })
-        }
-      })
-      unassignedStudents.value = unas
+
+    if (clsRes?.data) {
+      const list = Array.isArray(clsRes.data) ? clsRes.data : (clsRes.data.items || clsRes.data.list || [])
+      availableClassesList.value = list.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        courseName: c.courseName || '',
+        courseId: c.courseId,
+        teacherName: c.teacherName || '未指定',
+        classroomName: c.classroomName || '未指定',
+        scheduleTime: c.scheduleDesc || '',
+        capacity: c.capacity || 20,
+        currentCount: c.currentStudentCount ?? c.currentCount ?? 0,
+        campusName: c.campusName,
+      }))
     }
   } catch (err: any) {
     ElMessage.error(err.message || '获取待分班学员列表失败')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -320,29 +360,28 @@ onMounted(() => {
   loadData()
 })
 
-const unassignedList = computed(() => {
-  return unassignedStudents.value
-})
+function handleSearch() {
+  currentPage.value = 1
+  loadData()
+}
 
-const totalUnassignedLessons = computed(() => {
-  return unassignedList.value.reduce((acc, u) => acc + u.unassignedLessons, 0)
-})
+function handleReset() {
+  keyword.value = ''
+  selectedTimeFilter.value = ''
+  currentPage.value = 1
+  loadData()
+}
 
-const filteredList = computed(() => {
-  return unassignedList.value.filter(item => {
-    if (keyword.value) {
-      const q = keyword.value.trim().toLowerCase()
-      const mName = item.name.toLowerCase().includes(q)
-      const mNo = item.studentNo.toLowerCase().includes(q)
-      const mCourse = item.courseName.toLowerCase().includes(q)
-      if (!mName && !mNo && !mCourse) return false
-    }
-    if (selectedTimeFilter.value && !item.preferredTime.includes(selectedTimeFilter.value)) {
-      return false
-    }
-    return true
-  })
-})
+function handleSizeChange(size: number) {
+  pageSize.value = size
+  currentPage.value = 1
+  loadData()
+}
+
+function handleCurrentChange(page: number) {
+  currentPage.value = page
+  loadData()
+}
 
 const availableClasses = computed<AvailableClassOption[]>(() => {
   return availableClassesList.value
@@ -372,24 +411,19 @@ const sortedAvailableClasses = computed(() => {
 
 const reportDialogVisible = ref(false)
 const assignDialogVisible = ref(false)
-const activeItem = ref<UnassignedStudentItem | null>(null)
+const activeItem = ref<UnassignedStudentItemView | null>(null)
 const selectedClassId = ref('')
 
 const chosenClass = computed(() => {
   return availableClasses.value.find(c => c.id === selectedClassId.value)
 })
 
-function handleReset() {
-  keyword.value = ''
-  selectedTimeFilter.value = ''
-}
-
-function handleOpenReport(item: UnassignedStudentItem) {
+function handleOpenReport(item: UnassignedStudentItemView) {
   activeItem.value = item
   reportDialogVisible.value = true
 }
 
-function handleOpenAssign(item: UnassignedStudentItem) {
+function handleOpenAssign(item: UnassignedStudentItemView) {
   activeItem.value = item
   selectedClassId.value = ''
 
@@ -431,16 +465,23 @@ async function confirmAssign() {
   }
 
   const studentIds = targetStudents.map(s => s.studentId)
+  const packageIds = targetStudents.map(s => s.packageId).filter(Boolean)
+
   try {
-    await educationalApi.assignStudentsToClass(cls.id, studentIds)
-    cls.currentCount += targetStudents.length
-    const studentIdSet = new Set(studentIds)
-    unassignedStudents.value = unassignedStudents.value.filter(item => !studentIdSet.has(item.studentId))
-    if (activeItem.value) {
+    const res = await educationalApi.assignStudents({
+      classId: cls.id,
+      studentIds,
+      packageIds: packageIds.length > 0 ? packageIds : undefined,
+    })
+
+    if (res?.data?.message) {
+      ElMessage.success(res.data.message)
+    } else if (activeItem.value) {
       ElMessage.success(`学员 [${activeItem.value.name}] 已成功编入班级 [${cls.name}]！`)
     } else {
       ElMessage.success(`已成功为 ${studentIds.length} 名学员分配至班级 [${cls.name}] 并实时落库！`)
     }
+
     assignDialogVisible.value = false
     activeItem.value = null
     selectedRows.value = []

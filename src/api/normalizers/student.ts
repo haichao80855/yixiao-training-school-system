@@ -37,6 +37,56 @@ export function normalizeWalletLedger(raw: any): WalletLedgerItem {
   };
 }
 
+export function normalizeLearningRecord(raw: any): any {
+  if (!raw) return null;
+  const statusMap: Record<string, 'attended' | 'leave' | 'absent' | 'late'> = {
+    present: 'attended',
+    attended: 'attended',
+    leave: 'leave',
+    absent: 'absent',
+    late: 'late',
+  };
+  const status = statusMap[raw.status] || 'attended';
+  const date = raw.date ? String(raw.date).split('T')[0] : (raw.createdAt ? String(raw.createdAt).split('T')[0] : '2026-09-01');
+  const courseName = raw.courseName || raw.scheduleEvent?.class?.name || '标准课程';
+  const lessonName = raw.lessonName || (raw.className ? `${raw.className}随堂课` : (raw.scheduleEvent?.class?.name ? `${raw.scheduleEvent.class.name}随堂课` : '实操课'));
+  const teacher = raw.teacherName || raw.teacher || raw.operator || '主讲老师';
+
+  return {
+    id: raw.id || raw.recordId || '',
+    date,
+    lessonName,
+    courseName,
+    className: raw.className || undefined,
+    teacher,
+    classroomName: raw.classroomName || undefined,
+    status,
+    score: Number(raw.score ?? 90),
+    rating: raw.rating || (Number(raw.score) >= 90 ? 'A+' : Number(raw.score) >= 80 ? 'A' : 'B+'),
+    comment: raw.comment || '随堂听课专注，当堂实操表现良好。',
+    homeworkRating: raw.homeworkRating || 'A',
+    artworkUrl: raw.artworkUrl || undefined,
+    quizScore: raw.quizScore !== undefined ? Number(raw.quizScore) : (raw.score !== undefined ? Number(raw.score) : undefined),
+    deductLessons: Number(raw.deductLessons ?? 1),
+    isReversed: Boolean(raw.isReversed),
+    reversalReason: raw.reversalReason || undefined,
+    reversedAt: raw.reversedAt || undefined,
+
+    // 多媒体课评相册流扩展透传
+    lessonTitle: raw.lessonTitle || lessonName,
+    photoList: Array.isArray(raw.photoList) ? raw.photoList : [],
+    photos: Array.isArray(raw.photos) ? raw.photos : [],
+    videoUrl: raw.videoUrl || undefined,
+    videoMeta: raw.videoMeta || undefined,
+    voiceUrl: raw.voiceUrl || undefined,
+    voiceMeta: raw.voiceMeta || undefined,
+    studyContent: raw.studyContent || undefined,
+    studyContentHtml: raw.studyContentHtml || undefined,
+    performanceTag: raw.performanceTag || undefined,
+    shareToken: raw.shareToken || undefined,
+  };
+}
+
 export function normalizeStudent(raw: any): Student {
   if (!raw) return {} as Student;
 
@@ -77,6 +127,38 @@ export function normalizeStudent(raw: any): Student {
     ledger: rawLedger.map(normalizeWalletLedger),
   };
 
+  // 5. 消课健康度与流失预警单一真值源 (SSOT)
+  const rawHealth = raw.consumptionHealth || raw.learningPortfolio?.consumptionHealth;
+  const consumptionHealth = rawHealth ? {
+    weeklyBurnRate: Number(rawHealth.weeklyBurnRate || 0),
+    estimatedDepletionDays: Number(rawHealth.estimatedDepletionDays || 999),
+    warningLevel: (rawHealth.warningLevel || 'normal') as 'normal' | 'warning' | 'urgent',
+    dormantRisk: Boolean(rawHealth.dormantRisk),
+    renewalWindowOpen: Boolean(rawHealth.renewalWindowOpen),
+  } : undefined;
+
+  if (consumptionHealth?.warningLevel) {
+    warningLevel = consumptionHealth.warningLevel;
+  }
+
+  // 6. 学情成长时间轴与五维能力雷达
+  const rawLearningRecords = Array.isArray(raw.learningRecords) && raw.learningRecords.length > 0
+    ? raw.learningRecords
+    : (Array.isArray(raw.timeline) && raw.timeline.length > 0
+      ? raw.timeline
+      : (Array.isArray(raw.attendances) ? raw.attendances : []));
+  const learningRecords = rawLearningRecords.map(normalizeLearningRecord).filter(Boolean);
+
+  const rawRadar = raw.growthRadar || raw.learningPortfolio?.growthSummary?.radar;
+  const growthRadar = rawRadar ? {
+    logic: Number(rawRadar.logic ?? 85),
+    creativity: Number(rawRadar.creativity ?? 80),
+    focus: Number(rawRadar.focus ?? 85),
+    handsOn: Number(rawRadar.handsOn ?? 90),
+    expression: Number(rawRadar.expression ?? 80),
+    averageScore: Number(rawRadar.averageScore ?? 84),
+  } : undefined;
+
   const createdAt = raw.createdAt ? String(raw.createdAt).split('T')[0] : '2026-09-01';
 
   return {
@@ -102,9 +184,13 @@ export function normalizeStudent(raw: any): Student {
     status: (raw.status || 'normal') as StudentStatus,
     wallet,
     coursePackages,
-    learningRecords: raw.learningRecords || [],
+    learningRecords,
+    growthRadar,
+    consumptionHealth,
     communicationRecords: raw.communicationRecords || [],
     competitionRecords: raw.competitionRecords || [],
+    albumGallery: Array.isArray(raw.albumGallery) ? raw.albumGallery : (raw.learningPortfolio?.albumGallery || []),
+    portfolioShareToken: raw.portfolioShareToken || raw.learningPortfolio?.portfolioShareToken || '',
     createdAt,
     updatedAt: raw.updatedAt ? String(raw.updatedAt).split('T')[0] : undefined,
     // 兼容历史视图直接访问属性

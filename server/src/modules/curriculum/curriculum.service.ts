@@ -8,9 +8,14 @@ import {
   CreateCourseUnitDto,
 } from './dto/course.dto';
 
+import { CourseDeliveryEngine } from './domain/course-delivery.engine';
+
 @Injectable()
 export class CurriculumService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly deliveryEngine: CourseDeliveryEngine,
+  ) {}
 
   /**
    * 分页与多维筛选课程列表
@@ -202,31 +207,25 @@ export class CurriculumService {
   }
 
   /**
-   * 跨校区授权
+   * 跨校区授权 (委托跨校区课程交付中心处理)
    */
   async authorizeCampuses(id: string, dto: AuthorizeCampusesDto) {
-    await this.getCourseById(id);
-
-    // 先删除原授权，重新建立新授权列表
-    return this.prisma.$transaction(async (tx) => {
-      await tx.courseCampusAuth.deleteMany({
-        where: { courseId: id },
-      });
-
-      if (dto.campusIds && dto.campusIds.length > 0) {
-        await tx.courseCampusAuth.createMany({
-          data: dto.campusIds.map((cid) => ({
-            courseId: id,
-            campusId: cid,
-          })),
-        });
-      }
-
-      return tx.courseCampusAuth.findMany({
-        where: { courseId: id },
-        include: { campus: true },
-      });
+    await this.deliveryEngine.authorizeDelivery({
+      courseId: id,
+      campusIds: dto.campusIds,
     });
+
+    return this.prisma.courseCampusAuth.findMany({
+      where: { courseId: id },
+      include: { campus: true },
+    });
+  }
+
+  /**
+   * 获取指定校区权威可交付课程大盘快照
+   */
+  async getDeliverableCatalog(campusId: string) {
+    return this.deliveryEngine.getDeliverableCatalog(campusId);
   }
 
   /**

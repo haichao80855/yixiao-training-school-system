@@ -117,15 +117,23 @@
         </div>
 
         <!-- 预览结果摘要 -->
-        <div v-if="previewSummary" class="border rounded-lg p-3 bg-gray-50 text-xs space-y-1">
+        <div v-if="previewSummary" class="border rounded-lg p-3 bg-gray-50 text-xs space-y-1.5">
           <div class="font-bold text-st-title flex justify-between">
-            <span>预演排课结果 ({{ form.repeatCount }} 讲)</span>
-            <span :class="previewSummary.conflictCount > 0 ? 'text-st-danger' : 'text-st-success'">
+            <span>预演排课结果 ({{ previewData?.totalPlannedSlots || form.repeatCount }} 讲)</span>
+            <span :class="previewSummary.conflictCount > 0 ? 'text-st-danger font-bold' : 'text-st-success'">
               {{ previewSummary.conflictCount > 0 ? `检测到 ${previewSummary.conflictCount} 处时段冲突` : '无时段冲突 ✓' }}
             </span>
           </div>
           <div class="text-st-muted text-[11px]">
             排课跨度：{{ previewSummary.start }} 至 {{ previewSummary.end }}，每周循环一次。
+          </div>
+          <div v-if="previewData?.collisions?.length" class="max-h-24 overflow-y-auto space-y-1 pt-1 border-t border-gray-200">
+            <div v-for="(c, idx) in previewData.collisions.slice(0, 5)" :key="idx" class="text-[11px] text-rose-600">
+              ⚠️ [{{ c.date }}] {{ c.message }}
+            </div>
+            <div v-if="previewData.collisions.length > 5" class="text-[10px] text-stone-400">
+              ...以及另外 {{ previewData.collisions.length - 5 }} 处冲突
+            </div>
           </div>
         </div>
       </el-form>
@@ -237,22 +245,51 @@ function handleSwitchClass(classId: string) {
   }
 }
 
+const previewData = ref<any>(null)
+const conflictCount = computed(() => previewData.value?.conflictSlotsCount ?? 0)
+
 const previewSummary = computed(() => {
-  if (!form.startDate || !form.repeatCount) return null
-  const [y, m, d] = form.startDate.split('-').map(Number)
-  const dt = new Date(y, (m || 1) - 1, d || 1)
-  const startStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-  dt.setDate(dt.getDate() + (form.repeatCount - 1) * 7)
-  const endStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+  if (!previewData.value?.dateRange) return null
   return {
-    start: startStr,
-    end: endStr,
-    conflictCount: 0
+    start: previewData.value.dateRange.startDate,
+    end: previewData.value.dateRange.endDate,
+    conflictCount: conflictCount.value
   }
 })
 
+let previewTimer: any = null
 function triggerPreview() {
-  // preview calculated reactive
+  if (previewTimer) clearTimeout(previewTimer)
+  previewTimer = setTimeout(async () => {
+    if (!form.startDate || !form.startTime || !form.endTime || !form.teacherId || !form.classroomId) {
+      previewData.value = null
+      return
+    }
+    const targets = applyToAllSelected.value && classList.value.length > 1
+      ? classList.value
+      : (currentClass.value ? [currentClass.value] : [])
+
+    if (targets.length === 0) return
+
+    try {
+      const res = await educationalApi.previewSchedules({
+        campusId: effectiveCampusId.value,
+        classIds: targets.map(c => c.id),
+        startDate: form.startDate,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        teacherId: form.teacherId,
+        classroomId: form.classroomId,
+        recurrence: {
+          frequency: 'weekly',
+          repeatCount: form.repeatCount
+        }
+      })
+      previewData.value = res?.data || res
+    } catch {
+      previewData.value = null
+    }
+  }, 200)
 }
 
 async function open(clsOrList: ClassItem | ClassItem[]) {
@@ -273,6 +310,7 @@ async function open(clsOrList: ClassItem | ClassItem[]) {
   if (currentClass.value) {
     syncFormFromClass(currentClass.value)
   }
+  triggerPreview()
   visible.value = true
 }
 
@@ -280,50 +318,40 @@ async function handleSubmit() {
   if (!formRef.value || !currentClass.value) return
   await formRef.value.validate(async (valid) => {
     if (!valid) return
+
+    if (conflictCount.value > 0 && !form.forceIfConflict) {
+      ElMessage.warning(`检测到 ${conflictCount.value} 处排课冲突，请调整时段/教室或勾选“遇冲突仍生成日程”`)
+      return
+    }
+
     submitting.value = true
     try {
       const targets = applyToAllSelected.value && classList.value.length > 1
         ? classList.value
         : [currentClass.value!]
 
-      let totalSuccessCount = 0
+      const res = await educationalApi.commitBatchSchedules({
+        campusId: effectiveCampusId.value,
+        classIds: targets.map(c => c.id),
+        startDate: form.startDate,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        teacherId: form.teacherId,
+        classroomId: form.classroomId,
+        recurrence: {
+          frequency: 'weekly',
+          repeatCount: form.repeatCount
+        },
+        conflictPolicy: form.forceIfConflict ? 'ALLOW_AND_FLAG' : 'STRICT_ABORT'
+      })
 
-      for (const targetCls of targets) {
-        const [startY, startM, startD] = form.startDate.split('-').map(Number)
-        const currentDate = new Date(startY, (startM || 1) - 1, startD || 1)
-
-        for (let i = 0; i < form.repeatCount; i++) {
-          const year = currentDate.getFullYear()
-          const month = String(currentDate.getMonth() + 1).padStart(2, '0')
-          const day = String(currentDate.getDate()).padStart(2, '0')
-          const dateStr = `${year}-${month}-${day}`
-
-          await educationalApi.createSchedule({
-            campusId: targetCls.campusId || props.campusId,
-            classId: targetCls.id,
-            teacherId: form.teacherId || targetCls.teacherId,
-            classroomId: form.classroomId || targetCls.classroomId,
-            date: dateStr,
-            startTime: form.startTime,
-            endTime: form.endTime,
-            classType: 'formal',
-            semanticType: 'regular'
-          })
-          totalSuccessCount++
-          currentDate.setDate(currentDate.getDate() + 7)
-        }
-      }
-
-      if (totalSuccessCount > 0) {
-        ElMessage.success({
-          message: `批量排课执行成功！已成功生成 ${totalSuccessCount} 节课次日程，已即时同步至甘特排课看板！`,
-          duration: 4000
-        })
-        visible.value = false
-        emit('success')
-      } else {
-        ElMessage.error('批量排课未能成功生成有效课次')
-      }
+      const message = res?.data?.message || res?.message || '批量排课执行成功！已即时同步至甘特排课看板！'
+      ElMessage.success({
+        message,
+        duration: 4000
+      })
+      visible.value = false
+      emit('success')
     } catch (err: any) {
       ElMessage.error(err.message || '批量排课失败')
     } finally {

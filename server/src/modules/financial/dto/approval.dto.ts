@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsIn, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsIn, IsOptional, IsArray } from 'class-validator';
 
 export class CreateApprovalDto {
   @IsString()
@@ -6,7 +6,7 @@ export class CreateApprovalDto {
   orderId: string;
 
   @IsString()
-  @IsIn(['payment', 'quarterly', 'refund', 'transfer', 'wallet_prestore'])
+  @IsIn(['payment', 'quarterly', 'refund', 'transfer', 'wallet_prestore', 'make_over', 'service_fee'])
   businessType: string;
 
   @IsString()
@@ -16,12 +16,30 @@ export class CreateApprovalDto {
 
 export class AuditApprovalDto {
   @IsString()
-  @IsIn(['pass', 'reject'])
+  @IsIn(['pass', 'reject', 'approve'])
   action: string;
 
   @IsString()
   @IsNotEmpty()
   comment: string;
+
+  @IsOptional()
+  @IsString()
+  stepName?: string;
+}
+
+export class BatchAuditDto {
+  @IsArray()
+  @IsNotEmpty()
+  approvalIds: string[];
+
+  @IsString()
+  @IsIn(['pass', 'reject', 'approve'])
+  action: string;
+
+  @IsOptional()
+  @IsString()
+  comment?: string;
 
   @IsOptional()
   @IsString()

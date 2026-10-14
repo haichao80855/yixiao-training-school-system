@@ -83,7 +83,7 @@
             </el-form-item>
             <div v-if="selectedTargetClass" class="bg-blue-50 border border-blue-200 rounded p-2.5 text-xs text-blue-800">
               提示：目标班级「{{ selectedTargetClass.name }}」容量为 {{ selectedTargetClass.capacity }} 人，当前已入班 {{ selectedTargetClass.currentCount }} 人。
-              {{ selectedTargetClass.currentCount < selectedTargetClass.capacity ? '班级尚有名额，允许转入。' : '满班警告：已无空余名额！' }}
+              {{ previewResult?.capacityImpact ? (previewResult.capacityImpact.willExceedCapacity ? '满班警告：已达额定人数上限，禁止转入！' : `班级尚有名额 (剩余 ${previewResult.capacityImpact.remainingSlots} 人)，允许转入。`) : (selectedTargetClass.currentCount < selectedTargetClass.capacity ? '班级尚有名额，允许转入。' : '满班警告：已无空余名额！') }}
             </div>
           </el-form>
         </div>
@@ -120,20 +120,20 @@
               <el-input-number v-model="changeCourseForm.newLessons" :min="1" :max="200" class="w-full" />
             </el-form-item>
 
-            <!-- 差额核算看板 -->
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs space-y-1.5">
+            <!-- 差额核算看板 (服务端权威预演数据) -->
+            <div v-if="previewResult?.financialImpact" class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs space-y-1.5">
               <div class="flex justify-between text-amber-900">
-                <span>原课包剩余净值 ({{ oldPkgResidual.lessons }}课时 × ¥{{ oldPkgResidual.price }}):</span>
-                <span class="font-bold font-mono">¥ {{ oldPkgResidual.total.toFixed(2) }}</span>
+                <span>原课包实付剩余净值:</span>
+                <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.sourceResidualValue?.toFixed(2) }}</span>
               </div>
               <div class="flex justify-between text-amber-900">
-                <span>新课程购买总价 ({{ changeCourseForm.newLessons }}课时 × ¥{{ newCoursePrice }}):</span>
-                <span class="font-bold font-mono">¥ {{ newCourseTotal.toFixed(2) }}</span>
+                <span>新课程拟购总价:</span>
+                <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.targetRequiredAmount?.toFixed(2) }}</span>
               </div>
               <div class="border-t border-amber-300 pt-1 flex justify-between font-bold">
-                <span>差额计算结果 (原净值 - 新总价):</span>
-                <span :class="courseDiff >= 0 ? 'text-emerald-700' : 'text-red-700'" class="font-mono text-sm">
-                  {{ courseDiff >= 0 ? `+ ¥${courseDiff.toFixed(2)} (差额自动退回本金)` : `- ¥${Math.abs(courseDiff).toFixed(2)} (需补交差额)` }}
+                <span>差额核算结果 (原净值 - 新总价):</span>
+                <span :class="previewResult.financialImpact.netDiffAmount >= 0 ? 'text-emerald-700' : 'text-red-700'" class="font-mono text-sm">
+                  {{ previewResult.financialImpact.netDiffAmount >= 0 ? `+ ¥${previewResult.financialImpact.netDiffAmount.toFixed(2)} (差额自动退回电子钱包本金)` : `- ¥${Math.abs(previewResult.financialImpact.netDiffAmount).toFixed(2)} (需自钱包扣减补交)` }}
                 </span>
               </div>
             </div>
@@ -249,26 +249,43 @@
               <el-input-number v-model="refundForm.deductionFee" :min="0" :step="50" class="w-full" />
             </el-form-item>
 
-            <!-- 退费核算结果 -->
-            <div v-if="refundCalc" class="bg-slate-100 border border-slate-300 rounded p-3 text-xs space-y-1.5">
+            <!-- 退费核算结果 (服务端权威预演数据) -->
+            <div v-if="previewResult?.financialImpact" class="bg-slate-100 border border-slate-300 rounded p-3 text-xs space-y-1.5">
               <div class="flex justify-between text-slate-700">
-                <span>购买正课课时:</span>
-                <span class="font-bold">{{ refundCalc.purchasedRegular }} 课时</span>
+                <span>实付正课剩余净值:</span>
+                <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.sourceResidualValue?.toFixed(2) }}</span>
               </div>
-              <div class="flex justify-between text-slate-700">
-                <span>已消耗课时:</span>
-                <span class="font-bold">{{ refundCalc.consumed }} 课时</span>
+              <div v-if="previewResult.financialImpact.clawbackAmount > 0" class="flex justify-between text-slate-700">
+                <span>赠课超额扣减追缴 (透支赠课):</span>
+                <span class="text-red-600 font-bold font-mono">- ¥{{ previewResult.financialImpact.clawbackAmount.toFixed(2) }}</span>
               </div>
-              <div class="flex justify-between text-slate-700">
-                <span>赠课收回与超额扣减:</span>
-                <span class="text-red-600 font-bold">- ¥{{ refundCalc.clawback.toFixed(2) }}</span>
+              <div v-if="previewResult.financialImpact.deductionFee > 0" class="flex justify-between text-slate-700">
+                <span>教材与违约手续费扣除:</span>
+                <span class="text-red-600 font-bold font-mono">- ¥{{ previewResult.financialImpact.deductionFee.toFixed(2) }}</span>
               </div>
               <div class="border-t border-slate-300 pt-1 flex justify-between font-bold text-st-title">
-                <span>最终应退金额:</span>
-                <span class="text-st-danger-deep font-mono text-base">¥ {{ refundCalc.refundable.toFixed(2) }}</span>
+                <span>盛通核算实退金额:</span>
+                <span class="text-st-danger-deep font-mono text-base">¥ {{ previewResult.financialImpact.refundableCashAmount?.toFixed(2) }}</span>
+              </div>
+              <div class="text-[11px] text-slate-500 pt-0.5">
+                * 经由盛通防腐算法核算，赠送课时不折现，实退金额将转入退费审批工单
               </div>
             </div>
           </el-form>
+        </div>
+
+        <!-- 服务端权威预演诊断与阻断提示 -->
+        <div v-if="previewResult && previewResult.blockingIssues && previewResult.blockingIssues.length > 0" class="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded text-xs space-y-1">
+          <div v-for="issue in previewResult.blockingIssues" :key="issue.code" class="flex items-center space-x-1.5 font-medium">
+            <span>⚠️</span>
+            <span>{{ issue.message }}</span>
+          </div>
+        </div>
+        <div v-else-if="previewResult && previewResult.warnings && previewResult.warnings.length > 0" class="bg-amber-50 border border-amber-200 text-amber-700 p-2.5 rounded text-xs space-y-1">
+          <div v-for="w in previewResult.warnings" :key="w.code" class="flex items-center space-x-1.5">
+            <span>ℹ️</span>
+            <span>{{ w.message }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -454,53 +471,92 @@ const selectedTargetClass = computed(() => {
   return targetClasses.value.find(c => c.id === transferForm.toClassId)
 })
 
-// 换课核算
-const oldPkgResidual = computed(() => {
-  const pkg = props.student?.coursePackages.find(p => p.packageId === changeCourseForm.packageId)
-  if (!pkg) return { lessons: 0, price: 0, total: 0 }
-  const price = pkg.pricePerLesson || 280
-  return { lessons: pkg.remainingLessons, price, total: pkg.remainingLessons * price }
-})
+const previewResult = ref<any>(null)
+const previewLoading = ref(false)
 
-const newCoursePrice = computed(() => {
-  const c = availableCourses.value.find(c => c.id === changeCourseForm.newCourseId)
-  return c?.pricePerLesson || 280
-})
-
-const newCourseTotal = computed(() => {
-  return (changeCourseForm.newLessons || 0) * newCoursePrice.value
-})
-
-const courseDiff = computed(() => {
-  return oldPkgResidual.value.total - newCourseTotal.value
-})
-
-// 退费核算
-const refundCalc = computed(() => {
-  const pkg = props.student?.coursePackages.find(p => p.packageId === refundForm.packageId)
-  if (!pkg) return null
-  const price = pkg.pricePerLesson || 280
-  const bonus = pkg.bonusLessons || 0
-  const purchasedRegular = pkg.totalLessons - bonus
-  const consumed = pkg.totalLessons - pkg.remainingLessons
-
-  let refundable = Math.max(0, pkg.remainingLessons - bonus) * price
-  let clawback = 0
-  if (consumed > purchasedRegular) {
-    const excess = consumed - purchasedRegular
-    clawback = excess * price
-    refundable = Math.max(0, refundable - clawback)
-  }
-  refundable = Math.max(0, refundable - (refundForm.deductionFee || 0))
-
+function getCurrentMovementDto() {
   return {
-    purchasedRegular,
-    consumed,
-    bonus,
-    clawback,
-    refundable
+    type: currentMovement.value,
+    reasonCategory: suspendForm.reasonCategory || '学业或家庭调整',
+    reasonDetail: suspendForm.reason || `学员异动业务流转: ${currentMovement.value}`,
+    packageId:
+      currentMovement.value === 'transfer_class'
+        ? transferForm.packageId
+        : currentMovement.value === 'change_course'
+        ? changeCourseForm.packageId
+        : refundForm.packageId,
+    toClassId: transferForm.toClassId,
+    newCourseId: changeCourseForm.newCourseId,
+    newLessons: changeCourseForm.newLessons,
+    suspensionDays: suspendForm.days,
+    targetCampusId: transferCampusForm.targetCampusId,
+    targetStudentId: transferStudentForm.targetStudentId,
+    deductionFee: refundForm.deductionFee
   }
-})
+}
+
+let previewTimer: any = null
+async function triggerPreview() {
+  if (!props.student || !props.modelValue) return
+
+  if (currentMovement.value === 'transfer_class' && (!transferForm.packageId || !transferForm.toClassId)) {
+    previewResult.value = null
+    return
+  }
+  if (currentMovement.value === 'change_course' && (!changeCourseForm.packageId || !changeCourseForm.newCourseId)) {
+    previewResult.value = null
+    return
+  }
+  if (currentMovement.value === 'transfer_campus' && !transferCampusForm.targetCampusId) {
+    previewResult.value = null
+    return
+  }
+  if (currentMovement.value === 'transfer_student' && !transferStudentForm.targetStudentId) {
+    previewResult.value = null
+    return
+  }
+  if (currentMovement.value === 'refund' && !refundForm.packageId) {
+    previewResult.value = null
+    return
+  }
+
+  previewLoading.value = true
+  try {
+    const dto = getCurrentMovementDto()
+    const res = await studentApi.previewMovement(props.student.id, dto)
+    previewResult.value = res?.data || res
+  } catch (err: any) {
+    console.warn('Preview movement failed:', err)
+  } finally {
+    previewLoading.value = false
+  }
+}
+
+function debouncedPreview() {
+  if (previewTimer) clearTimeout(previewTimer)
+  previewTimer = setTimeout(() => {
+    triggerPreview()
+  }, 250)
+}
+
+watch(
+  [
+    currentMovement,
+    () => transferForm.packageId,
+    () => transferForm.toClassId,
+    () => changeCourseForm.packageId,
+    () => changeCourseForm.newCourseId,
+    () => changeCourseForm.newLessons,
+    () => suspendForm.days,
+    () => transferCampusForm.targetCampusId,
+    () => transferStudentForm.targetStudentId,
+    () => refundForm.packageId,
+    () => refundForm.deductionFee
+  ],
+  () => {
+    debouncedPreview()
+  }
+)
 
 function getStatusTagType(status: string) {
   switch (status) {
@@ -569,6 +625,13 @@ async function handleSubmit() {
     }
   }
 
+  // 服务端预演阻断检查
+  if (previewResult.value && !previewResult.value.canExecute) {
+    const blockingMsg = previewResult.value.blockingIssues?.[0]?.message || '异动前置条件未满足，无法执行'
+    ElMessage.error(blockingMsg)
+    return
+  }
+
   try {
     await ElMessageBox.confirm('确认执行该项异动流转操作？', '业务确认', {
       type: 'warning',
@@ -576,30 +639,13 @@ async function handleSubmit() {
       cancelButtonText: '取消'
     })
   } catch {
+    // 弹窗取消
     return
   }
 
   submitting.value = true
   try {
-    const flatDto = {
-      type: currentMovement.value,
-      reasonCategory: suspendForm.reasonCategory || '学业或家庭调整',
-      reasonDetail: suspendForm.reason || `学员异动业务流转: ${currentMovement.value}`,
-      packageId:
-        currentMovement.value === 'transfer_class'
-          ? transferForm.packageId
-          : currentMovement.value === 'change_course'
-          ? changeCourseForm.packageId
-          : refundForm.packageId,
-      toClassId: transferForm.toClassId,
-      newCourseId: changeCourseForm.newCourseId,
-      newLessons: changeCourseForm.newLessons,
-      suspensionDays: suspendForm.days,
-      targetCampusId: transferCampusForm.targetCampusId,
-      targetStudentId: transferStudentForm.targetStudentId,
-      deductionFee: refundForm.deductionFee
-    }
-
+    const flatDto = getCurrentMovementDto()
     await studentApi.executeMovement(props.student.id, flatDto)
 
     ElMessage.success('学员异动流转已成功提交并实时生效落库！')

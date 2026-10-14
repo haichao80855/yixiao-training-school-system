@@ -251,7 +251,12 @@ export class FinanceAggregator {
     };
   }
 
-  // 多级审批流工作台算法
+  /**
+   * 多级审批流状态机纯函数算法
+   * @deprecated 生产环境审批流已全面下沉至服务端深模块 `FinancialApprovalOrchestrator`。
+   * 本纯内存函数作为离线单元测试与契约验证（Tier 1~Tier 5 / Contract Suite）专用模拟器保留，
+   * 严禁在生产 Vue 业务视图中直接调用。
+   */
   static processApproval(
     approvalRecord: ApprovalRecord,
     action: 'pass' | 'reject',
