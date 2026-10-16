@@ -46,6 +46,7 @@ export interface ClassStudentItemModel {
 export interface ClassDetailModel {
   id: string;
   name: string;
+  status?: string;
   statusText: string;
   startDateText: string;
   courseName: string;
@@ -246,6 +247,7 @@ export const classApi = {
         return {
           id: res.id,
           name: res.name || (res.course?.name ? `${res.course.name}` : '未命名班级'),
+          status: res.status || (res.statusText === '已结班' || res.statusText === '已结课' ? 'completed' : 'active'),
           statusText: res.status === 'completed' ? '已结班' : (res.status === 'recruiting' ? '招生中' : '已开班'),
           startDateText: res.startDate ? new Date(res.startDate).toISOString().split('T')[0] : '--',
           courseName: res.course?.name || '未指定课程',
@@ -296,10 +298,24 @@ export const classApi = {
   },
 
   // 4. 结班
-  async completeClass(classId: string) {
+  async completeClass(classId: string, options?: any) {
     return request({
       url: `/api/educational/classes/${classId}/complete`,
       method: 'POST',
+      data: options || {
+        disposition: { mode: 'fallback_unassigned' },
+        cancelFutureSchedules: true,
+      },
+    });
+  },
+
+  // 5. 移出学员并回退待分班资产池 (ADR-0004)
+  async removeStudent(data: { classId: string; studentId: string; reason?: string }) {
+    return request({
+      url: '/api/educational/roster/remove',
+      method: 'POST',
+      data,
     });
   },
 };
+

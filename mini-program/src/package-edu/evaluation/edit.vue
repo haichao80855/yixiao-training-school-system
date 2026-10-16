@@ -123,6 +123,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { eduApi } from '../../api/edu';
+import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
@@ -141,7 +142,9 @@ const hasModified = ref(false);
 const isSubmitting = ref(false);
 const showExitModal = ref(false);
 
-onMounted(() => {
+const fulfillmentSession = ref<FulfillmentSession | null>(null);
+
+onMounted(async () => {
   try {
     const info = uni.getSystemInfoSync();
     statusBarHeight.value = info.statusBarHeight || 20;
@@ -162,19 +165,40 @@ onMounted(() => {
   if (query.scheduleId) scheduleId.value = query.scheduleId;
   if (query.className) className.value = decodeURIComponent(query.className);
 
-  // 检查本地是否有草稿快照
-  const draftKey = `eval_draft_${scheduleId.value}_${studentId.value}`;
-  const savedDraft = uni.getStorageSync(draftKey);
-  if (savedDraft) {
-    try {
-      const parsed = JSON.parse(savedDraft);
-      studyContent.value = parsed.studyContent || '';
-      uploadedPhotos.value = parsed.uploadedPhotos || [];
-      uploadedVideo.value = parsed.uploadedVideo || '';
-    } catch (e) {}
-  } else {
-    // 默认大纲预置 (零心智通途)
-    studyContent.value = '本节课重点掌握字母拼读规则与自然拼读交互，学员发音精准，课堂表现专注积极！';
+  try {
+    const session = await fulfillmentCoordinator.loadSession(scheduleId.value);
+    fulfillmentSession.value = session;
+    if (session.evaluation.studyContentHtml) {
+      studyContent.value = session.evaluation.studyContentHtml;
+    }
+    if (session.evaluation.photoList && session.evaluation.photoList.length > 0) {
+      uploadedPhotos.value = [...session.evaluation.photoList];
+    }
+    if (session.evaluation.videoUrl) {
+      uploadedVideo.value = session.evaluation.videoUrl;
+    }
+    if (session.evaluation.templateName) {
+      currentTemplateName.value = session.evaluation.templateName;
+    }
+    const currentStu = session.students.find((s) => s.studentId === studentId.value);
+    if (currentStu && currentStu.comment) {
+      studyContent.value = currentStu.comment;
+    }
+  } catch (e) {
+    // 检查本地是否有草稿快照
+    const draftKey = `eval_draft_${scheduleId.value}_${studentId.value}`;
+    const savedDraft = uni.getStorageSync(draftKey);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        studyContent.value = parsed.studyContent || '';
+        uploadedPhotos.value = parsed.uploadedPhotos || [];
+        uploadedVideo.value = parsed.uploadedVideo || '';
+      } catch (err) {}
+    } else {
+      // 默认大纲预置 (零心智通途)
+      studyContent.value = '本节课重点掌握字母拼读规则与自然拼读交互，学员发音精准，课堂表现专注积极！';
+    }
   }
 });
 
@@ -232,7 +256,26 @@ const removePhoto = (idx: number) => {
   hasModified.value = true;
 };
 
-const handleSaveDraft = () => {
+const handleSaveDraft = async () => {
+  if (fulfillmentSession.value) {
+    fulfillmentSession.value.updateEvaluationDraft({
+      studyContentHtml: studyContent.value,
+      photoList: uploadedPhotos.value,
+      videoUrl: uploadedVideo.value,
+      templateName: currentTemplateName.value,
+    });
+    if (studentId.value) {
+      fulfillmentSession.value.updatePersonalizedComment(studentId.value, studyContent.value, 5.0);
+    }
+    await fulfillmentSession.value.saveDraft();
+  } else {
+    await fulfillmentCoordinator.saveDraft(scheduleId.value, {
+      studyContentHtml: studyContent.value,
+      photoList: uploadedPhotos.value,
+      videoUrl: uploadedVideo.value,
+      templateName: currentTemplateName.value,
+    });
+  }
   const draftKey = `eval_draft_${scheduleId.value}_${studentId.value}`;
   uni.setStorageSync(
     draftKey,
@@ -254,20 +297,33 @@ const handleSubmitEvaluation = async () => {
 
   isSubmitting.value = true;
   try {
-    await eduApi.commitEvaluation({
-      scheduleEventId: scheduleId.value,
-      studyContent: studyContent.value,
-      photoList: uploadedPhotos.value,
-      videoUrl: uploadedVideo.value,
-      templateName: currentTemplateName.value,
-      studentComments: [
-        {
-          studentId: studentId.value,
-          comment: studyContent.value,
-          rating: 5.0,
-        },
-      ],
-    });
+    if (fulfillmentSession.value) {
+      fulfillmentSession.value.updateEvaluationDraft({
+        studyContentHtml: studyContent.value,
+        photoList: uploadedPhotos.value,
+        videoUrl: uploadedVideo.value,
+        templateName: currentTemplateName.value,
+      });
+      if (studentId.value) {
+        fulfillmentSession.value.updatePersonalizedComment(studentId.value, studyContent.value, 5.0);
+      }
+      await fulfillmentSession.value.commit({ mode: 'PUBLISH_EVALUATION' });
+    } else {
+      await eduApi.commitEvaluation({
+        scheduleEventId: scheduleId.value,
+        studyContent: studyContent.value,
+        photoList: uploadedPhotos.value,
+        videoUrl: uploadedVideo.value,
+        templateName: currentTemplateName.value,
+        studentComments: [
+          {
+            studentId: studentId.value,
+            comment: studyContent.value,
+            rating: 5.0,
+          },
+        ],
+      });
+    }
 
     // 清除草稿
     const draftKey = `eval_draft_${scheduleId.value}_${studentId.value}`;

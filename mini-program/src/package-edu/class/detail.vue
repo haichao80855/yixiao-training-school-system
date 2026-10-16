@@ -66,7 +66,7 @@
         :class="{ active: currentTab === 'schedule' }"
         @click="currentTab = 'schedule'"
       >
-        <text class="tab-cell-text">排课表 ({{ classData.schedules.length }})</text>
+        <text class="tab-cell-text">排课表 ({{ (classData.schedules || []).length }})</text>
         <view class="tab-underline" v-if="currentTab === 'schedule'"></view>
       </view>
       <view
@@ -82,7 +82,7 @@
         :class="{ active: currentTab === 'students' }"
         @click="currentTab = 'students'"
       >
-        <text class="tab-cell-text">班级学员 ({{ classData.students.length }})</text>
+        <text class="tab-cell-text">班级学员 ({{ (classData.students || []).length }})</text>
         <view class="tab-underline" v-if="currentTab === 'students'"></view>
       </view>
     </view>
@@ -196,7 +196,7 @@
           <view class="empty-icon">👥</view>
           <view class="empty-title">暂无在读学员</view>
           <view class="empty-desc">当前班级暂未分配在读学员</view>
-          <view class="add-first-stu-btn" @click="handleAddStudentToClass">立即加入学员</view>
+          <view v-if="!isClassCompleted()" class="add-first-stu-btn" @click="handleAddStudentToClass">立即加入学员</view>
         </view>
       </view>
 
@@ -208,6 +208,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
+import { classCoordinator } from '../../coordinators/class';
 import { classApi, ClassDetailModel, ClassScheduleItemModel, ClassStudentItemModel } from '../../api/class';
 
 const statusBarHeight = ref(20);
@@ -237,6 +238,8 @@ const classData = ref<ClassDetailModel>({
   students: [],
 });
 
+const isSubmitting = ref(false);
+
 const scheduledCount = computed(() => {
   return (classData.value.schedules || []).filter((s) => s.status === 'scheduled').length;
 });
@@ -247,7 +250,15 @@ const totalAttendanceCount = computed(() => {
 
 const fetchClassDetail = async () => {
   if (!classId.value) return;
-  classData.value = await classApi.getClassDetail(classId.value);
+  try {
+    const data = await classCoordinator.loadClassWorkspace(classId.value);
+    if (data) {
+      classData.value = data;
+    }
+  } catch (e) {
+    console.warn('[detail.vue] loadClassWorkspace fallback to classApi:', e);
+    classData.value = await classApi.getClassDetail(classId.value);
+  }
 };
 
 onLoad((query: any) => {
@@ -280,12 +291,31 @@ onMounted(() => {
   }
 });
 
-const filteredStudents = computed(() => {
-  if (!studentKeyword.value.trim()) return classData.value.students;
-  const kw = studentKeyword.value.trim().toLowerCase();
-  return classData.value.students.filter(
-    (s) => s.name.includes(kw) || s.phone.includes(kw) || s.studentNo.toLowerCase().includes(kw)
+const isClassCompleted = () => {
+  return (
+    classData.value.statusText === '已结班' ||
+    classData.value.statusText === '已结课' ||
+    classData.value.statusText === '已归档' ||
+    (classData.value as any).status === 'completed' ||
+    (classData.value as any).status === 'archived'
   );
+};
+
+const filteredStudents = computed(() => {
+  const list = Array.isArray(classData.value.students) ? classData.value.students : [];
+  let result = list;
+  if (!showRetired.value) {
+    result = result.filter((s: any) => !(s && (s.isRetired || s.status === 'retired' || s.retired)));
+  }
+  if (!studentKeyword.value.trim()) return result;
+  const kw = studentKeyword.value.trim().toLowerCase();
+  return result.filter((s) => {
+    if (!s) return false;
+    const name = String(s.name || '').toLowerCase();
+    const phone = String(s.phone || '');
+    const no = String(s.studentNo || '').toLowerCase();
+    return name.includes(kw) || phone.includes(kw) || no.includes(kw);
+  });
 });
 
 const handleGoBack = () => {
@@ -298,26 +328,87 @@ const handleGoBack = () => {
 };
 
 const handleCompleteClass = () => {
+  if (isClassCompleted()) {
+    uni.showToast({ title: '该班级已结班归档，无需重复结班', icon: 'none' });
+    return;
+  }
+  if (isSubmitting.value) return;
+
   uni.showModal({
     title: '结班确认',
-    content: `确定要将班级【${classData.value.name}】进行结班归档吗？`,
+    content: `确定要将班级【${classData.value.name}】进行结班归档吗？\n（未上课次将安全物理注销，在读课包回退待分班池）`,
     success: async (res) => {
       if (res.confirm) {
-        await classApi.completeClass(classData.value.id);
-        classData.value.statusText = '已结班';
-        uni.showToast({ title: '已成功结班', icon: 'success' });
+        if (isSubmitting.value) return;
+        isSubmitting.value = true;
+        try {
+          uni.showLoading({ title: '正在结班...' });
+          const prevStudentIds = (classData.value.students || []).map((s) => s.studentId);
+          const receipt = await classCoordinator.completeClass(classData.value.id, {
+            disposition: { mode: 'fallback_unassigned' },
+            cancelFutureSchedules: true,
+            remark: '移动端班级详情页正常结班归档',
+            studentIds: prevStudentIds,
+          });
+          uni.hideLoading();
+
+          // 1. 更新班级状态文本与字段
+          classData.value.statusText = '已结班';
+          (classData.value as any).status = 'completed';
+
+          // 2. 联动排课日程流转为已取消并同步更新结课指标
+          if (classData.value.schedules && classData.value.schedules.length > 0) {
+            classCoordinator.syncCancelledSchedules(classData.value.schedules);
+          }
+          classData.value.completedLessons = (classData.value.schedules || []).filter(
+            (s) => s && s.status === 'completed'
+          ).length;
+
+          // 3. 在班学员清零并清空花名册
+          classData.value.currentStudentCount = 0;
+          classData.value.students = [];
+
+          // 4. 弹出包含释放课次数与回退学员数的结班审计提示
+          const releasedCount = receipt.cancelledScheduleCount ?? 0;
+          const fallbackCount = receipt.disposedStudentCount ?? 0;
+          uni.showModal({
+            title: '结班完成',
+            content: `班级已成功结课归档！\n• 释放未上排课：${releasedCount} 节\n• 回退待分班学员：${fallbackCount} 人\n审计凭据：${receipt.receiptId || receipt.immutableFingerprint || '已归档'}`,
+            showCancel: false,
+            confirmText: '我知道了',
+          });
+        } catch (err: any) {
+          uni.hideLoading();
+          uni.showToast({
+            title: err?.message || '结班操作失败，请重试',
+            icon: 'none',
+          });
+        } finally {
+          isSubmitting.value = false;
+        }
       }
     },
   });
 };
 
 const handleScheduleAction = (item: ClassScheduleItemModel) => {
+  if (item.status === 'cancelled') {
+    uni.showToast({
+      title: '该排课日程已取消，无法进行点名考勤',
+      icon: 'none',
+    });
+    return;
+  }
   uni.navigateTo({
     url: `/package-edu/lecture/roll-call?scheduleId=${item.id}`,
   });
 };
 
 const handleAddStudentToClass = () => {
+  if (isClassCompleted()) {
+    uni.showToast({ title: '该班级已结班归档，无法加入新学员', icon: 'none' });
+    return;
+  }
   uni.navigateTo({
     url: `/package-student/list/index?action=select_to_class&classId=${classData.value.id}`,
   });
@@ -331,15 +422,54 @@ const handleStudentAction = (stu: ClassStudentItemModel) => {
         uni.navigateTo({
           url: `/package-student/detail/index?studentId=${stu.studentId}&name=${encodeURIComponent(stu.name)}`,
         });
+      } else if (res.tapIndex === 1) {
+        uni.showToast({
+          title: '课耗调整请前往PC端教务中心或学员档案进行操作',
+          icon: 'none',
+        });
       } else if (res.tapIndex === 2) {
+        if (isClassCompleted()) {
+          uni.showToast({ title: '该班级已结班，无法移出学员', icon: 'none' });
+          return;
+        }
+        if (isSubmitting.value) {
+          uni.showToast({ title: '操作正在处理中，请稍候', icon: 'none' });
+          return;
+        }
         uni.showModal({
           title: '移出提醒',
-          content: `确定将学员【${stu.name}】移出当前班级吗？`,
-          success: (mRes) => {
+          content: `确定将学员【${stu.name}】移出当前班级吗？\n（名额将安全释放，课包回退待分班资产池）`,
+          success: async (mRes) => {
             if (mRes.confirm) {
-              const idx = classData.value.students.findIndex((s) => s.studentId === stu.studentId);
-              if (idx >= 0) classData.value.students.splice(idx, 1);
-              uni.showToast({ title: '已移出班级', icon: 'none' });
+              if (isSubmitting.value) return;
+              isSubmitting.value = true;
+              try {
+                uni.showLoading({ title: '正在移出...' });
+                const result = await classCoordinator.removeStudent(classData.value.id, stu.studentId);
+                uni.hideLoading();
+
+                // 服务端真实落盘成功后再更新视图与在班计数
+                const idx = classData.value.students.findIndex(
+                  (s) => s.studentId === stu.studentId || (s as any).id === stu.studentId
+                );
+                if (idx >= 0) {
+                  classData.value.students.splice(idx, 1);
+                }
+                if (typeof result?.newClassStudentCount === 'number') {
+                  classData.value.currentStudentCount = result.newClassStudentCount;
+                } else if (classData.value.currentStudentCount > 0) {
+                  classData.value.currentStudentCount--;
+                }
+                uni.showToast({ title: result?.message || '已成功移出班级', icon: 'success' });
+              } catch (err: any) {
+                uni.hideLoading();
+                uni.showToast({
+                  title: err?.message || '移出学员失败，请稍后重试',
+                  icon: 'none',
+                });
+              } finally {
+                isSubmitting.value = false;
+              }
             }
           },
         });

@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { eduApi, ScheduleEventModel, StudentRollCallModel } from '../../api/edu';
+import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
@@ -147,6 +148,8 @@ const presentCount = computed(() => {
   return students.value.filter((s) => s.status === 'present').length;
 });
 
+const fulfillmentSession = ref<FulfillmentSession | null>(null);
+
 onMounted(async () => {
   try {
     const info = uni.getSystemInfoSync();
@@ -164,11 +167,31 @@ onMounted(async () => {
   const curPage = pages[pages.length - 1];
   const query = (curPage as any)?.options || {};
   if (query.scheduleId) {
-    const wb = await eduApi.getFulfillmentWorkbench(query.scheduleId);
-    if (wb) {
-      schedule.value = wb.schedule;
-      if (wb.students && wb.students.length > 0) {
-        students.value = wb.students;
+    try {
+      const session = await fulfillmentCoordinator.loadSession(query.scheduleId);
+      fulfillmentSession.value = session;
+      schedule.value = session.schedule as any;
+      if (session.students && session.students.length > 0) {
+        students.value = session.students.map((s) => ({
+          studentId: s.studentId,
+          studentNo: s.studentNo,
+          name: s.name,
+          avatar: s.avatar,
+          status: s.status,
+          deductLessons: s.deductLessons,
+          remainingLessons: s.remainingLessons,
+          phone: s.phone,
+          tag: '正',
+          evaluated: Boolean(s.comment || s.rating !== 5),
+        }));
+      }
+    } catch (e) {
+      const wb = await eduApi.getFulfillmentWorkbench(query.scheduleId);
+      if (wb) {
+        schedule.value = wb.schedule;
+        if (wb.students && wb.students.length > 0) {
+          students.value = wb.students;
+        }
       }
     }
   }
@@ -192,6 +215,9 @@ const toggleStudentStatus = (stu: StudentRollCallModel) => {
   };
   stu.status = map[stu.status] || 'present';
   stu.deductLessons = stu.status === 'present' ? 1 : 0;
+  if (fulfillmentSession.value) {
+    fulfillmentSession.value.setStudentStatus(stu.studentId, stu.status, stu.deductLessons);
+  }
 };
 
 const handleEditDeduct = (stu: StudentRollCallModel) => {
@@ -199,6 +225,9 @@ const handleEditDeduct = (stu: StudentRollCallModel) => {
     itemList: ['扣减 1 课时', '扣减 2 课时', '免扣课时 (0 课时)'],
     success: (res) => {
       stu.deductLessons = res.tapIndex === 0 ? 1 : res.tapIndex === 1 ? 2 : 0;
+      if (fulfillmentSession.value) {
+        fulfillmentSession.value.setStudentStatus(stu.studentId, stu.status, stu.deductLessons);
+      }
       uni.showToast({ title: `已调整为扣除 ${stu.deductLessons} 课时`, icon: 'none' });
     },
   });
@@ -236,19 +265,19 @@ const handleBatchRollCall = () => {
   uni.showActionSheet({
     itemList: ['全班一键已到 (全勤)', '全班一键请假 (不扣课时)'],
     success: (res) => {
-      if (res.tapIndex === 0) {
-        students.value.forEach((s) => {
-          s.status = 'present';
-          s.deductLessons = 1;
-        });
-        uni.showToast({ title: '已设置为全员到课', icon: 'success' });
-      } else {
-        students.value.forEach((s) => {
-          s.status = 'leave';
-          s.deductLessons = 0;
-        });
-        uni.showToast({ title: '已设置为全员请假', icon: 'none' });
+      const targetStatus: 'present' | 'leave' = res.tapIndex === 0 ? 'present' : 'leave';
+      const deduct = targetStatus === 'present' ? 1 : 0;
+      students.value.forEach((s) => {
+        s.status = targetStatus;
+        s.deductLessons = deduct;
+      });
+      if (fulfillmentSession.value) {
+        fulfillmentSession.value.batchMarkAttendance(targetStatus);
       }
+      uni.showToast({
+        title: targetStatus === 'present' ? '已设置为全员到课' : '已设置为全员请假',
+        icon: targetStatus === 'present' ? 'success' : 'none',
+      });
     },
   });
 };
@@ -268,14 +297,14 @@ const handlePushAll = async () => {
       if (res.confirm) {
         uni.showLoading({ title: '正在履约推送...' });
         try {
-          await eduApi.fulfillLesson({
-            scheduleEventId: schedule.value.id,
-            overrides: students.value.map((s) => ({
-              studentId: s.studentId,
-              status: s.status,
-              deductLessons: s.deductLessons,
-            })),
-          });
+          if (fulfillmentSession.value) {
+            for (const s of students.value) {
+              fulfillmentSession.value.setStudentStatus(s.studentId, s.status, s.deductLessons);
+            }
+            await fulfillmentSession.value.commit();
+          } else {
+            await fulfillmentCoordinator.fulfill(schedule.value.id);
+          }
           uni.hideLoading();
           uni.showToast({ title: '推送成功！微信通知已出站', icon: 'success' });
           setTimeout(() => {

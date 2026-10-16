@@ -86,7 +86,10 @@ export interface EnrollPayloadModel {
   lessons?: number;
   amount?: number;
   totalLessons?: number;
+  bonusLessons?: number;
+  discountAmount?: number;
   pricePerLesson?: number;
+  channel?: string;
   goods?: Array<{ id: string; name: string; quantity: number; price: number }>;
   payMethod?: string;
   paymentMethod?: string;
@@ -434,20 +437,34 @@ export const studentApi = {
       paymentMethod = 'wechat';
     }
 
+    const bonusLessons = payload.bonusLessons !== undefined ? Number(payload.bonusLessons) : 0;
+
     const backendDto: any = {
       studentId: payload.studentId,
       courseId: payload.courseId,
       totalLessons: Number(totalLessons),
       pricePerLesson: Number(pricePerLesson),
       paymentMethod,
-      channel: 'ground',
+      channel: payload.channel || 'ground',
     };
+
+    if (bonusLessons > 0) {
+      backendDto.bonusLessons = bonusLessons;
+    }
+    if (payload.discountAmount !== undefined) {
+      backendDto.discountAmount = Number(payload.discountAmount);
+    }
 
     if (payload.classId) {
       backendDto.classId = payload.classId;
     }
-    if (payload.className) {
-      backendDto.remark = `报读班级: ${payload.className}`;
+    const goodsRemark = payload.goods && payload.goods.length > 0
+      ? `配套物品: ${payload.goods.map((g) => `${g.name}x${g.quantity}`).join('、')}`
+      : '';
+    const classRemark = payload.className ? `报读班级: ${payload.className}` : '';
+    const combinedRemark = [classRemark, goodsRemark].filter(Boolean).join(' | ');
+    if (combinedRemark) {
+      backendDto.remark = combinedRemark;
     }
 
     return request({

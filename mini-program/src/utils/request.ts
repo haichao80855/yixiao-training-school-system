@@ -80,10 +80,19 @@ export async function request<T = any>(options: {
           }
           reject(new Error('Unauthorized'));
         } else {
-          const errMsg = (res.data as any)?.message || '请求处理失败';
+          const body = res.data as any;
+          const errMsg = body?.message || '请求处理失败';
           const msg = Array.isArray(errMsg) ? errMsg[0] : errMsg;
-          uni.showToast({ title: msg, icon: 'none' });
-          reject(new Error(msg));
+          // 对于 409 Conflict 财务风控强拦截，不弹出全局通用 Toast 干扰业务层不可穿透 Modal
+          if (res.statusCode !== 409) {
+            uni.showToast({ title: msg, icon: 'none' });
+          }
+          const error: any = new Error(msg);
+          error.status = res.statusCode;
+          error.statusCode = res.statusCode;
+          error.data = body;
+          error.code = body?.code || (res.statusCode === 409 ? 'REFUND_LOCKED' : undefined);
+          reject(error);
         }
       },
       fail: (err: any) => {

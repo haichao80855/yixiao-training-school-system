@@ -1,17 +1,17 @@
 <template>
   <GenericSubPage title="学员预警 · 课消与流失监控" icon="⚡">
     <view class="warning-dashboard">
-      <!-- 1. 预警指标看板 -->
-      <view class="metrics-row">
-        <view class="metric-card urgent">
+      <!-- 1. 预警指标看板 (对齐 SSOT 预警基准，双类名保持 100% 兼容) -->
+      <view class="metrics-row warning-stat-cards">
+        <view class="metric-card warning-stat-card urgent" @click="handleCategoryChange('lessons_low')">
           <text class="num">{{ metrics.urgent }}</text>
           <text class="label">紧急预警</text>
         </view>
-        <view class="metric-card warning">
+        <view class="metric-card warning-stat-card warning" @click="handleCategoryChange('contract_expiring')">
           <text class="num">{{ metrics.warning }}</text>
           <text class="label">重点关注</text>
         </view>
-        <view class="metric-card info">
+        <view class="metric-card warning-stat-card info" @click="handleCategoryChange('pending_class')">
           <text class="num">{{ metrics.pending }}</text>
           <text class="label">待入班</text>
         </view>
@@ -25,7 +25,7 @@
             :key="cat.key"
             class="tab-pill"
             :class="{ active: currentCategory === cat.key }"
-            @click="currentCategory = cat.key"
+            @click="handleCategoryChange(cat.key)"
           >
             <text class="tab-name">{{ cat.label }}</text>
             <text class="tab-badge" v-if="cat.count > 0">{{ cat.count }}</text>
@@ -45,29 +45,29 @@
         <text v-if="searchKeyword" class="clear-btn" @click="searchKeyword = ''">✕</text>
       </view>
 
-      <!-- 4. 预警卡片列表 -->
+      <!-- 4. 预警卡片列表 (双类名 warning-card warning-item 保持 100% 兼容) -->
       <view class="warning-list">
         <view
           v-for="item in filteredList"
           :key="item.id"
-          class="warning-card"
+          class="warning-card warning-item"
           :class="item.level"
         >
           <view class="card-header">
             <view class="student-info">
               <text class="student-name">{{ item.studentName }}</text>
-              <text class="grade-tag">{{ item.grade }} · {{ item.courseName }}</text>
+              <text class="grade-tag">{{ item.grade || '在读' }} · {{ item.courseName || '常规课程' }}</text>
             </view>
             <view class="level-badge" :class="item.level">
-              {{ item.level === 'urgent' ? '紧急预警' : '重点关注' }}
+              {{ item.level === 'urgent' ? '紧急预警' : item.level === 'warning' ? '重点关注' : '正常在读' }}
             </view>
           </view>
 
           <view class="card-body">
             <text class="reason-desc">{{ item.reason }}</text>
             <view class="detail-row">
-              <text class="campus-text">校区: {{ item.campusName }}</text>
-              <text class="date-text">更新时间: {{ item.updatedAt }}</text>
+              <text class="campus-text">校区: {{ item.campusName || '总部校区' }}</text>
+              <text class="date-text">更新时间: {{ item.updatedAt || '今日' }}</text>
             </view>
           </view>
 
@@ -76,6 +76,12 @@
             <button class="action-btn primary" @click="handleAction(item, 'resolve')">立即处理</button>
           </view>
         </view>
+
+        <!-- 空状态提示 -->
+        <view v-if="filteredList.length === 0" class="empty-state">
+          <text class="empty-icon">🍃</text>
+          <text class="empty-text">暂无符合条件的预警学员</text>
+        </view>
       </view>
     </view>
   </GenericSubPage>
@@ -83,124 +89,206 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import GenericSubPage from '../../components/GenericSubPage.vue';
-import { studentApi } from '../../api/student';
-
-interface WarningItem {
-  id: string;
-  studentName: string;
-  grade: string;
-  courseName: string;
-  level: 'urgent' | 'warning';
-  reason: string;
-  campusName: string;
-  updatedAt: string;
-  type: string;
-}
+import {
+  renewalCoordinator,
+  RefundLockedError,
+  type RenewalStudentItem,
+} from '../../coordinators/renewal';
 
 const currentCategory = ref('all');
 const searchKeyword = ref('');
+const isLoading = ref(false);
 
 const metrics = ref({
-  urgent: 12,
-  warning: 28,
-  pending: 15,
+  urgent: 0,
+  warning: 0,
+  pending: 0,
 });
 
 const categories = ref([
-  { key: 'all', label: '全部', count: 55 },
-  { key: 'pending_class', label: '待入班', count: 15 },
-  { key: 'lessons_low', label: '剩余课次', count: 18 },
-  { key: 'contract_expiring', label: '即将到期', count: 9 },
-  { key: 'absence', label: '连续缺勤', count: 7 },
-  { key: 'dormant', label: '沉睡学员', count: 6 },
+  { key: 'all', label: '全部', count: 0 },
+  { key: 'pending_class', label: '待入班', count: 0 },
+  { key: 'lessons_low', label: '剩余课次', count: 0 },
+  { key: 'contract_expiring', label: '即将到期', count: 0 },
+  { key: 'absence', label: '连续缺勤', count: 0 },
+  { key: 'dormant', label: '沉睡学员', count: 0 },
 ]);
 
-const warningList = ref<WarningItem[]>([
-  {
-    id: 'w-1',
-    studentName: '李思聪',
-    grade: '初二',
-    courseName: '初中数学培优',
-    level: 'urgent',
-    reason: '正课剩余课次不足 2 次，近 14 天未安排新课续费',
-    campusName: '中关村校区',
-    updatedAt: '10-15 14:30',
-    type: 'lessons_low'
-  },
-  {
-    id: 'w-2',
-    studentName: '王梓涵',
-    grade: '小五',
-    courseName: '少儿硬笔书法',
-    level: 'urgent',
-    reason: '已缴费完成 7 天，当前处于待入班资产池未安排班级',
-    campusName: '国贸校区',
-    updatedAt: '10-15 11:20',
-    type: 'pending_class'
-  },
-  {
-    id: 'w-3',
-    studentName: '张美玲',
-    grade: '初三',
-    courseName: '中考物理满分班',
-    level: 'warning',
-    reason: '连续请假 2 次，需发起教务补课调度或学管回访',
-    campusName: '中关村校区',
-    updatedAt: '10-14 17:00',
-    type: 'absence'
-  }
-]);
+// 彻底清除硬编码假数据，初始化为空数组，权威动态拉取
+const warningList = ref<RenewalStudentItem[]>([]);
 
-onMounted(async () => {
+/**
+ * 核心协调器接入：加载流失预警大盘统计与名册
+ */
+const loadWarningData = async () => {
+  isLoading.value = true;
   try {
-    const res = await studentApi.getWarningRoster();
-    if (res && res.statistics) {
-      metrics.value.urgent = res.statistics.criticalCount ?? metrics.value.urgent;
-      metrics.value.warning = res.statistics.warningCount ?? metrics.value.warning;
-      if (res.statistics.dormantCount !== undefined) {
-        categories.value = categories.value.map((c) => {
-          if (c.key === 'dormant') return { ...c, count: res.statistics.dormantCount };
-          if (c.key === 'lessons_low') return { ...c, count: res.statistics.criticalCount };
-          if (c.key === 'contract_expiring') return { ...c, count: res.statistics.warningCount };
-          return c;
-        });
-      }
-      if (Array.isArray(res.list) && res.list.length > 0) {
-        const liveItems: WarningItem[] = res.list.map((item: any, idx: number) => ({
-          id: item.studentId || `w-live-${idx}`,
-          studentName: item.studentName || '学员',
-          grade: '在读',
-          courseName: '常规课程',
-          level: (item.consumptionHealth?.warningLevel === 'critical' || item.decision?.advice === 'URGENT_RENEWAL') ? 'urgent' : 'warning',
-          reason: item.consumptionHealth?.warningLevel === 'critical'
-            ? `剩余课次仅剩 ${item.assetSummary?.totalRemainingLessons || 0} 节，消课风险极高`
-            : `耗尽预测还有 ${item.consumptionHealth?.estimatedDepletionDays || 30} 天，建议及时跟进续费`,
-          campusName: item.campusName || '总部校区',
-          updatedAt: item.consumptionHealth?.lastAttendanceDate || '今日',
-          type: item.consumptionHealth?.dormantRisk === 'dormant_warning' ? 'dormant' : 'lessons_low',
-        }));
-        warningList.value = [...liveItems, ...warningList.value];
-      }
+    const dashboard = await renewalCoordinator.loadWarningDashboard();
+    if (dashboard && dashboard.statistics) {
+      const rawList = Array.isArray(dashboard.list) ? dashboard.list : [];
+      const absenceCount = rawList.filter(
+        (i) => i.type === 'absence' || (i.consumptionHealth?.inactiveDays ?? 0) >= 7
+      ).length;
+      const dormantCount = dashboard.statistics.dormantCount ?? rawList.filter(
+        (i) => i.type === 'dormant' || i.consumptionHealth?.dormantRisk !== 'active'
+      ).length;
+      const pendingClassCount = dashboard.statistics.pendingCount ?? rawList.filter(
+        (i) => i.type === 'pending_class' || !i.classId
+      ).length;
+      const lessonsLowCount = dashboard.statistics.criticalCount ?? rawList.filter(
+        (i) => i.level === 'urgent' || i.type === 'lessons_low'
+      ).length;
+      const contractExpiringCount = dashboard.statistics.warningCount ?? rawList.filter(
+        (i) => i.level === 'warning' || i.type === 'contract_expiring'
+      ).length;
+      const totalCount = dashboard.total || rawList.length;
+
+      metrics.value.urgent = dashboard.statistics.criticalCount ?? dashboard.statistics.urgent ?? lessonsLowCount;
+      metrics.value.warning = dashboard.statistics.warningCount ?? dashboard.statistics.warning ?? contractExpiringCount;
+      metrics.value.pending = dashboard.statistics.pendingCount ?? dashboard.statistics.pending ?? pendingClassCount;
+
+      categories.value = categories.value.map((c) => {
+        if (c.key === 'all') return { ...c, count: totalCount };
+        if (c.key === 'pending_class') return { ...c, count: pendingClassCount };
+        if (c.key === 'lessons_low') return { ...c, count: lessonsLowCount };
+        if (c.key === 'contract_expiring') return { ...c, count: contractExpiringCount };
+        if (c.key === 'absence') return { ...c, count: absenceCount };
+        if (c.key === 'dormant') return { ...c, count: dormantCount };
+        return c;
+      });
+
+      warningList.value = rawList;
     }
   } catch (e) {
-    console.warn('[warning] 加载预警大盘失败，保留本地预警:', e);
+    console.warn('[warning] 加载预警大盘失败:', e);
+    uni.showToast({ title: '加载预警大盘失败，请重试', icon: 'none' });
+  } finally {
+    isLoading.value = false;
   }
+};
+
+onMounted(() => {
+  loadWarningData();
 });
 
+onShow(() => {
+  loadWarningData();
+});
+
+const handleCategoryChange = (key: string) => {
+  currentCategory.value = key;
+};
+
 const filteredList = computed(() => {
-  return warningList.value.filter(item => {
-    const matchCategory = currentCategory.value === 'all' || item.type === currentCategory.value;
-    const matchKeyword = !searchKeyword.value || item.studentName.includes(searchKeyword.value);
+  return warningList.value.filter((item) => {
+    let matchCategory = true;
+    if (currentCategory.value !== 'all') {
+      if (currentCategory.value === 'lessons_low') {
+        matchCategory = item.level === 'urgent' || item.type === 'lessons_low';
+      } else if (currentCategory.value === 'contract_expiring') {
+        matchCategory = item.level === 'warning' || item.type === 'contract_expiring';
+      } else if (currentCategory.value === 'absence') {
+        matchCategory = item.type === 'absence' || (item.consumptionHealth?.inactiveDays ?? 0) >= 7;
+      } else if (currentCategory.value === 'dormant') {
+        matchCategory = item.type === 'dormant' || item.consumptionHealth?.dormantRisk !== 'active';
+      } else if (currentCategory.value === 'pending_class') {
+        matchCategory = item.type === 'pending_class' || !item.classId;
+      } else {
+        matchCategory = item.type === currentCategory.value;
+      }
+    }
+
+    const kw = searchKeyword.value.trim().toLowerCase();
+    const sName = (item.studentName || '').toLowerCase();
+    const sPhone = item.phone || '';
+    const sNo = (item.studentNo || '').toLowerCase();
+    const matchKeyword =
+      !kw ||
+      sName.includes(kw) ||
+      sPhone.includes(kw) ||
+      sNo.includes(kw);
+
     return matchCategory && matchKeyword;
   });
 });
 
-const handleAction = (item: WarningItem, action: string) => {
+const isProcessingAction = ref(false);
+
+/**
+ * 业务动作处理：彻底出清“仅弹 Toast”断层
+ */
+const handleAction = async (item: RenewalStudentItem, action: string) => {
+  if (isProcessingAction.value) return;
+
   if (action === 'contact') {
-    uni.showToast({ title: `发起沟通: ${item.studentName}`, icon: 'none' });
-  } else {
-    uni.showToast({ title: `处理预警: ${item.studentName}`, icon: 'success' });
+    // 真实外呼拨号
+    isProcessingAction.value = true;
+    try {
+      await renewalCoordinator.initiateContact(item.phone, item.studentName);
+    } catch (err: any) {
+      uni.showToast({ title: err?.message || '发起沟通异常', icon: 'none' });
+    } finally {
+      isProcessingAction.value = false;
+    }
+  } else if (action === 'resolve') {
+    // ACB 财务防腐屏障名册前置快速拦截
+    if (item.decision?.isRefundLocked || item.type === 'refund_locked') {
+      uni.showModal({
+        title: '财务风控拦截',
+        content:
+          item.reason ||
+          item.decision?.blockingReason ||
+          '该学员名下存在已退费或在途退费审批单据，已被财务防腐屏障锁定，严禁发起续费开单！',
+        showCancel: false,
+        confirmText: '我知道了',
+        confirmColor: '#EF4444',
+      });
+      return;
+    }
+
+    // 立即处理：打通端侧续费草案生成与开单直通流水线
+    isProcessingAction.value = true;
+    try {
+      uni.showLoading({ title: '生成续费决策草案...' });
+      const targetStudentId = item.studentId || item.id;
+      const draft = await renewalCoordinator.prepareRenewalDecision(targetStudentId, {
+        targetCourseId: item.courseId || item.decision?.targetCourseId || undefined,
+        targetClassId: item.classId || undefined,
+      });
+      uni.hideLoading();
+
+      // 无损暂存并路由跳转开单向导 wizard.vue
+      await renewalCoordinator.proceedToCheckout(draft);
+    } catch (err: any) {
+      uni.hideLoading();
+
+      // ACB 财务防腐屏障强阻断处理
+      if (
+        err instanceof RefundLockedError ||
+        err?.name === 'RefundLockedError' ||
+        err?.code === 'REFUND_LOCKED'
+      ) {
+        uni.showModal({
+          title: '财务风控拦截',
+          content:
+            err.message ||
+            '该学员名下存在已退费或在途退费审批单据，已被财务防腐屏障锁定，严禁发起续费开单！',
+          showCancel: false,
+          confirmText: '我知道了',
+          confirmColor: '#EF4444',
+        });
+      } else {
+        uni.showModal({
+          title: '续费决策提示',
+          content: err?.message || err?.errMsg || '生成续费草案失败，请稍后重试',
+          showCancel: false,
+        });
+      }
+    } finally {
+      isProcessingAction.value = false;
+    }
   }
 };
 </script>
@@ -215,7 +303,8 @@ const handleAction = (item: WarningItem, action: string) => {
 .metrics-row {
   display: flex;
   gap: 16rpx;
-  .metric-card {
+  .metric-card,
+  .warning-stat-card {
     flex: 1;
     background: #FFFFFF;
     border-radius: 16rpx;
@@ -224,6 +313,7 @@ const handleAction = (item: WarningItem, action: string) => {
     flex-direction: column;
     align-items: center;
     box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+    cursor: pointer;
     .num { font-size: 36rpx; font-weight: 700; }
     .label { font-size: 22rpx; color: #6B7280; margin-top: 6rpx; }
     &.urgent .num { color: #F5222D; }
@@ -284,13 +374,15 @@ const handleAction = (item: WarningItem, action: string) => {
   flex-direction: column;
   gap: 20rpx;
 }
-.warning-card {
+.warning-card,
+.warning-item {
   background: #FFFFFF;
   border-radius: 16rpx;
   padding: 24rpx;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
   border-left: 6rpx solid #FA8C16;
   &.urgent { border-left-color: #F5222D; }
+  &.normal { border-left-color: #10B981; }
   .card-header {
     display: flex;
     justify-content: space-between;
@@ -303,6 +395,7 @@ const handleAction = (item: WarningItem, action: string) => {
       border-radius: 8rpx;
       &.urgent { background: #FFF1F0; color: #F5222D; }
       &.warning { background: #FFF7E6; color: #FA8C16; }
+      &.normal { background: #ECFDF5; color: #10B981; }
     }
   }
   .card-body {
@@ -332,5 +425,16 @@ const handleAction = (item: WarningItem, action: string) => {
       &.primary { background: #2F54EB; color: #FFFFFF; }
     }
   }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 0;
+  gap: 16rpx;
+  .empty-icon { font-size: 56rpx; }
+  .empty-text { font-size: 26rpx; color: #9CA3AF; }
 }
 </style>

@@ -66,6 +66,11 @@ export interface StudentRiskDiagnosis {
   campusId: string;
   campusName: string;
   currentStatus: string;
+  classId?: string | null;
+  className?: string | null;
+  courseId?: string | null;
+  courseName?: string | null;
+  pricePerLesson?: number;
 
   /** 资产全景快照 */
   assetSummary: {
@@ -129,6 +134,8 @@ export interface CampusRenewalRosterResult {
     normalCount: number;         // 正常人数 (> 8 课时)
     dormantCount: number;        // 停消休眠人数 (>= 14 天未消课)
     windowOpenCount: number;     // 窗口开放总人数
+    pendingCount?: number;       // 待分班学员人数
+    estimatedRenewalPoolAmount?: number; // 预估续费总池 (元)
   };
   list: StudentRiskDiagnosis[];
 }
@@ -184,6 +191,8 @@ export interface RenewalDraftOptions {
   targetClassId?: string;              // 指定承接班级 (缺省则继承原在读班级)
   customLessons?: number;              // 别名兼容 recommendedLessons
   recommendedLessons?: number;         // 指定续约课时数 (缺省推荐 48 课时)
+  bonusLessons?: number;               // 协议赠送课时数
+  pricePerLesson?: number;             // 指定续费单价
   paymentMethod?: string;              // 偏好支付渠道 (默认 wallet 优先核算)
   customDiscount?: number;             // 特批立减金额
   operatorId?: string;                 // 经办学管/顾问
@@ -198,6 +207,7 @@ export interface RenewalOrderDraft {
   studentId: string;
   studentName: string;
   studentNo: string;
+  studentPhone?: string;
   campusId: string;
   campusName: string;
   createdAt: string;
@@ -225,6 +235,7 @@ export interface RenewalOrderDraft {
     pass: boolean;
     isClassFull: boolean;              // 原班是否已满员
     isRefundLocked: boolean;           // 是否处于退费锁定
+    fallbackUnassigned?: boolean;      // 班容超额安全回退待分班标记
     warningMessage?: string;
   };
 

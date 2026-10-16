@@ -146,6 +146,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { eduApi, ScheduleEventModel } from '../../api/edu';
+import { fulfillmentCoordinator } from '../../coordinators/fulfillment';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -254,7 +255,7 @@ const handleFinishClass = async (item: ScheduleEventModel) => {
       if (res.confirm) {
         try {
           uni.showLoading({ title: '正在履约消课...' });
-          await eduApi.fulfillLesson({ scheduleEventId: item.id });
+          await fulfillmentCoordinator.fulfill(item.id);
           uni.hideLoading();
           uni.showToast({ title: '结课履约成功', icon: 'success' });
           item.status = 'completed';

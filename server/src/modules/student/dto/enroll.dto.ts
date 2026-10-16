@@ -41,7 +41,7 @@ export class EnrollStudentDto {
   paymentMethod: string;
 
   @IsOptional()
-  @IsIn(['ground', 'referral', 'meituan', 'online'])
+  @IsIn(['ground', 'referral', 'meituan', 'online', 'renewal'])
   channel?: string;
 
   @IsOptional()

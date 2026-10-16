@@ -316,6 +316,8 @@ export class LessonRenewalCoordinator {
     let normalCount = 0;
     let dormantCount = 0;
     let windowOpenCount = 0;
+    let pendingCount = 0;
+    let estimatedRenewalPoolAmount = 0;
 
     const diagnoses: StudentRiskDiagnosis[] = [];
 
@@ -357,9 +359,21 @@ export class LessonRenewalCoordinator {
       }
 
       const renewalWindowOpen = totalRemaining <= 8 || estimatedDepletionDays <= 30;
-      if (renewalWindowOpen) windowOpenCount++;
-
       const targetPkg = stu.packages[0];
+
+      if (!targetPkg?.classId) {
+        pendingCount++;
+      }
+
+      if (renewalWindowOpen) {
+        windowOpenCount++;
+        const pPrice = targetPkg?.pricePerLesson || targetPkg?.course?.pricePerLesson || 200;
+        estimatedRenewalPoolAmount += Math.max(
+          0,
+          pPrice * RENEWAL_RISK_CONSTANTS.RECOMMENDED_SEMESTER_LESSONS -
+            RENEWAL_RISK_CONSTANTS.DEFAULT_SUGGESTED_DISCOUNT
+        );
+      }
 
       diagnoses.push({
         studentId: stu.id,
@@ -369,6 +383,11 @@ export class LessonRenewalCoordinator {
         campusId: stu.campusId,
         campusName: stu.campus?.name || '总部校区',
         currentStatus: stu.status,
+        classId: targetPkg?.classId || null,
+        className: targetPkg?.class?.name || null,
+        courseId: targetPkg?.courseId || null,
+        courseName: targetPkg?.course?.name || null,
+        pricePerLesson: targetPkg?.pricePerLesson || targetPkg?.course?.pricePerLesson || 200,
         assetSummary: {
           totalRemainingLessons: totalRemaining,
           totalConsumedLessons: totalConsumed,
@@ -454,6 +473,8 @@ export class LessonRenewalCoordinator {
         normalCount,
         dormantCount,
         windowOpenCount,
+        pendingCount,
+        estimatedRenewalPoolAmount,
       },
       list: paginated,
     };
@@ -656,6 +677,13 @@ export class LessonRenewalCoordinator {
       });
     }
 
+    // 严密核验：班级所属课程必须与目标课程一致；若切换至其他课程，原班级不能沿用，自动安全降级为待分班
+    if (targetClass && targetClass.courseId !== course.id) {
+      targetClass = null;
+      isClassFull = false;
+      warningMessage = '报读课程与原在读班级不匹配，续费草案已自动置为待分班状态以待重新排班';
+    }
+
     if (targetClass) {
       const freshClass = await this.prisma.class.findUnique({
         where: { id: targetClass.id },
@@ -669,11 +697,15 @@ export class LessonRenewalCoordinator {
 
     // 4. 课时阶梯与价格推导
     const totalLessons =
-      options?.recommendedLessons ||
       options?.customLessons ||
+      options?.recommendedLessons ||
       RENEWAL_RISK_CONSTANTS.RECOMMENDED_SEMESTER_LESSONS;
-    const bonusLessons = 2; // 老学员续报默认配赠 2 课时
-    const pricePerLesson = targetPkg?.pricePerLesson || course.pricePerLesson || 200;
+    const bonusLessons = options?.bonusLessons !== undefined ? options.bonusLessons : 2; // 老学员续报默认配赠 2 课时
+    const pricePerLesson =
+      options?.pricePerLesson ||
+      (options?.targetCourseId && targetPkg?.courseId !== options.targetCourseId
+        ? course.pricePerLesson
+        : targetPkg?.pricePerLesson || course.pricePerLesson || 200);
     const originalTotalPrice = pricePerLesson * totalLessons;
     const suggestedDiscount = options?.customDiscount !== undefined ? options.customDiscount : 200;
     const actualPayAmount = Math.max(0, originalTotalPrice - suggestedDiscount);
@@ -706,6 +738,7 @@ export class LessonRenewalCoordinator {
       studentId: student.id,
       studentName: student.name,
       studentNo: student.studentNo,
+      studentPhone: student.phone,
       campusId: student.campusId,
       campusName: student.campus?.name || '总部校区',
       createdAt: new Date().toISOString(),
@@ -729,6 +762,7 @@ export class LessonRenewalCoordinator {
         pass: true,
         isClassFull,
         isRefundLocked: false,
+        fallbackUnassigned: isClassFull || !targetClass,
         warningMessage,
       },
       enrollCommand,

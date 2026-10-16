@@ -110,6 +110,12 @@ export class StudentService {
         (sum, p) => sum + p.consumedLessons,
         0,
       );
+      const totalRemainingAmount = stu.packages.reduce(
+        (sum, p) =>
+          sum +
+          p.remainingLessons * (p.pricePerLesson || p.course?.pricePerLesson || 0),
+        0,
+      );
 
       let computedWarningLevel = 'normal';
       if (stu.packages.length > 0) {
@@ -119,6 +125,11 @@ export class StudentService {
           computedWarningLevel = 'warning';
         }
       }
+
+      const enrolledClassesCount = stu.packages.filter(
+        (p) => Boolean(p.classId || p.class) && p.remainingLessons > 0,
+      ).length;
+      const isAssignedClass = enrolledClassesCount > 0;
 
       return {
         id: stu.id,
@@ -136,17 +147,26 @@ export class StudentService {
         goldPoints: stu.wallet?.goldPoints || 0,
         totalRemainingLessons,
         totalConsumedLessons,
+        totalRemainingAmount,
         warningLevel: computedWarningLevel,
         riskLevel: computedWarningLevel === 'urgent' ? 'critical' : computedWarningLevel,
         activeCourseCount: stu.packages.length,
+        enrolledClassesCount,
+        isAssignedClass,
         packages: stu.packages.map((p) => ({
           packageId: p.id,
           id: p.id,
           courseId: p.courseId,
           courseName: p.course?.name || '标准课程',
+          classId: p.classId,
+          className: p.class?.name,
+          class: p.class,
+          isEnrolledClass: Boolean((p.classId || p.class) && p.remainingLessons > 0),
           totalLessons: p.totalLessons,
           remainingLessons: p.remainingLessons,
           consumedLessons: p.consumedLessons,
+          pricePerLesson: p.pricePerLesson || p.course?.pricePerLesson || 0,
+          course: p.course,
           status: p.status,
           expireDate: p.expiryDate ? p.expiryDate.toISOString().split('T')[0] : '2027-12-31',
         })),

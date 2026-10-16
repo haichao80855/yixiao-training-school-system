@@ -110,16 +110,17 @@ export class StudentController {
   @RequirePermissions('student:enroll')
   async createRenewalOrderDraft(
     @Param('id') id: string,
-    @Body('packageId') packageId?: string,
-    @Body('customLessons') customLessons?: number,
+    @Body() body: any = {},
     @CurrentUser() user?: any,
   ) {
     return this.renewalCoordinator.createRenewalOrderDraft(id, {
-      packageId,
-      customLessons: customLessons ? Number(customLessons) : undefined,
+      ...body,
+      packageId: body.packageId,
+      customLessons: body.customLessons !== undefined && body.customLessons !== null ? Number(body.customLessons) : undefined,
+      recommendedLessons: body.recommendedLessons !== undefined && body.recommendedLessons !== null ? Number(body.recommendedLessons) : undefined,
       operator: {
-        operatorId: user?.id,
-        operatorName: user?.realName || user?.account || '教务顾问',
+        operatorId: user?.id || body.operatorId || body.operator?.operatorId,
+        operatorName: user?.realName || user?.account || body.operatorName || body.operator?.operatorName || '教务顾问',
       },
     });
   }

@@ -100,7 +100,7 @@
                 <text class="student-name">{{ item.name }}</text>
                 <view
                   class="status-tag"
-                  :class="item.status === 'pending_assignment' ? 'tag-pending' : 'tag-active'"
+                  :class="item.tagClass || (item.status === 'pending_assignment' ? 'tag-pending' : 'tag-active')"
                 >
                   {{ item.statusText }}
                 </view>
@@ -111,13 +111,19 @@
               </view>
             </view>
 
-            <!-- 徽章行：剩余课次 & 在读班级数 -->
+            <!-- 徽章行：剩余课次 & 在读班级数 & 课消风险 -->
             <view class="badges-row">
               <view class="badge-orange">
                 剩余{{ item.remainingLessons }}课次
               </view>
               <view class="badge-blue">
                 {{ item.enrolledClassesCount }}个在读班级
+              </view>
+              <view
+                v-if="item.risk && item.risk.warningWindow"
+                :class="item.risk.isUrgent ? 'badge-risk-urgent' : 'badge-risk-warning'"
+              >
+                {{ item.risk.label }}
               </view>
             </view>
 
@@ -173,7 +179,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useCampusStore } from '../../stores/campusStore';
-import { studentApi, StudentListItemModel } from '../../api/student';
+import { studentProjector, type RosterItemView } from '../../projectors/student';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -184,15 +190,26 @@ const currentTab = ref<'all' | 'pending'>('all');
 const searchKeyword = ref('');
 const selectedStatusText = ref('学员状态');
 
-// 学员列表与抽屉
-const studentList = ref<StudentListItemModel[]>([]);
+// 学员名册投影数据列表与抽屉
+const studentList = ref<RosterItemView[]>([]);
 const showActionDrawer = ref(false);
 
 const fetchStudents = async () => {
   const cid = campusStore.currentCampusId === 'all' ? undefined : campusStore.currentCampusId;
-  const res = await studentApi.getStudents({
+  let statusFilter: string | undefined = undefined;
+  if (currentTab.value === 'pending') {
+    statusFilter = 'pending_assignment';
+  } else if (selectedStatusText.value === '在读') {
+    statusFilter = 'in_class';
+  } else if (selectedStatusText.value === '待分班') {
+    statusFilter = 'pending_assignment';
+  } else if (selectedStatusText.value === '历史学员') {
+    statusFilter = 'graduated';
+  }
+
+  const res = await studentProjector.projectRoster({
     keyword: searchKeyword.value.trim() || undefined,
-    status: currentTab.value === 'pending' ? 'pending_assignment' : undefined,
+    status: statusFilter,
     campusId: cid,
   });
   studentList.value = res.list || [];
@@ -219,20 +236,32 @@ onShow(() => {
   fetchStudents();
 });
 
+let searchDebounceTimer: any = null;
+
 onUnmounted(() => {
+  clearTimeout(searchDebounceTimer);
   uni.$off('campus-changed', fetchStudents);
 });
 
 const switchTab = (tab: 'all' | 'pending') => {
   currentTab.value = tab;
+  if (tab === 'all') {
+    selectedStatusText.value = '学员状态';
+  } else if (tab === 'pending') {
+    selectedStatusText.value = '待分班';
+  }
   fetchStudents();
 };
 
 const handleSearchInput = () => {
-  fetchStudents();
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    fetchStudents();
+  }, 300);
 };
 
 const clearSearch = () => {
+  clearTimeout(searchDebounceTimer);
   searchKeyword.value = '';
   fetchStudents();
 };
@@ -280,13 +309,13 @@ const handleFilterClick = (type: string) => {
   }
 };
 
-const handleCardClick = (item: StudentListItemModel) => {
+const handleCardClick = (item: RosterItemView) => {
   uni.navigateTo({
     url: `/package-student/detail/index?studentId=${item.id}&name=${encodeURIComponent(item.name)}&studentNo=${item.studentNo}`,
   });
 };
 
-const handleShowQr = (item: StudentListItemModel) => {
+const handleShowQr = (item: RosterItemView) => {
   uni.showModal({
     title: `${item.name} 的学员码`,
     content: `学号: ${item.studentNo}\n已生成考勤核销电子码`,
@@ -547,6 +576,31 @@ const loadMore = () => {};
   color: #F59E0B;
 }
 
+.tag-unassigned {
+  background: #F3F4F6;
+  color: #6B7280;
+}
+
+.tag-suspended {
+  background: #FEE2E2;
+  color: #EF4444;
+}
+
+.tag-graduated {
+  background: #EDE9FE;
+  color: #8B5CF6;
+}
+
+.tag-lost {
+  background: #F3F4F6;
+  color: #9CA3AF;
+}
+
+.tag-transferred {
+  background: #E0E7FF;
+  color: #4F46E5;
+}
+
 .plane-icon {
   font-size: 24rpx;
 }
@@ -576,6 +630,24 @@ const loadMore = () => {};
   color: #2563EB;
   padding: 4rpx 14rpx;
   border-radius: 8rpx;
+}
+
+.badge-risk-urgent {
+  font-size: 22rpx;
+  background: #FEE2E2;
+  color: #EF4444;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+}
+
+.badge-risk-warning {
+  font-size: 22rpx;
+  background: #FEF3C7;
+  color: #D97706;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
 }
 
 .meta-line {

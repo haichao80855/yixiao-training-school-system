@@ -116,6 +116,11 @@ async function main() {
     console.log('\n>>> [Step 5/5] 运行微信小程序端 (阶段一至五) 核心契约与路由自动化测试...\n');
     execSync('node tests/test_mp_phase1_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase2_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_fulfillment_coordinator.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_student_projector.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_enrollment_coordinator.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_class_coordinator.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_renewal_coordinator.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase3_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase4_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase5_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });

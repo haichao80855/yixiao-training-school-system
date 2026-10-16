@@ -48,13 +48,23 @@
       <view class="tags-row">
         <view
           class="tag-status-active"
-          :class="{
-            'tag-status-unassigned': profile.status === '未报读',
-            'tag-status-pending': profile.status === '待分班',
-            'tag-status-suspended': profile.status === '停课'
-          }"
+          :class="[
+            profile.tagClass,
+            {
+              'tag-status-unassigned': profile.status === '未报读',
+              'tag-status-pending': profile.status === '待分班',
+              'tag-status-suspended': profile.status === '停课'
+            }
+          ]"
         >
-          {{ profile.status }}
+          {{ profile.statusText || profile.status }}
+        </view>
+        <view
+          v-if="profile.consumptionRisk && profile.consumptionRisk.warningWindow"
+          class="tag-risk"
+          :class="profile.consumptionRisk.level === 'URGENT' ? 'tag-risk-urgent' : 'tag-risk-warning'"
+        >
+          {{ profile.consumptionRisk.label }}
         </view>
         <view class="tag-campus">{{ profile.campusName || '总部校区' }}</view>
       </view>
@@ -124,9 +134,9 @@
     <scroll-view class="tab-content-scroll" scroll-y>
       <!-- ================= Tab 1: 学员课程 (对齐截图 024) ================= -->
       <view v-if="currentTab === 'courses'" class="courses-panel">
-        <view class="filter-zero-row" @click="hideZero = !hideZero" v-if="profile.courses.length > 0">
-          <view class="checkbox-box" :class="{ checked: hideZero }">
-            <text v-if="hideZero" class="check-mark">✓</text>
+        <view class="filter-zero-row" @click="showZero = !showZero" v-if="profile.courses.length > 0">
+          <view class="checkbox-box" :class="{ checked: showZero }">
+            <text v-if="showZero" class="check-mark">✓</text>
           </view>
           <text class="checkbox-label">显示剩余数量为0的课程</text>
         </view>
@@ -309,14 +319,20 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { studentApi, StudentProfileModel, StudentCourseItemModel } from '../../api/student';
+import { onLoad } from '@dcloudio/uni-app';
+import { studentApi, type StudentCourseItemModel } from '../../api/student';
+import {
+  studentProjector,
+  computeActionPermissions,
+  type StudentDossierView,
+} from '../../projectors/student';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
 
-const studentId = ref('s-01');
+const studentId = ref('');
 const currentTab = ref<'courses' | 'attendance' | 'communication'>('courses');
-const hideZero = ref(false);
+const showZero = ref(false);
 const showActionSheet = ref(false);
 
 // 考勤筛选
@@ -333,8 +349,8 @@ const attendanceFilters = [
 // 沟通记录售前售后
 const commType = ref<'pre' | 'after'>('after');
 
-// 学员详情模型
-const profile = ref<StudentProfileModel>({
+// 学员全息档案投影模型
+const profile = ref<StudentDossierView>({
   id: '',
   name: '',
   studentNo: '',
@@ -344,15 +360,59 @@ const profile = ref<StudentProfileModel>({
   expireDateText: '无限期',
   channelSource: '',
   status: '未报读',
+  normalizedStatus: 'not_enrolled',
+  statusText: '未报读',
+  tagClass: 'tag-unassigned',
+  isAssignedClass: false,
+  inPendingAssetPool: false,
   campusName: '',
   totalRemainingLessons: 0,
+  activeRemainingLessons: 0,
   totalRemainingAmount: 0,
   walletBalance: 0,
+  principalBalance: 0,
+  bonusBalance: 0,
   cardCount: 0,
   frozenLessons: 0,
+  assets: {
+    totalRemainingLessons: 0,
+    activeRemainingLessons: 0,
+    frozenLessons: 0,
+    totalRemainingAmount: 0,
+    weightedPricePerLesson: 0,
+    walletBalance: 0,
+    principalBalance: 0,
+    bonusBalance: 0,
+    cardCount: 0,
+  },
+  consumptionRisk: {
+    level: 'HEALTHY',
+    label: '课消健康',
+    isUrgent: false,
+    warningWindow: false,
+    stars: 3,
+    color: '#10B981',
+  },
+  permissions: {
+    canEnroll: true,
+    canAdjustClass: false,
+    canRecharge: true,
+    canDisable: true,
+    canRefund: false,
+  },
   courses: [],
   attendances: [],
   communications: [],
+});
+
+let hasLoaded = false;
+
+onLoad((query: any) => {
+  if (query?.studentId) {
+    studentId.value = query.studentId;
+  }
+  hasLoaded = true;
+  fetchProfile();
 });
 
 onMounted(() => {
@@ -367,24 +427,26 @@ onMounted(() => {
     // #endif
   } catch (e) {}
 
-  const pages = getCurrentPages();
-  const curPage = pages[pages.length - 1];
-  const query = (curPage as any)?.options || {};
-  if (query.studentId) studentId.value = query.studentId;
-
-  fetchProfile();
+  if (!hasLoaded) {
+    const pages = getCurrentPages();
+    const curPage = pages[pages.length - 1];
+    const query = (curPage as any)?.options || {};
+    if (query?.studentId) studentId.value = query.studentId;
+    fetchProfile();
+  }
 });
 
 const fetchProfile = async () => {
-  const data = await studentApi.getStudentProfile(studentId.value);
-  profile.value = data;
+  if (!studentId.value) return;
+  const dossier = await studentProjector.projectDossier(studentId.value);
+  profile.value = dossier;
 };
 
 const displayedCourses = computed(() => {
-  if (hideZero.value) {
-    return profile.value.courses.filter((c) => c.remainingLessons > 0);
+  if (showZero.value) {
+    return profile.value.courses;
   }
-  return profile.value.courses;
+  return profile.value.courses.filter((c) => c.remainingLessons > 0);
 });
 
 const filteredAttendances = computed(() => {
@@ -428,6 +490,14 @@ const handleGoClassDetail = (classId?: string) => {
 };
 
 const handleJoinClass = (crs: StudentCourseItemModel) => {
+  if (profile.value.permissions && !profile.value.permissions.canAdjustClass) {
+    uni.showModal({
+      title: '操作受限',
+      content: `学员当前学籍状态为【${profile.value.statusText}】，暂不支持调整或加入班级。`,
+      showCancel: false,
+    });
+    return;
+  }
   uni.navigateTo({
     url: `/package-student/enroll/wizard?studentId=${profile.value.id}&courseId=${crs.courseId}&step=class`,
   });
@@ -461,10 +531,26 @@ const handleActionItem = (type: string) => {
       url: `/package-student/edit/index?studentId=${profile.value.id}`,
     });
   } else if (type === 'enroll') {
+    if (profile.value.permissions && !profile.value.permissions.canEnroll) {
+      uni.showModal({
+        title: '操作受限',
+        content: `该学员当前为【${profile.value.statusText}】状态，不可办理报名。`,
+        showCancel: false,
+      });
+      return;
+    }
     uni.navigateTo({
       url: `/package-student/enroll/wizard?studentId=${profile.value.id}&studentName=${encodeURIComponent(profile.value.name)}`,
     });
   } else if (type === 'recharge') {
+    if (profile.value.permissions && !profile.value.permissions.canRecharge) {
+      uni.showModal({
+        title: '操作受限',
+        content: `该学员当前为【${profile.value.statusText}】状态，不可充值。`,
+        showCancel: false,
+      });
+      return;
+    }
     uni.showModal({
       title: '钱包充值',
       editable: true,
@@ -477,19 +563,40 @@ const handleActionItem = (type: string) => {
             return;
           }
           await studentApi.rechargeWallet(profile.value.id, amt);
+          studentProjector.invalidateDossier(profile.value.id);
           profile.value.walletBalance += amt;
+          profile.value.principalBalance += amt;
+          profile.value.assets.walletBalance += amt;
+          profile.value.assets.principalBalance += amt;
+          profile.value.permissions = computeActionPermissions(
+            profile.value.normalizedStatus,
+            profile.value.assets
+          );
           uni.showToast({ title: `成功充值 ¥${amt}`, icon: 'success' });
         }
       },
     });
   } else if (type === 'disable') {
+    if (profile.value.permissions && !profile.value.permissions.canDisable) {
+      uni.showModal({
+        title: '操作受限',
+        content: `该学员当前为【${profile.value.statusText}】状态，无需重复禁用。`,
+        showCancel: false,
+      });
+      return;
+    }
     uni.showModal({
       title: '禁用提醒',
       content: `确定要将学员 ${profile.value.name} 设为禁用状态吗？`,
       confirmColor: '#EF4444',
       success: (res) => {
         if (res.confirm) {
-          profile.value.status = '已禁用';
+          profile.value.status = '停课';
+          profile.value.statusText = '停课';
+          profile.value.normalizedStatus = 'suspended';
+          profile.value.tagClass = 'tag-suspended';
+          profile.value.permissions = computeActionPermissions('suspended', profile.value.assets);
+          studentProjector.invalidateDossier(profile.value.id);
           uni.showToast({ title: '学员已禁用', icon: 'none' });
         }
       },
@@ -657,19 +764,54 @@ const handleActionItem = (type: string) => {
   border-radius: 8rpx;
 }
 
-.tag-status-active.tag-status-unassigned {
+.tag-status-active.tag-status-unassigned,
+.tag-status-active.tag-unassigned {
   background: #F3F4F6;
   color: #6B7280;
 }
 
-.tag-status-active.tag-status-pending {
+.tag-status-active.tag-status-pending,
+.tag-status-active.tag-pending {
   background: #FEF3C7;
   color: #D97706;
 }
 
-.tag-status-active.tag-status-suspended {
+.tag-status-active.tag-status-suspended,
+.tag-status-active.tag-suspended {
   background: #FEE2E2;
   color: #EF4444;
+}
+
+.tag-status-active.tag-graduated {
+  background: #EDE9FE;
+  color: #8B5CF6;
+}
+
+.tag-status-active.tag-lost {
+  background: #F3F4F6;
+  color: #9CA3AF;
+}
+
+.tag-status-active.tag-transferred {
+  background: #E0E7FF;
+  color: #4F46E5;
+}
+
+.tag-risk {
+  font-size: 22rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-weight: 500;
+}
+
+.tag-risk-urgent {
+  background: #FEE2E2;
+  color: #EF4444;
+}
+
+.tag-risk-warning {
+  background: #FEF3C7;
+  color: #D97706;
 }
 
 .tag-campus {

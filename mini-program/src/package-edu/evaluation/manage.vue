@@ -102,6 +102,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
+import { eduApi } from '../../api/edu';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -110,7 +111,7 @@ const capsuleRightWidth = ref(96);
 const searchKeyword = ref('');
 const dateRangeText = ref('2026-10-12 至 2026-10-18');
 
-// 课评学员列表 (100% 对齐截图 055 真实数据)
+// 课评学员列表 (100% 对齐截图 055 真实数据，同时支持动态排课水化)
 const evaluationItems = ref([
   {
     id: 'eval-01',
@@ -120,6 +121,7 @@ const evaluationItems = ref([
     className: '启蒙英语-001班',
     signTime: '2026-10-14 18:16',
     isPushed: false,
+    scheduleId: 'sch-qmyy-12',
   },
   {
     id: 'eval-02',
@@ -129,6 +131,7 @@ const evaluationItems = ref([
     className: '启蒙英语-001班',
     signTime: '2026-10-14 18:16',
     isPushed: false,
+    scheduleId: 'sch-qmyy-12',
   },
   {
     id: 'eval-03',
@@ -138,6 +141,7 @@ const evaluationItems = ref([
     className: '启蒙英语-001班',
     signTime: '2026-10-14 18:16',
     isPushed: false,
+    scheduleId: 'sch-qmyy-12',
   },
   {
     id: 'eval-04',
@@ -147,10 +151,11 @@ const evaluationItems = ref([
     className: '启蒙英语-001班',
     signTime: '2026-10-14 18:16',
     isPushed: false,
+    scheduleId: 'sch-qmyy-12',
   },
 ]);
 
-onMounted(() => {
+onMounted(async () => {
   try {
     const info = uni.getSystemInfoSync();
     statusBarHeight.value = info.statusBarHeight || 20;
@@ -161,7 +166,42 @@ onMounted(() => {
     }
     // #endif
   } catch (e) {}
+
+  await fetchLiveEvaluations();
 });
+
+const fetchLiveEvaluations = async () => {
+  try {
+    const schedules = await eduApi.getSchedules();
+    if (Array.isArray(schedules) && schedules.length > 0) {
+      const items: any[] = [];
+      for (const s of schedules.slice(0, 3)) {
+        try {
+          const wb = await eduApi.getFulfillmentWorkbench(s.id);
+          if (wb && wb.students) {
+            for (const stu of wb.students) {
+              items.push({
+                id: stu.studentId,
+                name: stu.name,
+                phone: stu.phone || '13800000000',
+                studentNo: stu.studentNo,
+                className: s.className,
+                signTime: `${s.date} ${s.startTime}`,
+                isPushed: Boolean(stu.evaluated || s.status === 'completed'),
+                scheduleId: s.id,
+              });
+            }
+          }
+        } catch {}
+      }
+      if (items.length > 0) {
+        evaluationItems.value = items;
+      }
+    }
+  } catch (err) {
+    console.warn('[manage.vue] 加载真实课评数据失败，使用默认列表:', err);
+  }
+};
 
 const filteredList = computed(() => {
   const kw = searchKeyword.value.trim().toLowerCase();
