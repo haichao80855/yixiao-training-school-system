@@ -107,13 +107,21 @@ async function main() {
     execSync('node test-lesson-fulfillment-coordinator.js', { stdio: 'inherit', cwd: serverDir });
 
     // 运行候选 1 & 候选 2 数据持久化与防假双写对抗性测试
-    console.log('\n>>> [Step 4/4] 运行数据持久化、防假双写与无异常吞噬对抗性实测套件...\n');
+    console.log('\n>>> [Step 4/5] 运行数据持久化、防假双写与无异常吞噬对抗性实测套件...\n');
     execSync('node tests/adversarial_challenger_m1_swallowed_errors.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/adversarial_challenger_m1_request.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/adversarial_m1_2_suite.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
 
+    // 运行微信小程序阶段一至五契约自动化测试
+    console.log('\n>>> [Step 5/5] 运行微信小程序端 (阶段一至五) 核心契约与路由自动化测试...\n');
+    execSync('node tests/test_mp_phase1_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_phase2_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_phase3_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_phase4_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_phase5_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+
     console.log('\n================================================================================');
-    console.log('🏆 恭喜！全栈端到端、双轨分层、后端微服务与对抗性持久化所有测试断言 100% 全部通过！');
+    console.log('🏆 恭喜！全栈端到端、双轨分层、小程序契约、后端微服务与对抗性持久化所有测试断言 100% 全部通过！');
     console.log('================================================================================\n');
   } catch (err) {
     testError = err;

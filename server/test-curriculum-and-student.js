@@ -491,9 +491,46 @@ async function runTests() {
   console.log('\n================================================================');
   console.log(`🎉 全部 ${passed}/${total} 项教研与学员中心业务断言 100% 验证通过！`);
   console.log('================================================================\n');
+
+  // Teardown: 自动清理测试用例创建的临时课程与学员数据，杜绝脏数据堆积
+  try {
+    const path = require('path');
+    const { PrismaClient } = require(path.resolve(__dirname, './node_modules/@prisma/client'));
+    const prisma = new PrismaClient({
+      datasources: { db: { url: 'file:' + path.resolve(__dirname, './prisma/dev.db') } },
+    });
+    // 1. 清理学员关联订单与审批
+    const studentIds = [createdStudent?.id, secondStudent?.id].filter(Boolean);
+    if (studentIds.length > 0) {
+      const orders = await prisma.order.findMany({ where: { studentId: { in: studentIds } } });
+      for (const ord of orders) {
+        await prisma.approvalNode.deleteMany({ where: { approvalFlow: { orderId: ord.id } } }).catch(() => {});
+        await prisma.approvalFlow.deleteMany({ where: { orderId: ord.id } }).catch(() => {});
+      }
+      await prisma.order.deleteMany({ where: { studentId: { in: studentIds } } }).catch(() => {});
+      await prisma.attendanceRecord.deleteMany({ where: { studentId: { in: studentIds } } }).catch(() => {});
+      await prisma.studentAbnormalMovement.deleteMany({ where: { studentId: { in: studentIds } } }).catch(() => {});
+      await prisma.walletLedger.deleteMany({ where: { studentId: { in: studentIds } } }).catch(() => {});
+      await prisma.studentWallet.deleteMany({ where: { studentId: { in: studentIds } } }).catch(() => {});
+      await prisma.studentCoursePackage.deleteMany({ where: { studentId: { in: studentIds } } }).catch(() => {});
+      await prisma.student.deleteMany({ where: { id: { in: studentIds } } }).catch(() => {});
+    }
+    // 2. 清理课程
+    if (createdCourseId) {
+      await prisma.courseLesson.deleteMany({ where: { unit: { courseId: createdCourseId } } }).catch(() => {});
+      await prisma.courseUnit.deleteMany({ where: { courseId: createdCourseId } }).catch(() => {});
+      await prisma.courseCampusAuth.deleteMany({ where: { courseId: createdCourseId } }).catch(() => {});
+      await prisma.course.deleteMany({ where: { id: createdCourseId } }).catch(() => {});
+    }
+    await prisma.$disconnect();
+    console.log('🧹 [Teardown] 测试临时课程与学员数据已自动清理完毕。');
+  } catch (cleanErr) {
+    console.error('Teardown error in server test:', cleanErr);
+  }
 }
 
 runTests().catch((err) => {
   console.error('测试运行异常失败:', err);
   process.exit(1);
 });
+

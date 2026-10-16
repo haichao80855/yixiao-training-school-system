@@ -1,0 +1,184 @@
+{
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "一校云",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/workbench/index",
+      "style": {
+        "navigationBarTitleText": "工作台",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/workbench/settings",
+      "style": {
+        "navigationBarTitleText": "常用功能设置",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/ai/index",
+      "style": {
+        "navigationBarTitleText": "AI问答",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/todo/index",
+      "style": {
+        "navigationBarTitleText": "待办中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/my/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "员工登录",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "package-edu",
+      "pages": [
+        {
+          "path": "lecture/index",
+          "style": { "navigationBarTitleText": "讲台", "navigationStyle": "custom" }
+        },
+        {
+          "path": "lecture/roll-call",
+          "style": { "navigationBarTitleText": "课次详情", "navigationStyle": "custom" }
+        },
+        {
+          "path": "evaluation/edit",
+          "style": { "navigationBarTitleText": "随堂课评", "navigationStyle": "custom" }
+        },
+        {
+          "path": "class/index",
+          "style": { "navigationBarTitleText": "班级管理", "navigationStyle": "custom" }
+        },
+        {
+          "path": "class/detail",
+          "style": { "navigationBarTitleText": "班级详情", "navigationStyle": "custom" }
+        },
+        {
+          "path": "warning/index",
+          "style": { "navigationBarTitleText": "学员预警", "navigationStyle": "custom" }
+        },
+        {
+          "path": "evaluation/manage",
+          "style": { "navigationBarTitleText": "课评管理", "navigationStyle": "custom" }
+        }
+      ]
+    },
+    {
+      "root": "package-student",
+      "pages": [
+        {
+          "path": "list/index",
+          "style": { "navigationBarTitleText": "学员名册", "navigationStyle": "custom" }
+        },
+        {
+          "path": "detail/index",
+          "style": { "navigationBarTitleText": "学员详情", "navigationStyle": "custom" }
+        },
+        {
+          "path": "enroll/wizard",
+          "style": { "navigationBarTitleText": "学员报名", "navigationStyle": "custom" }
+        },
+        {
+          "path": "edit/index",
+          "style": { "navigationBarTitleText": "编辑学员", "navigationStyle": "custom" }
+        }
+      ]
+    },
+    {
+      "root": "package-finance",
+      "pages": [
+        {
+          "path": "orders/index",
+          "style": { "navigationBarTitleText": "订单管理", "navigationStyle": "custom" }
+        },
+        {
+          "path": "orders/detail",
+          "style": { "navigationBarTitleText": "订单详情", "navigationStyle": "custom" }
+        },
+        {
+          "path": "approval/index",
+          "style": { "navigationBarTitleText": "审批中心", "navigationStyle": "custom" }
+        },
+        {
+          "path": "approval/detail",
+          "style": { "navigationBarTitleText": "审批详情", "navigationStyle": "custom" }
+        }
+      ]
+    },
+    {
+      "root": "package-crm",
+      "pages": [
+        {
+          "path": "leads/index",
+          "style": { "navigationBarTitleText": "CRM线索", "navigationStyle": "custom" }
+        }
+      ]
+    }
+  ],
+  "tabBar": {
+    "color": "#6B7280",
+    "selectedColor": "#2F54EB",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "custom": true,
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/workbench/index",
+        "text": "工作台"
+      },
+      {
+        "pagePath": "pages/ai/index",
+        "text": "AI问答"
+      },
+      {
+        "pagePath": "pages/todo/index",
+        "text": "待办"
+      },
+      {
+        "pagePath": "pages/my/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "一校教培系统",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#F4F6F9"
+  },
+  "preloadRule": {
+    "pages/workbench/index": {
+      "network": "all",
+      "packages": ["package-edu", "package-student"]
+    },
+    "pages/todo/index": {
+      "network": "all",
+      "packages": ["package-finance"]
+    }
+  }
+}

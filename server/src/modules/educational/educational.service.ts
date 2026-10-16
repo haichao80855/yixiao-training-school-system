@@ -189,6 +189,14 @@ export class EducationalService {
         teacher: true,
         advisor: true,
         classroom: true,
+        schedules: {
+          orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+          include: {
+            teacher: { select: { id: true, realName: true } },
+            classroom: { select: { id: true, name: true, code: true } },
+            _count: { select: { attendances: true } },
+          },
+        },
         studentPackages: {
           include: {
             student: true,

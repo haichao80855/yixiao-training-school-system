@@ -16,7 +16,10 @@
     "test:all": "node tests/run_all_unified.cjs",
     "db:stats": "node scripts/db_stats.cjs",
     "db:clear:students": "node scripts/clear_student_data.cjs",
-    "db:clear:classes": "node scripts/clear_class_data.cjs"
+    "db:clear:classes": "node scripts/clear_class_data.cjs",
+    "mp:dev": "cd mini-program && npm run dev:mp-weixin",
+    "mp:build": "cd mini-program && npm run build:mp-weixin",
+    "mp:type-check": "cd mini-program && npm run type-check"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

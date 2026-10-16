@@ -54,15 +54,15 @@ export class StudentService {
       where.campusId = query.campusId;
     }
 
-    if (query.status) {
+    if (query.status && query.status !== 'all' && query.status !== 'undefined' && query.status !== 'null') {
       where.status = query.status;
     }
 
-    if (query.keyword) {
+    if (query.keyword && query.keyword.trim() && query.keyword !== 'undefined' && query.keyword !== 'null') {
       where.OR = [
-        { name: { contains: query.keyword } },
-        { phone: { contains: query.keyword } },
-        { studentNo: { contains: query.keyword } },
+        { name: { contains: query.keyword.trim() } },
+        { phone: { contains: query.keyword.trim() } },
+        { studentNo: { contains: query.keyword.trim() } },
       ];
     }
 

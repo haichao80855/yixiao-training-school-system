@@ -46,7 +46,7 @@ export class SystemController {
   }
 
   // 2. 校区列表 (支持多校区切换浮标，已登录用户基础功能)
-  @Get('campuses')
+  @Get(['campuses', 'campus'])
   getCampuses() {
     return this.systemService.getCampuses();
   }

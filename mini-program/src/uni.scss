@@ -1,0 +1,30 @@
+/* 一校云 移动端全局样式与设计令牌 (Design Tokens) */
+
+/* 品牌主题色彩 */
+$uni-color-primary: #2F54EB;
+$uni-color-primary-light: #EBF0FF;
+$uni-color-success: #52C41A;
+$uni-color-warning: #FA8C16;
+$uni-color-error: #F5222D;
+$uni-color-info: #1890FF;
+
+/* 文本文字主色 */
+$uni-text-color: #1F2937;
+$uni-text-color-secondary: #4B5563;
+$uni-text-color-placeholder: #9CA3AF;
+$uni-text-color-disabled: #D1D5DB;
+
+/* 背景与边框 */
+$uni-bg-color: #F8FAFC;
+$uni-bg-color-card: #FFFFFF;
+$uni-border-color: #E5E7EB;
+
+/* 阴影 */
+$uni-shadow-card: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+$uni-shadow-float: 0 8rpx 24rpx rgba(47, 84, 235, 0.15);
+
+/* 圆角 */
+$uni-radius-sm: 8rpx;
+$uni-radius-base: 16rpx;
+$uni-radius-lg: 24rpx;
+$uni-radius-round: 999rpx;
