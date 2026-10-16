@@ -190,7 +190,7 @@
         <p class="text-st-secondary">已连接拓视未来教育 AI 大模型中枢，为您实时提供智能课评生成、排课冲突建议与学员留存分析支持。</p>
         <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
           <div class="font-semibold text-st-primary mb-1">今日教务建议：</div>
-          <div>检测到总部校区周六下午 14:00 李老师存在双课冲突，建议将《EV3单片机实操》调整至 16:30 由张老师代授。</div>
+          <div>检测到原阳校区周六下午 14:00 李老师存在双课冲突，建议将《EV3单片机实操》调整至 16:30 由张老师代授。</div>
         </div>
       </div>
       <template #footer>

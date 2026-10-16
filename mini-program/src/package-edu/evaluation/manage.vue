@@ -18,7 +18,7 @@
     <!-- 1. 搜索栏 (对齐截图 055: Q 输入学员姓名/手机号查询) -->
     <view class="search-bar-wrap">
       <view class="search-box">
-        <text class="search-icon">🔍</text>
+        <AppIcon name="search" size="32rpx" color="#94A3B8" />
         <input
           class="search-input"
           type="text"
@@ -26,7 +26,9 @@
           placeholder="输入学员姓名/手机号查询"
           placeholder-class="placeholder-text"
         />
-        <text v-if="searchKeyword" class="clear-btn" @click="searchKeyword = ''">✕</text>
+        <view v-if="searchKeyword" class="clear-btn" @click="searchKeyword = ''">
+          <AppIcon name="x" size="28rpx" color="#94A3B8" />
+        </view>
       </view>
     </view>
 
@@ -35,11 +37,11 @@
       <view class="filter-left-group">
         <view class="dropdown-item">
           <text class="item-text">上课时间</text>
-          <text class="arrow">▼</text>
+          <AppIcon name="chevron-down" size="24rpx" color="#64748B" />
         </view>
         <view class="dropdown-item date-range-picker" @click="handleSelectDateRange">
           <text class="range-text">{{ dateRangeText }}</text>
-          <text class="arrow">▼</text>
+          <AppIcon name="chevron-down" size="24rpx" color="#64748B" />
         </view>
       </view>
       <view class="filter-right-btn" @click="handleOpenFilter">
@@ -56,7 +58,7 @@
           <!-- 头像与主信息行 -->
           <view class="student-main-row">
             <view class="student-avatar-circle">
-              <text class="avatar-emoji">👦</text>
+              <AppIcon name="user" size="40rpx" color="#2F54EB" />
             </view>
             <view class="name-status-block">
               <view class="name-status-row">
@@ -103,6 +105,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { eduApi } from '../../api/edu';
+import AppIcon from '../../components/AppIcon.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -220,13 +223,14 @@ const handleGoBack = () => {
 };
 
 const handleSwitchCampus = () => {
+  const list = campusStore.campuses.length > 0 ? campusStore.campuses.map((c) => c.name) : ['拓视未来-原阳校区'];
   uni.showActionSheet({
-    itemList: campusStore.campuses.length > 0 ? campusStore.campuses.map((c) => c.name) : ['总部校区', '远洋校区'],
+    itemList: list,
     success: (res) => {
       if (campusStore.campuses[res.tapIndex]) {
         campusStore.setCampus(campusStore.campuses[res.tapIndex]);
       } else {
-        campusStore.currentCampusName = ['总部校区', '远洋校区'][res.tapIndex];
+        campusStore.currentCampusName = list[res.tapIndex];
       }
     },
   });
@@ -526,20 +530,29 @@ const handleWriteEvaluation = (item: any) => {
       .write-eval-pill-btn {
         width: 144rpx;
         height: 60rpx;
-        background: #EFF6FF;
-        color: #2563EB;
+        background: #EEF2FF;
+        color: #2F54EB;
         font-size: 24rpx;
         font-weight: 600;
-        border-radius: 30rpx;
+        border-radius: 9999rpx;
         display: flex;
         align-items: center;
         justify-content: center;
+        cursor: pointer;
+        border: 1rpx solid rgba(47, 84, 235, 0.15);
+        transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        will-change: transform;
+
+        &:active {
+          transform: scale(0.92);
+        }
       }
     }
   }
 
   .safe-padding-bottom {
-    height: 40rpx;
+    height: calc(60rpx + constant(safe-area-inset-bottom));
+    height: calc(60rpx + env(safe-area-inset-bottom));
   }
 }
 </style>

@@ -22,9 +22,9 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '常规课', value: adminData.lessonConsumptionRegular.toFixed(2), icon: '📒', type: 'regular' },
-          { label: '扩科', value: adminData.lessonConsumptionExpand.toFixed(2), icon: '📕', type: 'expand' },
-          { label: '其他', value: adminData.lessonConsumptionOther.toFixed(2), icon: '📈', type: 'other' }
+          { label: '常规课', value: adminData.lessonConsumptionRegular.toFixed(2), icon: 'book-open', type: 'regular' },
+          { label: '扩科', value: adminData.lessonConsumptionExpand.toFixed(2), icon: 'book-open', type: 'expand' },
+          { label: '其他', value: adminData.lessonConsumptionOther.toFixed(2), icon: 'trending-up', type: 'other' }
         ]"
         footerLabel="课耗数量"
         :footerValue="adminData.lessonConsumptionCount"
@@ -49,8 +49,8 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '常规课', value: adminData.enrollmentRegularCount, icon: '📒', type: 'regular' },
-          { label: '扩科', value: adminData.enrollmentExpandCount, icon: '📕', type: 'expand' }
+          { label: '常规课', value: adminData.enrollmentRegularCount, icon: 'book-open', type: 'regular' },
+          { label: '扩科', value: adminData.enrollmentExpandCount, icon: 'book-open', type: 'expand' }
         ]"
         footerLabel="招生转化率"
         footerValue="78.5%"
@@ -68,10 +68,10 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '常规课', value: adminData.advanceCourseAmount.toFixed(2), icon: '💳', type: 'regular' },
-          { label: '物品预收', value: adminData.advanceGoodsAmount.toFixed(2), icon: '📦', type: 'expand' },
-          { label: '预存钱包', value: adminData.advanceWalletAmount.toFixed(2), icon: '💴', type: 'wallet' },
-          { label: '其他', value: '0.00', icon: '📝', type: 'other' }
+          { label: '常规课', value: adminData.advanceCourseAmount.toFixed(2), icon: 'credit-card', type: 'regular' },
+          { label: '物品预收', value: adminData.advanceGoodsAmount.toFixed(2), icon: 'package', type: 'expand' },
+          { label: '预存钱包', value: adminData.advanceWalletAmount.toFixed(2), icon: 'wallet', type: 'wallet' },
+          { label: '其他', value: '0.00', icon: 'file-text', type: 'other' }
         ]"
         footerLabel="退费金额"
         footerValue="¥0.00"
@@ -105,18 +105,13 @@
     <!-- ========================================================================= -->
     <view class="role-dashboard-view" v-else-if="currentRoleTab === 'edu'">
       <!-- 在籍学员概况手风琴磁贴 (截图 075, 076) -->
-      <view class="metric-card accordion-card">
-        <view class="card-header">
-          <view class="title-left">
-            <text class="metric-title">在籍学员概况</text>
-            <text class="help-icon" @click="handleEduRosterHelp">❓</text>
-          </view>
-          <view class="filter-dropdown" @click="handlePeriodClick">
-            <text class="filter-text">{{ currentPeriod }}</text>
-            <text class="arrow">▼</text>
-          </view>
-        </view>
-
+      <StatCard
+        title="在籍学员概况"
+        helpText="在籍学员涵盖当期正常在读、预存未排课、阶段性停课及到期学员全口径状态。"
+        :period="currentPeriod"
+        @period-change="handlePeriodChange"
+        @help-click="handleEduRosterHelp"
+      >
         <!-- 4 行手风琴项 -->
         <view class="accordion-list">
           <!-- 1. 本月初在籍 -->
@@ -129,11 +124,11 @@
               <text class="acc-label">本月初在籍学员</text>
               <view class="acc-right">
                 <text class="acc-val">{{ eduData.monthStartCount }}</text>
-                <text class="acc-arrow">{{ isExpanded('start') ? '▲' : '▼' }}</text>
+                <AppIcon :name="isExpanded('start') ? 'chevron-up' : 'chevron-down'" size="24rpx" color="#64748B" />
               </view>
             </view>
             <!-- 细分展开子面板 (对应截图 076) -->
-            <view class="accordion-sub-panel" v-if="isExpanded('start')">
+            <view class="accordion-sub-panel" v-if="isExpanded('start')" @click.stop>
               <view class="sub-pill">
                 <text class="pill-label">预存</text>
                 <text class="pill-val">{{ eduData.studentBreakdown.trial }}</text>
@@ -159,10 +154,10 @@
               <text class="acc-label">本期增加</text>
               <view class="acc-right">
                 <text class="acc-val plus-val">+{{ eduData.currentAddedCount }}</text>
-                <text class="acc-arrow">{{ isExpanded('add') ? '▲' : '▼' }}</text>
+                <AppIcon :name="isExpanded('add') ? 'chevron-up' : 'chevron-down'" size="24rpx" color="#64748B" />
               </view>
             </view>
-            <view class="accordion-sub-panel" v-if="isExpanded('add')">
+            <view class="accordion-sub-panel" v-if="isExpanded('add')" @click.stop>
               <view class="sub-pill">
                 <text class="pill-label">新招</text>
                 <text class="pill-val">{{ Math.round(eduData.currentAddedCount * 0.7) }}</text>
@@ -180,10 +175,10 @@
               <text class="acc-label">本期减少</text>
               <view class="acc-right">
                 <text class="acc-val minus-val">-{{ eduData.currentReducedCount }}</text>
-                <text class="acc-arrow">{{ isExpanded('reduce') ? '▲' : '▼' }}</text>
+                <AppIcon :name="isExpanded('reduce') ? 'chevron-up' : 'chevron-down'" size="24rpx" color="#64748B" />
               </view>
             </view>
-            <view class="accordion-sub-panel" v-if="isExpanded('reduce')">
+            <view class="accordion-sub-panel" v-if="isExpanded('reduce')" @click.stop>
               <view class="sub-pill">
                 <text class="pill-label">结业</text>
                 <text class="pill-val">{{ Math.round(eduData.currentReducedCount * 0.6) }}</text>
@@ -205,7 +200,7 @@
             </view>
           </view>
         </view>
-      </view>
+      </StatCard>
 
       <!-- 课评数据 4 宫格与三线走势折线图 (截图 075, 077) -->
       <StatCard
@@ -214,10 +209,10 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '发送率', value: eduData.evaluationSendRate, icon: '📤', type: 'regular' },
-          { label: '查看率', value: eduData.evaluationViewRate, icon: '👁️', type: 'expand' },
-          { label: '回评率', value: eduData.evaluationFeedbackRate, icon: '💬', type: 'other' },
-          { label: '人均课次', value: '3.5', icon: '⏱️', type: 'wallet' }
+          { label: '发送率', value: eduData.evaluationSendRate, icon: 'send', type: 'regular' },
+          { label: '查看率', value: eduData.evaluationViewRate, icon: 'eye', type: 'expand' },
+          { label: '回评率', value: eduData.evaluationFeedbackRate, icon: 'message-square', type: 'other' },
+          { label: '人均课次', value: '3.5', icon: 'timer', type: 'wallet' }
         ]"
       >
         <view class="chart-box">
@@ -240,8 +235,8 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '请假率', value: eduData.attendanceLeaveRate, icon: '🛌', type: 'expand' },
-          { label: '缺席率', value: eduData.attendanceAbsenceRate, icon: '❌', type: 'warning' }
+          { label: '请假率', value: eduData.attendanceLeaveRate, icon: 'moon', type: 'expand' },
+          { label: '缺席率', value: eduData.attendanceAbsenceRate, icon: 'x', type: 'warning' }
         ]"
         footerLabel="平均出勤健康度"
         footerValue="优秀"
@@ -266,8 +261,8 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '满班率', value: eduData.classFullRate, icon: '📈', type: 'regular' },
-          { label: '在籍学员', value: eduData.registeredTotal, icon: '🧑‍🎓', type: 'other' }
+          { label: '满班率', value: eduData.classFullRate, icon: 'trending-up', type: 'regular' },
+          { label: '在籍学员', value: eduData.registeredTotal, icon: 'graduation-cap', type: 'other' }
         ]"
       >
         <view class="chart-box">
@@ -288,10 +283,10 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '课程预收', value: financeData.advanceCourseAmount.toFixed(2), icon: '💳', type: 'regular' },
-          { label: '物品预收', value: financeData.advanceGoodsAmount.toFixed(2), icon: '📦', type: 'expand' },
-          { label: '钱包充值', value: financeData.advanceWalletAmount.toFixed(2), icon: '💴', type: 'wallet' },
-          { label: '其他', value: '0.00', icon: '📝', type: 'other' }
+          { label: '课程预收', value: financeData.advanceCourseAmount.toFixed(2), icon: 'credit-card', type: 'regular' },
+          { label: '物品预收', value: financeData.advanceGoodsAmount.toFixed(2), icon: 'package', type: 'expand' },
+          { label: '钱包充值', value: financeData.advanceWalletAmount.toFixed(2), icon: 'wallet', type: 'wallet' },
+          { label: '其他', value: '0.00', icon: 'file-text', type: 'other' }
         ]"
         footerLabel="已确认退费"
         :footerValue="'¥' + financeData.refundTotalAmount.toFixed(2)"
@@ -350,9 +345,9 @@
         :period="currentPeriod"
         @period-change="handlePeriodChange"
         :subCards="[
-          { label: '目标业绩', value: '¥' + salesData.targetRevenue.toLocaleString(), icon: '🎯', type: 'regular' },
-          { label: '达成率', value: salesData.achievementRate, icon: '🏆', type: 'expand' },
-          { label: '成单数量', value: salesData.dealsSignedCount + '单', icon: '✍️', type: 'other' }
+          { label: '目标业绩', value: '¥' + salesData.targetRevenue.toLocaleString(), icon: 'target', type: 'regular' },
+          { label: '达成率', value: salesData.achievementRate, icon: 'trophy', type: 'expand' },
+          { label: '成单数量', value: salesData.dealsSignedCount + '单', icon: 'pen-tool', type: 'other' }
         ]"
         footerLabel="今日新增线索"
         :footerValue="salesData.leadsTodayAdded + ' 人'"
@@ -387,6 +382,7 @@ import CustomTabBar from '../../components/CustomTabBar.vue';
 import RoleTabBar from '../../components/RoleTabBar.vue';
 import StatCard from '../../components/StatCard.vue';
 import MpChart from '../../components/MpChart.vue';
+import AppIcon from '../../components/AppIcon.vue';
 import { useCampusStore } from '../../stores/campusStore';
 import {
   statsApi,
@@ -618,19 +614,21 @@ onPullDownRefresh(() => {
 <style lang="scss" scoped>
 .dashboard-page-container {
   min-height: 100vh;
-  background-color: #F8FAFC;
+  background-color: #F6F8FC;
 }
 
 .refresh-loading {
   padding: 12rpx 24rpx;
-  background: #E6F0FF;
+  background: #EEF2FF;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-bottom: 1rpx solid rgba(47, 84, 235, 0.12);
 
   .loading-text {
     font-size: 22rpx;
     color: #2F54EB;
+    font-weight: 500;
   }
 }
 
@@ -639,36 +637,44 @@ onPullDownRefresh(() => {
 }
 
 .chart-box {
-  margin-top: 12rpx;
+  margin-top: 14rpx;
   position: relative;
 
   .chart-unit {
     font-size: 20rpx;
-    color: #9CA3AF;
+    color: #94A3B8;
     margin-bottom: 8rpx;
+    font-weight: 500;
   }
 }
 
 .funnel-box {
-  margin-top: 12rpx;
+  margin-top: 14rpx;
 }
 
 .donut-chart-box {
-  margin-top: 12rpx;
+  margin-top: 14rpx;
   height: 280rpx;
 }
 
-.accordion-card {
-  .accordion-list {
+.accordion-list {
     display: flex;
     flex-direction: column;
     gap: 16rpx;
 
     .accordion-item {
       background: #F8FAFC;
-      border-radius: 16rpx;
-      padding: 20rpx 24rpx;
-      transition: all 0.2s ease;
+      border-radius: 20rpx;
+      padding: 22rpx 26rpx;
+      border: 1rpx solid rgba(15, 23, 42, 0.05);
+      cursor: pointer;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+      will-change: transform;
+
+      &:active {
+        transform: scale(0.98);
+        background: #F1F5F9;
+      }
 
       .accordion-main-row {
         display: flex;
@@ -677,11 +683,12 @@ onPullDownRefresh(() => {
 
         .acc-label {
           font-size: 26rpx;
-          color: #4B5563;
+          color: #334155;
+          font-weight: 500;
 
           &.bold {
             font-weight: 700;
-            color: #111827;
+            color: #0F172A;
           }
         }
 
@@ -693,14 +700,14 @@ onPullDownRefresh(() => {
           .acc-val {
             font-size: 30rpx;
             font-weight: 700;
-            color: #111827;
+            color: #0F172A;
 
             &.plus-val {
-              color: #52C41A;
+              color: #16A34A;
             }
 
             &.minus-val {
-              color: #FF4D4F;
+              color: #DC2626;
             }
 
             &.primary {
@@ -711,49 +718,61 @@ onPullDownRefresh(() => {
 
           .acc-arrow {
             font-size: 20rpx;
-            color: #9CA3AF;
+            color: #94A3B8;
+            transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1);
           }
         }
       }
 
       .accordion-sub-panel {
         margin-top: 18rpx;
-        padding-top: 16rpx;
-        border-top: 1rpx dashed #E5E7EB;
+        padding-top: 18rpx;
+        border-top: 1rpx dashed rgba(15, 23, 42, 0.08);
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 12rpx;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
 
         .sub-pill {
+          min-width: 0;
+          box-sizing: border-box;
+          overflow: hidden;
           background: #FFFFFF;
-          border-radius: 12rpx;
-          padding: 12rpx 8rpx;
+          border-radius: 14rpx;
+          padding: 14rpx 12rpx;
           display: flex;
           flex-direction: column;
           align-items: center;
+          border: 1rpx solid rgba(15, 23, 42, 0.04);
+          box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.02);
 
           .pill-label {
             font-size: 20rpx;
-            color: #6B7280;
+            color: #64748B;
             margin-bottom: 4rpx;
+            white-space: nowrap;
           }
 
           .pill-val {
             font-size: 24rpx;
             font-weight: 700;
-            color: #111827;
+            color: #0F172A;
+            white-space: nowrap;
           }
         }
       }
 
       &.ending-item {
-        background: #EFF6FF;
+        background: #EEF2FF;
+        border-color: rgba(47, 84, 235, 0.12);
       }
     }
   }
-}
 
 .tabbar-pad {
-  height: 140rpx;
+  height: calc(140rpx + constant(safe-area-inset-bottom));
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 </style>

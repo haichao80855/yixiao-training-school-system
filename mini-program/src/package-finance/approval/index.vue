@@ -80,7 +80,7 @@
           <!-- 头部: 编号与状态 -->
           <view class="card-head-line">
             <view class="head-left">
-              <text class="type-icon">{{ getBizIcon(item.businessType) }}</text>
+              <AppIcon :name="getBizIcon(item.businessType)" size="36rpx" :color="item.businessType === 'refund' ? '#EF4444' : '#2F54EB'" />
               <text class="no-text">{{ item.approvalNo }}</text>
             </view>
             <view class="status-pill-badge" :class="'badge-' + item.status">
@@ -133,7 +133,9 @@
 
       <!-- 空状态 -->
       <view v-else class="empty-state-box">
-        <text class="empty-emoji">📝</text>
+        <view class="empty-emoji">
+          <AppIcon name="clipboard-list" size="112rpx" color="#CBD5E1" />
+        </view>
         <text class="empty-text">当前暂无此状态的审批单</text>
       </view>
 
@@ -146,6 +148,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { financeApi, ApprovalItemModel } from '../../api/finance';
+import AppIcon from '../../components/AppIcon.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -219,9 +222,9 @@ const switchStatus = (status: 'pending' | 'my' | 'approved') => {
 };
 
 const getBizIcon = (type: string) => {
-  if (type === 'refund') return '💸';
-  if (type === 'receipt') return '💰';
-  return '🔄';
+  if (type === 'refund') return 'rotate-ccw';
+  if (type === 'receipt') return 'receipt';
+  return 'arrow-left-right';
 };
 
 const handleGoBack = () => {
@@ -384,17 +387,24 @@ const handleReject = (item: ApprovalItemModel) => {
   display: flex;
   justify-content: center;
   padding: 24rpx 0;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 .tab-label {
   font-size: 30rpx;
   font-weight: 500;
-  color: #6B7280;
+  color: #64748B;
+  transition: color 0.2s ease;
 }
 
 .biz-tab.active .tab-label {
   font-weight: 700;
-  color: #2F6BF4;
+  color: #2F54EB;
 }
 
 .tab-indicator {
@@ -402,8 +412,9 @@ const handleReject = (item: ApprovalItemModel) => {
   bottom: 0;
   width: 56rpx;
   height: 6rpx;
-  background: #2F6BF4;
-  border-radius: 4rpx;
+  background: #2F54EB;
+  border-radius: 9999rpx;
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.35);
 }
 
 /* 状态胶囊栏 */
@@ -411,22 +422,32 @@ const handleReject = (item: ApprovalItemModel) => {
   display: flex;
   gap: 16rpx;
   background: #FFFFFF;
-  padding: 16rpx 24rpx;
-  border-bottom: 1rpx solid #F3F4F6;
+  padding: 18rpx 24rpx;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.02);
 }
 
 .status-pill {
   font-size: 24rpx;
   padding: 8rpx 26rpx;
-  border-radius: 24rpx;
-  background: #F3F4F6;
-  color: #4B5563;
+  border-radius: 9999rpx;
+  background: #F8FAFC;
+  color: #475569;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
+
+  &:active {
+    transform: scale(0.93);
+  }
 }
 
 .status-pill.active {
-  background: #EFF6FF;
-  color: #2563EB;
-  font-weight: 600;
+  background: #EEF2FF;
+  color: #2F54EB;
+  font-weight: 700;
+  border-color: rgba(47, 84, 235, 0.25);
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.12);
 }
 
 /* 列表流 */
@@ -444,17 +465,26 @@ const handleReject = (item: ApprovalItemModel) => {
 
 .approval-card {
   background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+  border-radius: 28rpx;
+  padding: 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.985);
+    box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.02);
+  }
 }
 
 .card-head-line {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1rpx solid #F8FAFC;
-  padding-bottom: 14rpx;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.05);
+  padding-bottom: 16rpx;
 }
 
 .head-left {
@@ -470,41 +500,46 @@ const handleReject = (item: ApprovalItemModel) => {
 .no-text {
   font-size: 26rpx;
   font-weight: 600;
-  color: #374151;
+  color: #334155;
+  letter-spacing: 0.2rpx;
 }
 
 .status-pill-badge {
   font-size: 22rpx;
-  padding: 2rpx 14rpx;
-  border-radius: 6rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 9999rpx;
   font-weight: 600;
 }
 
 .badge-pending {
   background: #FEF3C7;
-  color: #D97706;
+  color: #B45309;
+  border: 1rpx solid rgba(217, 119, 6, 0.2);
 }
 
 .badge-approved {
-  background: #E8F7ED;
-  color: #10B981;
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1rpx solid rgba(22, 163, 74, 0.2);
 }
 
 .badge-rejected {
   background: #FEE2E2;
-  color: #EF4444;
+  color: #DC2626;
+  border: 1rpx solid rgba(220, 38, 38, 0.2);
 }
 
 .applicant-row {
   display: flex;
   justify-content: space-between;
-  margin-top: 12rpx;
+  margin-top: 14rpx;
   font-size: 22rpx;
-  color: #9CA3AF;
+  color: #64748B;
+  font-weight: 500;
 }
 
 .approval-main-box {
-  padding: 16rpx 0;
+  padding: 18rpx 0;
 }
 
 .stu-course-row {
@@ -516,85 +551,92 @@ const handleReject = (item: ApprovalItemModel) => {
 .stu-name-large {
   font-size: 34rpx;
   font-weight: 700;
-  color: #111827;
+  color: #0F172A;
+  letter-spacing: 0.2rpx;
 }
 
 .course-name-tag {
-  background: #EFF6FF;
-  color: #2563EB;
+  background: #EEF2FF;
+  color: #2F54EB;
   font-size: 22rpx;
-  padding: 2rpx 12rpx;
-  border-radius: 6rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+  font-weight: 600;
+  border: 1rpx solid rgba(47, 84, 235, 0.15);
 }
 
 .amount-row {
   display: flex;
   align-items: baseline;
-  margin-top: 12rpx;
+  margin-top: 14rpx;
 }
 
 .amount-label {
   font-size: 26rpx;
-  color: #4B5563;
+  color: #475569;
+  font-weight: 500;
 }
 
 .amount-val {
-  font-size: 36rpx;
+  font-size: 38rpx;
   font-weight: 800;
-  color: #EF4444;
+  color: #DC2626;
+  letter-spacing: -0.5rpx;
 }
 
 .reason-box {
-  background: #F9FAFB;
-  border-radius: 12rpx;
-  padding: 14rpx 18rpx;
+  background: #F8FAFC;
+  border-radius: 16rpx;
+  padding: 14rpx 20rpx;
   margin-top: 14rpx;
   font-size: 24rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
 }
 
 .reason-label {
-  color: #6B7280;
+  color: #64748B;
   font-weight: 600;
 }
 
 .reason-content {
-  color: #374151;
+  color: #1E293B;
 }
 
 .progress-node-bar {
   display: flex;
   align-items: center;
   gap: 10rpx;
-  background: #EFF6FF;
-  border-radius: 8rpx;
-  padding: 8rpx 16rpx;
-  margin-top: 10rpx;
+  background: #EEF2FF;
+  border-radius: 12rpx;
+  padding: 10rpx 18rpx;
+  margin-top: 12rpx;
+  border: 1rpx solid rgba(47, 84, 235, 0.12);
 }
 
 .progress-dot {
   font-size: 16rpx;
-  color: #2563EB;
+  color: #2F54EB;
 }
 
 .node-name-text {
   font-size: 24rpx;
-  color: #1E40AF;
-  font-weight: 500;
+  color: #1E3A8A;
+  font-weight: 600;
 }
 
 .card-actions-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1rpx solid #F8FAFC;
-  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
+  padding-top: 18rpx;
   margin-top: 14rpx;
 }
 
 .view-detail-link {
   font-size: 24rpx;
-  color: #2563EB;
-  font-weight: 500;
+  color: #2F54EB;
+  font-weight: 600;
 }
 
 .buttons-group {
@@ -604,20 +646,36 @@ const handleReject = (item: ApprovalItemModel) => {
 
 .action-btn-reject {
   background: #FEE2E2;
-  color: #EF4444;
+  color: #DC2626;
   font-size: 24rpx;
   font-weight: 600;
-  padding: 10rpx 32rpx;
-  border-radius: 24rpx;
+  padding: 10rpx 34rpx;
+  border-radius: 9999rpx;
+  border: 1rpx solid rgba(220, 38, 38, 0.2);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.92);
+  }
 }
 
 .action-btn-approve {
-  background: #10B981;
+  background: #16A34A;
   color: #FFFFFF;
   font-size: 24rpx;
   font-weight: 600;
-  padding: 10rpx 32rpx;
-  border-radius: 24rpx;
+  padding: 10rpx 34rpx;
+  border-radius: 9999rpx;
+  box-shadow: 0 4rpx 12rpx rgba(22, 163, 74, 0.35);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.92);
+  }
 }
 
 /* 空状态 */
@@ -636,10 +694,11 @@ const handleReject = (item: ApprovalItemModel) => {
 
 .empty-text {
   font-size: 26rpx;
-  color: #9CA3AF;
+  color: #94A3B8;
 }
 
 .bottom-safe-space {
-  height: 80rpx;
+  height: calc(80rpx + constant(safe-area-inset-bottom));
+  height: calc(80rpx + env(safe-area-inset-bottom));
 }
 </style>

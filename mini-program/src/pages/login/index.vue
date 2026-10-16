@@ -37,7 +37,7 @@
 
       <!-- 账号/手机号输入框 -->
       <view class="input-item">
-        <text class="input-icon">👤</text>
+        <AppIcon name="user" size="36rpx" color="#64748B" class="input-icon" />
         <input
           class="input-field"
           type="text"
@@ -45,12 +45,12 @@
           placeholder="请输入工号 / 登录名 / 手机号"
           placeholder-class="placeholder-text"
         />
-        <text v-if="account" class="clear-icon" @click="account = ''">✕</text>
+        <AppIcon name="x" size="28rpx" color="#94A3B8" class="clear-icon" v-if="account" @click="account = ''" />
       </view>
 
       <!-- 密码输入框 -->
       <view class="input-item">
-        <text class="input-icon">🔑</text>
+        <AppIcon name="key" size="36rpx" color="#64748B" class="input-icon" />
         <input
           class="input-field"
           :type="showPassword ? 'text' : 'password'"
@@ -58,9 +58,13 @@
           placeholder="请输入登录密码"
           placeholder-class="placeholder-text"
         />
-        <text class="eye-icon" @click="showPassword = !showPassword">
-          {{ showPassword ? '👁️' : '🔒' }}
-        </text>
+        <AppIcon
+          :name="showPassword ? 'eye' : 'eye-off'"
+          size="36rpx"
+          color="#94A3B8"
+          class="eye-icon"
+          @click="showPassword = !showPassword"
+        />
       </view>
 
       <!-- 记住账号与忘记密码 -->
@@ -102,7 +106,7 @@
 
       <view class="wechat-auth-guide">
         <view class="wechat-icon-large">
-          <text class="wechat-glyph">💬</text>
+          <AppIcon name="message-circle" size="72rpx" color="#07C160" class="wechat-glyph" />
         </view>
         <text class="guide-title">已绑定微信服务号员工一键登录</text>
         <text class="guide-desc">授权获取微信绑定手机号，自动匹配机构教职员工档案</text>
@@ -110,7 +114,7 @@
 
       <!-- 微信一键授权按钮 -->
       <button class="wechat-auth-btn" :loading="loading" :disabled="loading" @click="handleWechatQuickLogin">
-        <text class="btn-icon">⚡</text>
+        <AppIcon name="zap" size="36rpx" color="#FFFFFF" class="btn-icon" />
         <text class="btn-text">{{ loading ? '正在授权匹配...' : '微信一键快捷登录' }}</text>
       </button>
 
@@ -133,6 +137,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useAuthStore } from '../../stores/authStore';
+import AppIcon from '../../components/AppIcon.vue';
 
 const authStore = useAuthStore();
 const statusBarHeight = ref(20);

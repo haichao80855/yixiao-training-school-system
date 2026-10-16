@@ -384,7 +384,7 @@ async function handleConfirmAdd() {
     studentName: newRecordForm.studentName,
     studentNo: newRecordForm.studentNo,
     campusId: newRecordForm.campusId,
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     examType: newRecordForm.examType,
     category: newRecordForm.category,
     fee: newRecordForm.fee,

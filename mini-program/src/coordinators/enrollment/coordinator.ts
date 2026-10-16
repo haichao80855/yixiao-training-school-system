@@ -523,7 +523,7 @@ export class DefaultEnrollmentDraftSession implements EnrollmentDraftSession {
       studentId: String(this.student.id),
       studentName: this.student.name || '学员',
       campusId: this.student.campusId || this.options.campusId || 'campus-bj-hq',
-      campusName: this.student.campusName || this.options.campusName || '总部校区',
+      campusName: this.student.campusName || this.options.campusName || '拓视未来-原阳校区',
       paymentMethod: this.paymentMethod,
       channel: this.channel || this.options.channel,
       totalAmount: summary.totalAmount,

@@ -57,8 +57,9 @@ function handleSelect(id: string) {
   align-items: center;
   background: #FFFFFF;
   padding: 0 16rpx;
-  border-bottom: 1rpx solid #F0F2F5;
-  height: 88rpx;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  height: 92rpx;
+  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.02);
 
   .role-tab-item {
     flex: 1;
@@ -69,29 +70,49 @@ function handleSelect(id: string) {
     justify-content: center;
     position: relative;
     cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+
+    &:active {
+      transform: scale(0.95);
+    }
 
     .tab-title {
       font-size: 28rpx;
-      color: #6B7280;
-      transition: all 0.2s ease;
+      color: #64748B;
+      font-weight: 500;
+      letter-spacing: 0.2rpx;
+      transition: color 0.22s cubic-bezier(0.2, 0, 0, 1);
     }
 
     &.active {
       .tab-title {
         color: #2F54EB;
         font-weight: 700;
-        font-size: 30rpx;
       }
     }
 
     .active-indicator {
       position: absolute;
       bottom: 0;
-      width: 48rpx;
+      width: 56rpx;
       height: 6rpx;
       background: #2F54EB;
-      border-radius: 3rpx;
+      border-radius: 9999rpx;
+      box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.35);
+      animation: m3IndicatorScale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     }
+  }
+}
+
+@keyframes m3IndicatorScale {
+  0% {
+    transform: scaleX(0.4);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
   }
 }
 </style>

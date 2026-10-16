@@ -50,41 +50,45 @@ const handleAction = (item: any) => {
 <style lang="scss" scoped>
 .todo-page-container {
   min-height: 100vh;
-  background-color: #F8FAFC;
+  background-color: #F6F8FC;
 }
 
 .page-title-card {
   margin: 20rpx 24rpx;
   background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
+  border-radius: 28rpx;
+  padding: 28rpx 32rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
 
   .title-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8rpx;
+    margin-bottom: 10rpx;
 
     .title-text {
       font-size: 32rpx;
       font-weight: 700;
-      color: #111827;
+      color: #0F172A;
+      letter-spacing: 0.2rpx;
     }
 
     .count-pill {
-      background: #FFF1F0;
-      color: #F5222D;
+      background: #FEE2E2;
+      color: #DC2626;
       font-size: 22rpx;
-      padding: 4rpx 16rpx;
-      border-radius: 20rpx;
-      font-weight: 600;
+      padding: 4rpx 18rpx;
+      border-radius: 9999rpx;
+      font-weight: 700;
+      border: 1rpx solid rgba(220, 38, 38, 0.2);
     }
   }
 
   .desc-text {
-    font-size: 22rpx;
-    color: #6B7280;
+    font-size: 24rpx;
+    color: #64748B;
+    line-height: 1.5;
   }
 }
 
@@ -92,28 +96,37 @@ const handleAction = (item: any) => {
   padding: 0 24rpx;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 18rpx;
 
   .todo-card {
     background: #FFFFFF;
-    border-radius: 20rpx;
-    padding: 24rpx;
+    border-radius: 28rpx;
+    padding: 26rpx 28rpx;
     display: flex;
     align-items: center;
     gap: 18rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.02);
+    border: 1rpx solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+    cursor: pointer;
+    transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+    will-change: transform;
+
+    &:active {
+      transform: scale(0.985);
+      box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.02);
+    }
 
     .badge-tag {
-      padding: 6rpx 14rpx;
+      padding: 6rpx 16rpx;
       border-radius: 8rpx;
       font-size: 22rpx;
       font-weight: 600;
       white-space: nowrap;
 
-      &.badge-audit { background: #FFF7E6; color: #D46B08; }
-      &.badge-student { background: #E6F7FF; color: #096DD9; }
-      &.badge-schedule { background: #FFF0F6; color: #C41D7F; }
-      &.badge-attendance { background: #F6FFED; color: #389E0D; }
+      &.badge-audit { background: #FFFBEB; color: #B45309; border: 1rpx solid rgba(217, 119, 6, 0.2); }
+      &.badge-student { background: #EEF2FF; color: #2F54EB; border: 1rpx solid rgba(47, 84, 235, 0.2); }
+      &.badge-schedule { background: #FAF5FF; color: #7E22CE; border: 1rpx solid rgba(126, 34, 206, 0.2); }
+      &.badge-attendance { background: #F0FDF4; color: #15803D; border: 1rpx solid rgba(22, 163, 74, 0.2); }
     }
 
     .todo-body {
@@ -124,14 +137,15 @@ const handleAction = (item: any) => {
 
       .todo-text {
         font-size: 26rpx;
-        color: #1F2937;
+        color: #0F172A;
         font-weight: 500;
-        line-height: 1.4;
+        line-height: 1.45;
       }
 
       .todo-time {
         font-size: 20rpx;
-        color: #9CA3AF;
+        color: #94A3B8;
+        font-weight: 500;
       }
     }
 
@@ -143,6 +157,7 @@ const handleAction = (item: any) => {
       .btn-text {
         font-size: 24rpx;
         color: #2F54EB;
+        font-weight: 600;
       }
 
       .chevron {
@@ -154,6 +169,7 @@ const handleAction = (item: any) => {
 }
 
 .tabbar-pad {
-  height: 140rpx;
+  height: calc(140rpx + constant(safe-area-inset-bottom));
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 </style>

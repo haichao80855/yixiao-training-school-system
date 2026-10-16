@@ -742,7 +742,7 @@ function handleBatchExport() {
     s.studentNo,
     `"${s.name}"`,
     s.phone,
-    `"${s.campusName || '总部校区'}"`,
+    `"${s.campusName || '拓视未来-原阳校区'}"`,
     s.grade || '小学全学段',
     s.status === 'normal' ? '正常在读' : (s.status === 'suspended' ? '停课休学' : '已转校'),
     s.coursePackages?.reduce((sum, p) => sum + (p.remainingLessons || 0), 0) || 0,

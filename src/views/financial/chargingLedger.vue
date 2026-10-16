@@ -83,12 +83,7 @@
     <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border flex flex-wrap items-center justify-between gap-2.5">
       <div class="flex flex-wrap items-center gap-2">
         <el-select v-model="filterCampus" placeholder="归属校区" size="small" class="!w-36" clearable>
-          <el-option label="全部校区" value="all" />
-          <el-option label="总部校区" value="campus-bj-hq" />
-          <el-option label="远洋校区" value="campus-bj-yy" />
-          <el-option label="朝阳校区" value="campus-bj-cy" />
-          <el-option label="海淀分校" value="campus-bj-hd" />
-          <el-option label="望京校区" value="campus-bj-wj" />
+          <el-option label="拓视未来-原阳校区" value="campus-bj-hq" />
         </el-select>
 
         <el-select v-model="filterMethod" placeholder="结算通道" size="small" class="!w-36" clearable>

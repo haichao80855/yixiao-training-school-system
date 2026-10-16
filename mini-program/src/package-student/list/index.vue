@@ -37,7 +37,7 @@
     <!-- 搜索栏 (对齐截图 023: Q 输入学员名称/手机号/学号查询) -->
     <view class="search-wrap">
       <view class="search-box">
-        <text class="search-icon">🔍</text>
+        <AppIcon name="search" size="32rpx" color="#94A3B8" />
         <input
           class="search-input"
           type="text"
@@ -46,7 +46,9 @@
           placeholder-class="placeholder-text"
           @input="handleSearchInput"
         />
-        <text v-if="searchKeyword" class="clear-btn" @click="clearSearch">✕</text>
+        <view v-if="searchKeyword" class="clear-btn" @click="clearSearch">
+          <AppIcon name="x" size="28rpx" color="#94A3B8" />
+        </view>
       </view>
     </view>
 
@@ -88,7 +90,7 @@
               mode="aspectFill"
             />
             <view v-else class="avatar-fallback">
-              <text class="avatar-emoji">👦</text>
+              <AppIcon name="user" size="44rpx" color="#FFFFFF" />
             </view>
           </view>
 
@@ -104,10 +106,10 @@
                 >
                   {{ item.statusText }}
                 </view>
-                <text class="plane-icon">✈️</text>
+                <AppIcon name="send" size="24rpx" color="#3B82F6" class="plane-icon" />
               </view>
               <view class="qr-btn" @click.stop="handleShowQr(item)">
-                <text class="qr-icon">⚏</text>
+                <AppIcon name="qr-code" size="32rpx" color="#64748B" />
               </view>
             </view>
 
@@ -144,7 +146,7 @@
 
       <!-- 空状态 (对齐截图 029/无数据) -->
       <view v-else class="empty-state-box">
-        <text class="empty-emoji">🥺</text>
+        <AppIcon name="inbox" size="80rpx" color="#94A3B8" class="empty-emoji" />
         <text class="empty-text">暂无学员记录</text>
       </view>
 
@@ -161,11 +163,11 @@
       <view class="action-sheet-panel" @click.stop>
         <view class="sheet-title">快捷办理</view>
         <view class="sheet-item" @click="handleActionOption('enroll')">
-          <text class="sheet-icon">📝</text>
+          <AppIcon name="file-text" size="36rpx" color="#2F54EB" class="sheet-icon" />
           <text class="sheet-text">学员报名开单</text>
         </view>
         <view class="sheet-item" @click="handleActionOption('create')">
-          <text class="sheet-icon">👤</text>
+          <AppIcon name="user-plus" size="36rpx" color="#16A34A" class="sheet-icon" />
           <text class="sheet-text">录入新学员</text>
         </view>
         <view class="sheet-gap"></view>
@@ -178,6 +180,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
+import AppIcon from '../../components/AppIcon.vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { studentProjector, type RosterItemView } from '../../projectors/student';
 
@@ -399,7 +402,8 @@ const loadMore = () => {};
   display: flex;
   background: #FFFFFF;
   padding: 0 32rpx;
-  border-bottom: 1rpx solid #F3F4F6;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.02);
 }
 
 .tab-item {
@@ -409,26 +413,34 @@ const loadMore = () => {};
   display: flex;
   flex-direction: column;
   align-items: center;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.95);
+  }
 }
 
 .tab-label {
-  font-size: 32rpx;
+  font-size: 30rpx;
   font-weight: 500;
-  color: #6B7280;
+  color: #64748B;
+  transition: color 0.2s ease;
 }
 
 .tab-item.active .tab-label {
   font-weight: 700;
-  color: #111827;
+  color: #0F172A;
 }
 
 .active-indicator {
   position: absolute;
   bottom: 0;
-  width: 48rpx;
+  width: 52rpx;
   height: 6rpx;
-  background-color: #2F6BF4;
-  border-radius: 4rpx;
+  background-color: #2F54EB;
+  border-radius: 9999rpx;
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.35);
 }
 
 /* 搜索栏 */
@@ -440,30 +452,45 @@ const loadMore = () => {};
 .search-box {
   display: flex;
   align-items: center;
-  background: #F4F6FA;
-  border-radius: 36rpx;
-  padding: 12rpx 24rpx;
+  background: #EFF2F8;
+  border-radius: 9999rpx;
+  padding: 14rpx 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  &:focus-within {
+    background: #FFFFFF;
+    border-color: #2F54EB;
+    box-shadow: 0 0 0 2rpx rgba(47, 84, 235, 0.15);
+  }
 }
 
 .search-icon {
   font-size: 28rpx;
   margin-right: 12rpx;
+  line-height: 1;
 }
 
 .search-input {
   flex: 1;
   font-size: 26rpx;
-  color: #333333;
+  color: #0F172A;
 }
 
 .clear-btn {
   font-size: 24rpx;
-  color: #999999;
+  color: #94A3B8;
   padding: 4rpx 10rpx;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.85);
+  }
 }
 
 .placeholder-text {
-  color: #9CA3AF;
+  color: #94A3B8;
   font-size: 26rpx;
 }
 
@@ -472,21 +499,34 @@ const loadMore = () => {};
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16rpx 24rpx;
+  padding: 18rpx 24rpx;
   background: #FFFFFF;
-  border-top: 1rpx solid #F3F4F6;
-  border-bottom: 1rpx solid #F3F4F6;
+  border-top: 1rpx solid rgba(15, 23, 42, 0.05);
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.02);
 }
 
 .filter-pill {
   display: flex;
   align-items: center;
+  padding: 8rpx 18rpx;
+  background: #F8FAFC;
+  border-radius: 9999rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+
+  &:active {
+    transform: scale(0.94);
+    background: #EEF2FF;
+  }
 }
 
 .pill-title {
   font-size: 24rpx;
-  color: #4B5563;
+  color: #334155;
   margin-right: 6rpx;
+  font-weight: 500;
 }
 
 /* 列表滑动区 */
@@ -505,9 +545,18 @@ const loadMore = () => {};
 .student-card {
   display: flex;
   background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 28rpx 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+  border-radius: 28rpx;
+  padding: 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.985);
+    box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.02);
+  }
 }
 
 .avatar-wrap {
@@ -681,55 +730,75 @@ const loadMore = () => {};
 }
 
 .bottom-safe-pad {
-  height: 140rpx;
+  height: calc(200rpx + constant(safe-area-inset-bottom));
+  height: calc(200rpx + env(safe-area-inset-bottom));
 }
 
-/* 右下角悬浮按钮 */
+/* 右下角悬浮按钮 (M3 Floating Action Button) */
 .float-add-btn {
   position: fixed;
   right: 36rpx;
-  bottom: 80rpx;
-  width: 104rpx;
-  height: 104rpx;
-  background: #3B82F6;
+  bottom: calc(80rpx + constant(safe-area-inset-bottom));
+  bottom: calc(80rpx + env(safe-area-inset-bottom));
+  width: 108rpx;
+  height: 108rpx;
+  background: linear-gradient(135deg, #2F54EB 0%, #1D39C4 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 20rpx rgba(59, 130, 246, 0.4);
+  box-shadow: 0 10rpx 28rpx rgba(47, 84, 235, 0.4), 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
   z-index: 99;
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.92);
+    box-shadow: 0 4rpx 14rpx rgba(47, 84, 235, 0.3);
+  }
 }
 
 .plus-icon {
-  font-size: 56rpx;
+  font-size: 58rpx;
   color: #FFFFFF;
   line-height: 1;
 }
 
-/* 操作抽屉弹窗 */
+/* 操作抽屉弹窗 (M3 Bottom Sheet) */
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
   z-index: 999;
+  animation: m3FadeIn 0.25s ease both;
+  will-change: opacity;
 }
 
 .action-sheet-panel {
   width: 100%;
   background: #FFFFFF;
-  border-top-left-radius: 28rpx;
-  border-top-right-radius: 28rpx;
-  padding: 24rpx 0;
+  border-top-left-radius: 36rpx;
+  border-top-right-radius: 36rpx;
+  padding: 28rpx 0;
+  padding-bottom: calc(28rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(28rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -8rpx 32rpx rgba(15, 23, 42, 0.12);
+  animation: m3SheetSlideUp 0.3s cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  will-change: transform;
 }
 
 .sheet-title {
   text-align: center;
   font-size: 28rpx;
-  color: #9CA3AF;
-  padding-bottom: 16rpx;
-  border-bottom: 1rpx solid #F3F4F6;
+  color: #64748B;
+  padding-bottom: 20rpx;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  font-weight: 500;
 }
 
 .sheet-item {
@@ -738,8 +807,14 @@ const loadMore = () => {};
   justify-content: center;
   padding: 28rpx 0;
   font-size: 30rpx;
-  color: #1F2937;
+  color: #0F172A;
   gap: 14rpx;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:active {
+    background-color: #F8FAFC;
+  }
 }
 
 .sheet-icon {
@@ -747,11 +822,22 @@ const loadMore = () => {};
 }
 
 .sheet-gap {
-  height: 12rpx;
-  background: #F3F4F6;
+  height: 14rpx;
+  background: #F1F5F9;
 }
 
 .cancel-item {
-  color: #6B7280;
+  color: #64748B;
+  font-weight: 500;
+}
+
+@keyframes m3FadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes m3SheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 </style>

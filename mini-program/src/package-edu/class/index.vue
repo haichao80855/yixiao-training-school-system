@@ -18,7 +18,7 @@
     <!-- 1. 搜索栏 (对齐截图 019: Q 输入班级名称查询) -->
     <view class="search-bar-wrap">
       <view class="search-input-box">
-        <text class="search-icon">🔍</text>
+        <AppIcon name="search" size="32rpx" color="#94A3B8" />
         <input
           class="search-input"
           type="text"
@@ -27,7 +27,9 @@
           placeholder-class="placeholder-text"
           @input="fetchClasses"
         />
-        <text v-if="searchKeyword" class="clear-btn" @click="clearSearch">✕</text>
+        <view v-if="searchKeyword" class="clear-btn" @click="clearSearch">
+          <AppIcon name="x" size="28rpx" color="#94A3B8" />
+        </view>
       </view>
     </view>
 
@@ -36,11 +38,11 @@
       <view class="filter-left-group">
         <view class="dropdown-pill" @click="handleTimeFilter">
           <text class="item-text">上课时间</text>
-          <text class="arrow">▼</text>
+          <AppIcon name="chevron-down" size="24rpx" color="#64748B" />
         </view>
         <view class="dropdown-pill date-range-picker" @click="handleSelectDateRange">
           <text class="range-text">{{ dateRangeText }}</text>
-          <text class="arrow">▼</text>
+          <AppIcon name="chevron-down" size="24rpx" color="#64748B" />
         </view>
       </view>
       <view class="filter-right-btn" @click="handleOpenDrawer">
@@ -94,7 +96,9 @@
 
       <!-- 空状态 -->
       <view v-else class="empty-state-box">
-        <text class="empty-emoji">🥺</text>
+        <view class="empty-emoji">
+          <AppIcon name="inbox" size="112rpx" color="#CBD5E1" />
+        </view>
         <text class="empty-text">暂无班级数据</text>
       </view>
 
@@ -107,6 +111,7 @@
 import { ref, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { classApi, ClassListItemModel } from '../../api/class';
+import AppIcon from '../../components/AppIcon.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -266,30 +271,45 @@ const handleCardClick = (item: ClassListItemModel) => {
 .search-input-box {
   display: flex;
   align-items: center;
-  background: #F4F6FA;
-  border-radius: 36rpx;
-  padding: 12rpx 24rpx;
+  background: #EFF2F8;
+  border-radius: 9999rpx;
+  padding: 14rpx 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  &:focus-within {
+    background: #FFFFFF;
+    border-color: #2F54EB;
+    box-shadow: 0 0 0 2rpx rgba(47, 84, 235, 0.15);
+  }
 }
 
 .search-icon {
   font-size: 28rpx;
   margin-right: 12rpx;
+  line-height: 1;
 }
 
 .search-input {
   flex: 1;
   font-size: 26rpx;
-  color: #111827;
+  color: #0F172A;
 }
 
 .clear-btn {
   font-size: 24rpx;
-  color: #9CA3AF;
+  color: #94A3B8;
   padding: 4rpx 10rpx;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.85);
+  }
 }
 
 .placeholder-text {
-  color: #9CA3AF;
+  color: #94A3B8;
   font-size: 26rpx;
 }
 
@@ -299,9 +319,10 @@ const handleCardClick = (item: ClassListItemModel) => {
   align-items: center;
   justify-content: space-between;
   background: #FFFFFF;
-  padding: 16rpx 24rpx;
-  border-top: 1rpx solid #F3F4F6;
-  border-bottom: 1rpx solid #F3F4F6;
+  padding: 18rpx 24rpx;
+  border-top: 1rpx solid rgba(15, 23, 42, 0.05);
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.02);
 }
 
 .filter-left-group {
@@ -313,34 +334,60 @@ const handleCardClick = (item: ClassListItemModel) => {
 .dropdown-pill {
   display: flex;
   align-items: center;
-  gap: 6rpx;
+  gap: 8rpx;
+  padding: 6rpx 16rpx;
+  background: #F8FAFC;
+  border-radius: 9999rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+
+  &:active {
+    transform: scale(0.94);
+    background: #EEF2FF;
+  }
 }
 
-.item-text,
-.range-text {
-  font-size: 26rpx;
-  color: #374151;
+.item-text {
+  font-size: 24rpx;
+  color: #334155;
+  font-weight: 500;
 }
 
 .range-text {
-  color: #2563EB;
+  font-size: 24rpx;
+  color: #2F54EB;
+  font-weight: 600;
+}
+
+.arrow {
+  font-size: 16rpx;
+  color: #64748B;
 }
 
 .filter-right-btn {
   display: flex;
   align-items: center;
   gap: 6rpx;
-  color: #2563EB;
+  color: #2F54EB;
+  cursor: pointer;
+  padding: 6rpx 14rpx;
+  border-radius: 9999rpx;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.92);
+  }
 }
 
 .filter-icon {
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 700;
 }
 
 .filter-label {
-  font-size: 26rpx;
-  font-weight: 600;
+  font-size: 24rpx;
+  font-weight: 700;
 }
 
 /* 班级卡片 */
@@ -358,9 +405,18 @@ const handleCardClick = (item: ClassListItemModel) => {
 
 .class-record-card {
   background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 28rpx 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+  border-radius: 28rpx;
+  padding: 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.985);
+    box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.02);
+  }
 }
 
 .card-top-row {
@@ -374,29 +430,33 @@ const handleCardClick = (item: ClassListItemModel) => {
   font-size: 22rpx;
   font-weight: 600;
   padding: 4rpx 16rpx;
-  border-radius: 8rpx;
+  border-radius: 9999rpx;
 }
 
 .badge-active {
-  background: #2F6BF4;
+  background: #2F54EB;
   color: #FFFFFF;
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.35);
 }
 
 .badge-completed {
-  background: #E5E7EB;
-  color: #6B7280;
+  background: #F1F5F9;
+  color: #64748B;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
 }
 
 .start-date-text {
   font-size: 24rpx;
-  color: #9CA3AF;
+  color: #94A3B8;
+  font-weight: 500;
 }
 
 .class-title-text {
   font-size: 34rpx;
   font-weight: 700;
-  color: #111827;
+  color: #0F172A;
   margin-bottom: 16rpx;
+  letter-spacing: 0.2rpx;
 }
 
 .class-attr-stats-row {
@@ -408,34 +468,35 @@ const handleCardClick = (item: ClassListItemModel) => {
 
 .class-type-pill {
   font-size: 22rpx;
-  background: #EFF6FF;
-  color: #2563EB;
+  background: #EEF2FF;
+  color: #2F54EB;
   padding: 4rpx 14rpx;
   border-radius: 8rpx;
-  font-weight: 500;
+  font-weight: 600;
+  border: 1rpx solid rgba(47, 84, 235, 0.15);
 }
 
 .stat-item {
   font-size: 24rpx;
-  color: #6B7280;
+  color: #64748B;
 }
 
 .bold-val {
   font-weight: 700;
-  color: #111827;
+  color: #0F172A;
 }
 
 .meta-details-box {
   display: flex;
   flex-direction: column;
   gap: 8rpx;
-  border-top: 1rpx solid #F8FAFC;
+  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
   padding-top: 16rpx;
 }
 
 .meta-line {
   font-size: 24rpx;
-  color: #6B7280;
+  color: #64748B;
 }
 
 .staff-line {
@@ -462,10 +523,11 @@ const handleCardClick = (item: ClassListItemModel) => {
 
 .empty-text {
   font-size: 26rpx;
-  color: #9CA3AF;
+  color: #94A3B8;
 }
 
 .bottom-safe-space {
-  height: 80rpx;
+  height: calc(80rpx + constant(safe-area-inset-bottom));
+  height: calc(80rpx + env(safe-area-inset-bottom));
 }
 </style>

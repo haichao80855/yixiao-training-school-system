@@ -1,30 +1,236 @@
 /* 一校云 移动端全局样式与设计令牌 (Design Tokens) */
 
-/* 品牌主题色彩 */
-$uni-color-primary: #2F54EB;
-$uni-color-primary-light: #EBF0FF;
-$uni-color-success: #52C41A;
-$uni-color-warning: #FA8C16;
-$uni-color-error: #F5222D;
-$uni-color-info: #1890FF;
+/* ==========================================================================
+   Google Material Design 3 (M3) & Material 3 Expressive 设计规范核心设计令牌
+   ========================================================================== */
 
-/* 文本文字主色 */
-$uni-text-color: #1F2937;
-$uni-text-color-secondary: #4B5563;
-$uni-text-color-placeholder: #9CA3AF;
-$uni-text-color-disabled: #D1D5DB;
+/* 1. M3 核心品牌动态色彩系统 (Dynamic Core Palette) */
+$m3-color-primary: #2F54EB;
+$m3-color-on-primary: #FFFFFF;
+$m3-color-primary-container: #EEF2FF;
+$m3-color-on-primary-container: #0F267A;
 
-/* 背景与边框 */
-$uni-bg-color: #F8FAFC;
-$uni-bg-color-card: #FFFFFF;
-$uni-border-color: #E5E7EB;
+$m3-color-secondary: #475569;
+$m3-color-on-secondary: #FFFFFF;
+$m3-color-secondary-container: #F1F5F9;
+$m3-color-on-secondary-container: #1E293B;
 
-/* 阴影 */
-$uni-shadow-card: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-$uni-shadow-float: 0 8rpx 24rpx rgba(47, 84, 235, 0.15);
+$m3-color-tertiary: #0284C7;
+$m3-color-on-tertiary: #FFFFFF;
+$m3-color-tertiary-container: #E0F2FE;
+$m3-color-on-tertiary-container: #075985;
 
-/* 圆角 */
-$uni-radius-sm: 8rpx;
-$uni-radius-base: 16rpx;
-$uni-radius-lg: 24rpx;
-$uni-radius-round: 999rpx;
+/* 2. M3 Expressive 5 级表面容器层级 (Surface Container Hierarchy) */
+$m3-surface: #FFFFFF;
+$m3-surface-dim: #DDE2EC;
+$m3-surface-bright: #F8FAFD;
+$m3-surface-container-lowest: #FFFFFF;
+$m3-surface-container-low: #F6F8FC;
+$m3-surface-container: #EFF2F8;
+$m3-surface-container-high: #E8ECF4;
+$m3-surface-container-highest: #DFE4EE;
+
+/* 3. M3 描边与微表面层次 (Outlines & Separators) */
+$m3-outline: #74777F;
+$m3-outline-variant: rgba(15, 23, 42, 0.08);
+$m3-outline-subtle: rgba(15, 23, 42, 0.04);
+
+/* 4. M3 功能反馈色阶 (Semantic Functional Colors) */
+$m3-color-success: #16A34A;
+$m3-color-on-success: #FFFFFF;
+$m3-color-success-container: #DCFCE7;
+$m3-color-on-success-container: #14532D;
+
+$m3-color-warning: #D97706;
+$m3-color-on-warning: #FFFFFF;
+$m3-color-warning-container: #FEF3C7;
+$m3-color-on-warning-container: #78350F;
+
+$m3-color-error: #DC2626;
+$m3-color-on-error: #FFFFFF;
+$m3-color-error-container: #FEE2E2;
+$m3-color-on-error-container: #7F1D1D;
+
+$m3-color-info: #2563EB;
+$m3-color-on-info: #FFFFFF;
+$m3-color-info-container: #DBEAFE;
+$m3-color-on-info-container: #1E3A8A;
+
+/* 5. 文本文字字阶色彩 (Typography Emphasis Colors) */
+$m3-text-high-emphasis: #0F172A;
+$m3-text-medium-emphasis: #475569;
+$m3-text-low-emphasis: #94A3B8;
+$m3-text-disabled: #CBD5E1;
+
+/* 6. M3 圆角阶梯尺度 (Shape Scale) */
+$m3-shape-none: 0rpx;
+$m3-shape-xs: 8rpx;
+$m3-shape-sm: 16rpx;
+$m3-shape-md: 24rpx;
+$m3-shape-lg: 32rpx;
+$m3-shape-xl: 48rpx;
+$m3-shape-full: 9999rpx;
+
+/* 7. M3 微表面质感阴影阶梯 (Elevation & Shadow Scale) */
+$m3-elevation-0: none;
+$m3-elevation-1: 0 2rpx 8rpx rgba(15, 23, 42, 0.04), 0 1rpx 2rpx rgba(15, 23, 42, 0.02);
+$m3-elevation-2: 0 6rpx 16rpx rgba(15, 23, 42, 0.06), 0 2rpx 4rpx rgba(15, 23, 42, 0.03);
+$m3-elevation-3: 0 12rpx 24rpx rgba(15, 23, 42, 0.08), 0 4rpx 8rpx rgba(15, 23, 42, 0.04);
+$m3-elevation-4: 0 16rpx 36rpx rgba(15, 23, 42, 0.10);
+$m3-elevation-5: 0 24rpx 48rpx rgba(15, 23, 42, 0.14);
+
+/* 8. Google Material Motion 交互物理曲线与时长 (Motion Tokens) */
+$m3-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+$m3-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+$m3-easing-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+$m3-easing-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+$m3-easing-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+$m3-duration-short: 150ms;
+$m3-duration-medium: 250ms;
+$m3-duration-long: 400ms;
+
+/* ==========================================================================
+   向后兼容既有令牌 (Legacy Compatibility Tokens)
+   ========================================================================== */
+$uni-color-primary: $m3-color-primary;
+$uni-color-primary-light: $m3-color-primary-container;
+$uni-color-success: $m3-color-success;
+$uni-color-warning: $m3-color-warning;
+$uni-color-error: $m3-color-error;
+$uni-color-info: $m3-color-info;
+
+$uni-text-color: $m3-text-high-emphasis;
+$uni-text-color-secondary: $m3-text-medium-emphasis;
+$uni-text-color-placeholder: $m3-text-low-emphasis;
+$uni-text-color-disabled: $m3-text-disabled;
+
+$uni-bg-color: $m3-surface-container-low;
+$uni-bg-color-card: $m3-surface;
+$uni-border-color: #E2E8F0;
+
+$uni-shadow-card: $m3-elevation-1;
+$uni-shadow-float: 0 8rpx 24rpx rgba(47, 84, 235, 0.18);
+
+$uni-radius-sm: $m3-shape-xs;
+$uni-radius-base: $m3-shape-sm;
+$uni-radius-lg: $m3-shape-md;
+$uni-radius-round: $m3-shape-full;
+
+/* ==========================================================================
+   Google Material Design 3 (M3) 现代蓝色图标按钮与图文排版公共基础设施
+   ========================================================================== */
+
+/* 1. 图标按钮蓝色主题令牌 */
+$m3-icon-blue-bg: linear-gradient(135deg, #EEF2FF 0%, #E0EAFF 100%);
+$m3-icon-blue-solid: #EEF2FF;
+$m3-icon-blue-border: 1rpx solid rgba(47, 84, 235, 0.12);
+$m3-icon-blue-color: #2F54EB;
+$m3-icon-blue-active-bg: #DBEAFE;
+
+/* 2. 统一通用样式类 */
+/* 大号图标容器 (网格大入口 96rpx × 96rpx, M3 圆角 26rpx) */
+.m3-icon-avatar-lg {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 26rpx;
+  background: $m3-icon-blue-bg;
+  border: $m3-icon-blue-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4rpx 14rpx rgba(47, 84, 235, 0.05);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+  will-change: transform;
+}
+
+/* 中号图标容器 (列表/菜单 72rpx × 72rpx, M3 圆角 20rpx) */
+.m3-icon-avatar-md {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: $m3-icon-blue-bg;
+  border: $m3-icon-blue-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.04);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 小号图标容器 (52rpx × 52rpx, M3 圆角 16rpx) */
+.m3-icon-avatar-sm {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
+  background: $m3-icon-blue-bg;
+  border: $m3-icon-blue-border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* 垂直网格自适应图文对齐项 */
+.m3-grid-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.94);
+    .m3-icon-avatar-lg,
+    .icon-avatar {
+      background: $m3-icon-blue-active-bg;
+    }
+  }
+
+  .entry-text,
+  .item-name {
+    margin-top: 14rpx;
+    font-size: 24rpx;
+    color: #1E293B;
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
+    height: 34rpx;
+    line-height: 34rpx;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.2rpx;
+  }
+}
+
+/* 水平图文操作胶囊 (Action Chip) */
+.m3-action-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  background: #EEF2FF;
+  padding: 8rpx 20rpx;
+  border-radius: 9999rpx;
+  border: 1rpx solid rgba(47, 84, 235, 0.16);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.93);
+    background: #E0E7FF;
+  }
+
+  .chip-text {
+    font-size: 22rpx;
+    color: #2F54EB;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+}
+

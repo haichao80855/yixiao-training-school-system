@@ -4,7 +4,7 @@
 
     <view class="ai-header-card">
       <view class="ai-avatar-glow">
-        <text class="ai-icon-glyph">✨</text>
+        <AppIcon name="sparkles" size="56rpx" color="#FFFFFF" />
       </view>
       <text class="ai-card-title">一校云 · 智能教务 Copilot</text>
       <text class="ai-card-desc">基于校区实时排课、学员消课与财务流水，回答教务问题</text>
@@ -23,7 +23,10 @@
     <!-- 问答流 -->
     <view class="chat-stream">
       <view class="chat-bubble bot-bubble">
-        <text class="bubble-sender">🤖 智能助手</text>
+        <view class="bubble-sender-row" style="display: flex; align-items: center; gap: 8rpx; margin-bottom: 8rpx;">
+          <AppIcon name="bot" size="32rpx" color="#2F54EB" />
+          <text class="bubble-sender" style="margin-bottom: 0;">智能助手</text>
+        </view>
         <text class="bubble-text">您好！我是您的智能教务助手。您可以向我询问今日待结课排课、本月课消金额，或查询低额课时预警学员。</text>
       </view>
 
@@ -54,6 +57,7 @@
 import { ref } from 'vue';
 import CustomNavBar from '../../components/CustomNavBar.vue';
 import CustomTabBar from '../../components/CustomTabBar.vue';
+import AppIcon from '../../components/AppIcon.vue';
 
 const suggestQuestions = [
   '今天我有几节课待点名？',
@@ -214,6 +218,7 @@ const handleSend = (text: string) => {
 }
 
 .tabbar-pad {
-  height: 140rpx;
+  height: calc(140rpx + constant(safe-area-inset-bottom));
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 </style>

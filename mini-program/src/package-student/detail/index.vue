@@ -17,7 +17,7 @@
         <!-- 左侧大头像 (带 '启' 蓝色圆标) -->
         <view class="avatar-box">
           <view class="avatar-circle">
-            <text class="avatar-emoji">{{ profile.gender === '女' ? '👧' : '👦' }}</text>
+            <AppIcon name="user" size="48rpx" color="#2F54EB" />
           </view>
           <view class="avatar-badge-qi">{{ (profile.name && profile.name[0]) || '启' }}</view>
         </view>
@@ -26,7 +26,7 @@
         <view class="profile-text-col">
           <view class="name-qr-row">
             <text class="profile-name">{{ profile.name || '学员' }}</text>
-            <text class="qr-code-icon" @click="handleShowQr">⚏</text>
+            <AppIcon name="qr-code" size="36rpx" color="#64748B" @click="handleShowQr" />
           </view>
           <text class="profile-student-no">学号: {{ profile.studentNo || '未分配' }}</text>
         </view>
@@ -66,7 +66,7 @@
         >
           {{ profile.consumptionRisk.label }}
         </view>
-        <view class="tag-campus">{{ profile.campusName || '总部校区' }}</view>
+        <view class="tag-campus">{{ profile.campusName || '拓视未来-原阳校区' }}</view>
       </view>
 
       <!-- 4 栏数据指标 (对齐截图 024: 78剩余课次 | 4992剩余金额 | 0钱包余额 | 0卡包) -->
@@ -95,7 +95,7 @@
       <!-- 冻结课次蓝色通知条 (对齐截图 024) -->
       <view class="frozen-banner" @click="handleFrozenLessons">
         <view class="frozen-left">
-          <text class="lock-icon">🔒</text>
+          <AppIcon name="lock" size="28rpx" color="#2F54EB" />
           <text class="frozen-text">冻结课次 {{ profile.frozenLessons }} 次</text>
         </view>
         <text class="chevron">›</text>
@@ -183,7 +183,9 @@
 
         <!-- 空状态：学员尚未报读任何课程 -->
         <view v-else class="empty-courses-box">
-          <view class="empty-book-icon">📚</view>
+          <view class="empty-book-icon">
+            <AppIcon name="book-open" size="112rpx" color="#CBD5E1" />
+          </view>
           <view class="empty-title">暂无报读课程</view>
           <view class="empty-desc">该学员当前暂未报名任何课程或课包</view>
           <view class="enroll-action-btn" @click="handleActionItem('enroll')">
@@ -287,7 +289,9 @@
 
         <!-- 空状态 (对齐截图 026: 暂无数据) -->
         <view v-else class="comm-empty-box">
-          <text class="sad-emoji">🥺</text>
+          <view class="sad-emoji">
+            <AppIcon name="inbox" size="112rpx" color="#CBD5E1" />
+          </view>
           <text class="empty-text">暂无数据</text>
         </view>
 
@@ -320,6 +324,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
+import AppIcon from '../../components/AppIcon.vue';
 import { studentApi, type StudentCourseItemModel } from '../../api/student';
 import {
   studentProjector,
@@ -1274,25 +1279,35 @@ const handleActionItem = (type: string) => {
 }
 
 .bottom-safe-space {
-  height: 120rpx;
+  height: calc(120rpx + constant(safe-area-inset-bottom));
+  height: calc(120rpx + env(safe-area-inset-bottom));
 }
 
-/* ActionSheet 弹窗 */
+/* ActionSheet 弹窗 (M3 Bottom Sheet) */
 .modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: flex-end;
   z-index: 999;
+  animation: m3FadeIn 0.25s ease both;
+  will-change: opacity;
 }
 
 .action-sheet-dialog {
   width: 100%;
   background: #FFFFFF;
-  border-top-left-radius: 32rpx;
-  border-top-right-radius: 32rpx;
+  border-top-left-radius: 36rpx;
+  border-top-right-radius: 36rpx;
   overflow: hidden;
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+  box-shadow: 0 -8rpx 32rpx rgba(15, 23, 42, 0.12);
+  animation: m3SheetSlideUp 0.3s cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  will-change: transform;
 }
 
 .dialog-item {
@@ -1301,24 +1316,42 @@ const handleActionItem = (type: string) => {
   align-items: center;
   justify-content: center;
   font-size: 32rpx;
-  color: #111827;
+  font-weight: 600;
+  color: #0F172A;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:active {
+    background-color: #F8FAFC;
+  }
 }
 
 .dialog-divider {
   height: 1rpx;
-  background: #F3F4F6;
+  background: rgba(15, 23, 42, 0.06);
 }
 
 .dialog-gap {
   height: 14rpx;
-  background: #F3F4F6;
+  background: #F1F5F9;
 }
 
 .cancel-item {
-  color: #6B7280;
+  color: #64748B;
+  font-weight: 500;
 }
 
 .text-danger {
-  color: #EF4444;
+  color: #DC2626;
+}
+
+@keyframes m3FadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes m3SheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 </style>

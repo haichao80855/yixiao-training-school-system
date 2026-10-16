@@ -106,7 +106,7 @@
       <!-- 空状态 (对齐截图 012: 暂无数据) -->
       <view v-else class="empty-state-card">
         <view class="empty-emoji-box">
-          <text class="empty-emoji">🥺</text>
+          <AppIcon name="inbox" size="112rpx" color="#CBD5E1" />
         </view>
         <text class="empty-label">暂无数据</text>
       </view>
@@ -128,12 +128,14 @@
       <view class="resource-modal-card" @click.stop>
         <view class="resource-modal-header">
           <text class="modal-title">课程资源</text>
-          <text class="close-x" @click="showResourceModal = false">✕</text>
+          <view class="close-x" @click="showResourceModal = false">
+            <AppIcon name="x" size="36rpx" color="#94A3B8" />
+          </view>
         </view>
         <view class="resource-modal-body">
           <text class="resource-section-label">PPT-HTML</text>
           <view class="resource-empty-box">
-            <text class="sad-icon">🥺</text>
+            <AppIcon name="presentation" size="80rpx" color="#CBD5E1" />
             <text class="empty-text">暂无PPT-HTML</text>
           </view>
         </view>
@@ -147,6 +149,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { eduApi, ScheduleEventModel } from '../../api/edu';
 import { fulfillmentCoordinator } from '../../coordinators/fulfillment';
+import AppIcon from '../../components/AppIcon.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -224,13 +227,14 @@ const handleGoBack = () => {
 };
 
 const handleSwitchCampus = () => {
+  const list = campusStore.campuses.length > 0 ? campusStore.campuses.map((c) => c.name) : ['拓视未来-原阳校区'];
   uni.showActionSheet({
-    itemList: campusStore.campuses.length > 0 ? campusStore.campuses.map((c) => c.name) : ['总部校区', '远洋校区'],
+    itemList: list,
     success: (res) => {
       if (campusStore.campuses[res.tapIndex]) {
         campusStore.setCampus(campusStore.campuses[res.tapIndex]);
       } else {
-        campusStore.currentCampusName = ['总部校区', '远洋校区'][res.tapIndex];
+        campusStore.currentCampusName = list[res.tapIndex];
       }
     },
   });
@@ -353,8 +357,9 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 /* 顶部横向滚动周日历 (对齐截图 012/013) */
 .calendar-strip-card {
   background: #FFFFFF;
-  padding: 16rpx 20rpx 12rpx;
-  border-bottom: 1rpx solid #F3F4F6;
+  padding: 18rpx 20rpx 14rpx;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.02);
 
   .week-days-row {
     display: flex;
@@ -365,34 +370,46 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
       display: flex;
       flex-direction: column;
       align-items: center;
-      width: 72rpx;
+      width: 76rpx;
       position: relative;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      will-change: transform;
+
+      &:active {
+        transform: scale(0.92);
+      }
 
       .week-name {
         font-size: 22rpx;
-        color: #9CA3AF;
+        color: #64748B;
         margin-bottom: 8rpx;
+        font-weight: 500;
       }
 
       .day-number-badge {
-        width: 60rpx;
-        height: 60rpx;
+        width: 64rpx;
+        height: 64rpx;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+        border: 2rpx solid transparent;
+        transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, border-color 0.2s ease;
 
         .day-val {
           font-size: 28rpx;
-          color: #111827;
+          color: #0F172A;
           font-weight: 600;
         }
 
         &.is_today {
           background-color: #2F54EB;
+          box-shadow: 0 4rpx 12rpx rgba(47, 84, 235, 0.35);
           .day-val {
             color: #FFFFFF;
             font-size: 24rpx;
+            font-weight: 700;
           }
         }
       }
@@ -402,7 +419,7 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
         height: 8rpx;
         border-radius: 50%;
         background-color: #2F54EB;
-        margin-top: 4rpx;
+        margin-top: 6rpx;
       }
 
       .expand-arrow {
@@ -413,9 +430,11 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 
       &.selected {
         .day-number-badge:not(.is_today) {
-          background-color: #3B5998;
+          background-color: #EEF2FF;
+          border-color: #2F54EB;
           .day-val {
-            color: #FFFFFF;
+            color: #2F54EB;
+            font-weight: 700;
           }
         }
       }
@@ -437,17 +456,26 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 
     .pill-item {
       padding: 10rpx 28rpx;
-      border-radius: 12rpx;
+      border-radius: 9999rpx;
       font-size: 26rpx;
-      color: #4B5563;
+      color: #475569;
       background: #FFFFFF;
       font-weight: 500;
+      border: 1rpx solid rgba(15, 23, 42, 0.08);
+      cursor: pointer;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+      will-change: transform;
+
+      &:active {
+        transform: scale(0.93);
+      }
 
       &.active {
-        background: #FFFFFF;
-        color: #111827;
+        background: #EEF2FF;
+        color: #2F54EB;
         font-weight: 700;
-        box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
+        border-color: rgba(47, 84, 235, 0.25);
+        box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.12);
       }
     }
   }
@@ -457,16 +485,23 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
     align-items: center;
     gap: 6rpx;
     padding-left: 20rpx;
-    border-left: 1rpx solid #E5E7EB;
+    border-left: 1rpx solid rgba(15, 23, 42, 0.08);
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    &:active {
+      transform: scale(0.92);
+    }
 
     .filter-icon {
       font-size: 22rpx;
-      color: #6B7280;
+      color: #64748B;
     }
 
     .filter-text {
       font-size: 24rpx;
-      color: #6B7280;
+      color: #64748B;
+      font-weight: 600;
     }
   }
 }
@@ -485,9 +520,18 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 
   .schedule-card {
     background: #FFFFFF;
-    border-radius: 24rpx;
-    padding: 24rpx 28rpx;
-    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
+    border-radius: 28rpx;
+    padding: 28rpx;
+    border: 1rpx solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+    transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+    will-change: transform;
+    cursor: pointer;
+
+    &:active {
+      transform: scale(0.985);
+      box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.02);
+    }
 
     .card-meta-row {
       display: flex;
@@ -501,38 +545,43 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 
         .badge-tag {
           font-size: 20rpx;
-          padding: 4rpx 12rpx;
+          padding: 4rpx 14rpx;
           border-radius: 8rpx;
           font-weight: 600;
 
           &.badge-offline {
-            background: #E0E7FF;
+            background: #EEF2FF;
             color: #3730A3;
+            border: 1rpx solid rgba(47, 84, 235, 0.15);
           }
 
           &.badge-completed {
             background: #DCFCE7;
             color: #15803D;
+            border: 1rpx solid rgba(22, 163, 74, 0.15);
           }
 
           &.badge-pending {
             background: #FEF3C7;
             color: #B45309;
+            border: 1rpx solid rgba(217, 119, 6, 0.15);
           }
         }
       }
 
       .time-range-text {
         font-size: 24rpx;
-        color: #6B7280;
+        color: #64748B;
+        font-weight: 500;
       }
     }
 
     .class-title-text {
       font-size: 32rpx;
       font-weight: 700;
-      color: #111827;
+      color: #0F172A;
       margin-bottom: 14rpx;
+      letter-spacing: 0.2rpx;
     }
 
     .attendance-stat-row {
@@ -546,29 +595,29 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
         color: #FFFFFF;
         font-size: 20rpx;
         font-weight: 600;
-        padding: 4rpx 12rpx;
+        padding: 4rpx 14rpx;
         border-radius: 8rpx;
       }
 
       .stat-counts {
         font-size: 24rpx;
-        color: #4B5563;
+        color: #475569;
 
         .bold-num {
           font-weight: 700;
-          color: #111827;
+          color: #0F172A;
         }
       }
     }
 
     .info-details-box {
-      border-top: 1rpx solid #F3F4F6;
+      border-top: 1rpx solid rgba(15, 23, 42, 0.06);
       padding-top: 14rpx;
       margin-bottom: 16rpx;
 
       .info-line {
         font-size: 24rpx;
-        color: #6B7280;
+        color: #64748B;
         line-height: 1.6;
 
         &.staff-line {
@@ -590,18 +639,27 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 
       .action-pill-btn {
         padding: 10rpx 36rpx;
-        border-radius: 32rpx;
+        border-radius: 9999rpx;
         font-size: 26rpx;
         font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
+        will-change: transform;
+
+        &:active {
+          transform: scale(0.93);
+        }
 
         &.btn-finish {
-          background: #FFF1E8;
-          color: #E65A1A;
+          background: #FFF7ED;
+          color: #EA580C;
+          border: 1rpx solid rgba(234, 88, 12, 0.2);
         }
 
         &.btn-more {
-          background: #E8F0FE;
-          color: #1D4ED8;
+          background: #EEF2FF;
+          color: #2F54EB;
+          border: 1rpx solid rgba(47, 84, 235, 0.2);
         }
       }
     }
@@ -609,12 +667,13 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 
   .empty-state-card {
     background: #FFFFFF;
-    border-radius: 24rpx;
+    border-radius: 28rpx;
     padding: 140rpx 40rpx;
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
+    border: 1rpx solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
     margin-top: 20rpx;
 
     .empty-emoji-box {
@@ -624,7 +683,7 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
 
     .empty-label {
       font-size: 28rpx;
-      color: #9CA3AF;
+      color: #94A3B8;
     }
   }
 }
@@ -636,20 +695,27 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: m3FadeIn 0.25s ease both;
+  will-change: opacity;
 
   .action-sheet-panel {
     width: 100%;
     background: #FFFFFF;
-    border-top-left-radius: 28rpx;
-    border-top-right-radius: 28rpx;
+    border-top-left-radius: 36rpx;
+    border-top-right-radius: 36rpx;
     overflow: hidden;
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -8rpx 32rpx rgba(15, 23, 42, 0.12);
+    animation: m3SheetSlideUp 0.3s cubic-bezier(0.05, 0.7, 0.1, 1) both;
+    will-change: transform;
 
     .sheet-item {
       height: 104rpx;
@@ -657,23 +723,30 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
       align-items: center;
       justify-content: center;
       font-size: 32rpx;
-      font-weight: 500;
-      color: #1F2937;
+      font-weight: 600;
+      color: #0F172A;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+
+      &:active {
+        background-color: #F8FAFC;
+      }
 
       &.cancel-item {
-        color: #4B5563;
+        color: #64748B;
+        font-weight: 500;
       }
     }
 
     .sheet-divider {
       height: 1rpx;
-      background: #F3F4F6;
+      background: rgba(15, 23, 42, 0.06);
       width: 100%;
     }
 
     .sheet-gap {
       height: 14rpx;
-      background: #F4F6F9;
+      background: #F1F5F9;
       width: 100%;
     }
   }
@@ -682,10 +755,13 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
   .resource-modal-card {
     width: 90%;
     background: #FFFFFF;
-    border-radius: 28rpx;
+    border-radius: 32rpx;
     margin-bottom: 40rpx;
-    padding: 32rpx;
-    box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.15);
+    padding: 36rpx;
+    box-shadow: 0 16rpx 48rpx rgba(15, 23, 42, 0.18);
+    border: 1rpx solid rgba(15, 23, 42, 0.08);
+    animation: m3ModalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    will-change: transform, opacity;
 
     .resource-modal-header {
       display: flex;
@@ -696,13 +772,19 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
       .modal-title {
         font-size: 32rpx;
         font-weight: 700;
-        color: #111827;
+        color: #0F172A;
       }
 
       .close-x {
         font-size: 34rpx;
-        color: #9CA3AF;
+        color: #94A3B8;
         padding: 8rpx;
+        cursor: pointer;
+        transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        &:active {
+          transform: scale(0.85);
+        }
       }
     }
 
@@ -710,30 +792,46 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
       .resource-section-label {
         font-size: 26rpx;
         font-weight: 600;
-        color: #374151;
+        color: #334155;
         margin-bottom: 16rpx;
         display: block;
       }
 
       .resource-empty-box {
-        background: #F9FAFB;
-        border-radius: 16rpx;
+        background: #F8FAFC;
+        border-radius: 20rpx;
         padding: 80rpx 40rpx;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: 12rpx;
+        border: 1rpx solid rgba(15, 23, 42, 0.04);
 
         .sad-icon {
-          font-size: 60rpx;
+          font-size: 64rpx;
         }
 
         .empty-text {
           font-size: 26rpx;
-          color: #9CA3AF;
+          color: #94A3B8;
         }
       }
     }
   }
+}
+
+@keyframes m3FadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes m3SheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes m3ModalPop {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 </style>

@@ -53,7 +53,7 @@
           <text class="m-lbl">计划排课</text>
         </view>
         <view class="finish-class-btn" @click="handleCompleteClass">
-          <text class="check-icon">✓</text>
+          <AppIcon name="check" size="28rpx" color="#FFFFFF" />
           <text class="btn-lbl">结班</text>
         </view>
       </view>
@@ -124,7 +124,9 @@
 
         <!-- 空状态：暂无排课 -->
         <view v-else class="empty-schedule-box">
-          <view class="empty-icon">📅</view>
+          <view class="empty-icon">
+            <AppIcon name="calendar" size="112rpx" color="#CBD5E1" />
+          </view>
           <view class="empty-title">暂无排课记录</view>
           <view class="empty-desc">当前班级尚未排课或尚未生成上课日程</view>
         </view>
@@ -143,7 +145,7 @@
         <!-- 搜索与加入学员栏 -->
         <view class="stu-search-bar-row">
           <view class="search-input-box">
-            <text class="search-icon">🔍</text>
+            <AppIcon name="search" size="32rpx" color="#94A3B8" />
             <input
               class="search-input"
               type="text"
@@ -172,7 +174,7 @@
           >
             <!-- 头像 -->
             <view class="avatar-circle">
-              <text class="avatar-emoji">👦</text>
+              <AppIcon name="user" size="40rpx" color="#2F54EB" />
             </view>
 
             <!-- 学员主体 -->
@@ -180,7 +182,7 @@
               <view class="name-lessons-line">
                 <text class="stu-name">{{ stu.name }}</text>
                 <view class="lessons-badge">可用{{ stu.availableLessons }}课次</view>
-                <text class="qr-icon">⚏</text>
+                <AppIcon name="qr-code" size="32rpx" color="#64748B" />
               </view>
               <view class="stu-meta-line">电话: {{ stu.phone }}  学号: {{ stu.studentNo }}</view>
               <view class="stu-meta-line">加入班级时间: {{ stu.joinDateText }}</view>
@@ -193,7 +195,9 @@
 
         <!-- 空状态：暂无在读学员 -->
         <view v-else class="empty-schedule-box">
-          <view class="empty-icon">👥</view>
+          <view class="empty-icon">
+            <AppIcon name="users" size="112rpx" color="#CBD5E1" />
+          </view>
           <view class="empty-title">暂无在读学员</view>
           <view class="empty-desc">当前班级暂未分配在读学员</view>
           <view v-if="!isClassCompleted()" class="add-first-stu-btn" @click="handleAddStudentToClass">立即加入学员</view>
@@ -208,6 +212,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
+import AppIcon from '../../components/AppIcon.vue';
 import { classCoordinator } from '../../coordinators/class';
 import { classApi, ClassDetailModel, ClassScheduleItemModel, ClassStudentItemModel } from '../../api/class';
 
@@ -903,14 +908,16 @@ const handleStudentAction = (stu: ClassStudentItemModel) => {
 }
 
 .avatar-circle {
-  width: 96rpx;
-  height: 96rpx;
+  width: 88rpx;
+  height: 88rpx;
   border-radius: 50%;
-  background: #FFF1E6;
+  background: linear-gradient(135deg, #EEF2FF 0%, #E0EAFF 100%);
+  border: 1rpx solid rgba(47, 84, 235, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 20rpx;
+  flex-shrink: 0;
 }
 
 .avatar-emoji {
@@ -956,16 +963,27 @@ const handleStudentAction = (stu: ClassStudentItemModel) => {
 }
 
 .stu-action-btn {
-  background: #EFF6FF;
-  color: #2563EB;
+  background: #EEF2FF;
+  color: #2F54EB;
   font-size: 24rpx;
   font-weight: 600;
   padding: 10rpx 28rpx;
-  border-radius: 24rpx;
+  border-radius: 9999rpx;
+  border: 1rpx solid rgba(47, 84, 235, 0.16);
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+
+  &:active {
+    transform: scale(0.93);
+    background: #E0E7FF;
+  }
 }
 
 .bottom-safe-space {
-  height: 100rpx;
+  height: calc(100rpx + constant(safe-area-inset-bottom));
+  height: calc(100rpx + env(safe-area-inset-bottom));
 }
 
 .empty-schedule-box {

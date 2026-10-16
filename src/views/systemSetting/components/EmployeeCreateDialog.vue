@@ -108,7 +108,7 @@ watch(
       form.email = ''
       const initialCampus = props.campuses.find(c => c.id === props.defaultCampusId || c.code === props.defaultCampusId) || props.campuses[0]
       form.campusId = initialCampus ? (initialCampus.id || initialCampus.code) : 'campus-bj-hq'
-      form.campusName = initialCampus ? initialCampus.name : '总部乐博旗舰校区'
+      form.campusName = initialCampus ? initialCampus.name : '拓视未来-原阳校区'
       form.roleId = props.roles[0]?.id || 'r4'
       onRoleChange(form.roleId)
       form.dataScope = 'self'

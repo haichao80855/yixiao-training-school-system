@@ -32,10 +32,14 @@
       <!-- 班级行 (对齐截图 017) -->
       <view class="class-info-line">
         <view class="class-title-wrap">
-          <view class="notepad-icon">📒</view>
+          <view class="notepad-icon">
+            <AppIcon name="book-open" size="36rpx" color="#2F54EB" />
+          </view>
           <text class="class-name-text">{{ className }}</text>
         </view>
-        <text class="edit-icon" @click="handleEditClass">✏️</text>
+        <view class="edit-icon" @click="handleEditClass">
+          <AppIcon name="edit" size="36rpx" color="#64748B" />
+        </view>
       </view>
 
       <view class="field-divider"></view>
@@ -65,13 +69,17 @@
       <view class="upload-boxes-grid">
         <!-- 上传视频卡片 -->
         <view class="upload-box-card" @click="handleChooseVideo">
-          <view class="box-icon-camera">📹</view>
+          <view class="box-icon-camera">
+            <AppIcon name="video" size="56rpx" color="#2F54EB" />
+          </view>
           <text class="box-text">上传视频</text>
         </view>
 
         <!-- 上传照片卡片 -->
         <view class="upload-box-card" @click="handleChoosePhoto">
-          <view class="box-icon-photo">📷</view>
+          <view class="box-icon-photo">
+            <AppIcon name="camera" size="56rpx" color="#2F54EB" />
+          </view>
           <text class="box-text">上传照片</text>
         </view>
       </view>
@@ -81,16 +89,20 @@
         <!-- 视频预览 -->
         <view class="preview-item video-item" v-if="uploadedVideo">
           <view class="video-mock-box">
-            <text class="play-icon">▶️</text>
+            <AppIcon name="video" size="48rpx" color="#FFFFFF" />
             <text class="video-label">实况视频</text>
           </view>
-          <view class="delete-badge" @click="uploadedVideo = ''">✕</view>
+          <view class="delete-badge" @click="uploadedVideo = ''">
+            <AppIcon name="x" size="24rpx" color="#FFFFFF" />
+          </view>
         </view>
 
         <!-- 照片预览 -->
         <view class="preview-item photo-item" v-for="(photo, idx) in uploadedPhotos" :key="idx">
           <image class="preview-img" :src="photo" mode="aspectFill" />
-          <view class="delete-badge" @click="removePhoto(idx)">✕</view>
+          <view class="delete-badge" @click="removePhoto(idx)">
+            <AppIcon name="x" size="24rpx" color="#FFFFFF" />
+          </view>
         </view>
       </view>
     </view>
@@ -98,7 +110,7 @@
     <!-- 5. 底部固定操作条 (对齐截图 017: [保存] 与 [推送]) -->
     <view class="bottom-action-bar">
       <view class="save-draft-btn" @click="handleSaveDraft">
-        <text class="save-icon">💾</text>
+        <AppIcon name="save" size="36rpx" color="#64748B" />
         <text class="save-text">保存</text>
       </view>
       <button class="push-submit-btn" :loading="isSubmitting" @click="handleSubmitEvaluation">
@@ -122,6 +134,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import AppIcon from '../../components/AppIcon.vue';
 import { eduApi } from '../../api/edu';
 import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
 

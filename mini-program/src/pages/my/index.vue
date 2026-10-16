@@ -7,7 +7,7 @@
     <view class="user-profile-header">
       <view class="avatar-box">
         <view class="default-avatar">
-          <text class="avatar-glyph">👨‍💼</text>
+          <AppIcon name="user" size="64rpx" color="#FFFFFF" />
         </view>
       </view>
 
@@ -15,7 +15,7 @@
         <view class="name-phone-row">
           <text class="real-name">{{ user?.realName || '冬海潮' }}</text>
           <view class="phone-tag">
-            <text class="phone-icon">📱</text>
+            <AppIcon name="smartphone" size="24rpx" color="#64748B" class="phone-icon" />
             <text class="phone-number">{{ user?.phone || '17630176850' }}</text>
           </view>
         </view>
@@ -39,12 +39,12 @@
     <view class="organization-card">
       <view class="org-header" @click="handleSwitchCampus">
         <view class="org-title-row">
-          <text class="pin-icon">📍</text>
+          <AppIcon name="map-pin" size="32rpx" color="#2F54EB" class="pin-icon" />
           <text class="org-label">我的机构</text>
         </view>
         <view class="org-select-row">
-          <text class="org-name">{{ campusStore.currentCampusName || '河南新乡原阳乐博学习中心' }}</text>
-          <text class="arrow-icon">▼</text>
+          <text class="org-name">{{ campusStore.currentCampusName || '拓视未来-原阳校区' }}</text>
+          <AppIcon name="chevron-down" size="22rpx" color="#64748B" />
         </view>
       </view>
 
@@ -52,7 +52,9 @@
         <!-- 修改密码 -->
         <view class="menu-item" @click="openPasswordModal">
           <view class="item-left">
-            <text class="item-icon">🔒</text>
+            <view class="menu-icon-box">
+              <AppIcon name="lock" size="32rpx" color="#2F54EB" class="item-icon" />
+            </view>
             <text class="item-title">修改密码</text>
           </view>
           <text class="chevron">›</text>
@@ -63,7 +65,9 @@
         <!-- 绑定公众号 -->
         <view class="menu-item" @click="openOfficialAccountModal">
           <view class="item-left">
-            <text class="item-icon">🛡️</text>
+            <view class="menu-icon-box">
+              <AppIcon name="shield-check" size="32rpx" color="#2F54EB" class="item-icon" />
+            </view>
             <text class="item-title">绑定公众号</text>
           </view>
           <view class="item-right">
@@ -108,9 +112,13 @@
             placeholder="请输入原登录密码"
             placeholder-class="input-placeholder"
           />
-          <text class="eye-toggle" @click="showOldPwd = !showOldPwd">
-            {{ showOldPwd ? '👁️' : '🔒' }}
-          </text>
+          <AppIcon
+            :name="showOldPwd ? 'eye' : 'eye-off'"
+            size="36rpx"
+            color="#94A3B8"
+            class="eye-toggle"
+            @click="showOldPwd = !showOldPwd"
+          />
         </view>
 
         <!-- 新密码输入 -->
@@ -122,9 +130,13 @@
             placeholder="请输入新的登录密码"
             placeholder-class="input-placeholder"
           />
-          <text class="eye-toggle" @click="showNewPwd = !showNewPwd">
-            {{ showNewPwd ? '👁️' : '🔒' }}
-          </text>
+          <AppIcon
+            :name="showNewPwd ? 'eye' : 'eye-off'"
+            size="36rpx"
+            color="#94A3B8"
+            class="eye-toggle"
+            @click="showNewPwd = !showNewPwd"
+          />
         </view>
 
         <!-- 确认新密码输入 -->
@@ -136,9 +148,13 @@
             placeholder="请再次输入新密码"
             placeholder-class="input-placeholder"
           />
-          <text class="eye-toggle" @click="showConfirmPwd = !showConfirmPwd">
-            {{ showConfirmPwd ? '👁️' : '🔒' }}
-          </text>
+          <AppIcon
+            :name="showConfirmPwd ? 'eye' : 'eye-off'"
+            size="36rpx"
+            color="#94A3B8"
+            class="eye-toggle"
+            @click="showConfirmPwd = !showConfirmPwd"
+          />
         </view>
 
         <!-- 校验规则指示器 -->
@@ -190,7 +206,7 @@
             <text class="banner-subtitle">重要信息不错过</text>
           </view>
           <view class="banner-horn-box">
-            <text class="horn-icon">📢</text>
+            <AppIcon name="megaphone" size="48rpx" color="#7C3AED" class="horn-icon" />
           </view>
         </view>
 
@@ -226,21 +242,21 @@
               <view class="auth-section-title">消息接收服务权限</view>
               <view class="auth-item">
                 <view class="auth-info">
-                  <text class="auth-icon">🔔</text>
+                  <AppIcon name="bell" size="32rpx" color="#2F54EB" class="auth-icon" />
                   <text class="auth-name">随堂考勤签到提醒</text>
                 </view>
                 <text class="auth-status active">已开启</text>
               </view>
               <view class="auth-item">
                 <view class="auth-info">
-                  <text class="auth-icon">📝</text>
+                  <AppIcon name="file-text" size="32rpx" color="#0D9488" class="auth-icon" />
                   <text class="auth-name">随堂教学课评通知</text>
                 </view>
                 <text class="auth-status active">已开启</text>
               </view>
               <view class="auth-item">
                 <view class="auth-info">
-                  <text class="auth-icon">💰</text>
+                  <AppIcon name="wallet" size="32rpx" color="#D97706" class="auth-icon" />
                   <text class="auth-name">学费结转与课耗变动提醒</text>
                 </view>
                 <text class="auth-status active">已开启</text>
@@ -264,6 +280,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useCampusStore } from '../../stores/campusStore';
 import { request } from '../../utils/request';
 import CustomTabBar from '../../components/CustomTabBar.vue';
+import AppIcon from '../../components/AppIcon.vue';
 
 const authStore = useAuthStore();
 const campusStore = useCampusStore();
@@ -292,7 +309,7 @@ onMounted(() => {
 const handleSwitchCampus = () => {
   const options = campusStore.campuses.length > 0
     ? campusStore.campuses.map(c => c.name)
-    : ['河南新乡原阳乐博学习中心', '总部乐博旗舰校区', '远洋校区'];
+    : ['拓视未来-原阳校区'];
 
   uni.showActionSheet({
     itemList: options,
@@ -510,17 +527,24 @@ const closeOfficialAccountModal = () => {
 
 /* 我的机构卡片 (068) */
 .organization-card {
-  margin-top: 20rpx;
+  margin-top: 24rpx;
   background: #FFFFFF;
-  border-radius: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03);
+  border-radius: 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
   overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1);
 
   .org-header {
-    background: linear-gradient(90deg, #DFEBFF 0%, #EDF3FE 100%);
+    background: linear-gradient(90deg, #EEF2FF 0%, #F1F5F9 100%);
     padding: 24rpx 28rpx;
-    border-top-left-radius: 24rpx;
-    border-top-right-radius: 24rpx;
+    border-bottom: 1rpx solid rgba(15, 23, 42, 0.05);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:active {
+      background: #E0E7FF;
+    }
 
     .org-title-row {
       display: flex;
@@ -533,8 +557,9 @@ const closeOfficialAccountModal = () => {
 
       .org-label {
         font-size: 26rpx;
-        font-weight: 600;
-        color: #374151;
+        font-weight: 700;
+        color: #334155;
+        letter-spacing: 0.2rpx;
       }
     }
 
@@ -546,13 +571,13 @@ const closeOfficialAccountModal = () => {
 
       .org-name {
         font-size: 28rpx;
-        font-weight: 600;
-        color: #1F2937;
+        font-weight: 700;
+        color: #0F172A;
       }
 
       .arrow-icon {
         font-size: 20rpx;
-        color: #6B7280;
+        color: #64748B;
       }
     }
   }
@@ -561,24 +586,44 @@ const closeOfficialAccountModal = () => {
     padding: 0 28rpx;
 
     .menu-item {
-      height: 108rpx;
+      height: 110rpx;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      cursor: pointer;
+      transition: background-color 0.15s ease;
+
+      &:active {
+        opacity: 0.75;
+      }
 
       .item-left {
         display: flex;
         align-items: center;
-        gap: 16rpx;
+        gap: 20rpx;
+
+        .menu-icon-box {
+          width: 64rpx;
+          height: 64rpx;
+          border-radius: 18rpx;
+          background: linear-gradient(135deg, #EEF2FF 0%, #E0EAFF 100%);
+          border: 1rpx solid rgba(47, 84, 235, 0.12);
+          box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.05);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
 
         .item-icon {
-          font-size: 32rpx;
+          flex-shrink: 0;
         }
 
         .item-title {
-          font-size: 30rpx;
-          color: #1F2937;
+          font-size: 28rpx;
+          color: #0F172A;
           font-weight: 500;
+          letter-spacing: 0.2rpx;
         }
       }
 
@@ -588,25 +633,26 @@ const closeOfficialAccountModal = () => {
         gap: 12rpx;
 
         .focus-pill {
-          background: #E8F0FE;
-          color: #1890FF;
+          background: #EEF2FF;
+          color: #2F54EB;
           font-size: 22rpx;
-          padding: 6rpx 16rpx;
-          border-radius: 20rpx;
-          font-weight: 500;
+          padding: 6rpx 18rpx;
+          border-radius: 9999rpx;
+          font-weight: 600;
+          border: 1rpx solid rgba(47, 84, 235, 0.15);
         }
       }
 
       .chevron {
         font-size: 38rpx;
-        color: #9CA3AF;
+        color: #94A3B8;
         font-weight: 300;
       }
     }
 
     .divider {
       height: 1rpx;
-      background: #F3F4F6;
+      background: rgba(15, 23, 42, 0.05);
       width: 100%;
     }
   }
@@ -615,23 +661,34 @@ const closeOfficialAccountModal = () => {
 /* 退出登录卡片 (068) */
 .logout-card {
   margin-top: 36rpx;
-  height: 96rpx;
+  height: 98rpx;
   background: #FFFFFF;
-  border-radius: 20rpx;
+  border-radius: 28rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03);
+  border: 1rpx solid rgba(220, 38, 38, 0.15);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.96);
+    background: #FEF2F2;
+  }
 
   .logout-text {
     font-size: 30rpx;
-    font-weight: 600;
-    color: #F5222D;
+    font-weight: 700;
+    color: #DC2626;
+    letter-spacing: 0.5rpx;
   }
 }
 
 .tabbar-pad {
-  height: 140rpx;
+  height: calc(140rpx + constant(safe-area-inset-bottom));
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 
 /* ============================================================== */
@@ -669,6 +726,12 @@ const closeOfficialAccountModal = () => {
     gap: 4rpx;
     color: #1F2937;
     font-size: 30rpx;
+    cursor: pointer;
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    &:active {
+      transform: scale(0.92);
+    }
 
     .back-arrow {
       font-size: 44rpx;
@@ -774,6 +837,11 @@ const closeOfficialAccountModal = () => {
     &.enabled {
       background: #2F54EB;
       box-shadow: 0 8rpx 20rpx rgba(47, 84, 235, 0.28);
+      cursor: pointer;
+
+      &:active {
+        transform: scale(0.96);
+      }
     }
   }
 }

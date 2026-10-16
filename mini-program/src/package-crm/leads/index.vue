@@ -1,5 +1,5 @@
 <template>
-  <GenericSubPage title="CRM中心 · 线索与试听跟进" icon="🎯">
+  <GenericSubPage title="CRM中心 · 线索与试听跟进" icon="target">
     <view class="leads-container">
       <!-- 1. 线索管道统计 -->
       <view class="pipeline-summary">
@@ -38,13 +38,15 @@
       <!-- 3. 搜索与渠道快捷栏 -->
       <view class="filter-section">
         <view class="search-bar">
-          <text class="search-icon">🔍</text>
+          <AppIcon name="search" size="32rpx" color="#94A3B8" />
           <input
             class="search-input"
             v-model="keyword"
             placeholder="搜索线索姓名/手机号"
           />
-          <text v-if="keyword" class="clear-icon" @click="keyword = ''">✕</text>
+          <view v-if="keyword" class="clear-icon" @click="keyword = ''">
+            <AppIcon name="x" size="28rpx" color="#94A3B8" />
+          </view>
         </view>
       </view>
 
@@ -86,6 +88,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import GenericSubPage from '../../components/GenericSubPage.vue';
+import AppIcon from '../../components/AppIcon.vue';
 
 interface LeadItem {
   id: string;

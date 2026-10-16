@@ -19,7 +19,7 @@
     <view v-if="!selectedStudent" class="search-step-view">
       <view class="search-input-wrap">
         <view class="search-input-box">
-          <text class="search-icon">🔍</text>
+          <AppIcon name="search" size="32rpx" color="#94A3B8" />
           <input
             class="input-field"
             type="text"
@@ -40,7 +40,9 @@
           :key="stu.id"
           @click="selectTargetStudent(stu)"
         >
-          <view class="candidate-avatar">👦</view>
+          <view class="candidate-avatar">
+            <AppIcon name="user" size="40rpx" color="#2F54EB" />
+          </view>
           <view class="candidate-info">
             <text class="candidate-name">{{ stu.name }}</text>
             <text class="candidate-meta">电话: {{ stu.phone }} | 学号: {{ stu.studentNo }}</text>
@@ -52,7 +54,7 @@
       <!-- 插画与空状态 (1:1 对齐截图 034) -->
       <view v-else class="empty-guide-box">
         <view class="cartoon-glass-box">
-          <text class="cartoon-emoji">🔎</text>
+          <AppIcon name="search" size="96rpx" color="#CBD5E1" />
         </view>
         <text class="guide-text">需要先进行查询学员操作哦~</text>
       </view>
@@ -67,7 +69,8 @@
           原签约单价 ¥{{ currentRenewalDraft.quote.pricePerLesson }}/课时 已自动继承，赠送 {{ currentRenewalDraft.quote.bonusLessons }} 课时
         </view>
         <view v-if="currentRenewalDraft.validation.fallbackUnassigned" class="draft-warning-pill">
-          ⚠️ 原在读班级已满员，已自动安全置位待分班资产池
+          <AppIcon name="alert-triangle" size="28rpx" color="#F59E0B" />
+          <text>原在读班级已满员，已自动安全置位待分班资产池</text>
         </view>
       </view>
 
@@ -75,7 +78,7 @@
       <view class="student-header-card">
         <view class="student-card-inner">
           <view class="header-avatar-circle">
-            <text class="header-avatar-emoji">👦</text>
+            <AppIcon name="user" size="48rpx" color="#2F54EB" />
           </view>
           <view class="header-info-col">
             <view class="header-name-row">
@@ -113,7 +116,9 @@
               <view class="item-tag-blue">课程</view>
               <text class="item-name-text">{{ crs.name }} (¥{{ crs.totalPrice }})</text>
             </view>
-            <text class="delete-icon" @click="removeCourse(crs)">🗑️</text>
+            <view class="delete-icon" @click="removeCourse(crs)">
+              <AppIcon name="trash-2" size="32rpx" color="#EF4444" />
+            </view>
           </view>
         </view>
 
@@ -138,7 +143,9 @@
               <view class="item-tag-purple">物品</view>
               <text class="item-name-text">{{ g.name }} (¥{{ g.price }})</text>
             </view>
-            <text class="delete-icon" @click="removeGoods(g)">🗑️</text>
+            <view class="delete-icon" @click="removeGoods(g)">
+              <AppIcon name="trash-2" size="32rpx" color="#EF4444" />
+            </view>
           </view>
         </view>
 
@@ -163,7 +170,9 @@
               <view class="item-tag-green">班级</view>
               <text class="item-name-text">{{ cls.name }}</text>
             </view>
-            <text class="delete-icon" @click="removeClass(cls)">🗑️</text>
+            <view class="delete-icon" @click="removeClass(cls)">
+              <AppIcon name="trash-2" size="32rpx" color="#EF4444" />
+            </view>
           </view>
         </view>
       </view>
@@ -190,7 +199,7 @@
 
       <view class="picker-search-bar">
         <view class="search-box">
-          <text>🔍</text>
+          <AppIcon name="search" size="32rpx" color="#94A3B8" />
           <input
             class="search-input"
             type="text"
@@ -264,7 +273,7 @@
 
       <view class="picker-search-bar">
         <view class="search-box">
-          <text>🔍</text>
+          <AppIcon name="search" size="32rpx" color="#94A3B8" />
           <input
             class="search-input"
             type="text"
@@ -319,7 +328,7 @@
 
       <view class="picker-search-bar">
         <view class="search-box">
-          <text>🔍</text>
+          <AppIcon name="search" size="32rpx" color="#94A3B8" />
           <input
             class="search-input"
             type="text"
@@ -372,6 +381,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { onLoad, onUnload } from '@dcloudio/uni-app';
+import AppIcon from '../../components/AppIcon.vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { catalogApi, CourseCatalogItem, GoodsCatalogItem } from '../../api/catalog';
 import { classApi, ClassListItemModel } from '../../api/class';

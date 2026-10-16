@@ -180,7 +180,7 @@ export function normalizeStudent(raw: any): Student {
     faceImageUrl: raw.faceImageUrl || raw.avatar || '',
     avatar: raw.avatar || raw.faceImageUrl || '',
     campusId: raw.campusId || raw.campus?.id || 'campus-bj-hq',
-    campusName: raw.campus?.name || raw.campusName || '总部校区',
+    campusName: raw.campus?.name || raw.campusName || '拓视未来-原阳校区',
     status: (raw.status || 'normal') as StudentStatus,
     wallet,
     coursePackages,

@@ -20,7 +20,7 @@
         <el-form-item label="排课班级">
           <div v-if="classList.length <= 1">
             <div class="font-bold text-st-title text-sm">{{ currentClass?.name }}</div>
-            <div class="text-xs text-st-muted mt-0.5">{{ currentClass?.courseName }} | 归属: {{ currentClass?.campusName || '总部校区' }} | 已排进度: {{ currentClass?.completedLessons || 0 }}/{{ currentClass?.totalLessons || 48 }}讲</div>
+            <div class="text-xs text-st-muted mt-0.5">{{ currentClass?.courseName }} | 归属: {{ currentClass?.campusName || '拓视未来-原阳校区' }} | 已排进度: {{ currentClass?.completedLessons || 0 }}/{{ currentClass?.totalLessons || 48 }}讲</div>
           </div>
           <div v-else class="space-y-1.5 w-full">
             <el-select v-model="selectedClassId" class="w-full" @change="handleSwitchClass">

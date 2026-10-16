@@ -14,7 +14,7 @@
     <!-- 顶部状态大横幅 -->
     <view class="status-banner" :class="'banner-' + order.status">
       <view class="banner-icon-circle">
-        <text class="banner-emoji">{{ order.status === 'paid' ? '✓' : 'ℹ' }}</text>
+        <AppIcon :name="order.status === 'paid' ? 'check' : 'help-circle'" size="48rpx" color="#FFFFFF" />
       </view>
       <view class="banner-text-box">
         <text class="banner-main-title">{{ order.statusText }}</text>
@@ -140,6 +140,7 @@
 import { ref, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { financeApi, OrderItemModel } from '../../api/finance';
+import AppIcon from '../../components/AppIcon.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -576,28 +577,47 @@ const handlePrintReceipt = () => {
 .void-btn {
   flex: 1;
   background: #FEE2E2;
-  color: #EF4444;
+  color: #DC2626;
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  border-radius: 44rpx;
+  border-radius: 9999rpx;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1rpx solid rgba(220, 38, 38, 0.15);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.94);
+    background: #FECACA;
+  }
 }
 
 .share-btn {
   flex: 2;
-  background: #2563EB;
+  background: #2F54EB;
   color: #FFFFFF;
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  border-radius: 44rpx;
+  border-radius: 9999rpx;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 6rpx 18rpx rgba(47, 84, 235, 0.35);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.94);
+    opacity: 0.9;
+  }
 }
 
 .safe-padding-bottom {
-  height: 60rpx;
+  height: calc(60rpx + constant(safe-area-inset-bottom));
+  height: calc(60rpx + env(safe-area-inset-bottom));
 }
 </style>

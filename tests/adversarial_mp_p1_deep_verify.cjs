@@ -23,19 +23,20 @@ const report = {
 assert.ok(fs.existsSync(distAppJsonPath), `app.json 产物不存在: ${distAppJsonPath}`);
 const appJson = JSON.parse(fs.readFileSync(distAppJsonPath, 'utf8'));
 
-console.log('【检查项 1】主包 6 页是否存在且正确');
+console.log('【检查项 1】主包页面是否存在且正确');
 const expectedMainPages = [
   'pages/index/index',
   'pages/workbench/index',
+  'pages/workbench/settings',
   'pages/ai/index',
   'pages/todo/index',
   'pages/my/index',
   'pages/login/index'
 ];
 const missingMainPages = expectedMainPages.filter(p => !appJson.pages.includes(p));
-if (missingMainPages.length === 0 && appJson.pages.length === 6) {
+if (missingMainPages.length === 0 && appJson.pages.length === expectedMainPages.length) {
   report.mainPages = true;
-  console.log('  ✅ 主包 6 页全部存在且与配置严格一致');
+  console.log(`  ✅ 主包 ${expectedMainPages.length} 页全部存在且与配置严格一致`);
 } else {
   console.error(`  ❌ 主包页面不符合预期: missing=[${missingMainPages}], actualLength=${appJson.pages.length}`);
 }

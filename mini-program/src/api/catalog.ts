@@ -9,6 +9,8 @@ export interface CourseCatalogItem {
   totalLessons: number;
   totalPrice: number;
   coverUrl?: string;
+  bonusLessons?: number;
+  discountAmount?: number;
 }
 
 export interface GoodsCatalogItem {

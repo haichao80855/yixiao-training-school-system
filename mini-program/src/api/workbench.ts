@@ -1,6 +1,7 @@
 /**
  * 拓视未来教育「一校教培系统」工作台常用功能自定序与业务矩阵 API
  */
+import { resolveIconName } from '../utils/icons';
 
 export interface QuickActionItem {
   id: string;
@@ -22,58 +23,61 @@ export interface ActionCategoryGroup {
 
 export const WORKBENCH_STORAGE_KEY = 'yixiao_mp_workbench_quick_actions';
 
+// 统一现代 M3 蓝色容器背景色
+const M3_BLUE_BG = '#EEF2FF';
+
 // 默认 8 宫格快捷项 (对齐截图 002)
 export const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
-  { id: 'course_manage', name: '课程管理', icon: '📚', bg: '#FFF7E6', path: '/package-edu/lecture/index', category: 'curriculum' },
-  { id: 'receipt_approval', name: '收款审批', icon: '💴', bg: '#FEFFE6', path: '/package-finance/approval/index', category: 'finance' },
-  { id: 'make_up_lesson', name: '补课管理', icon: '➕', bg: '#E6F7FF', path: '/package-edu/lecture/index', category: 'edu' },
-  { id: 'lecture_podium', name: '讲台', icon: '🎬', bg: '#FFF0F6', path: '/package-edu/lecture/index', category: 'edu' },
-  { id: 'class_manage', name: '班级管理', icon: '🏢', bg: '#E6F7FF', path: '/package-edu/class/index', category: 'edu' },
-  { id: 'student_all', name: '全部学员', icon: '🧑‍🤝‍🧑', bg: '#FFF2E8', path: '/package-student/list/index', category: 'student' },
-  { id: 'my_resources', name: '我的资源', icon: '📇', bg: '#E6F7FF', path: '/package-student/list/index', category: 'crm' },
-  { id: 'student_enroll', name: '学员报名', icon: '📝', bg: '#FEFFE6', path: '/package-student/enroll/wizard', category: 'student' },
+  { id: 'course_manage', name: '课程管理', icon: 'book-open', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'curriculum' },
+  { id: 'receipt_approval', name: '收款审批', icon: 'receipt', bg: M3_BLUE_BG, path: '/package-finance/approval/index', category: 'finance' },
+  { id: 'make_up_lesson', name: '补课管理', icon: 'calendar-plus', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'edu' },
+  { id: 'lecture_podium', name: '讲台', icon: 'presentation', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'edu' },
+  { id: 'class_manage', name: '班级管理', icon: 'building-2', bg: M3_BLUE_BG, path: '/package-edu/class/index', category: 'edu' },
+  { id: 'student_all', name: '全部学员', icon: 'users', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'student' },
+  { id: 'my_resources', name: '我的资源', icon: 'folder-user', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'crm' },
+  { id: 'student_enroll', name: '学员报名', icon: 'user-plus', bg: M3_BLUE_BG, path: '/package-student/enroll/wizard', category: 'student' },
 ];
 
 // 可选业务功能库全集 (5大业务分类共 29 项，对齐截图 002, 035, 049)
 export const ALL_AVAILABLE_ACTIONS: Record<string, QuickActionItem[]> = {
   教研: [
-    { id: 'course_manage', name: '课程管理', icon: '📚', bg: '#FFF7E6', path: '/package-edu/lecture/index', category: 'curriculum' },
+    { id: 'course_manage', name: '课程管理', icon: 'book-open', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'curriculum' },
   ],
   学员: [
-    { id: 'student_all', name: '全部学员', icon: '🧑‍🤝‍🧑', bg: '#FFF2E8', path: '/package-student/list/index', category: 'student' },
-    { id: 'student_unassigned', name: '待分班学员', icon: '⏳', bg: '#FFF0F6', path: '/package-student/list/index?tab=unassigned', category: 'student' },
-    { id: 'student_enroll', name: '学员报名', icon: '📝', bg: '#FEFFE6', path: '/package-student/enroll/wizard', category: 'student' },
+    { id: 'student_all', name: '全部学员', icon: 'users', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'student' },
+    { id: 'student_unassigned', name: '待分班学员', icon: 'clock', bg: M3_BLUE_BG, path: '/package-student/list/index?tab=unassigned', category: 'student' },
+    { id: 'student_enroll', name: '学员报名', icon: 'user-plus', bg: M3_BLUE_BG, path: '/package-student/enroll/wizard', category: 'student' },
   ],
   教务: [
-    { id: 'lecture_podium', name: '讲台', icon: '🎬', bg: '#FFF0F6', path: '/package-edu/lecture/index', category: 'edu' },
-    { id: 'class_manage', name: '班级管理', icon: '🏢', bg: '#E6F7FF', path: '/package-edu/class/index', category: 'edu' },
-    { id: 'my_students', name: '我的学员', icon: '👤', bg: '#FFF2E8', path: '/package-student/list/index', category: 'edu' },
-    { id: 'my_classes', name: '我的班级', icon: '🏫', bg: '#E6F7FF', path: '/package-edu/class/index', category: 'edu' },
-    { id: 'make_up_lesson', name: '补课管理', icon: '➕', bg: '#E6F7FF', path: '/package-edu/lecture/index', category: 'edu' },
-    { id: 'lesson_consumption', name: '课消记录', icon: '📋', bg: '#F6FFED', path: '/package-edu/lecture/roll-call', category: 'edu' },
-    { id: 'lesson_audit', name: '课消审核', icon: '🛡️', bg: '#F6FFED', path: '/package-edu/lecture/roll-call', category: 'edu' },
-    { id: 'evaluation_manage', name: '课评管理', icon: '⭐', bg: '#FFF0F6', path: '/package-edu/evaluation/manage', category: 'edu' },
-    { id: 'student_warning', name: '学员预警', icon: '⚡', bg: '#FFF1F0', path: '/package-edu/warning/index', category: 'edu' },
-    { id: 'course_selling', name: '售卖课程', icon: '🏷️', bg: '#FFF0F6', path: '/package-edu/lecture/index', category: 'edu' },
+    { id: 'lecture_podium', name: '讲台', icon: 'presentation', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'edu' },
+    { id: 'class_manage', name: '班级管理', icon: 'building-2', bg: M3_BLUE_BG, path: '/package-edu/class/index', category: 'edu' },
+    { id: 'my_students', name: '我的学员', icon: 'user', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'edu' },
+    { id: 'my_classes', name: '我的班级', icon: 'school', bg: M3_BLUE_BG, path: '/package-edu/class/index', category: 'edu' },
+    { id: 'make_up_lesson', name: '补课管理', icon: 'calendar-plus', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'edu' },
+    { id: 'lesson_consumption', name: '课消记录', icon: 'clipboard-list', bg: M3_BLUE_BG, path: '/package-edu/lecture/roll-call', category: 'edu' },
+    { id: 'lesson_audit', name: '课消审核', icon: 'shield-check', bg: M3_BLUE_BG, path: '/package-edu/lecture/roll-call', category: 'edu' },
+    { id: 'evaluation_manage', name: '课评管理', icon: 'star', bg: M3_BLUE_BG, path: '/package-edu/evaluation/manage', category: 'edu' },
+    { id: 'student_warning', name: '学员预警', icon: 'alert-triangle', bg: M3_BLUE_BG, path: '/package-edu/warning/index', category: 'edu' },
+    { id: 'course_selling', name: '售卖课程', icon: 'tag', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'edu' },
   ],
   财务: [
-    { id: 'order_manage', name: '订单管理', icon: '🧾', bg: '#E6F7FF', path: '/package-finance/orders/index', category: 'finance' },
-    { id: 'receipt_approval', name: '收款审批', icon: '💴', bg: '#FEFFE6', path: '/package-finance/approval/index', category: 'finance' },
-    { id: 'transfer_approval', name: '异动审批', icon: '🔀', bg: '#E6F7FF', path: '/package-finance/approval/index?type=transfer', category: 'finance' },
-    { id: 'refund_approval', name: '退费审批', icon: '🔄', bg: '#FFF1F0', path: '/package-finance/approval/index?type=refund', category: 'finance' },
+    { id: 'order_manage', name: '订单管理', icon: 'file-text', bg: M3_BLUE_BG, path: '/package-finance/orders/index', category: 'finance' },
+    { id: 'receipt_approval', name: '收款审批', icon: 'receipt', bg: M3_BLUE_BG, path: '/package-finance/approval/index', category: 'finance' },
+    { id: 'transfer_approval', name: '异动审批', icon: 'arrow-left-right', bg: M3_BLUE_BG, path: '/package-finance/approval/index?type=transfer', category: 'finance' },
+    { id: 'refund_approval', name: '退费审批', icon: 'rotate-ccw', bg: M3_BLUE_BG, path: '/package-finance/approval/index?type=refund', category: 'finance' },
   ],
   CRM: [
-    { id: 'my_resources', name: '我的资源', icon: '📇', bg: '#E6F7FF', path: '/package-student/list/index', category: 'crm' },
-    { id: 'deals_data', name: '成单数据', icon: '📊', bg: '#F6FFED', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'group_data', name: '组内数据', icon: '👥', bg: '#FFF7E6', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'pending_leads', name: '待分配线索', icon: '📥', bg: '#FFF0F6', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'audition_records', name: '试听记录', icon: '🎧', bg: '#E6F7FF', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'work_efficiency', name: '工作效率', icon: '⏱️', bg: '#FEFFE6', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'performance_stats', name: '业绩统计', icon: '📈', bg: '#FFF2E8', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'channel_stats', name: '渠道统计', icon: '🌐', bg: '#E6F7FF', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'crm_public_pool', name: '公海线索', icon: '🌊', bg: '#E6F7FF', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'crm_recycle', name: '回收站线索', icon: '🗑️', bg: '#FFF1F0', path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'all_leads', name: '全部线索', icon: '🎯', bg: '#FFF7E6', path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'my_resources', name: '我的资源', icon: 'folder-user', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'crm' },
+    { id: 'deals_data', name: '成单数据', icon: 'bar-chart-3', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'group_data', name: '组内数据', icon: 'users-round', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'pending_leads', name: '待分配线索', icon: 'inbox', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'audition_records', name: '试听记录', icon: 'headphones', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'work_efficiency', name: '工作效率', icon: 'timer', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'performance_stats', name: '业绩统计', icon: 'trending-up', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'channel_stats', name: '渠道统计', icon: 'globe', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'crm_public_pool', name: '公海线索', icon: 'waves', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'crm_recycle', name: '回收站线索', icon: 'trash-2', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
+    { id: 'all_leads', name: '全部线索', icon: 'target', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
   ],
 };
 
@@ -104,7 +108,10 @@ export function getUserQuickActions(): QuickActionItem[] {
     if (!raw) return getDefaultQuickActions();
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (Array.isArray(parsed) && parsed.length >= 1 && parsed.length <= 8) {
-      return parsed;
+      return parsed.map((item) => ({
+        ...item,
+        icon: resolveIconName(item.icon),
+      }));
     }
   } catch (e) {
     console.warn('[Workbench] 读取持久化配置异常，回退默认:', e);

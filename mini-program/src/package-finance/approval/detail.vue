@@ -86,9 +86,9 @@
                 class="timeline-dot"
                 :class="'dot-' + node.status"
               >
-                <text v-if="node.status === 'approved'">✓</text>
-                <text v-else-if="node.status === 'rejected'">✕</text>
-                <text v-else>⏱</text>
+                <AppIcon v-if="node.status === 'approved'" name="check" size="24rpx" color="#FFFFFF" />
+                <AppIcon v-else-if="node.status === 'rejected'" name="x" size="24rpx" color="#FFFFFF" />
+                <AppIcon v-else name="clock" size="24rpx" color="#64748B" />
               </view>
               <view class="timeline-line" v-if="idx < detail.timeline.length - 1"></view>
             </view>
@@ -135,6 +135,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { financeApi, ApprovalDetailModel } from '../../api/finance';
+import AppIcon from '../../components/AppIcon.vue';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
@@ -153,7 +154,7 @@ const detail = ref<ApprovalDetailModel>({
   applicantName: '冯老师',
   applicantRole: '教务顾问',
   campusId: 'campus-bj-hq',
-  campusName: '总部校区',
+  campusName: '拓视未来-原阳校区',
   createdAtText: '2026-10-15 10:30',
   studentName: '郑扶摇',
   courseName: '启蒙英语',
@@ -201,9 +202,9 @@ const fetchDetail = async () => {
 };
 
 const getStatusEmoji = (status: string) => {
-  if (status === 'approved') return '✓';
-  if (status === 'rejected') return '✕';
-  return '⏱';
+  if (status === 'approved') return 'check';
+  if (status === 'rejected') return 'x';
+  return 'clock';
 };
 
 const handleGoBack = () => {
@@ -604,37 +605,57 @@ const handleRejectAction = () => {
   display: flex;
   gap: 20rpx;
   padding: 20rpx 28rpx;
+  padding-bottom: calc(20rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
   background: #FFFFFF;
-  border-top: 1rpx solid #F3F4F6;
-  box-shadow: 0 -2rpx 10rpx rgba(0, 0, 0, 0.05);
+  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 -4rpx 16rpx rgba(15, 23, 42, 0.04);
 }
 
 .audit-btn-reject {
   flex: 1;
   background: #FEE2E2;
-  color: #EF4444;
+  color: #DC2626;
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  border-radius: 44rpx;
+  border-radius: 9999rpx;
   font-size: 28rpx;
-  font-weight: 600;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1rpx solid rgba(220, 38, 38, 0.15);
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.94);
+    background: #FECACA;
+  }
 }
 
 .audit-btn-approve {
   flex: 1;
-  background: #10B981;
+  background: #16A34A;
   color: #FFFFFF;
   height: 88rpx;
   line-height: 88rpx;
   text-align: center;
-  border-radius: 44rpx;
+  border-radius: 9999rpx;
   font-size: 28rpx;
-  font-weight: 600;
-  box-shadow: 0 6rpx 16rpx rgba(16, 185, 129, 0.35);
+  font-weight: 700;
+  box-shadow: 0 6rpx 18rpx rgba(22, 163, 74, 0.35);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.94);
+    opacity: 0.9;
+  }
 }
 
 .bottom-safe-space {
-  height: 100rpx;
+  height: calc(140rpx + constant(safe-area-inset-bottom));
+  height: calc(140rpx + env(safe-area-inset-bottom));
 }
 </style>

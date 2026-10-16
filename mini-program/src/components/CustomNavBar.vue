@@ -8,14 +8,14 @@
         </view>
         <view class="campus-picker">
           <text class="campus-name">{{ campusStore.currentCampusName }}</text>
-          <text class="arrow-down">▼</text>
+          <AppIcon name="chevron-down" size="24rpx" color="#1D39C4" />
         </view>
       </view>
 
       <!-- 消息通知铃铛 -->
       <view class="action-area" :style="{ marginRight: capsuleRightMargin + 'px' }">
         <view class="bell-box" @click="handleNotificationClick">
-          <text class="bell-icon">🔔</text>
+          <AppIcon name="bell" size="36rpx" color="#2F54EB" />
           <view class="badge-dot" v-if="unreadCount > 0"></view>
         </view>
       </view>
@@ -26,6 +26,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useCampusStore } from '../stores/campusStore';
+import AppIcon from './AppIcon.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -50,32 +51,46 @@ onMounted(() => {
 });
 
 const handleCampusClick = () => {
+  const list = campusStore.campuses.length > 0 
+    ? campusStore.campuses.map(c => c.name) 
+    : ['拓视未来-原阳校区'];
   uni.showActionSheet({
-    itemList: campusStore.campuses.length > 0 
-      ? campusStore.campuses.map(c => c.name) 
-      : ['总部乐博旗舰校区', '远洋校区', '朝阳大悦城校区'],
+    itemList: list,
     success: (res) => {
       if (campusStore.campuses[res.tapIndex]) {
         campusStore.setCampus(campusStore.campuses[res.tapIndex]);
       } else {
-        campusStore.currentCampusName = ['总部乐博旗舰校区', '远洋校区', '朝阳大悦城校区'][res.tapIndex];
+        campusStore.currentCampusName = list[res.tapIndex];
       }
     }
   });
 };
 
 const handleNotificationClick = () => {
-  uni.navigateTo({ url: '/pages/todo/index' });
+  uni.switchTab({
+    url: '/pages/todo/index',
+    fail: () => {
+      uni.navigateTo({
+        url: '/pages/todo/index',
+        fail: () => {
+          uni.reLaunch({ url: '/pages/todo/index' });
+        }
+      });
+    }
+  });
 };
 </script>
 
 <style lang="scss" scoped>
 .custom-nav-bar {
-  background: linear-gradient(180deg, #E6F0FF 0%, #F8FAFC 100%);
+  background: linear-gradient(180deg, rgba(238, 242, 255, 0.96) 0%, rgba(246, 248, 252, 0.98) 100%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 1000;
   width: 100%;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.05);
 }
 
 .nav-content {
@@ -93,38 +108,46 @@ const handleNotificationClick = () => {
 }
 
 .brand-logo {
+  display: flex;
+  align-items: center;
+
   .logo-text {
     font-size: 38rpx;
     font-weight: 900;
     font-style: italic;
     color: #1D39C4;
     letter-spacing: -2rpx;
+    text-shadow: 0 2rpx 8rpx rgba(29, 57, 196, 0.15);
   }
 }
 
 .campus-picker {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.7);
-  padding: 6rpx 16rpx;
-  border-radius: 32rpx;
-  border: 1rpx solid rgba(47, 84, 235, 0.15);
+  gap: 8rpx;
+  background: #EEF2FF;
+  padding: 8rpx 20rpx;
+  border-radius: 9999rpx;
+  border: 1rpx solid rgba(47, 84, 235, 0.16);
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.05);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+  cursor: pointer;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.95);
+    background: #E0EAFF;
+  }
 
   .campus-name {
     font-size: 26rpx;
     font-weight: 600;
-    color: #1F2937;
-    max-width: 200rpx;
+    color: #1E293B;
+    max-width: 240rpx;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .arrow-down {
-    font-size: 16rpx;
-    color: #6B7280;
-    margin-left: 8rpx;
-    transform: scale(0.8);
+    letter-spacing: 0.2rpx;
   }
 }
 
@@ -135,25 +158,39 @@ const handleNotificationClick = () => {
 
 .bell-box {
   position: relative;
-  width: 64rpx;
-  height: 64rpx;
+  width: 68rpx;
+  height: 68rpx;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #EEF2FF;
+  border: 1rpx solid rgba(47, 84, 235, 0.16);
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.05);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+  cursor: pointer;
+  will-change: transform;
+
+  &:active {
+    transform: scale(0.9);
+    background: #DBEAFE;
+  }
 
   .bell-icon {
     font-size: 34rpx;
+    line-height: 1;
   }
 
   .badge-dot {
     position: absolute;
-    top: 10rpx;
-    right: 10rpx;
+    top: 12rpx;
+    right: 12rpx;
     width: 14rpx;
     height: 14rpx;
     border-radius: 50%;
-    background-color: #F5222D;
+    background-color: #DC2626;
     border: 2rpx solid #FFFFFF;
+    box-shadow: 0 0 6rpx rgba(220, 38, 38, 0.6);
   }
 }
 </style>

@@ -206,7 +206,7 @@ const selectableCampusNames = computed(() => {
 });
 const selectedCampusName = computed(() => {
   const match = selectableCampuses.value.find((c) => c.id === selectedCampusId.value);
-  return match ? match.name : '总部乐博旗舰校区';
+  return match ? match.name : '拓视未来-原阳校区';
 });
 
 // 表单数据

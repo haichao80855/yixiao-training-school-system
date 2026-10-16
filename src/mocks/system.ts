@@ -1706,7 +1706,7 @@ export function addSystemUser(user: Partial<SystemUser>): SystemUser {
     phone: user.phone || '13800000000',
     email: user.email || '',
     campusId: user.campusId || 'campus-bj-hq',
-    campusName: user.campusName || '总部校区',
+    campusName: user.campusName || '拓视未来-原阳校区',
     departmentId: user.departmentId || 'dept-hq-edu',
     departmentName: user.departmentName || '教务教学部',
     postId: user.postId || 'post-hq-teacher',

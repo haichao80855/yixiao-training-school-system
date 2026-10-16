@@ -193,12 +193,7 @@
 
       <!-- 16. 归属校区 -->
       <el-select v-model="filterForm.campusId" placeholder="归属校区" size="small" clearable>
-        <el-option label="全部校区" value="all" />
-        <el-option label="总部校区" value="campus-bj-hq" />
-        <el-option label="远洋校区" value="campus-bj-yy" />
-        <el-option label="朝阳校区" value="campus-bj-cy" />
-        <el-option label="海淀分校" value="campus-bj-hd" />
-        <el-option label="望京校区" value="campus-bj-wj" />
+        <el-option label="拓视未来-原阳校区" value="campus-bj-hq" />
       </el-select>
 
       <!-- Row 3 (8 控件) -->
@@ -843,7 +838,7 @@ import type {
 } from '@/types'
 
 const tenantStore = useTenantStore()
-const currentCampusName = computed(() => tenantStore.currentCampus?.name || '总部校区')
+const currentCampusName = computed(() => tenantStore.currentCampus?.name || '拓视未来-原阳校区')
 
 // 主分段 Tab
 const activeMainTab = ref<'regular' | 'quarterly'>('regular')

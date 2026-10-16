@@ -96,7 +96,7 @@ export class ClientStudentProjector {
             item.campusName ||
             item.campus?.name ||
             (Array.isArray(item.campuses) ? item.campuses.map((c: any) => c.name || c).join('、') : '') ||
-            '总部校区'
+            '拓视未来-原阳校区'
           ),
           isAssignedClass: norm.isAssignedClass,
           inPendingAssetPool: norm.inPendingAssetPool,
@@ -257,7 +257,7 @@ export class ClientStudentProjector {
         ),
         expireDateText: String(info.expireDateText || raw.expireDateText || '无限期'),
         channelSource: String(info.channelSource || raw.channelSource || '地推/活动派单'),
-        campusName: String(info.campus?.name || raw.campus?.name || raw.campusName || '总部校区'),
+        campusName: String(info.campus?.name || raw.campus?.name || raw.campusName || '拓视未来-原阳校区'),
         campusId: info.campusId || raw.campusId,
 
         // 权威学籍映射
@@ -310,7 +310,7 @@ export class ClientStudentProjector {
         guardianRelation: '家长',
         expireDateText: '无限期',
         channelSource: '其他',
-        campusName: '总部校区',
+        campusName: '拓视未来-原阳校区',
         status: '未报读',
         normalizedStatus: 'not_enrolled',
         statusText: '未报读',

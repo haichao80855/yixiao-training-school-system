@@ -108,7 +108,7 @@ const MOCK_STUDENTS: StudentListItemModel[] = [
     remainingAmount: 4992,
     enrolledClassesCount: 1,
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     isAssignedClass: true,
   },
   {
@@ -122,7 +122,7 @@ const MOCK_STUDENTS: StudentListItemModel[] = [
     remainingAmount: 4864,
     enrolledClassesCount: 1,
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     isAssignedClass: true,
   },
   {
@@ -136,7 +136,7 @@ const MOCK_STUDENTS: StudentListItemModel[] = [
     remainingAmount: 3968,
     enrolledClassesCount: 1,
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     isAssignedClass: true,
   },
   {
@@ -150,7 +150,7 @@ const MOCK_STUDENTS: StudentListItemModel[] = [
     remainingAmount: 3780,
     enrolledClassesCount: 1,
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     isAssignedClass: true,
   },
   {
@@ -164,7 +164,7 @@ const MOCK_STUDENTS: StudentListItemModel[] = [
     remainingAmount: 2400,
     enrolledClassesCount: 0,
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     isAssignedClass: false,
   },
 ];
@@ -235,7 +235,7 @@ export const studentApi = {
             remainingAmount,
             enrolledClassesCount: enrolledClassesCount || (isAssigned ? 1 : 0),
             campusId: item.campusId || item.campus?.id || 'campus-bj-hq',
-            campusName: item.campus?.name || item.campusName || '总部校区',
+            campusName: item.campus?.name || item.campusName || '拓视未来-原阳校区',
             isAssignedClass: isAssigned,
           };
         });
@@ -350,7 +350,7 @@ export const studentApi = {
           expireDateText: info.expireDateText || res.expireDateText || '无限期',
           channelSource: info.channelSource || res.channelSource || '地推/活动派单',
           status,
-          campusName: info.campus?.name || res.campus?.name || res.campusName || '总部校区',
+          campusName: info.campus?.name || res.campus?.name || res.campusName || '拓视未来-原阳校区',
           totalRemainingLessons,
           totalRemainingAmount,
           walletBalance,
@@ -377,7 +377,7 @@ export const studentApi = {
         expireDateText: '无限期',
         channelSource: '英语',
         status: '在读',
-        campusName: '总部校区',
+        campusName: '拓视未来-原阳校区',
         totalRemainingLessons: 78,
         totalRemainingAmount: 4992,
         walletBalance: 0,
@@ -411,7 +411,7 @@ export const studentApi = {
       expireDateText: '无限期',
       channelSource: '其他',
       status: '未报读',
-      campusName: '总部校区',
+      campusName: '拓视未来-原阳校区',
       totalRemainingLessons: 0,
       totalRemainingAmount: 0,
       walletBalance: 0,

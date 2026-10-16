@@ -3,26 +3,37 @@
     <view class="card-header">
       <view class="title-left">
         <text class="metric-title">{{ title }}</text>
-        <text class="help-icon" v-if="helpText" @click="handleHelp">❓</text>
+        <AppIcon
+          name="help-circle"
+          size="30rpx"
+          color="#94A3B8"
+          class="help-icon"
+          v-if="helpText"
+          @click="handleHelp"
+        />
       </view>
       <slot name="header-right">
         <view class="filters-group" v-if="period">
           <view class="filter-dropdown" @click="handlePeriodClick">
             <text class="filter-text">{{ period }}</text>
-            <text class="arrow">▼</text>
+            <AppIcon name="chevron-down" size="20rpx" color="#2F54EB" />
           </view>
         </view>
       </slot>
     </view>
 
     <!-- 主指标大字呈现 -->
-    <view class="big-metric-value" v-if="value !== undefined && value !== null">
+    <view class="big-metric-value" v-if="value !== undefined && value !== null && value !== ''">
       {{ formattedValue }}
       <text class="metric-unit-text" v-if="unit">{{ unit }}</text>
     </view>
 
     <!-- 三联/四联子卡片矩阵 -->
-    <view class="sub-cards-row" v-if="subCards && subCards.length > 0">
+    <view
+      class="sub-cards-row"
+      :class="subCardsLayoutClass"
+      v-if="subCards && subCards.length > 0"
+    >
       <view
         class="sub-card"
         :class="sub.type ? `${sub.type}-card` : 'default-sub-card'"
@@ -33,7 +44,13 @@
           <text class="sub-label">{{ sub.label }}</text>
           <text class="sub-value">{{ sub.value }}</text>
         </view>
-        <text class="sub-icon" v-if="sub.icon">{{ sub.icon }}</text>
+        <AppIcon
+          v-if="sub.icon"
+          :name="sub.icon"
+          size="36rpx"
+          :color="getSubIconColor(sub.type)"
+          class="sub-icon"
+        />
       </view>
     </view>
 
@@ -52,6 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import AppIcon from './AppIcon.vue';
 
 export interface SubCardItem {
   label: string;
@@ -96,6 +114,32 @@ const formattedValue = computed(() => {
   return props.value;
 });
 
+const subCardsLayoutClass = computed(() => {
+  const len = props.subCards?.length || 0;
+  if (len === 1) return 'layout-cols-1';
+  if (len === 2) return 'layout-cols-2';
+  if (len === 3) return 'layout-cols-3';
+  if (len === 4) return 'layout-cols-4-split-2'; // 4个卡片显示为两行，每行2个
+  return 'layout-cols-3'; // 默认及超过4个时最多一行3个
+});
+
+function getSubIconColor(type?: string): string {
+  switch (type) {
+    case 'regular':
+      return '#2563EB';
+    case 'expand':
+      return '#0D9488';
+    case 'wallet':
+      return '#D97706';
+    case 'warning':
+      return '#DC2626';
+    case 'other':
+      return '#6366F1';
+    default:
+      return '#475569';
+  }
+}
+
 function handleHelp() {
   if (props.helpText) {
     uni.showModal({
@@ -126,9 +170,14 @@ function handlePeriodClick() {
 .metric-card {
   margin: 20rpx 24rpx;
   background: #FFFFFF;
-  border-radius: 24rpx;
-  padding: 28rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.03);
+  border-radius: 28rpx;
+  padding: 28rpx 32rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
 
   .card-header {
     display: flex;
@@ -139,18 +188,24 @@ function handlePeriodClick() {
     .title-left {
       display: flex;
       align-items: center;
-      gap: 8rpx;
+      gap: 10rpx;
 
       .metric-title {
         font-size: 30rpx;
         font-weight: 700;
-        color: #111827;
+        color: #0F172A;
+        letter-spacing: 0.2rpx;
       }
 
       .help-icon {
         font-size: 26rpx;
-        color: #9CA3AF;
+        color: #94A3B8;
         cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        &:active {
+          transform: scale(0.85);
+        }
       }
     }
 
@@ -160,112 +215,170 @@ function handlePeriodClick() {
       gap: 12rpx;
 
       .filter-dropdown {
-        display: flex;
+        display: inline-flex;
         align-items: center;
         gap: 6rpx;
-        background: #F3F4F6;
-        padding: 6rpx 16rpx;
-        border-radius: 12rpx;
+        background: #EEF2FF;
+        padding: 8rpx 18rpx;
+        border-radius: 9999rpx;
+        border: 1rpx solid rgba(47, 84, 235, 0.14);
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease;
+
+        &:active {
+          transform: scale(0.95);
+          background: #DBEAFE;
+        }
 
         .filter-text {
           font-size: 22rpx;
-          color: #4B5563;
-        }
-
-        .arrow {
-          font-size: 16rpx;
-          color: #9CA3AF;
+          color: #2F54EB;
+          font-weight: 600;
+          white-space: nowrap;
         }
       }
     }
   }
 
   .big-metric-value {
-    font-size: 52rpx;
+    font-size: 54rpx;
     font-weight: 900;
-    color: #111827;
+    color: #0F172A;
     margin-bottom: 24rpx;
-    letter-spacing: -1rpx;
+    letter-spacing: -1.5rpx;
+    line-height: 1.1;
 
     .metric-unit-text {
       font-size: 24rpx;
-      font-weight: 500;
-      color: #6B7280;
-      margin-left: 8rpx;
+      font-weight: 600;
+      color: #64748B;
+      margin-left: 10rpx;
+      letter-spacing: 0;
     }
   }
 
   .sub-cards-row {
-    display: flex;
+    display: grid;
     gap: 16rpx;
     margin-bottom: 24rpx;
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: repeat(3, 1fr);
+
+    &.layout-cols-1 {
+      grid-template-columns: 1fr;
+    }
+
+    &.layout-cols-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    &.layout-cols-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    // 4个显示两行，每行2个
+    &.layout-cols-4-split-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
 
     .sub-card {
-      flex: 1;
-      padding: 16rpx 20rpx;
-      border-radius: 16rpx;
+      min-width: 0;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 18rpx 20rpx;
+      border-radius: 20rpx;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border: 1rpx solid rgba(15, 23, 42, 0.05);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+      overflow: hidden;
+
+      &:active {
+        transform: scale(0.96);
+      }
 
       .card-texts {
+        flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
 
         .sub-label {
           font-size: 20rpx;
-          color: #6B7280;
-          margin-bottom: 4rpx;
+          color: #64748B;
+          margin-bottom: 6rpx;
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .sub-value {
           font-size: 28rpx;
           font-weight: 700;
-          color: #111827;
+          color: #0F172A;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          line-height: 1.2;
         }
       }
 
       .sub-icon {
+        flex-shrink: 0;
+        margin-left: 10rpx;
         font-size: 32rpx;
+        line-height: 1;
       }
 
       &.regular-card {
-        background: #F0F5FF;
+        background: #EEF2FF;
+        border-color: rgba(47, 84, 235, 0.12);
       }
 
       &.expand-card {
-        background: #FFF7E6;
+        background: #FFFBEB;
+        border-color: rgba(217, 119, 6, 0.12);
       }
 
       &.other-card {
-        background: #F6FFED;
+        background: #F0FDF4;
+        border-color: rgba(22, 163, 74, 0.12);
       }
 
       &.wallet-card {
-        background: #FFF0F6;
+        background: #FAF5FF;
+        border-color: rgba(147, 51, 234, 0.12);
       }
 
       &.warning-card {
-        background: #FFF1F0;
+        background: #FEF2F2;
+        border-color: rgba(220, 38, 38, 0.12);
       }
 
       &.default-sub-card {
         background: #F8FAFC;
+        border-color: rgba(15, 23, 42, 0.06);
       }
     }
   }
 
   .card-footer-info {
     margin-top: 20rpx;
-    padding-top: 16rpx;
-    border-top: 1rpx solid #F3F4F6;
+    padding-top: 18rpx;
+    border-top: 1rpx solid rgba(15, 23, 42, 0.06);
     display: flex;
     align-items: center;
     justify-content: space-between;
 
     .footer-label {
       font-size: 22rpx;
-      color: #6B7280;
+      color: #64748B;
+      font-weight: 500;
     }
 
     .footer-val {

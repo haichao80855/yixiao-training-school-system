@@ -10,7 +10,7 @@
       <div class="bg-blue-50/70 p-3.5 rounded-lg border border-blue-100 space-y-1.5">
         <div class="flex items-center justify-between">
           <span class="font-bold text-sm text-st-title">{{ lesson.lessonTitle || lesson.className }}</span>
-          <el-tag size="small" type="primary">{{ lesson.campusName || '总部校区' }}</el-tag>
+          <el-tag size="small" type="primary">{{ lesson.campusName || '拓视未来-原阳校区' }}</el-tag>
         </div>
         <div class="text-st-muted flex items-center gap-3">
           <span>所属班级: {{ lesson.className }}</span>

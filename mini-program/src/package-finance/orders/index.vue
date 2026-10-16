@@ -42,7 +42,7 @@
     <!-- 2. 搜索框 -->
     <view class="search-bar-wrap">
       <view class="search-input-box">
-        <text class="search-icon">🔍</text>
+        <AppIcon name="search" size="32rpx" color="#94A3B8" />
         <input
           class="search-input"
           type="text"
@@ -51,7 +51,9 @@
           placeholder-class="placeholder-text"
           @input="fetchOrders"
         />
-        <text v-if="searchKeyword" class="clear-btn" @click="clearSearch">✕</text>
+        <view v-if="searchKeyword" class="clear-btn" @click="clearSearch">
+          <AppIcon name="x" size="28rpx" color="#94A3B8" />
+        </view>
       </view>
     </view>
 
@@ -70,13 +72,13 @@
       </scroll-view>
       <view class="status-dropdown-btn" @click="handleStatusFilter">
         <text class="status-btn-text">{{ statusFilterText }}</text>
-        <text class="arrow">▼</text>
+        <AppIcon name="chevron-down" size="24rpx" color="#64748B" />
       </view>
     </view>
 
     <!-- 动态小计横幅 -->
     <view class="summary-subtotal-strip" v-if="orderList.length > 0">
-      <text class="subtotal-icon">📊</text>
+      <AppIcon name="bar-chart-3" size="32rpx" color="#2F54EB" />
       <text class="subtotal-text">当前条件下：共计 {{ orderList.length }} 笔订单，实收总额 ¥{{ totalPaidInList.toFixed(2) }} 元</text>
     </view>
 
@@ -92,7 +94,7 @@
           <!-- 订单头部: 订单号、日期、状态标签 -->
           <view class="order-header-row">
             <view class="order-no-box">
-              <text class="order-icon">🧾</text>
+              <AppIcon name="receipt" size="32rpx" color="#64748B" />
               <text class="order-no-text">{{ item.orderNo }}</text>
             </view>
             <view class="status-tag" :class="'tag-' + item.status">
@@ -145,7 +147,9 @@
 
       <!-- 空状态 -->
       <view v-else class="empty-state-box">
-        <text class="empty-emoji">🥺</text>
+        <view class="empty-emoji">
+          <AppIcon name="inbox" size="112rpx" color="#CBD5E1" />
+        </view>
         <text class="empty-text">暂无订单记录</text>
       </view>
 
@@ -158,6 +162,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { financeApi, OrderItemModel, OrderSummaryModel } from '../../api/finance';
+import AppIcon from '../../components/AppIcon.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -366,12 +371,14 @@ const handleVoucher = (item: OrderItemModel) => {
 
 /* 财务看板卡片 */
 .summary-board-card {
-  background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
+  background: linear-gradient(135deg, #1D4ED8 0%, #1E3A8A 100%);
   margin: 20rpx 24rpx;
-  border-radius: 24rpx;
-  padding: 28rpx 32rpx;
+  border-radius: 28rpx;
+  padding: 32rpx;
   color: #FFFFFF;
-  box-shadow: 0 8rpx 20rpx rgba(37, 99, 235, 0.25);
+  box-shadow: 0 10rpx 28rpx rgba(29, 78, 216, 0.28);
+  border: 1rpx solid rgba(255, 255, 255, 0.12);
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .board-header {
@@ -384,11 +391,12 @@ const handleVoucher = (item: OrderItemModel) => {
 .board-title {
   font-size: 30rpx;
   font-weight: 700;
+  letter-spacing: 0.2rpx;
 }
 
 .board-date {
   font-size: 22rpx;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .board-metrics-row {
@@ -404,14 +412,16 @@ const handleVoucher = (item: OrderItemModel) => {
 }
 
 .metric-num-highlight {
-  font-size: 40rpx;
+  font-size: 42rpx;
   font-weight: 900;
   color: #FEF08A;
+  letter-spacing: -0.5rpx;
 }
 
 .metric-num {
   font-size: 38rpx;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: -0.5rpx;
 }
 
 .text-orange {
@@ -438,31 +448,45 @@ const handleVoucher = (item: OrderItemModel) => {
 .search-input-box {
   display: flex;
   align-items: center;
-  background: #FFFFFF;
-  border-radius: 36rpx;
-  padding: 12rpx 24rpx;
-  box-shadow: 0 2rpx 6rpx rgba(0, 0, 0, 0.02);
+  background: #EFF2F8;
+  border-radius: 9999rpx;
+  padding: 14rpx 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.04);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+
+  &:focus-within {
+    background: #FFFFFF;
+    border-color: #2F54EB;
+    box-shadow: 0 0 0 2rpx rgba(47, 84, 235, 0.15);
+  }
 }
 
 .search-icon {
   font-size: 28rpx;
   margin-right: 12rpx;
+  line-height: 1;
 }
 
 .search-input {
   flex: 1;
   font-size: 26rpx;
-  color: #111827;
+  color: #0F172A;
 }
 
 .clear-btn {
   font-size: 24rpx;
-  color: #9CA3AF;
+  color: #94A3B8;
   padding: 4rpx 10rpx;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.85);
+  }
 }
 
 .placeholder-text {
-  color: #9CA3AF;
+  color: #94A3B8;
   font-size: 26rpx;
 }
 
@@ -472,8 +496,9 @@ const handleVoucher = (item: OrderItemModel) => {
   align-items: center;
   justify-content: space-between;
   background: #FFFFFF;
-  padding: 12rpx 24rpx;
-  border-bottom: 1rpx solid #F3F4F6;
+  padding: 14rpx 24rpx;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.02);
 }
 
 .pills-scroll {
@@ -485,17 +510,26 @@ const handleVoucher = (item: OrderItemModel) => {
 .pill-item {
   display: inline-block;
   font-size: 24rpx;
-  padding: 8rpx 24rpx;
-  border-radius: 24rpx;
-  background: #F3F4F6;
-  color: #4B5563;
+  padding: 8rpx 26rpx;
+  border-radius: 9999rpx;
+  background: #F8FAFC;
+  color: #475569;
   margin-right: 12rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.2s ease, color 0.2s ease;
+
+  &:active {
+    transform: scale(0.93);
+  }
 }
 
 .pill-item.active {
-  background: #EFF6FF;
-  color: #2563EB;
-  font-weight: 600;
+  background: #EEF2FF;
+  color: #2F54EB;
+  font-weight: 700;
+  border-color: rgba(47, 84, 235, 0.25);
+  box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.12);
 }
 
 .status-dropdown-btn {
@@ -503,9 +537,15 @@ const handleVoucher = (item: OrderItemModel) => {
   align-items: center;
   gap: 6rpx;
   font-size: 24rpx;
-  color: #2563EB;
-  font-weight: 500;
+  color: #2F54EB;
+  font-weight: 600;
   white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.92);
+  }
 }
 
 /* 订单卡片流 */
@@ -523,9 +563,18 @@ const handleVoucher = (item: OrderItemModel) => {
 
 .order-record-card {
   background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.03);
+  border-radius: 28rpx;
+  padding: 28rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
+  transition: transform 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+  will-change: transform;
+  cursor: pointer;
+
+  &:active {
+    transform: scale(0.985);
+    box-shadow: 0 2rpx 10rpx rgba(15, 23, 42, 0.02);
+  }
 }
 
 .order-header-row {
@@ -743,6 +792,7 @@ const handleVoucher = (item: OrderItemModel) => {
 }
 
 .bottom-safe-space {
-  height: 80rpx;
+  height: calc(80rpx + constant(safe-area-inset-bottom));
+  height: calc(80rpx + env(safe-area-inset-bottom));
 }
 </style>

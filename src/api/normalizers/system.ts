@@ -55,7 +55,7 @@ export function normalizeUser(raw: any): SystemUser {
     email: raw.email || undefined,
     avatar: raw.avatar || '',
     campusId: raw.campusId || raw.campus?.id || 'campus-bj-hq',
-    campusName: raw.campus?.name || raw.campusName || '总部校区',
+    campusName: raw.campus?.name || raw.campusName || '拓视未来-原阳校区',
     departmentId: raw.departmentId || '',
     departmentName: raw.departmentName || '',
     postId: raw.postId || '',

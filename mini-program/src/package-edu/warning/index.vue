@@ -1,5 +1,5 @@
 <template>
-  <GenericSubPage title="学员预警 · 课消与流失监控" icon="⚡">
+  <GenericSubPage title="学员预警 · 课消与流失监控" icon="zap">
     <view class="warning-dashboard">
       <!-- 1. 预警指标看板 (对齐 SSOT 预警基准，双类名保持 100% 兼容) -->
       <view class="metrics-row warning-stat-cards">
@@ -35,14 +35,16 @@
 
       <!-- 3. 搜索栏 -->
       <view class="search-box">
-        <text class="search-icon">🔍</text>
+        <AppIcon name="search" size="32rpx" color="#94A3B8" />
         <input
           class="search-input"
           v-model="searchKeyword"
           placeholder="搜索预警学员姓名/手机号"
           placeholder-class="ph"
         />
-        <text v-if="searchKeyword" class="clear-btn" @click="searchKeyword = ''">✕</text>
+        <view v-if="searchKeyword" class="clear-btn" @click="searchKeyword = ''">
+          <AppIcon name="x" size="28rpx" color="#94A3B8" />
+        </view>
       </view>
 
       <!-- 4. 预警卡片列表 (双类名 warning-card warning-item 保持 100% 兼容) -->
@@ -66,7 +68,7 @@
           <view class="card-body">
             <text class="reason-desc">{{ item.reason }}</text>
             <view class="detail-row">
-              <text class="campus-text">校区: {{ item.campusName || '总部校区' }}</text>
+              <text class="campus-text">校区: {{ item.campusName || '拓视未来-原阳校区' }}</text>
               <text class="date-text">更新时间: {{ item.updatedAt || '今日' }}</text>
             </view>
           </view>
@@ -79,7 +81,9 @@
 
         <!-- 空状态提示 -->
         <view v-if="filteredList.length === 0" class="empty-state">
-          <text class="empty-icon">🍃</text>
+          <view class="empty-icon">
+            <AppIcon name="check-circle" size="96rpx" color="#10B981" />
+          </view>
           <text class="empty-text">暂无符合条件的预警学员</text>
         </view>
       </view>
@@ -91,6 +95,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import GenericSubPage from '../../components/GenericSubPage.vue';
+import AppIcon from '../../components/AppIcon.vue';
 import {
   renewalCoordinator,
   RefundLockedError,

@@ -35,8 +35,8 @@
             <text class="minus-symbol">－</text>
           </view>
 
-          <view class="icon-avatar" :style="{ background: item.bg }">
-            <text class="item-emoji">{{ item.icon }}</text>
+          <view class="icon-avatar">
+            <AppIcon :name="item.icon" size="44rpx" color="#2F54EB" />
           </view>
           <text class="item-name">{{ item.name }}</text>
 
@@ -47,14 +47,14 @@
               :class="{ disabled: idx === 0 }"
               @click.stop="moveUp(idx)"
             >
-              <text class="arrow-icon">▲</text>
+              <AppIcon name="chevron-up" size="20rpx" color="currentColor" />
             </view>
             <view
               class="arrow-btn move-down"
               :class="{ disabled: idx === activeList.length - 1 }"
               @click.stop="moveDown(idx)"
             >
-              <text class="arrow-icon">▼</text>
+              <AppIcon name="chevron-down" size="20rpx" color="currentColor" />
             </view>
           </view>
         </view>
@@ -88,9 +88,9 @@
 
           <view
             class="icon-avatar"
-            :style="{ background: item.bg, opacity: isAdded(item.id) ? 0.6 : 1 }"
+            :style="{ opacity: isAdded(item.id) ? 0.6 : 1 }"
           >
-            <text class="item-emoji">{{ item.icon }}</text>
+            <AppIcon :name="item.icon" size="44rpx" :color="isAdded(item.id) ? '#94A3B8' : '#2F54EB'" />
           </view>
           <text class="item-name" :class="{ 'name-muted': isAdded(item.id) }">
             {{ item.name }}
@@ -106,6 +106,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import CustomNavBar from '../../components/CustomNavBar.vue';
+import AppIcon from '../../components/AppIcon.vue';
 import {
   QuickActionItem,
   DEFAULT_QUICK_ACTIONS,
@@ -181,7 +182,7 @@ function handleSave() {
 <style lang="scss" scoped>
 .workbench-settings-container {
   min-height: 100vh;
-  background-color: #F8FAFC;
+  background-color: #F6F8FC;
   padding-bottom: 40rpx;
 }
 
@@ -189,19 +190,33 @@ function handleSave() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16rpx 28rpx;
+  padding: 20rpx 28rpx;
   background: #FFFFFF;
-  border-bottom: 1rpx solid #E5E7EB;
+  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.02);
+
+  .cancel-btn,
+  .save-btn {
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
 
   .top-bar-title {
     font-size: 32rpx;
     font-weight: 700;
-    color: #111827;
+    color: #0F172A;
+    letter-spacing: 0.2rpx;
   }
 
   .btn-text {
     font-size: 28rpx;
-    color: #6B7280;
+    color: #64748B;
+    font-weight: 500;
 
     &.highlight {
       color: #2F54EB;
@@ -215,17 +230,20 @@ function handleSave() {
   align-items: center;
   justify-content: space-between;
   padding: 16rpx 28rpx;
-  background: #EFF6FF;
+  background: #EEF2FF;
+  border-bottom: 1rpx solid rgba(47, 84, 235, 0.1);
 
   .tip-text {
     font-size: 22rpx;
     color: #2F54EB;
+    font-weight: 500;
   }
 
   .count-badge {
     background: #DBEAFE;
-    padding: 2rpx 14rpx;
-    border-radius: 20rpx;
+    padding: 4rpx 16rpx;
+    border-radius: 9999rpx;
+    border: 1rpx solid rgba(37, 99, 235, 0.2);
 
     .count-text {
       font-size: 22rpx;
@@ -235,6 +253,7 @@ function handleSave() {
 
     &.full-badge {
       background: #FEE2E2;
+      border-color: rgba(220, 38, 38, 0.2);
       .count-text {
         color: #DC2626;
       }
@@ -245,34 +264,46 @@ function handleSave() {
 .settings-card {
   margin: 20rpx 24rpx;
   background: #FFFFFF;
-  border-radius: 24rpx;
-  padding: 24rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.02);
+  border-radius: 28rpx;
+  padding: 28rpx 24rpx;
+  border: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 4rpx 20rpx rgba(15, 23, 42, 0.03);
 
   .card-title-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 24rpx;
+    padding: 0 6rpx;
 
     .card-title {
       font-size: 28rpx;
       font-weight: 700;
-      color: #111827;
+      color: #0F172A;
+      letter-spacing: 0.2rpx;
     }
 
     .reset-btn {
       font-size: 24rpx;
       color: #2F54EB;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+      &:active {
+        transform: scale(0.92);
+      }
     }
   }
 
   .category-header {
     margin-bottom: 20rpx;
+    padding: 0 6rpx;
+
     .category-title {
       font-size: 28rpx;
       font-weight: 700;
-      color: #374151;
+      color: #334155;
     }
   }
 
@@ -280,7 +311,7 @@ function handleSave() {
   .pool-functions-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    row-gap: 24rpx;
+    row-gap: 26rpx;
     column-gap: 16rpx;
 
     .active-grid-item,
@@ -289,29 +320,47 @@ function handleSave() {
       display: flex;
       flex-direction: column;
       align-items: center;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      will-change: transform;
+
+      &.pool-grid-item {
+        cursor: pointer;
+
+        &:active {
+          transform: scale(0.94);
+        }
+      }
 
       .icon-avatar {
-        width: 88rpx;
-        height: 88rpx;
-        border-radius: 24rpx;
+        width: 92rpx;
+        height: 92rpx;
+        border-radius: 26rpx;
+        background: linear-gradient(135deg, #EEF2FF 0%, #E0EAFF 100%);
+        border: 1rpx solid rgba(47, 84, 235, 0.12);
+        box-shadow: 0 4rpx 14rpx rgba(47, 84, 235, 0.05);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 8rpx;
-
-        .item-emoji {
-          font-size: 40rpx;
-        }
+        flex-shrink: 0;
+        margin-bottom: 12rpx;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       .item-name {
         font-size: 22rpx;
-        color: #374151;
+        color: #1E293B;
         font-weight: 500;
         text-align: center;
+        width: 100%;
+        height: 32rpx;
+        line-height: 32rpx;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        letter-spacing: 0.2rpx;
 
         &.name-muted {
-          color: #9CA3AF;
+          color: #94A3B8;
         }
       }
 
@@ -319,15 +368,22 @@ function handleSave() {
         position: absolute;
         top: -8rpx;
         right: 18rpx;
-        width: 36rpx;
-        height: 36rpx;
+        width: 38rpx;
+        height: 38rpx;
         border-radius: 50%;
-        background-color: #FF4D4F;
+        background-color: #DC2626;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2rpx 8rpx rgba(255, 77, 79, 0.4);
+        box-shadow: 0 2rpx 8rpx rgba(220, 38, 38, 0.45);
+        border: 2rpx solid #FFFFFF;
         z-index: 2;
+        cursor: pointer;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        &:active {
+          transform: scale(0.85);
+        }
 
         .minus-symbol {
           color: #FFFFFF;
@@ -341,24 +397,33 @@ function handleSave() {
         display: flex;
         align-items: center;
         gap: 12rpx;
-        margin-top: 6rpx;
+        margin-top: 8rpx;
 
         .arrow-btn {
-          width: 32rpx;
-          height: 32rpx;
-          background: #F3F4F6;
-          border-radius: 8rpx;
+          width: 36rpx;
+          height: 36rpx;
+          background: #F1F5F9;
+          border-radius: 10rpx;
           display: flex;
           align-items: center;
           justify-content: center;
+          cursor: pointer;
+          border: 1rpx solid rgba(15, 23, 42, 0.06);
+          transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.18s ease;
+
+          &:active:not(.disabled) {
+            transform: scale(0.88);
+            background: #E2E8F0;
+          }
 
           .arrow-icon {
             font-size: 16rpx;
-            color: #4B5563;
+            color: #475569;
           }
 
           &.disabled {
             opacity: 0.3;
+            cursor: not-allowed;
           }
         }
       }
@@ -367,28 +432,39 @@ function handleSave() {
         position: absolute;
         top: -6rpx;
         right: 18rpx;
-        width: 32rpx;
-        height: 32rpx;
+        width: 36rpx;
+        height: 36rpx;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
+        border: 2rpx solid #FFFFFF;
         z-index: 2;
+        transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+        &:active {
+          transform: scale(0.85);
+        }
 
         &.badge-add {
           background-color: #2F54EB;
+          box-shadow: 0 2rpx 8rpx rgba(47, 84, 235, 0.4);
+
           .action-symbol {
             color: #FFFFFF;
-            font-size: 20rpx;
+            font-size: 22rpx;
             font-weight: 900;
+            line-height: 1;
           }
         }
 
         &.badge-added {
-          background-color: #E5E7EB;
+          background-color: #E2E8F0;
+
           .action-symbol {
-            color: #9CA3AF;
+            color: #94A3B8;
             font-size: 18rpx;
+            line-height: 1;
           }
         }
       }

@@ -380,7 +380,8 @@ function handleTouchEnd() {
       .step-bar-inner {
         height: 100%;
         border-radius: 14rpx;
-        transition: width 0.3s ease;
+        transition: width 0.35s cubic-bezier(0.05, 0.7, 0.1, 1);
+        will-change: width;
       }
     }
 
@@ -391,10 +392,11 @@ function handleTouchEnd() {
       .rate-badge {
         font-size: 20rpx;
         color: #2F54EB;
-        background: #F0F5FF;
-        padding: 4rpx 10rpx;
-        border-radius: 8rpx;
-        font-weight: 600;
+        background: #EEF2FF;
+        padding: 4rpx 12rpx;
+        border-radius: 9999rpx;
+        font-weight: 700;
+        border: 1rpx solid rgba(47, 84, 235, 0.15);
       }
     }
   }
@@ -420,14 +422,15 @@ function handleTouchEnd() {
 
       .bar-val-text {
         font-size: 20rpx;
-        color: #4B5563;
+        color: #475569;
         margin-bottom: 8rpx;
+        font-weight: 600;
       }
 
       .bar-pillar-wrap {
         flex: 1;
         width: 24rpx;
-        background: #F3F4F6;
+        background: #F1F5F9;
         border-radius: 12rpx;
         display: flex;
         flex-direction: column;
@@ -437,14 +440,16 @@ function handleTouchEnd() {
         .bar-pillar-inner {
           width: 100%;
           border-radius: 12rpx;
-          transition: height 0.3s ease;
+          transition: height 0.35s cubic-bezier(0.05, 0.7, 0.1, 1);
+          will-change: height;
         }
       }
 
       .bar-label-text {
         font-size: 20rpx;
-        color: #6B7280;
+        color: #64748B;
         margin-top: 8rpx;
+        font-weight: 500;
       }
     }
   }

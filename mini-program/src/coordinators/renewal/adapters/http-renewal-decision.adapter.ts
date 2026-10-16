@@ -83,7 +83,7 @@ export class HttpRenewalDecisionAdapter implements RenewalDecisionPort {
         studentName: item.studentName || item.name || '学员',
         phone: item.phone || '',
         campusId: item.campusId || '',
-        campusName: item.campusName || '总部校区',
+        campusName: item.campusName || '拓视未来-原阳校区',
         currentStatus: item.currentStatus || '在读',
         grade: item.grade || '在读',
         courseId: item.decision?.targetCourseId || item.courseId,

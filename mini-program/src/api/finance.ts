@@ -270,7 +270,7 @@ export function normalizeApprovalItem(item: any): ApprovalItemModel {
     applicantName: String(item.applicantName || item.applicant?.realName || '冯老师'),
     applicantRole: String(item.applicantRole || (businessType === 'refund' ? '学管顾问' : '课程顾问')),
     campusId: String(item.order?.campusId || item.campusId || 'campus-bj-hq'),
-    campusName: String(item.order?.campus?.name || item.campus?.name || item.campusName || '总部校区'),
+    campusName: String(item.order?.campus?.name || item.campus?.name || item.campusName || '拓视未来-原阳校区'),
     createdAtText,
     studentName,
     courseName,
@@ -381,7 +381,7 @@ const MOCK_APPROVALS: ApprovalItemModel[] = [
     applicantName: '冯老师',
     applicantRole: '教务顾问',
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     createdAtText: '2026-10-15 10:30',
     studentName: '郑扶摇',
     courseName: '启蒙英语',
@@ -401,7 +401,7 @@ const MOCK_APPROVALS: ApprovalItemModel[] = [
     applicantName: '张销售',
     applicantRole: '课程顾问',
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     createdAtText: '2026-10-15 14:15',
     studentName: '赵梓涵',
     courseName: 'C++编程集训课',
@@ -421,7 +421,7 @@ const MOCK_APPROVALS: ApprovalItemModel[] = [
     applicantName: '冯老师',
     applicantRole: '教务顾问',
     campusId: 'campus-bj-hq',
-    campusName: '总部校区',
+    campusName: '拓视未来-原阳校区',
     createdAtText: '2026-10-14 16:50',
     studentName: '孙佳音',
     courseName: '少儿书法',
@@ -463,8 +463,19 @@ export const financeApi = {
       const list = rawList.map((item: any) => normalizeOrderItem(item));
       return { list, total: Number(res?.total ?? list.length) };
     } catch (e) {
-      console.warn('[financeApi] 获取后端订单列表失败:', e);
-      return { list: [], total: 0 };
+      console.warn('[financeApi] 获取后端订单列表失败，使用离线容灾数据:', e);
+      let list = [...MOCK_ORDERS];
+      if (params?.keyword) {
+        const kw = params.keyword.trim().toLowerCase();
+        list = list.filter((o) => o.orderNo.toLowerCase().includes(kw) || o.studentName.toLowerCase().includes(kw) || o.studentPhone.includes(kw));
+      }
+      if (params?.orderType && params.orderType !== 'all') {
+        list = list.filter((o) => o.orderType === params.orderType);
+      }
+      if (params?.status && params.status !== 'all') {
+        list = list.filter((o) => o.status === params.status);
+      }
+      return { list, total: list.length };
     }
   },
 
@@ -567,8 +578,15 @@ export const financeApi = {
       const list = rawList.map((item: any) => normalizeApprovalItem(item));
       return { list, total: Number(res?.total ?? list.length) };
     } catch (e) {
-      console.warn('[financeApi] 获取审批列表失败:', e);
-      return { list: [], total: 0 };
+      console.warn('[financeApi] 获取审批列表失败，使用离线容灾数据:', e);
+      let list = [...MOCK_APPROVALS];
+      if (params?.businessType && params.businessType !== 'all') {
+        list = list.filter((a) => a.businessType === params.businessType);
+      }
+      if (params?.status && params.status !== 'all') {
+        list = list.filter((a) => a.status === params.status);
+      }
+      return { list, total: list.length };
     }
   },
 

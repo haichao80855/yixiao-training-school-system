@@ -10,7 +10,7 @@ export function isCampusMatch(orderCampusId?: string, filterCampusId?: string): 
   if (!orderCampusId) return false;
 
   const normalizeCampus = (id: string) => {
-    if (id === 'CAMPUS_HQ' || id === 'campus-bj-hq' || id === '1' || id === '总部校区') return 'campus-bj-hq';
+    if (id === 'CAMPUS_HQ' || id === 'campus-bj-hq' || id === '1' || id === '总部校区' || id === '拓视未来-原阳校区') return 'campus-bj-hq';
     if (id === 'CAMPUS_SH' || id === 'campus-sh-pd' || id === '2' || id === '上海浦东校区') return 'campus-sh-pd';
     if (id === 'CAMPUS_SZ' || id === 'campus-sz-ns' || id === '3' || id === '深圳南山校区') return 'campus-sz-ns';
     return id;

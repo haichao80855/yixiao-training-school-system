@@ -51,7 +51,7 @@
     <!-- 3. 一键推送横幅 (对齐截图 016: 填写课评后，点击这里一键推送 [全部推送]) -->
     <view class="push-notice-banner">
       <view class="banner-left">
-        <text class="plane-icon">✈️</text>
+        <AppIcon name="send" size="32rpx" color="#EA580C" class="plane-icon" />
         <text class="notice-desc">填写课评后，点击这里一键推送</text>
       </view>
       <view class="push-all-btn" @click="handlePushAll">全部推送</view>
@@ -63,7 +63,7 @@
         <!-- 学员头像与角标 -->
         <view class="avatar-wrap">
           <view class="avatar-circle">
-            <text class="avatar-emoji">👦</text>
+            <AppIcon name="user" size="52rpx" color="#2F54EB" />
           </view>
           <view class="tag-corner">正</view>
         </view>
@@ -102,6 +102,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { eduApi, ScheduleEventModel, StudentRollCallModel } from '../../api/edu';
 import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
+import AppIcon from '../../components/AppIcon.vue';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
@@ -506,7 +507,9 @@ const handleGoBack = () => {
     gap: 10rpx;
 
     .plane-icon {
-      font-size: 28rpx;
+      width: 32rpx;
+      height: 32rpx;
+      flex-shrink: 0;
     }
 
     .notice-desc {
@@ -555,10 +558,7 @@ const handleGoBack = () => {
         display: flex;
         align-items: center;
         justify-content: center;
-
-        .avatar-emoji {
-          font-size: 54rpx;
-        }
+        overflow: hidden;
       }
 
       .tag-corner {
@@ -581,6 +581,7 @@ const handleGoBack = () => {
 
     .student-info-col {
       flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 6rpx;
@@ -624,50 +625,80 @@ const handleGoBack = () => {
       flex-direction: column;
       gap: 12rpx;
       align-items: flex-end;
+      flex-shrink: 0;
 
       .status-toggle-btn {
         width: 140rpx;
         height: 56rpx;
-        border-radius: 28rpx;
+        box-sizing: border-box;
+        border-radius: 9999rpx;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24rpx;
         font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+        transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        will-change: transform;
+
+        &:active {
+          transform: scale(0.92);
+        }
 
         &.status-present {
           background: #DCFCE7;
           color: #15803D;
+          border: 1rpx solid rgba(21, 128, 61, 0.15);
         }
 
         &.status-leave {
           background: #FEF3C7;
           color: #B45309;
+          border: 1rpx solid rgba(180, 83, 9, 0.15);
         }
 
         &.status-absent {
           background: #FEE2E2;
           color: #B91C1C;
+          border: 1rpx solid rgba(185, 28, 28, 0.15);
+        }
+
+        &.status-late {
+          background: #F3E8FF;
+          color: #7E22CE;
+          border: 1rpx solid rgba(126, 34, 206, 0.15);
         }
       }
 
       .eval-btn {
         width: 140rpx;
         height: 56rpx;
-        border-radius: 28rpx;
-        background: #EFF6FF;
-        color: #2563EB;
+        box-sizing: border-box;
+        border-radius: 9999rpx;
+        background: #EEF2FF;
+        color: #2F54EB;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24rpx;
         font-weight: 600;
+        line-height: 1;
+        cursor: pointer;
+        border: 1rpx solid rgba(47, 84, 235, 0.15);
+        transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+        will-change: transform;
+
+        &:active {
+          transform: scale(0.92);
+        }
       }
     }
   }
 
   .bottom-safe-space {
-    height: 40rpx;
+    height: calc(60rpx + constant(safe-area-inset-bottom));
+    height: calc(60rpx + env(safe-area-inset-bottom));
   }
 }
 </style>
