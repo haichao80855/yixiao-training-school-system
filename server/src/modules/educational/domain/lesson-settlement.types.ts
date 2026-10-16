@@ -10,14 +10,23 @@ export interface WorkbenchQuery {
   date?: string;             // YYYY-MM-DD
   teacherId?: string;        // 讲师过滤 (数据权限绑定)
   classId?: string;
+  period?: string;           // 时间段: 今日, 本周, 本月, 上月, 本年, 10月 等
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface WorkbenchMetrics {
-  scheduledCount: number;    // 当日待上课次
-  completedCount: number;    // 当日已结课次
-  totalStudents: number;     // 当日应到学员总人次
-  presentStudents: number;   // 当日实到学员总人次
-  totalDeductedLessons: number; // 累计扣减课消学时
+  scheduledCount: number;    // 当日/周期待上课次
+  completedCount: number;    // 当日/周期已结课次
+  totalStudents: number;     // 当日/周期应到学员总人次
+  presentStudents: number;   // 当日/周期实到学员总人次
+  totalDeductedLessons: number; // 累计/周期扣减课消学时
+  regularLessons?: number;
+  expandLessons?: number;
+  consumptionAmount?: number;
+  consumptionRegularAmount?: number;
+  consumptionExpandAmount?: number;
+  consumptionTrend?: Array<{ label: string; value: number }>;
 }
 
 export interface ScheduleCardView {

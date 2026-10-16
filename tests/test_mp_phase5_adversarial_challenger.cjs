@@ -65,7 +65,17 @@ const escapeSvgColor = rawChartObj.escapeSvgColor;
 const wbTsSource = fs.readFileSync(path.resolve(miniProgRoot, 'src/api/workbench.ts'), 'utf8');
 const transpiledWb = ts.transpileModule(wbTsSource, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const workbenchModule = {};
-new Function('exports', 'require', transpiledWb)(workbenchModule, require);
+const customWbRequire = (id) => {
+  if (id.includes('icons')) {
+    const iconsTs = fs.readFileSync(path.resolve(miniProgRoot, 'src/utils/icons.ts'), 'utf8');
+    const transpiledIcons = ts.transpileModule(iconsTs, { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
+    const iconsObj = {};
+    new Function('exports', transpiledIcons)(iconsObj);
+    return iconsObj;
+  }
+  return require(id);
+};
+new Function('exports', 'require', transpiledWb)(workbenchModule, customWbRequire);
 
 // -----------------------------------------------------------------------------
 // 【DIMENSION 1】SVG Data-URI 生成与颜色转义对抗测试

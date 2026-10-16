@@ -16,8 +16,51 @@ export class FinancialService {
   ) {}
 
   // ----------------------------------------------------------------
-  // 1. 财务订单账本与高精算力 Summary Strip
+  // 1. 财务订单账本与高精算力 Summary Strip (支持 Period 时间段宏定义自动解析)
   // ----------------------------------------------------------------
+
+  public resolvePeriodRange(period?: string, refDate = new Date()): { startDate: string; endDate: string } | null {
+    if (!period || period === 'all') return null;
+    const year = refDate.getFullYear();
+    const month = refDate.getMonth();
+    const date = refDate.getDate();
+    const pad = (n: number) => (n < 10 ? '0' + n : String(n));
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (period === '今日' || period === 'today') {
+      const dStr = fmt(refDate);
+      return { startDate: dStr, endDate: dStr };
+    }
+
+    if (period === '本周' || period === 'week') {
+      const day = refDate.getDay();
+      const diffToMon = (day === 0 ? -6 : 1) - day;
+      const monday = new Date(refDate);
+      monday.setDate(date + diffToMon);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      return { startDate: fmt(monday), endDate: fmt(sunday) };
+    }
+
+    if (period === '上月' || period === 'last_month') {
+      const prevMonthLastDay = new Date(year, month, 0);
+      const prevMonthFirstDay = new Date(year, month - 1, 1);
+      return { startDate: fmt(prevMonthFirstDay), endDate: fmt(prevMonthLastDay) };
+    }
+
+    if (period === '本年' || period === 'year') {
+      return { startDate: `${year}-01-01`, endDate: `${year}-12-31` };
+    }
+
+    let targetMonth = month;
+    const match = period.match(/^(\d{1,2})月?$/);
+    if (match) {
+      targetMonth = parseInt(match[1], 10) - 1;
+    }
+    const firstDay = new Date(year, targetMonth, 1);
+    const lastDay = new Date(year, targetMonth + 1, 0);
+    return { startDate: fmt(firstDay), endDate: fmt(lastDay) };
+  }
 
   private buildOrderWhere(query: OrderFilterDto, campusId?: string) {
     const where: any = {};
@@ -75,18 +118,28 @@ export class FinancialService {
       }
     }
 
-    if (query.startDate && query.endDate) {
+    let startDate = query.startDate;
+    let endDate = query.endDate;
+    if (query.period && !startDate && !endDate) {
+      const resolved = this.resolvePeriodRange(query.period);
+      if (resolved) {
+        startDate = resolved.startDate;
+        endDate = resolved.endDate;
+      }
+    }
+
+    if (startDate && endDate) {
       where.createdAt = {
-        gte: new Date(query.startDate),
-        lte: new Date(query.endDate.includes('T') ? query.endDate : `${query.endDate}T23:59:59.999Z`),
+        gte: new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`),
+        lte: new Date(endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`),
       };
-    } else if (query.startDate) {
+    } else if (startDate) {
       where.createdAt = {
-        gte: new Date(query.startDate),
+        gte: new Date(startDate.includes('T') ? startDate : `${startDate}T00:00:00.000Z`),
       };
-    } else if (query.endDate) {
+    } else if (endDate) {
       where.createdAt = {
-        lte: new Date(query.endDate.includes('T') ? query.endDate : `${query.endDate}T23:59:59.999Z`),
+        lte: new Date(endDate.includes('T') ? endDate : `${endDate}T23:59:59.999Z`),
       };
     }
 
@@ -170,6 +223,7 @@ export class FinancialService {
         where,
         select: {
           status: true,
+          orderType: true,
           originalPrice: true,
           discountAmount: true,
           receivableAmount: true,
@@ -187,6 +241,10 @@ export class FinancialService {
     let originalSumInCents = 0;
     let discountSumInCents = 0;
     let actualSumInCents = 0;
+    let courseAmountInCents = 0;
+    let goodsAmountInCents = 0;
+    let walletAmountInCents = 0;
+    let refundAmountInCents = 0;
 
     for (const ord of orders) {
       if (ord.status === 'paid') {
@@ -195,6 +253,17 @@ export class FinancialService {
       originalSumInCents += Math.round(ord.originalPrice * 100);
       discountSumInCents += Math.round((ord.discountAmount || 0) * 100);
       actualSumInCents += Math.round(ord.actualAmount * 100);
+
+      const amtInCents = Math.round(ord.actualAmount * 100);
+      if (ord.orderType === 'regular' || ord.orderType === 'quarterly') {
+        courseAmountInCents += amtInCents;
+      } else if (ord.orderType === 'wallet_recharge') {
+        walletAmountInCents += amtInCents;
+      } else if (ord.orderType === 'refund') {
+        refundAmountInCents += Math.abs(amtInCents);
+      } else {
+        goodsAmountInCents += amtInCents;
+      }
     }
 
     const statusCounts: Record<string, number> = {
@@ -219,6 +288,10 @@ export class FinancialService {
       totalActualAmount: totalAmount,
       totalCount: totalOrders,
       totalAmount,
+      courseAmount: courseAmountInCents / 100,
+      goodsAmount: goodsAmountInCents / 100,
+      walletAmount: walletAmountInCents / 100,
+      refundAmount: refundAmountInCents / 100,
       formattedAmount: totalAmount.toLocaleString('zh-CN', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,

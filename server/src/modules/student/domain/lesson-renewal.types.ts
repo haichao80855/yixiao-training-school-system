@@ -28,6 +28,8 @@ export const RENEWAL_RISK_CONSTANTS = {
   RECOMMENDED_SEMESTER_LESSONS: 48,
   /** 推荐续费季度轻量课时档位 */
   RECOMMENDED_QUARTER_LESSONS: 24,
+  /** 默认推荐立减优惠 (元) */
+  DEFAULT_SUGGESTED_DISCOUNT: 200,
 } as const;
 
 /** 课消三色预警等级 */

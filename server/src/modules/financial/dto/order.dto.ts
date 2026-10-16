@@ -42,6 +42,10 @@ export class OrderFilterDto {
 
   @IsOptional()
   @IsString()
+  period?: string;
+
+  @IsOptional()
+  @IsString()
   keyword?: string;
 
   @IsOptional()

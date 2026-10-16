@@ -473,6 +473,9 @@ export class EducationalController {
   async getWorkbenchSnapshot(
     @Query('date') date?: string,
     @Query('classId') classId?: string,
+    @Query('period') period?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
     @CampusScope() scope?: CampusScopeResult,
     @CurrentUser() user?: any,
   ) {
@@ -483,6 +486,9 @@ export class EducationalController {
       date,
       teacherId,
       classId,
+      period,
+      startDate,
+      endDate,
     });
   }
 

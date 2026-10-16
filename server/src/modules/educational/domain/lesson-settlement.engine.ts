@@ -17,20 +17,103 @@ import {
 export class LessonSettlementEngine {
   constructor(private readonly prisma: PrismaService) {}
 
+  public resolvePeriodRange(period?: string, refDate = new Date()): { startDate: string; endDate: string; trendLabels: string[] } | null {
+    if (!period || period === 'all') return null;
+    const year = refDate.getFullYear();
+    const month = refDate.getMonth();
+    const date = refDate.getDate();
+    const pad = (n: number) => (n < 10 ? '0' + n : String(n));
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (period === '今日' || period === 'today') {
+      const dStr = fmt(refDate);
+      return {
+        startDate: dStr,
+        endDate: dStr,
+        trendLabels: ['09:00', '11:00', '13:00', '15:00', '17:00', '19:00', '21:00'],
+      };
+    }
+
+    if (period === '本周' || period === 'week') {
+      const day = refDate.getDay();
+      const diffToMon = (day === 0 ? -6 : 1) - day;
+      const monday = new Date(refDate);
+      monday.setDate(date + diffToMon);
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      return {
+        startDate: fmt(monday),
+        endDate: fmt(sunday),
+        trendLabels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+      };
+    }
+
+    if (period === '上月' || period === 'last_month') {
+      const prevMonthLastDay = new Date(year, month, 0);
+      const prevMonthFirstDay = new Date(year, month - 1, 1);
+      return {
+        startDate: fmt(prevMonthFirstDay),
+        endDate: fmt(prevMonthLastDay),
+        trendLabels: ['第1周', '第2周', '第3周', '第4周'],
+      };
+    }
+
+    if (period === '本年' || period === 'year') {
+      return {
+        startDate: `${year}-01-01`,
+        endDate: `${year}-12-31`,
+        trendLabels: ['02月', '04月', '06月', '08月', '10月', '12月'],
+      };
+    }
+
+    let targetMonth = month;
+    const match = period.match(/^(\d{1,2})月?$/);
+    if (match) {
+      targetMonth = parseInt(match[1], 10) - 1;
+    }
+    const firstDay = new Date(year, targetMonth, 1);
+    const lastDay = new Date(year, targetMonth + 1, 0);
+    return {
+      startDate: fmt(firstDay),
+      endDate: fmt(lastDay),
+      trendLabels: [
+        `${pad(targetMonth + 1)}-05`,
+        `${pad(targetMonth + 1)}-10`,
+        `${pad(targetMonth + 1)}-15`,
+        `${pad(targetMonth + 1)}-20`,
+        `${pad(targetMonth + 1)}-25`,
+        `${pad(targetMonth + 1)}-30`,
+      ],
+    };
+  }
+
   /**
    * 1. 获取授课工作台完整就绪视图 (一站式获取看板指标、待上课次与历史冲正流水)
    * 彻底消除前端在浏览器端手动 reduce 和 filter 胶水代码
    */
   async getWorkbenchSnapshot(query: WorkbenchQuery): Promise<WorkbenchSnapshot> {
     const todayStr = this.getTodayDateStr();
-    const targetDate = query.date || todayStr;
+    let startDate = query.startDate;
+    let endDate = query.endDate;
+    if (query.period && !startDate && !endDate) {
+      const resolved = this.resolvePeriodRange(query.period);
+      if (resolved) {
+        startDate = resolved.startDate;
+        endDate = resolved.endDate;
+      }
+    }
+    const targetDate = query.date || (startDate && endDate && startDate === endDate ? startDate : todayStr);
 
     // 1. 构建排课日程查询范围
     const scheduleWhere: any = {};
     if (query.campusId && query.campusId !== 'all') {
       scheduleWhere.campusId = query.campusId;
     }
-    scheduleWhere.date = targetDate;
+    if (startDate && endDate) {
+      scheduleWhere.date = startDate === endDate ? startDate : { gte: startDate, lte: endDate };
+    } else {
+      scheduleWhere.date = targetDate;
+    }
     if (query.teacherId) {
       scheduleWhere.teacherId = query.teacherId;
     }
@@ -67,6 +150,12 @@ export class LessonSettlementEngine {
     if (query.campusId && query.campusId !== 'all') {
       attendanceWhere.scheduleEvent = { campusId: query.campusId };
     }
+    if (startDate && endDate) {
+      attendanceWhere.scheduleEvent = {
+        ...(attendanceWhere.scheduleEvent || {}),
+        date: startDate === endDate ? startDate : { gte: startDate, lte: endDate },
+      };
+    }
     if (query.classId) {
       attendanceWhere.scheduleEvent = {
         ...(attendanceWhere.scheduleEvent || {}),
@@ -91,6 +180,7 @@ export class LessonSettlementEngine {
           },
         },
         student: true,
+        package: { include: { course: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -212,10 +302,30 @@ export class LessonSettlementEngine {
       0,
     );
 
-    // 历史累计课消学时（全校区/全当前查询范围有效非冲正学时）
-    const totalDeductedLessons = history
-      .filter((h) => !h.isReversed)
-      .reduce((sum, h) => sum + h.deductedLessonsTotal, 0);
+    // 历史累计课消学时与消课金额计算
+    let totalDeductedLessons = 0;
+    let totalConsumptionAmount = 0;
+    let regularConsumptionAmount = 0;
+    let expandConsumptionAmount = 0;
+    let regularLessons = 0;
+    let expandLessons = 0;
+
+    for (const record of rawAttendances) {
+      if (record.isReversed) continue;
+      const dLessons = record.deductLessons || 1;
+      totalDeductedLessons += dLessons;
+      const pPrice = (record as any).package?.pricePerLesson || (record.scheduleEvent?.class as any)?.course?.pricePerLesson || 120;
+      const amt = dLessons * pPrice;
+      totalConsumptionAmount += amt;
+      const isRegular = (record.scheduleEvent?.class as any)?.course?.attribute === 'regular';
+      if (isRegular) {
+        regularConsumptionAmount += amt;
+        regularLessons += dLessons;
+      } else {
+        expandConsumptionAmount += amt;
+        expandLessons += dLessons;
+      }
+    }
 
     return {
       campusId: query.campusId,
@@ -226,6 +336,11 @@ export class LessonSettlementEngine {
         totalStudents,
         presentStudents,
         totalDeductedLessons,
+        regularLessons,
+        expandLessons,
+        consumptionAmount: totalConsumptionAmount,
+        consumptionRegularAmount: regularConsumptionAmount,
+        consumptionExpandAmount: expandConsumptionAmount,
       },
       schedules,
       history,

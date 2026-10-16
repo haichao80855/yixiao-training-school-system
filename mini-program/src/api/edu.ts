@@ -103,7 +103,7 @@ export interface CommitEvaluationPayload {
   payload?: any;
 }
 
-const BASE_URL = 'http://127.0.0.1:3001';
+const BASE_URL = 'https://17a6937c.r38.cpolar.top';
 
 /**
  * 教务模块统一 API 客户端

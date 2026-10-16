@@ -19,8 +19,8 @@
         title="课耗金额(元)"
         helpText="统计周期内学员已上课次的消课金额核算汇总"
         :value="adminData.lessonConsumptionAmount"
-        :period="currentPeriod"
-        @period-change="handlePeriodChange"
+        :period="adminCardPeriods.consumption"
+        @period-change="(p) => handleAdminCardPeriodChange('consumption', p)"
         :subCards="[
           { label: '常规课', value: adminData.lessonConsumptionRegular.toFixed(2), icon: 'book-open', type: 'regular' },
           { label: '扩科', value: adminData.lessonConsumptionExpand.toFixed(2), icon: 'book-open', type: 'expand' },
@@ -46,8 +46,8 @@
         title="招生人数(人)"
         helpText="统计周期内新签约与续费入读学员总人数"
         :value="adminData.enrollmentStudentCount"
-        :period="currentPeriod"
-        @period-change="handlePeriodChange"
+        :period="adminCardPeriods.enrollment"
+        @period-change="(p) => handleAdminCardPeriodChange('enrollment', p)"
         :subCards="[
           { label: '常规课', value: adminData.enrollmentRegularCount, icon: 'book-open', type: 'regular' },
           { label: '扩科', value: adminData.enrollmentExpandCount, icon: 'book-open', type: 'expand' }
@@ -65,8 +65,8 @@
         title="预收数据(元)"
         helpText="统计周期内收取的课程学费、物品及钱包充值资产总额"
         :value="adminData.advanceReceiptAmount"
-        :period="currentPeriod"
-        @period-change="handlePeriodChange"
+        :period="adminCardPeriods.advance"
+        @period-change="(p) => handleAdminCardPeriodChange('advance', p)"
         :subCards="[
           { label: '常规课', value: adminData.advanceCourseAmount.toFixed(2), icon: 'credit-card', type: 'regular' },
           { label: '物品预收', value: adminData.advanceGoodsAmount.toFixed(2), icon: 'package', type: 'expand' },
@@ -74,7 +74,7 @@
           { label: '其他', value: '0.00', icon: 'file-text', type: 'other' }
         ]"
         footerLabel="退费金额"
-        footerValue="¥0.00"
+        :footerValue="`¥${(adminData.refundAmount || 0).toFixed(2)}`"
       />
 
       <!-- 流失学员卡片 (截图 073, 074) -->
@@ -82,8 +82,8 @@
         title="流失学员数量(人)"
         helpText="统计周期内停课、退费或到期未续费的学员流失情况"
         :value="adminData.churnRiskStudentCount"
-        :period="currentPeriod"
-        @period-change="handlePeriodChange"
+        :period="adminCardPeriods.churn"
+        @period-change="(p) => handleAdminCardPeriodChange('churn', p)"
         footerLabel="流失原因占比最高"
         footerValue="未填写"
       >
@@ -408,6 +408,12 @@ const roleTabs = [
 
 const currentRoleTab = ref('admin');
 const currentPeriod = ref('10月');
+const adminCardPeriods = ref({
+  consumption: '10月',
+  enrollment: '10月',
+  advance: '10月',
+  churn: '10月',
+});
 const loading = ref(false);
 
 const currentRoleName = computed(() => {
@@ -523,16 +529,20 @@ function toggleAccordion(key: string) {
   }
 }
 
-// 模拟流失趋势
-const churnTrendData = [
-  { label: '10-01', value: 0 },
-  { label: '10-02', value: 0 },
-  { label: '10-03', value: 0 },
-  { label: '10-04', value: 0 },
-  { label: '10-05', value: 0 },
-  { label: '10-06', value: 0 },
-  { label: '10-07', value: 0 },
-];
+// 流失趋势（根据 adminData.churnTrend 响应式联动）
+const churnTrendData = computed(() => {
+  return adminData.value.churnTrend && adminData.value.churnTrend.length > 0
+    ? adminData.value.churnTrend
+    : [
+        { label: '10-01', value: 0 },
+        { label: '10-02', value: 0 },
+        { label: '10-03', value: 0 },
+        { label: '10-04', value: 0 },
+        { label: '10-05', value: 0 },
+        { label: '10-06', value: 0 },
+        { label: '10-07', value: 0 },
+      ];
+});
 
 // 班容柱形
 const classCapacityBars = computed(() => {
@@ -552,7 +562,7 @@ async function loadDashboardData() {
 
   try {
     if (currentRoleTab.value === 'admin') {
-      adminData.value = await statsApi.getDashboardOverview(cid, p);
+      adminData.value = await statsApi.getDashboardOverview(cid, adminCardPeriods.value);
     } else if (currentRoleTab.value === 'edu') {
       eduData.value = await statsApi.getEduStats(cid, p);
     } else if (currentRoleTab.value === 'finance') {
@@ -575,6 +585,17 @@ function handleRoleTabChange(roleId: string) {
 
 function handlePeriodChange(p: string) {
   currentPeriod.value = p;
+  adminCardPeriods.value = {
+    consumption: p,
+    enrollment: p,
+    advance: p,
+    churn: p,
+  };
+  loadDashboardData();
+}
+
+function handleAdminCardPeriodChange(cardKey: 'consumption' | 'enrollment' | 'advance' | 'churn', p: string) {
+  adminCardPeriods.value[cardKey] = p;
   loadDashboardData();
 }
 
