@@ -9,12 +9,16 @@ import type {
   FulfillmentReversalReceipt,
   FulfillmentCommitOptions,
   FulfillmentSession,
+  FulfillmentWorkbenchSession,
   ClientLessonFulfillmentCoordinator,
   StudentFulfillmentOverride,
+  StudentEvaluationDraft,
+  QuickFulfillOptions,
+  DraftSaveOptions,
 } from './types';
 import type { FulfillmentPort, DraftStoragePort } from './ports';
 import { HttpFulfillmentAdapter } from './adapters/http-fulfillment.adapter';
-import { UniStorageDraftAdapter } from './adapters/storage-draft.adapter';
+import { UniStorageDraftAdapter, MemoryDraftStorageAdapter } from './adapters/storage-draft.adapter';
 
 interface StudentBaseline {
   status: AttendanceStatus;
@@ -103,12 +107,12 @@ export class DefaultFulfillmentSession implements FulfillmentSession {
       overrides: this.computeAnomalyOverrides(),
       savedAt: new Date().toISOString(),
     };
-    this.storage.setDraft(`eval_draft_${this.schedule.id}`, draftPayload);
+    this.storage.setDraft({ scheduleId: this.schedule.id }, draftPayload);
 
-    // 兼顾历史单学员草稿键名
+    // 兼顾单学员草稿
     for (const s of this.students) {
       if (s.comment) {
-        this.storage.setDraft(`eval_draft_${this.schedule.id}_${s.studentId}`, {
+        this.storage.setDraft({ scheduleId: this.schedule.id, studentId: s.studentId }, {
           studyContent: s.comment,
           uploadedPhotos: this.evaluation.photoList,
           uploadedVideo: this.evaluation.videoUrl,
@@ -151,10 +155,16 @@ export class DefaultFulfillmentSession implements FulfillmentSession {
 
     const res = await this.port.commitFulfillment(requestData);
 
-    // 履约成功后原子清除草稿缓存
-    this.storage.removeDraft(`eval_draft_${this.schedule.id}`);
-    for (const s of this.students) {
-      this.storage.removeDraft(`eval_draft_${this.schedule.id}_${s.studentId}`);
+    // 履约成功后原子级联清除该排课全部草稿
+    if (typeof this.storage.purgeScheduleDrafts === 'function') {
+      this.storage.purgeScheduleDrafts(this.schedule.id);
+    } else {
+      this.storage.removeDraft({ scheduleId: this.schedule.id });
+      this.storage.removeDraft(`eval_draft_${this.schedule.id}`);
+      for (const s of this.students) {
+        this.storage.removeDraft({ scheduleId: this.schedule.id, studentId: s.studentId });
+        this.storage.removeDraft(`eval_draft_${this.schedule.id}_${s.studentId}`);
+      }
     }
 
     this.isCommitted = true;
@@ -218,6 +228,8 @@ export class DefaultFulfillmentSession implements FulfillmentSession {
 }
 
 export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfillmentCoordinator {
+  private readonly debounceTimers: Map<string, any> = new Map();
+
   constructor(
     public readonly port: FulfillmentPort = new HttpFulfillmentAdapter(),
     public readonly storage: DraftStoragePort = new UniStorageDraftAdapter()
@@ -228,8 +240,12 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
   }
 
   /**
-   * 1. 零心智极速履约 (90% 通途 Happy Path)
+   * 1. 零心智极速履约 (90% 通途 Happy Path: quickFulfill / fulfill)
    */
+  async quickFulfill(scheduleEventId: string, options?: QuickFulfillOptions): Promise<FulfillmentReceipt> {
+    return this.fulfill(scheduleEventId, options);
+  }
+
   async fulfill(scheduleEventId: string, options?: { idempotencyKey?: string }): Promise<FulfillmentReceipt> {
     const idempotencyKey = options?.idempotencyKey || `mp-ful-quick-${scheduleEventId}-${Date.now()}`;
     const payload = {
@@ -242,8 +258,13 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
 
     const res = await this.port.commitFulfillment(payload);
 
-    // 清理可能存在的历史残留草稿
-    this.storage.removeDraft(`eval_draft_${scheduleEventId}`);
+    // 一键原子出清该排课日程下的全部草稿
+    if (typeof this.storage.purgeScheduleDrafts === 'function') {
+      this.storage.purgeScheduleDrafts(scheduleEventId);
+    } else {
+      this.storage.removeDraft({ scheduleId: scheduleEventId });
+      this.storage.removeDraft(`eval_draft_${scheduleEventId}`);
+    }
 
     return {
       receiptId: res?.receiptId || `REC-FUL-${Date.now()}`,
@@ -260,6 +281,224 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       outboxCount: res?.outboxSummary?.enqueuedCount || 10,
     };
   }
+
+  /**
+   * 2. 加载交互式整班履约工作台会话 (openWorkbench / loadSession)
+   */
+  async openWorkbench(scheduleEventId: string): Promise<FulfillmentWorkbenchSession> {
+    return this.loadSession(scheduleEventId);
+  }
+
+  /**
+   * 3. 单学员随堂课评草稿智能水化 (hydrateStudentDraft)
+   * 结合排课元数据、教研大纲标准、出勤基线与本地草稿，封闭 _baselineToken
+   */
+  async hydrateStudentDraft(scheduleEventId: string, studentId: string): Promise<StudentEvaluationDraft> {
+    const raw = await this.port.fetchWorkbench(scheduleEventId);
+
+    const schedule = raw?.schedule;
+    const rawStudents: any[] = Array.isArray(raw?.students) ? raw.students : [];
+    const targetStudent = rawStudents.find((s: any) => (s.studentId || s.id) === studentId);
+
+    const baselineContent =
+      raw?.evaluationDraft?.studyContentHtml ||
+      raw?.evaluationSummary?.studyContent ||
+      '本堂课学生专注投入，知识点掌握扎实。';
+    const baselineRating = 5;
+
+    // 读取本地存储草稿 (基于 DraftScope 强类型领域语义)
+    const singleDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId, studentId });
+    const globalDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId });
+    const studentOverride = globalDraft?.overrides?.find((o: any) => o.studentId === studentId);
+
+    const templateName =
+      singleDraft?.templateName ||
+      globalDraft?.evaluation?.templateName ||
+      raw?.evaluationDraft?.templateName ||
+      raw?.evaluationSummary?.templateName ||
+      '通用课评模板';
+
+    const templateId =
+      singleDraft?.templateId ||
+      globalDraft?.evaluation?.templateId ||
+      raw?.evaluationDraft?.templateId ||
+      raw?.evaluationSummary?.templateId ||
+      'tpl-std';
+
+    const studyContent =
+      singleDraft?.studyContent ||
+      singleDraft?.content ||
+      studentOverride?.personalizedComment ||
+      targetStudent?.comment ||
+      baselineContent;
+
+    const rating =
+      singleDraft?.rating ??
+      studentOverride?.rating ??
+      targetStudent?.rating ??
+      baselineRating;
+
+    const photos: string[] =
+      singleDraft?.uploadedPhotos ||
+      singleDraft?.photos ||
+      globalDraft?.evaluation?.photoList ||
+      raw?.evaluationDraft?.photoList ||
+      [];
+
+    const videoUrl: string =
+      singleDraft?.uploadedVideo ||
+      singleDraft?.videoUrl ||
+      globalDraft?.evaluation?.videoUrl ||
+      raw?.evaluationDraft?.videoUrl ||
+      '';
+
+    const isModified = Boolean(
+      (studyContent && studyContent !== baselineContent) ||
+      rating !== baselineRating ||
+      photos.length > 0 ||
+      videoUrl
+    );
+
+    return {
+      studentId,
+      studentName: targetStudent?.name || targetStudent?.studentName || singleDraft?.studentName || '学员',
+      className: schedule?.className || singleDraft?.className || '班级',
+      courseName: schedule?.courseName || singleDraft?.courseName || '课程',
+      lessonTitle: raw?.evaluationDraft?.lessonTitle || '随堂课评与素养分析',
+      templateId,
+      templateName,
+      studyContent,
+      rating,
+      photos,
+      videoUrl,
+      isModified,
+      _baselineToken: {
+        baselineContent,
+        baselineRating,
+        studentId,
+        scheduleId: scheduleEventId,
+        hash: `base-${scheduleEventId}-${studentId}`,
+      },
+    };
+  }
+
+  /**
+   * 4. 单学员课评草稿保存 (saveStudentDraft, 集成防抖引擎)
+   */
+  async saveStudentDraft(
+    scheduleEventId: string,
+    studentId: string,
+    draft: Partial<StudentEvaluationDraft>,
+    options?: DraftSaveOptions
+  ): Promise<void> {
+    const doSave = () => {
+      const existing = this.storage.getDraft<any>({ scheduleId: scheduleEventId, studentId }) || {};
+      const merged = {
+        ...existing,
+        scheduleId: scheduleEventId,
+        studentId,
+        studentName: draft.studentName || existing.studentName,
+        className: draft.className || existing.className,
+        courseName: draft.courseName || existing.courseName,
+        templateId: draft.templateId || existing.templateId || 'tpl-std',
+        templateName: draft.templateName || existing.templateName || '通用课评模板',
+        studyContent: draft.studyContent ?? existing.studyContent ?? '',
+        content: draft.studyContent ?? existing.content ?? '',
+        rating: draft.rating ?? existing.rating ?? 5,
+        photos: draft.photos ?? existing.photos ?? [],
+        uploadedPhotos: draft.photos ?? existing.uploadedPhotos ?? [],
+        videoUrl: draft.videoUrl ?? existing.videoUrl ?? '',
+        uploadedVideo: draft.videoUrl ?? existing.uploadedVideo ?? '',
+        updatedAt: new Date().toISOString(),
+      };
+      this.storage.setDraft({ scheduleId: scheduleEventId, studentId }, merged);
+    };
+
+    if (options?.debounceMs && options.debounceMs > 0 && !options.immediate) {
+      const timerKey = `${scheduleEventId}_${studentId}`;
+      if (this.debounceTimers.has(timerKey)) {
+        clearTimeout(this.debounceTimers.get(timerKey));
+      }
+      return new Promise<void>((resolve) => {
+        const timer = setTimeout(() => {
+          doSave();
+          this.debounceTimers.delete(timerKey);
+          resolve();
+        }, options.debounceMs);
+        this.debounceTimers.set(timerKey, timer);
+      });
+    } else {
+      doSave();
+      return Promise.resolve();
+    }
+  }
+
+  /**
+   * 5. 单学员课评精准履约出站 (commitStudentEvaluation)
+   * 差分推导异常学员覆写，模式设为 PUBLISH_EVALUATION，落盘后原子出清本地草稿
+   */
+  async commitStudentEvaluation(
+    scheduleEventId: string,
+    studentId: string,
+    draft: Partial<StudentEvaluationDraft>
+  ): Promise<FulfillmentReceipt> {
+    const baseContent = draft._baselineToken?.baselineContent || '';
+    const currentContent = (draft.studyContent || '').trim();
+    const currentRating = draft.rating ?? 5;
+    const currentPhotos = draft.photos || [];
+    const currentVideo = draft.videoUrl || '';
+
+    const anomalyOverrides: StudentFulfillmentOverride[] = [
+      {
+        studentId,
+        status: 'present',
+        deductLessons: 1,
+        personalizedComment: currentContent || baseContent,
+        rating: currentRating,
+      },
+    ];
+
+    const payload: any = {
+      scheduleEventId,
+      mode: 'PUBLISH_EVALUATION' as FulfillmentMode,
+      anomalyOverrides,
+      overrides: anomalyOverrides.map((a) => ({
+        studentId: a.studentId,
+        status: a.status,
+        deductLessons: a.deductLessons,
+        comment: a.personalizedComment,
+      })),
+      studyContentHtml: currentContent || baseContent,
+      teacherComment: currentContent || baseContent,
+      photoList: currentPhotos,
+      videoUrl: currentVideo,
+      overallRating: currentRating,
+      templateName: draft.templateName || '通用课评模板',
+      templateId: draft.templateId || 'tpl-std',
+      idempotencyKey: `mp-ful-stu-${scheduleEventId}-${studentId}-${Date.now()}`,
+    };
+
+    const res = await this.port.commitFulfillment(payload);
+
+    // 原子清除该学员的草稿缓存
+    this.storage.removeDraft({ scheduleId: scheduleEventId, studentId });
+
+    return {
+      receiptId: res?.receiptId || `REC-FUL-${Date.now()}`,
+      scheduleEventId,
+      mode: 'PUBLISH_EVALUATION',
+      completedAt: new Date().toISOString(),
+      totalStudents: 1,
+      presentCount: 1,
+      leaveCount: 0,
+      absentCount: 0,
+      totalDeductedLessons: 1,
+      anomalyCount: 1,
+      evaluationId: res?.evaluation?.id || res?.evaluationId,
+      outboxCount: res?.outboxSummary?.enqueuedCount ?? 1,
+    };
+  }
+
 
   /**
    * 2. 加载交互式履约会话 (10% 异常定制与暂存工步)
@@ -289,8 +528,8 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       coursewareUrl: raw?.schedule?.coursewareUrl,
     };
 
-    // 读取本地草稿（全局草稿或单人草稿）
-    const storedDraft = this.storage.getDraft<any>(`eval_draft_${scheduleEventId}`);
+    // 读取本地草稿（全局草稿或单人草稿，基于 DraftScope）
+    const storedDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId });
 
     const evaluation: SessionEvaluationDraft = {
       templateId: storedDraft?.evaluation?.templateId || raw?.evaluationDraft?.templateId || raw?.evaluationSummary?.templateId || 'tpl-std',
@@ -322,7 +561,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
 
       // 检查草稿中是否有单人生效覆写
       const draftedOverride = storedDraft?.overrides?.find((o: any) => o.studentId === studentId);
-      const singleDraft = this.storage.getDraft<any>(`eval_draft_${scheduleEventId}_${studentId}`);
+      const singleDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId, studentId });
 
       const status: AttendanceStatus = draftedOverride?.status || s.status || s.recordedStatus || defaultStatus;
       const deductLessons: number = draftedOverride?.deductLessons ?? s.deductLessons ?? defaultDeduct;
@@ -361,7 +600,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
    * 3. 随堂课评/考勤本地草稿原子暂存
    */
   async saveDraft(scheduleEventId: string, draft: Partial<SessionEvaluationDraft>): Promise<void> {
-    const existing = this.storage.getDraft<any>(`eval_draft_${scheduleEventId}`) || {};
+    const existing = this.storage.getDraft<any>({ scheduleId: scheduleEventId }) || {};
     const merged = {
       ...existing,
       scheduleId: scheduleEventId,
@@ -371,7 +610,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       },
       updatedAt: new Date().toISOString(),
     };
-    this.storage.setDraft(`eval_draft_${scheduleEventId}`, merged);
+    this.storage.setDraft({ scheduleId: scheduleEventId }, merged);
   }
 
   /**
@@ -402,3 +641,5 @@ export const fulfillmentCoordinator = new ClientLessonFulfillmentCoordinatorImpl
 ) => new ClientLessonFulfillmentCoordinatorImpl(port, storage);
 (fulfillmentCoordinator as any).CoordinatorClass = ClientLessonFulfillmentCoordinatorImpl;
 (fulfillmentCoordinator as any).DefaultSessionClass = DefaultFulfillmentSession;
+(fulfillmentCoordinator as any).UniStorageDraftAdapter = UniStorageDraftAdapter;
+(fulfillmentCoordinator as any).MemoryDraftStorageAdapter = MemoryDraftStorageAdapter;

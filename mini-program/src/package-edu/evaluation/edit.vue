@@ -136,7 +136,7 @@
 import { ref, onMounted } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { eduApi } from '../../api/edu';
-import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
+import { fulfillmentCoordinator, type StudentEvaluationDraft } from '../../coordinators/fulfillment';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
@@ -155,7 +155,7 @@ const hasModified = ref(false);
 const isSubmitting = ref(false);
 const showExitModal = ref(false);
 
-const fulfillmentSession = ref<FulfillmentSession | null>(null);
+const studentDraft = ref<StudentEvaluationDraft | null>(null);
 
 onMounted(async () => {
   try {
@@ -179,39 +179,18 @@ onMounted(async () => {
   if (query.className) className.value = decodeURIComponent(query.className);
 
   try {
-    const session = await fulfillmentCoordinator.loadSession(scheduleId.value);
-    fulfillmentSession.value = session;
-    if (session.evaluation.studyContentHtml) {
-      studyContent.value = session.evaluation.studyContentHtml;
-    }
-    if (session.evaluation.photoList && session.evaluation.photoList.length > 0) {
-      uploadedPhotos.value = [...session.evaluation.photoList];
-    }
-    if (session.evaluation.videoUrl) {
-      uploadedVideo.value = session.evaluation.videoUrl;
-    }
-    if (session.evaluation.templateName) {
-      currentTemplateName.value = session.evaluation.templateName;
-    }
-    const currentStu = session.students.find((s) => s.studentId === studentId.value);
-    if (currentStu && currentStu.comment) {
-      studyContent.value = currentStu.comment;
-    }
+    // 1. 随堂课评智能水化 (hydrateStudentDraft)：聚合课纲大纲标准与本地草稿
+    const draft = await fulfillmentCoordinator.hydrateStudentDraft(scheduleId.value, studentId.value);
+    studentDraft.value = draft;
+    if (draft.studentName) studentName.value = draft.studentName;
+    if (draft.className) className.value = draft.className;
+    if (draft.studyContent) studyContent.value = draft.studyContent;
+    if (draft.templateName) currentTemplateName.value = draft.templateName;
+    if (draft.photos && draft.photos.length > 0) uploadedPhotos.value = [...draft.photos];
+    if (draft.videoUrl) uploadedVideo.value = draft.videoUrl;
   } catch (e) {
-    // 检查本地是否有草稿快照
-    const draftKey = `eval_draft_${scheduleId.value}_${studentId.value}`;
-    const savedDraft = uni.getStorageSync(draftKey);
-    if (savedDraft) {
-      try {
-        const parsed = JSON.parse(savedDraft);
-        studyContent.value = parsed.studyContent || '';
-        uploadedPhotos.value = parsed.uploadedPhotos || [];
-        uploadedVideo.value = parsed.uploadedVideo || '';
-      } catch (err) {}
-    } else {
-      // 默认大纲预置 (零心智通途)
-      studyContent.value = '本节课重点掌握字母拼读规则与自然拼读交互，学员发音精准，课堂表现专注积极！';
-    }
+    // 默认大纲预置 (零心智通途兜底)
+    studyContent.value = '本节课重点掌握字母拼读规则与自然拼读交互，学员发音精准，课堂表现专注积极！';
   }
 });
 
@@ -222,6 +201,7 @@ const handleSwitchTemplate = () => {
       currentTemplateName.value = ['通用课评模板', '少儿编程创客模板', '英语自然拼读模板', '一对一专属评语模板'][res.tapIndex];
       uni.showToast({ title: `已载入: ${currentTemplateName.value}`, icon: 'none' });
       hasModified.value = true;
+      triggerAutoSave();
     },
   });
 };
@@ -243,6 +223,7 @@ const handleChoosePhoto = () => {
       }
       uni.hideLoading();
       hasModified.value = true;
+      triggerAutoSave();
       uni.showToast({ title: '照片已上传', icon: 'success' });
     },
   });
@@ -259,6 +240,7 @@ const handleChooseVideo = () => {
       uploadedVideo.value = videoCdn;
       uni.hideLoading();
       hasModified.value = true;
+      triggerAutoSave();
       uni.showToast({ title: '课堂视频已就绪', icon: 'success' });
     },
   });
@@ -267,36 +249,41 @@ const handleChooseVideo = () => {
 const removePhoto = (idx: number) => {
   uploadedPhotos.value.splice(idx, 1);
   hasModified.value = true;
+  triggerAutoSave();
+};
+
+// 防抖自动暂存
+const triggerAutoSave = () => {
+  fulfillmentCoordinator.saveStudentDraft(
+    scheduleId.value,
+    studentId.value,
+    {
+      studentName: studentName.value,
+      className: className.value,
+      studyContent: studyContent.value,
+      templateName: currentTemplateName.value,
+      photos: uploadedPhotos.value,
+      videoUrl: uploadedVideo.value,
+      rating: 5,
+    },
+    { debounceMs: 400 }
+  );
 };
 
 const handleSaveDraft = async () => {
-  if (fulfillmentSession.value) {
-    fulfillmentSession.value.updateEvaluationDraft({
-      studyContentHtml: studyContent.value,
-      photoList: uploadedPhotos.value,
-      videoUrl: uploadedVideo.value,
-      templateName: currentTemplateName.value,
-    });
-    if (studentId.value) {
-      fulfillmentSession.value.updatePersonalizedComment(studentId.value, studyContent.value, 5.0);
-    }
-    await fulfillmentSession.value.saveDraft();
-  } else {
-    await fulfillmentCoordinator.saveDraft(scheduleId.value, {
-      studyContentHtml: studyContent.value,
-      photoList: uploadedPhotos.value,
-      videoUrl: uploadedVideo.value,
-      templateName: currentTemplateName.value,
-    });
-  }
-  const draftKey = `eval_draft_${scheduleId.value}_${studentId.value}`;
-  uni.setStorageSync(
-    draftKey,
-    JSON.stringify({
+  await fulfillmentCoordinator.saveStudentDraft(
+    scheduleId.value,
+    studentId.value,
+    {
+      studentName: studentName.value,
+      className: className.value,
       studyContent: studyContent.value,
-      uploadedPhotos: uploadedPhotos.value,
-      uploadedVideo: uploadedVideo.value,
-    })
+      templateName: currentTemplateName.value,
+      photos: uploadedPhotos.value,
+      videoUrl: uploadedVideo.value,
+      rating: 5,
+    },
+    { immediate: true }
   );
   hasModified.value = false;
   uni.showToast({ title: '已保存至草稿箱', icon: 'success' });
@@ -310,39 +297,19 @@ const handleSubmitEvaluation = async () => {
 
   isSubmitting.value = true;
   try {
-    if (fulfillmentSession.value) {
-      fulfillmentSession.value.updateEvaluationDraft({
-        studyContentHtml: studyContent.value,
-        photoList: uploadedPhotos.value,
-        videoUrl: uploadedVideo.value,
-        templateName: currentTemplateName.value,
-      });
-      if (studentId.value) {
-        fulfillmentSession.value.updatePersonalizedComment(studentId.value, studyContent.value, 5.0);
-      }
-      await fulfillmentSession.value.commit({ mode: 'PUBLISH_EVALUATION' });
-    } else {
-      await eduApi.commitEvaluation({
-        scheduleEventId: scheduleId.value,
-        studyContent: studyContent.value,
-        photoList: uploadedPhotos.value,
-        videoUrl: uploadedVideo.value,
-        templateName: currentTemplateName.value,
-        studentComments: [
-          {
-            studentId: studentId.value,
-            comment: studyContent.value,
-            rating: 5.0,
-          },
-        ],
-      });
-    }
+    // 2. 单学员精准履约出站：差分推导异常学员覆写，模式设为 PUBLISH_EVALUATION，落盘后原子出清本地草稿
+    await fulfillmentCoordinator.commitStudentEvaluation(scheduleId.value, studentId.value, {
+      studentName: studentName.value,
+      className: className.value,
+      studyContent: studyContent.value,
+      templateName: currentTemplateName.value,
+      photos: uploadedPhotos.value,
+      videoUrl: uploadedVideo.value,
+      rating: 5,
+      _baselineToken: studentDraft.value?._baselineToken,
+    });
 
-    // 清除草稿
-    const draftKey = `eval_draft_${scheduleId.value}_${studentId.value}`;
-    uni.removeStorageSync(draftKey);
     hasModified.value = false;
-
     uni.showToast({ title: '课评推送成功！已下发微信通知', icon: 'success' });
     setTimeout(() => {
       uni.navigateBack();

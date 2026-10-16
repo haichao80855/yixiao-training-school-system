@@ -15,7 +15,27 @@
       </view>
     </view>
 
-    <!-- 1. 搜索栏 (对齐截图 055: Q 输入学员姓名/手机号查询) -->
+    <!-- 1. 概览流式指标看板 -->
+    <view class="metrics-overview-bar">
+      <view class="metric-pill" :class="{ active: currentStatusFilter === 'all' }" @click="setStatusFilter('all')">
+        <text class="metric-num">{{ metrics.totalCount }}</text>
+        <text class="metric-label">学员总人次</text>
+      </view>
+      <view class="metric-pill warn" :class="{ active: currentStatusFilter === 'pending' }" @click="setStatusFilter('pending')">
+        <text class="metric-num">{{ metrics.pendingCount }}</text>
+        <text class="metric-label">待评学员</text>
+      </view>
+      <view class="metric-pill success" :class="{ active: currentStatusFilter === 'pushed' }" @click="setStatusFilter('pushed')">
+        <text class="metric-num">{{ metrics.pushedCount }}</text>
+        <text class="metric-label">已评推送</text>
+      </view>
+      <view class="metric-pill info">
+        <text class="metric-num">{{ metrics.coverageRateText }}</text>
+        <text class="metric-label">评价覆盖率</text>
+      </view>
+    </view>
+
+    <!-- 2. 搜索栏 (对齐截图 055: Q 输入学员姓名/手机号查询) -->
     <view class="search-bar-wrap">
       <view class="search-box">
         <AppIcon name="search" size="32rpx" color="#94A3B8" />
@@ -23,16 +43,17 @@
           class="search-input"
           type="text"
           v-model="searchKeyword"
-          placeholder="输入学员姓名/手机号查询"
+          placeholder="输入学员姓名/手机号/学号/班级查询"
           placeholder-class="placeholder-text"
+          @input="handleKeywordChange"
         />
-        <view v-if="searchKeyword" class="clear-btn" @click="searchKeyword = ''">
+        <view v-if="searchKeyword" class="clear-btn" @click="clearKeyword">
           <AppIcon name="x" size="28rpx" color="#94A3B8" />
         </view>
       </view>
     </view>
 
-    <!-- 2. 日期区间与筛选栏 (对齐截图 055: 上课时间 ▼  2026-10-12 至 2026-10-18 ▼ | 筛选) -->
+    <!-- 3. 日期区间与状态筛选栏 (对齐截图 055: 上课时间 ▼  2026-10-12 至 2026-10-18 ▼ | 筛选) -->
     <view class="date-filter-bar">
       <view class="filter-left-group">
         <view class="dropdown-item">
@@ -46,13 +67,22 @@
       </view>
       <view class="filter-right-btn" @click="handleOpenFilter">
         <text class="filter-icon">Y</text>
-        <text class="filter-label">筛选</text>
+        <text class="filter-label">{{ statusFilterLabel }}</text>
       </view>
     </view>
 
-    <!-- 3. 学员课评卡片流 (对齐截图 055) -->
-    <scroll-view class="cards-scroll-body" scroll-y>
-      <view class="evaluation-student-card" v-for="item in filteredList" :key="item.id">
+    <!-- 4. 学员课评卡片流 (对齐截图 055) -->
+    <scroll-view class="cards-scroll-body" scroll-y refresher-enabled :refresher-triggered="isRefreshing" @refresherrefresh="onPullDownRefresh">
+      <view v-if="isLoading && rosterItems.length === 0" class="loading-state">
+        <text class="loading-tip">正在投影花名册全景...</text>
+      </view>
+
+      <view v-else-if="rosterItems.length === 0" class="empty-state">
+        <AppIcon name="inbox" size="72rpx" color="#CBD5E1" />
+        <text class="empty-text">当前时段暂无待评学员记录</text>
+      </view>
+
+      <view v-else class="evaluation-student-card" v-for="item in rosterItems" :key="`${item.scheduleId}-${item.id}`">
         <!-- 卡片主体信息 -->
         <view class="card-left-info">
           <!-- 头像与主信息行 -->
@@ -62,14 +92,17 @@
             </view>
             <view class="name-status-block">
               <view class="name-status-row">
-                <text class="student-name">{{ item.name }}</text>
+                <view class="name-badge-wrap">
+                  <text class="student-name">{{ item.name }}</text>
+                  <text v-if="item.isLowBalance" class="low-balance-badge">余{{ item.remainingLessons ?? 0 }}课时</text>
+                </view>
                 <text class="push-status-tag" :class="{ pushed: item.isPushed }">
-                  {{ item.isPushed ? '已推送' : '未推送' }}
+                  {{ item.pushStatusText }}
                 </text>
               </view>
               <!-- 签到与时段标签 -->
               <view class="attendance-time-line">
-                <view class="badge-pill badge-offline">线下课</view>
+                <view class="badge-pill badge-offline">{{ item.courseTypeLabel || '线下课' }}</view>
                 <view class="badge-pill badge-signed">已签到</view>
                 <text class="sign-time-text">签到时间：{{ item.signTime }}</text>
               </view>
@@ -88,75 +121,69 @@
           </view>
         </view>
 
-        <!-- 右侧写课评按钮 (对齐截图 055) -->
+        <!-- 右侧写课评/看学情按钮 (终结死循环跳转) -->
         <view class="card-right-action">
-          <view class="write-eval-pill-btn" @click="handleWriteEvaluation(item)">
-            写课评
+          <view
+            class="write-eval-pill-btn"
+            :class="{ pushed: item.isPushed }"
+            @click="handleEvaluationAction(item)"
+          >
+            {{ item.isPushed ? '看学情' : '写课评' }}
           </view>
         </view>
       </view>
 
       <view class="safe-padding-bottom"></view>
     </scroll-view>
+
+    <!-- 学情成长投影抽屉 (彻底终结移动端死循环跳转) -->
+    <LessonGrowthReviewDrawer
+      :visible="growthDrawerVisible"
+      :schedule-id="activeGrowthScheduleId"
+      :student-id="activeGrowthStudentId"
+      :student-name="activeGrowthStudentName"
+      @close="growthDrawerVisible = false"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
-import { eduApi } from '../../api/edu';
+import { evaluationRosterProjector, type EvaluationRosterItemView, type EvaluationMetricsSummary, type EvaluationRosterView } from '../../projectors/evaluation-roster';
 import AppIcon from '../../components/AppIcon.vue';
+import LessonGrowthReviewDrawer from '../../components/LessonGrowthReviewDrawer.vue';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
 
+// 多媒体学情成长抽屉状态
+const growthDrawerVisible = ref(false);
+const activeGrowthScheduleId = ref('');
+const activeGrowthStudentId = ref('');
+const activeGrowthStudentName = ref('');
+
 const searchKeyword = ref('');
 const dateRangeText = ref('2026-10-12 至 2026-10-18');
+const currentStatusFilter = ref<'all' | 'pending' | 'pushed'>('all');
+const isRefreshing = ref(false);
+const isLoading = ref(false);
 
-// 课评学员列表 (100% 对齐截图 055 真实数据，同时支持动态排课水化)
-const evaluationItems = ref([
-  {
-    id: 'eval-01',
-    name: '兰岚',
-    phone: '15237356327',
-    studentNo: 'S950000',
-    className: '启蒙英语-001班',
-    signTime: '2026-10-14 18:16',
-    isPushed: false,
-    scheduleId: 'sch-qmyy-12',
-  },
-  {
-    id: 'eval-02',
-    name: '王思博',
-    phone: '13525086086',
-    studentNo: 'S950002',
-    className: '启蒙英语-001班',
-    signTime: '2026-10-14 18:16',
-    isPushed: false,
-    scheduleId: 'sch-qmyy-12',
-  },
-  {
-    id: 'eval-03',
-    name: '潘程皓',
-    phone: '15090434720',
-    studentNo: 'S950004',
-    className: '启蒙英语-001班',
-    signTime: '2026-10-14 18:16',
-    isPushed: false,
-    scheduleId: 'sch-qmyy-12',
-  },
-  {
-    id: 'eval-04',
-    name: '江奕欣诺',
-    phone: '13072667113',
-    studentNo: 'S950001',
-    className: '启蒙英语-001班',
-    signTime: '2026-10-14 18:16',
-    isPushed: false,
-    scheduleId: 'sch-qmyy-12',
-  },
-]);
+const rosterItems = ref<EvaluationRosterItemView[]>([]);
+const metrics = ref<EvaluationMetricsSummary>({
+  pendingCount: 0,
+  pushedCount: 0,
+  totalCount: 0,
+  coverageRate: 0,
+  coverageRateText: '0%',
+});
+
+const statusFilterLabel = computed(() => {
+  if (currentStatusFilter.value === 'pending') return '仅待评';
+  if (currentStatusFilter.value === 'pushed') return '仅已评';
+  return '全部状态';
+});
 
 onMounted(async () => {
   try {
@@ -170,49 +197,73 @@ onMounted(async () => {
     // #endif
   } catch (e) {}
 
-  await fetchLiveEvaluations();
+  await loadRoster(false);
 });
 
-const fetchLiveEvaluations = async () => {
-  try {
-    const schedules = await eduApi.getSchedules();
-    if (Array.isArray(schedules) && schedules.length > 0) {
-      const items: any[] = [];
-      for (const s of schedules.slice(0, 3)) {
-        try {
-          const wb = await eduApi.getFulfillmentWorkbench(s.id);
-          if (wb && wb.students) {
-            for (const stu of wb.students) {
-              items.push({
-                id: stu.studentId,
-                name: stu.name,
-                phone: stu.phone || '13800000000',
-                studentNo: stu.studentNo,
-                className: s.className,
-                signTime: `${s.date} ${s.startTime}`,
-                isPushed: Boolean(stu.evaluated || s.status === 'completed'),
-                scheduleId: s.id,
-              });
-            }
-          }
-        } catch {}
-      }
-      if (items.length > 0) {
-        evaluationItems.value = items;
-      }
+// 监听校区上下文响应式切换，自动重载当前校区花名册
+watch(
+  () => campusStore.currentCampusId,
+  async (newCampusId, oldCampusId) => {
+    if (newCampusId && newCampusId !== oldCampusId) {
+      await loadRoster(true);
     }
+  }
+);
+
+/**
+ * 核心调度：调用端侧待评花名册投影深模块
+ */
+const loadRoster = async (forceRefresh: boolean = false) => {
+  isLoading.value = true;
+  try {
+    const campusId = campusStore.currentCampusId || 'campus-bj-hq';
+    const view = await evaluationRosterProjector.projectRoster(
+      {
+        campusId,
+        dateRange: dateRangeText.value,
+        keyword: searchKeyword.value,
+        statusFilter: currentStatusFilter.value,
+        forceRefresh,
+      },
+      (freshView: EvaluationRosterView) => {
+        // SWR 静默再校验更新回调
+        applyView(freshView);
+      }
+    );
+
+    applyView(view);
   } catch (err) {
-    console.warn('[manage.vue] 加载真实课评数据失败，使用默认列表:', err);
+    console.error('[manage.vue] 投影花名册失败:', err);
+  } finally {
+    isLoading.value = false;
+    isRefreshing.value = false;
   }
 };
 
-const filteredList = computed(() => {
-  const kw = searchKeyword.value.trim().toLowerCase();
-  if (!kw) return evaluationItems.value;
-  return evaluationItems.value.filter(
-    (item) => item.name.toLowerCase().includes(kw) || item.phone.includes(kw) || item.studentNo.toLowerCase().includes(kw)
-  );
-});
+const applyView = (view: EvaluationRosterView) => {
+  rosterItems.value = [...view.items];
+  metrics.value = { ...view.metrics };
+};
+
+const handleKeywordChange = () => {
+  loadRoster(false);
+};
+
+const clearKeyword = () => {
+  searchKeyword.value = '';
+  loadRoster(false);
+};
+
+const setStatusFilter = (status: 'all' | 'pending' | 'pushed') => {
+  if (currentStatusFilter.value === status) return;
+  currentStatusFilter.value = status;
+  loadRoster(false);
+};
+
+const onPullDownRefresh = async () => {
+  isRefreshing.value = true;
+  await loadRoster(true);
+};
 
 const handleGoBack = () => {
   uni.navigateBack({
@@ -241,18 +292,36 @@ const handleSelectDateRange = () => {
     itemList: ['本周 (2026-10-12 至 2026-10-18)', '上周 (2026-10-05 至 2026-10-11)', '近 30 天'],
     success: (res) => {
       dateRangeText.value = ['2026-10-12 至 2026-10-18', '2026-10-05 至 2026-10-11', '近 30 天'][res.tapIndex];
+      loadRoster(false);
     },
   });
 };
 
 const handleOpenFilter = () => {
-  uni.showToast({ title: '已开启多维度课评状态筛选', icon: 'none' });
+  uni.showActionSheet({
+    itemList: ['全部状态', '仅待评学员', '仅已推送学员'],
+    success: (res) => {
+      const filters: Array<'all' | 'pending' | 'pushed'> = ['all', 'pending', 'pushed'];
+      currentStatusFilter.value = filters[res.tapIndex];
+      loadRoster(false);
+    },
+  });
 };
 
-const handleWriteEvaluation = (item: any) => {
-  uni.navigateTo({
-    url: `/package-edu/evaluation/edit?studentId=${item.id}&studentName=${encodeURIComponent(item.name)}&className=${encodeURIComponent(item.className)}`,
-  });
+const handleEvaluationAction = (item: EvaluationRosterItemView) => {
+  if (item.isPushed) {
+    // 已推送：原地拉起学情成长全景抽屉，展示雷达图、教师寄语、相册与音视频
+    activeGrowthScheduleId.value = item.scheduleId || 'sch-qmyy-12';
+    activeGrowthStudentId.value = item.id;
+    activeGrowthStudentName.value = item.name;
+    growthDrawerVisible.value = true;
+  } else {
+    // 待推送/未评：进入单人课评录入界面
+    const scheduleParam = item.scheduleId ? `&scheduleId=${encodeURIComponent(item.scheduleId)}` : '';
+    uni.navigateTo({
+      url: `/package-edu/evaluation/edit?studentId=${item.id}&studentName=${encodeURIComponent(item.name)}&className=${encodeURIComponent(item.className)}${scheduleParam}`,
+    });
+  }
 };
 </script>
 
@@ -318,9 +387,60 @@ const handleWriteEvaluation = (item: any) => {
   }
 }
 
-/* 1. 搜索框 (对齐截图 055) */
+/* 概览流式指标看板 */
+.metrics-overview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16rpx 24rpx 8rpx;
+  gap: 12rpx;
+
+  .metric-pill {
+    flex: 1;
+    background: #FFFFFF;
+    border-radius: 16rpx;
+    padding: 12rpx 10rpx;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
+    border: 1rpx solid #E2E8F0;
+    transition: all 0.2s ease;
+
+    &.active {
+      border-color: #2563EB;
+      background: #EFF6FF;
+    }
+
+    .metric-num {
+      font-size: 28rpx;
+      font-weight: 700;
+      color: #1E293B;
+    }
+
+    .metric-label {
+      font-size: 20rpx;
+      color: #64748B;
+      margin-top: 2rpx;
+    }
+
+    &.warn .metric-num {
+      color: #D97706;
+    }
+
+    &.success .metric-num {
+      color: #16A34A;
+    }
+
+    &.info .metric-num {
+      color: #2563EB;
+    }
+  }
+}
+
+/* 2. 搜索框 (对齐截图 055) */
 .search-bar-wrap {
-  padding: 16rpx 24rpx 12rpx;
+  padding: 8rpx 24rpx 12rpx;
 
   .search-box {
     height: 76rpx;
@@ -331,16 +451,12 @@ const handleWriteEvaluation = (item: any) => {
     padding: 0 24rpx;
     box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
 
-    .search-icon {
-      font-size: 28rpx;
-      margin-right: 14rpx;
-    }
-
     .search-input {
       flex: 1;
       height: 100%;
       font-size: 26rpx;
       color: #1F2937;
+      margin-left: 12rpx;
     }
 
     .placeholder-text {
@@ -356,12 +472,12 @@ const handleWriteEvaluation = (item: any) => {
   }
 }
 
-/* 2. 日期区间与筛选 (对齐截图 055) */
+/* 3. 日期区间与筛选 (对齐截图 055) */
 .date-filter-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12rpx 24rpx 16rpx;
+  padding: 8rpx 24rpx 16rpx;
 
   .filter-left-group {
     display: flex;
@@ -383,11 +499,6 @@ const handleWriteEvaluation = (item: any) => {
         font-size: 26rpx;
         color: #2563EB;
         font-weight: 500;
-      }
-
-      .arrow {
-        font-size: 16rpx;
-        color: #2563EB;
       }
     }
   }
@@ -411,11 +522,27 @@ const handleWriteEvaluation = (item: any) => {
   }
 }
 
-/* 3. 学员课评卡片列表 (对齐截图 055) */
+/* 4. 学员课评卡片列表 (对齐截图 055) */
 .cards-scroll-body {
   flex: 1;
   padding: 0 24rpx;
   box-sizing: border-box;
+
+  .loading-state,
+  .empty-state {
+    padding: 80rpx 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16rpx;
+
+    .loading-tip,
+    .empty-text {
+      font-size: 26rpx;
+      color: #94A3B8;
+    }
+  }
 
   .evaluation-student-card {
     background: #FFFFFF;
@@ -447,10 +574,6 @@ const handleWriteEvaluation = (item: any) => {
           display: flex;
           align-items: center;
           justify-content: center;
-
-          .avatar-emoji {
-            font-size: 50rpx;
-          }
         }
 
         .name-status-block {
@@ -462,10 +585,25 @@ const handleWriteEvaluation = (item: any) => {
             justify-content: space-between;
             margin-bottom: 8rpx;
 
-            .student-name {
-              font-size: 32rpx;
-              font-weight: 700;
-              color: #111827;
+            .name-badge-wrap {
+              display: flex;
+              align-items: center;
+              gap: 12rpx;
+
+              .student-name {
+                font-size: 32rpx;
+                font-weight: 700;
+                color: #111827;
+              }
+
+              .low-balance-badge {
+                font-size: 18rpx;
+                color: #DC2626;
+                background: #FEE2E2;
+                padding: 2rpx 8rpx;
+                border-radius: 6rpx;
+                font-weight: 600;
+              }
             }
 
             .push-status-tag {
@@ -545,6 +683,12 @@ const handleWriteEvaluation = (item: any) => {
 
         &:active {
           transform: scale(0.92);
+        }
+
+        &.pushed {
+          background: #ECFDF5;
+          color: #059669;
+          border-color: rgba(5, 150, 105, 0.25);
         }
       }
     }

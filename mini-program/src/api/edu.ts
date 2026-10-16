@@ -116,6 +116,7 @@ export const eduApi = {
     endDate?: string;
     teacherId?: string;
     classId?: string;
+    campusId?: string;
   }): Promise<ScheduleEventModel[]> {
     try {
       const res = await request<any[]>({

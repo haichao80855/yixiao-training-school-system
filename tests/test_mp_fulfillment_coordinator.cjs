@@ -45,26 +45,48 @@ const { fulfillmentCoordinator } = require(coordinatorModulePath);
 
 assert.ok(fulfillmentCoordinator, '❌ 未能成功导出 fulfillmentCoordinator 模块实例');
 assert.ok(typeof fulfillmentCoordinator.fulfill === 'function', '❌ fulfill 方法未导出');
+assert.ok(typeof fulfillmentCoordinator.quickFulfill === 'function', '❌ quickFulfill 方法未导出');
 assert.ok(typeof fulfillmentCoordinator.loadSession === 'function', '❌ loadSession 方法未导出');
+assert.ok(typeof fulfillmentCoordinator.openWorkbench === 'function', '❌ openWorkbench 方法未导出');
 assert.ok(typeof fulfillmentCoordinator.saveDraft === 'function', '❌ saveDraft 方法未导出');
+assert.ok(typeof fulfillmentCoordinator.hydrateStudentDraft === 'function', '❌ hydrateStudentDraft 方法未导出');
+assert.ok(typeof fulfillmentCoordinator.saveStudentDraft === 'function', '❌ saveStudentDraft 方法未导出');
+assert.ok(typeof fulfillmentCoordinator.commitStudentEvaluation === 'function', '❌ commitStudentEvaluation 方法未导出');
 assert.ok(typeof fulfillmentCoordinator.reverse === 'function', '❌ reverse 方法未导出');
 assert.ok(typeof fulfillmentCoordinator.createCoordinator === 'function', '❌ createCoordinator 工厂未导出');
 
-console.log('✔ 协调器深模块接口形态检查通过 (4 大核心动词: fulfill, loadSession, saveDraft, reverse)\n');
+console.log('✔ 协调器深模块接口形态检查通过 (全量工效接缝: quickFulfill, hydrateStudentDraft, saveStudentDraft, commitStudentEvaluation, openWorkbench, reverse)\n');
 
 // 构造 Mock 存储适配器
 class MockDraftStorage {
   constructor() {
     this.store = new Map();
   }
+  resolveKey(scopeOrKey) {
+    if (typeof scopeOrKey === 'string') return scopeOrKey;
+    return `eval_draft_${scopeOrKey.scheduleId}${scopeOrKey.studentId ? '_' + scopeOrKey.studentId : ''}`;
+  }
   getDraft(key) {
-    return this.store.has(key) ? JSON.parse(JSON.stringify(this.store.get(key))) : null;
+    const k = this.resolveKey(key);
+    return this.store.has(k) ? JSON.parse(JSON.stringify(this.store.get(k))) : null;
   }
   setDraft(key, value) {
-    this.store.set(key, JSON.parse(JSON.stringify(value)));
+    const k = this.resolveKey(key);
+    this.store.set(k, JSON.parse(JSON.stringify(value)));
   }
   removeDraft(key) {
-    this.store.delete(key);
+    const k = this.resolveKey(key);
+    this.store.delete(k);
+  }
+  purgeScheduleDrafts(scheduleId) {
+    let count = 0;
+    for (const k of Array.from(this.store.keys())) {
+      if (k.includes(scheduleId)) {
+        this.store.delete(k);
+        count++;
+      }
+    }
+    return count;
   }
 }
 
@@ -279,8 +301,80 @@ async function runTests() {
   assert.ok(reverseBlockCaught, '反结课遇业务冲突锁定时，异常必须向上透传供前端弹窗捕获');
   console.log('✔ Case 6 验证通过: 级联反结课冲正与在途退费业务冲突熔断保护生效\n');
 
+  // -------------------------------------------------------------
+  // Case 7: 单学员课评水化与不可变基线封闭性测试 (hydrateStudentDraft)
+  // -------------------------------------------------------------
+  console.log('>>> [Case 7] 测试单学员课评水化与不可变基线封闭性 (hydrateStudentDraft)...');
+  const stuDraft = await coordinator.hydrateStudentDraft('sch-005', 'stu-101');
+  assert.strictEqual(stuDraft.studentId, 'stu-101');
+  assert.strictEqual(stuDraft.studentName, '张小凡');
+  assert.strictEqual(stuDraft.className, '青云志尖子一班');
+  assert.strictEqual(stuDraft.studyContent, '御剑心法基础运转');
+  assert.strictEqual(stuDraft.rating, 5);
+  assert.ok(stuDraft._baselineToken, '单学员草稿必须持有不可变基线凭证');
+  assert.strictEqual(stuDraft._baselineToken.baselineContent, '御剑心法基础运转');
+  assert.strictEqual(stuDraft._baselineToken.baselineRating, 5);
+  assert.strictEqual(stuDraft._baselineToken.studentId, 'stu-101');
+  console.log('✔ Case 7 验证通过: 单学员水化精确剥离全班多余数据，成功封闭不可变基线\n');
+
+  // -------------------------------------------------------------
+  // Case 8: 草稿防抖持久化与原子出清测试 (saveStudentDraft)
+  // -------------------------------------------------------------
+  console.log('>>> [Case 8] 测试草稿即时暂存与防抖写入 (saveStudentDraft)...');
+  // 即时保存
+  await coordinator.saveStudentDraft('sch-005', 'stu-101', {
+    studyContent: '张小凡悟性极高，剑气凝形',
+    rating: 5,
+  }, { immediate: true });
+  const savedDraft = storage.getDraft('eval_draft_sch-005_stu-101');
+  assert.ok(savedDraft, '草稿必须成功落盘至存储适配器');
+  assert.strictEqual(savedDraft.studyContent, '张小凡悟性极高，剑气凝形');
+
+  // 防抖暂存测试 (设置 50ms 防抖)
+  let debouncedPromise = coordinator.saveStudentDraft('sch-005', 'stu-101', {
+    studyContent: '张小凡领悟了噬魂之妙',
+    rating: 5,
+  }, { debounceMs: 50 });
+  // 此时立即检查应仍为旧值
+  assert.strictEqual(storage.getDraft('eval_draft_sch-005_stu-101').studyContent, '张小凡悟性极高，剑气凝形');
+  await debouncedPromise;
+  // 防抖结束后应更新为最新值
+  assert.strictEqual(storage.getDraft('eval_draft_sch-005_stu-101').studyContent, '张小凡领悟了噬魂之妙');
+  console.log('✔ Case 8 验证通过: 草稿即时与防抖持久化管道表现稳健\n');
+
+  // -------------------------------------------------------------
+  // Case 9: 单学员精准异常覆写与出站信箱测试 (commitStudentEvaluation)
+  // -------------------------------------------------------------
+  console.log('>>> [Case 9] 测试单学员精准异常覆写与草稿出清 (commitStudentEvaluation)...');
+  const stuReceipt = await coordinator.commitStudentEvaluation('sch-005', 'stu-101', {
+    studyContent: '张小凡领悟了噬魂之妙',
+    rating: 5,
+    _baselineToken: stuDraft._baselineToken,
+  });
+  assert.strictEqual(port.lastCommitPayload.mode, 'PUBLISH_EVALUATION', '单学员点评必须使用 PUBLISH_EVALUATION 模式');
+  assert.strictEqual(port.lastCommitPayload.anomalyOverrides.length, 1, '单学员点评仅包含当前学员的差异覆写');
+  assert.strictEqual(port.lastCommitPayload.anomalyOverrides[0].studentId, 'stu-101');
+  assert.strictEqual(port.lastCommitPayload.anomalyOverrides[0].personalizedComment, '张小凡领悟了噬魂之妙');
+  assert.strictEqual(stuReceipt.mode, 'PUBLISH_EVALUATION');
+  assert.strictEqual(storage.getDraft('eval_draft_sch-005_stu-101'), null, '单学员评价提交后本地草稿必须被物理清除');
+  console.log('✔ Case 9 验证通过: 单学员提交增量精确上行，且草稿原子清理完毕\n');
+
+  // -------------------------------------------------------------
+  // Case 10: 零心智快速履约语义一致性测试 (quickFulfill & openWorkbench)
+  // -------------------------------------------------------------
+  console.log('>>> [Case 10] 测试 90% 极速通途与工作台别名映射 (quickFulfill & openWorkbench)...');
+  const qReceipt = await coordinator.quickFulfill('sch-006');
+  assert.strictEqual(port.lastCommitPayload.scheduleEventId, 'sch-006');
+  assert.strictEqual(port.lastCommitPayload.mode, 'FULL_SETTLE');
+  assert.strictEqual(qReceipt.scheduleEventId, 'sch-006');
+
+  const wbSession = await coordinator.openWorkbench('sch-006');
+  assert.strictEqual(wbSession.schedule.id, 'sch-006');
+  assert.strictEqual(typeof wbSession.commit, 'function');
+  console.log('✔ Case 10 验证通过: quickFulfill 与 openWorkbench 语义对齐且完全兼容\n');
+
   console.log('======================================================');
-  console.log('🎉 客户端教学履约协调器全部 6 大核心场景断言 100% 验证通过！');
+  console.log('🎉 客户端教学履约协调器全部 10 大核心场景断言 100% 验证通过！');
   console.log('======================================================\n');
 }
 

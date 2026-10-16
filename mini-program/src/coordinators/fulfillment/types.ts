@@ -107,9 +107,60 @@ export interface FulfillmentSession {
   commit(options?: FulfillmentCommitOptions): Promise<FulfillmentReceipt>;
 }
 
+export type FulfillmentWorkbenchSession = FulfillmentSession;
+
+/** 单学员独立课评草稿模型 (含不可变基线封闭性凭证) */
+export interface StudentEvaluationDraft {
+  studentId: string;
+  studentName: string;
+  className: string;
+  courseName: string;
+  lessonTitle: string;
+  templateId?: string;
+  templateName: string;
+  studyContent: string;
+  rating: number;
+  photos: string[];
+  videoUrl?: string;
+  isModified?: boolean;
+  /** 不可变基线快照凭证，用于差分计算与防篡改比对 */
+  readonly _baselineToken: {
+    baselineContent: string;
+    baselineRating: number;
+    studentId: string;
+    scheduleId: string;
+    hash?: string;
+  };
+}
+
+export interface QuickFulfillOptions {
+  idempotencyKey?: string;
+  notifyParents?: boolean;
+}
+
+export interface DraftSaveOptions {
+  immediate?: boolean;
+  debounceMs?: number;
+}
+
 export interface ClientLessonFulfillmentCoordinator {
+  // 1. 【90% 极速通途】全班一键全勤消课 + 自动课评生成 + 微信信箱出站
+  quickFulfill(scheduleEventId: string, options?: QuickFulfillOptions): Promise<FulfillmentReceipt>;
   fulfill(scheduleEventId: string, options?: { idempotencyKey?: string }): Promise<FulfillmentReceipt>;
+
+  // 2. 【单学员独立课评】水化、暂存与精准发布（彻底解耦全班状态，为 edit.vue 定制）
+  hydrateStudentDraft(scheduleEventId: string, studentId: string): Promise<StudentEvaluationDraft>;
+  saveStudentDraft(scheduleEventId: string, studentId: string, draft: Partial<StudentEvaluationDraft>, options?: DraftSaveOptions): Promise<void>;
+  commitStudentEvaluation(scheduleEventId: string, studentId: string, draft: Partial<StudentEvaluationDraft>): Promise<FulfillmentReceipt>;
+
+  // 3. 【整班交互式工作台】微调出勤、自定义评语与全员提交
+  openWorkbench(scheduleEventId: string): Promise<FulfillmentWorkbenchSession>;
   loadSession(scheduleEventId: string): Promise<FulfillmentSession>;
+
+  // 4. 【草稿保存兼容】
   saveDraft(scheduleEventId: string, draft: Partial<SessionEvaluationDraft>): Promise<void>;
+
+  // 5. 【级联安全反结课】课时退还 + 课包自愈 + 微信在途通知原子作废
   reverse(scheduleEventId: string, reason: string, strategy?: ReversalStrategy): Promise<FulfillmentReversalReceipt>;
 }
+

@@ -28,7 +28,7 @@
       </view>
 
       <view class="info-meta-lines">
-        <view class="meta-line">班级：{{ schedule.classroomName }}</view>
+        <view class="meta-line">班级：{{ schedule.className || schedule.classroomName }}</view>
         <view class="meta-line">课程：{{ schedule.courseName }}</view>
       </view>
     </view>
@@ -87,14 +87,27 @@
           >
             {{ getStatusText(stu.status) }}
           </view>
-          <view class="eval-btn" @click="handleWriteEvaluation(stu)">
-            {{ stu.evaluated ? '已评价' : '写课评' }}
+          <view
+            class="eval-btn"
+            :class="{ evaluated: stu.evaluated }"
+            @click="handleEvaluationAction(stu)"
+          >
+            {{ stu.evaluated ? '看学情' : '写课评' }}
           </view>
         </view>
       </view>
 
       <view class="bottom-safe-space"></view>
     </scroll-view>
+
+    <!-- 学情成长预览抽屉 (终结死循环跳转) -->
+    <LessonGrowthReviewDrawer
+      :visible="growthDrawerVisible"
+      :schedule-id="schedule.id"
+      :student-id="activeGrowthStudentId"
+      :student-name="activeGrowthStudentName"
+      @close="growthDrawerVisible = false"
+    />
   </view>
 </template>
 
@@ -103,9 +116,15 @@ import { ref, computed, onMounted } from 'vue';
 import { eduApi, ScheduleEventModel, StudentRollCallModel } from '../../api/edu';
 import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
 import AppIcon from '../../components/AppIcon.vue';
+import LessonGrowthReviewDrawer from '../../components/LessonGrowthReviewDrawer.vue';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
+
+// 学情成长预览抽屉状态
+const growthDrawerVisible = ref(false);
+const activeGrowthStudentId = ref('');
+const activeGrowthStudentName = ref('');
 
 // 课次信息 (对齐截图 016)
 const schedule = ref<ScheduleEventModel>({
@@ -235,8 +254,19 @@ const handleEditDeduct = (stu: StudentRollCallModel) => {
 };
 
 const handleAutoEvaluation = () => {
-  uni.showToast({ title: '已依据启蒙英语课程大纲自动生成全员课评', icon: 'success' });
+  if (fulfillmentSession.value) {
+    fulfillmentSession.value.updateEvaluationDraft({
+      templateName: '通用课评模板',
+      studyContentHtml: '本节课重点掌握核心知识点与随堂交互，学员发音精准，课堂表现专注积极！',
+      teacherComment: '全员课堂专注投入，表现优异！',
+      overallRating: 5.0,
+    });
+    for (const s of students.value) {
+      fulfillmentSession.value.updatePersonalizedComment(s.studentId, '本节课知识点掌握牢固，随堂练习完成出色！', 5.0);
+    }
+  }
   students.value.forEach((s) => (s.evaluated = true));
+  uni.showToast({ title: '已依据课程大纲自动生成全员课评', icon: 'success' });
 };
 
 const handleAddTempStudent = () => {
@@ -283,10 +313,18 @@ const handleBatchRollCall = () => {
   });
 };
 
-const handleWriteEvaluation = (stu: StudentRollCallModel) => {
-  uni.navigateTo({
-    url: `/package-edu/evaluation/edit?studentId=${stu.studentId}&studentName=${encodeURIComponent(stu.name)}&scheduleId=${schedule.value.id}&className=${encodeURIComponent(schedule.value.className)}`,
-  });
+const handleEvaluationAction = (stu: StudentRollCallModel) => {
+  if (stu.evaluated) {
+    // 已评价：原地拉起学情成长全景抽屉，彻底杜绝死循环跳转与重复保存
+    activeGrowthStudentId.value = stu.studentId;
+    activeGrowthStudentName.value = stu.name;
+    growthDrawerVisible.value = true;
+  } else {
+    // 未评价：进入单人课评深度定制录入界面
+    uni.navigateTo({
+      url: `/package-edu/evaluation/edit?studentId=${stu.studentId}&studentName=${encodeURIComponent(stu.name)}&scheduleId=${schedule.value.id}&className=${encodeURIComponent(schedule.value.className || schedule.value.classroomName)}`,
+    });
+  }
 };
 
 const handlePushAll = async () => {
@@ -304,7 +342,7 @@ const handlePushAll = async () => {
             }
             await fulfillmentSession.value.commit();
           } else {
-            await fulfillmentCoordinator.fulfill(schedule.value.id);
+            await fulfillmentCoordinator.quickFulfill(schedule.value.id);
           }
           uni.hideLoading();
           uni.showToast({ title: '推送成功！微信通知已出站', icon: 'success' });
@@ -691,6 +729,12 @@ const handleGoBack = () => {
 
         &:active {
           transform: scale(0.92);
+        }
+
+        &.evaluated {
+          background: #ECFDF5;
+          color: #059669;
+          border-color: rgba(5, 150, 105, 0.25);
         }
       }
     }
