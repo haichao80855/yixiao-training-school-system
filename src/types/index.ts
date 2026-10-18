@@ -65,6 +65,7 @@ export interface MicroSystemItem {
   id: string;
   name: string;
   rootPath: string;
+  icon?: string;
   badge?: string;
   badgeType?: 'danger' | 'warning' | 'primary';
 }

@@ -1,20 +1,7 @@
 <template>
   <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
-    <!-- 面包屑与顶部操作 -->
-    <div class="flex items-center justify-between text-xs text-st-muted pb-3 border-b border-st-border">
-      <div class="flex items-center space-x-2">
-        <span>机构管理</span>
-        <span>/</span>
-        <span class="text-st-title font-medium">机构信息</span>
-      </div>
-      <div class="space-x-2">
-        <el-button size="small" @click="$emit('openTransferAdmin')">转让管理员</el-button>
-        <el-button type="primary" size="small" @click="$emit('openEditOrg')">编辑机构信息</el-button>
-      </div>
-    </div>
-
-    <!-- 机构核心信息抬头 -->
-    <div class="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- 机构核心信息抬头与操作按钮同行并排 -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <div class="flex items-center space-x-3">
           <h1 class="text-xl font-bold text-st-title tracking-tight">{{ orgMeta.name }}</h1>
@@ -43,6 +30,12 @@
             授权有效期至：<span class="font-mono font-medium text-emerald-600">{{ orgMeta.validUntil }}</span>
           </div>
         </div>
+      </div>
+
+      <!-- 右侧操作按钮同行排列 -->
+      <div class="flex items-center space-x-2 shrink-0">
+        <el-button size="small" @click="$emit('openTransferAdmin')">转让管理员</el-button>
+        <el-button type="primary" size="small" @click="$emit('openEditOrg')">编辑机构信息</el-button>
       </div>
     </div>
 

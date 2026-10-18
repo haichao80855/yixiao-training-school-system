@@ -1,28 +1,5 @@
 <template>
   <div class="p-5 space-y-4 bg-[#F0F2F5] min-h-[calc(100vh-60px)]">
-    <!-- 面包屑与校区作用域指示器 -->
-    <div class="flex items-center justify-between text-xs text-gray-500 px-1">
-      <div class="flex items-center space-x-2">
-        <span class="text-gray-700 font-semibold">教研</span>
-        <span class="text-gray-400">/</span>
-        <span class="text-gray-600">课程管理</span>
-      </div>
-      <div class="flex items-center space-x-2">
-        <span
-          :class="[
-            'px-2 py-0.5 rounded text-[11px] font-medium border flex items-center space-x-1',
-            tenantStore.currentCampus?.isHeadquarter
-              ? 'bg-blue-50 border-blue-200 text-[#1890FF]'
-              : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-          ]"
-        >
-          <span class="w-1.5 h-1.5 rounded-full" :class="tenantStore.currentCampus?.isHeadquarter ? 'bg-[#1890FF]' : 'bg-emerald-500'"></span>
-          <span>当前作用域：{{ tenantStore.currentCampus?.name }}</span>
-          <span v-if="tenantStore.currentCampus?.isHeadquarter" class="text-gray-400 font-normal">（查看全量教研课系）</span>
-          <span v-else class="text-gray-400 font-normal">（仅展示已授权课系）</span>
-        </span>
-      </div>
-    </div>
 
     <!-- 胶囊筛选矩阵与综合检索卡片 -->
     <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 space-y-3.5">

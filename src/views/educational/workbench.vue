@@ -1,13 +1,10 @@
 <template>
   <div class="p-5 space-y-4 bg-gray-50/70 min-h-screen">
-    <!-- 顶部面包屑与校区上下文 -->
+    <!-- 顶部状态栏与校区上下文 -->
     <div class="bg-white rounded-lg px-5 py-3.5 shadow-xs border border-st-border flex items-center justify-between">
-      <div class="flex items-center gap-2 text-xs">
-        <span class="text-st-muted">教务</span>
-        <span class="text-gray-300">/</span>
-        <span class="text-st-muted">教学服务</span>
-        <span class="text-gray-300">/</span>
-        <span class="text-st-primary font-bold">讲台</span>
+      <div class="flex items-center gap-2">
+        <span class="w-1.5 h-4 bg-st-primary rounded-full"></span>
+        <h2 class="text-sm font-bold text-st-title">教学服务 · 讲台工作台</h2>
       </div>
 
       <div class="flex items-center gap-3">

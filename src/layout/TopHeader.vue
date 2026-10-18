@@ -31,108 +31,39 @@
       </button>
     </div>
 
-    <!-- 中间：微系统导航切换标签 (激活态：蓝字+蓝点) -->
-    <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 overflow-x-auto no-scrollbar mx-2">
-      <div
-        v-for="item in microSystems"
-        :key="item.id"
-        @click="handleSwitchSystem(item)"
-        :class="[
-          'relative px-2.5 py-1.5 text-xs font-semibold cursor-pointer transition-colors flex flex-col items-center group',
-          isSystemActive(item)
-            ? 'text-st-primary'
-            : 'text-st-regular hover:text-st-primary'
-        ]"
-      >
-        <div class="flex items-center space-x-1">
-          <span>{{ item.name }}</span>
-          <span
-            v-if="item.badge"
-            :class="[
-              'text-[10px] px-1 py-0.2 rounded-full scale-90',
-              item.badgeType === 'danger' ? 'bg-red-500 text-white' : 'bg-blue-100 text-st-primary'
-            ]"
-          >
-            {{ item.badge }}
-          </span>
-        </div>
-        <!-- 蓝点指示器 -->
-        <span
-          :class="[
-            'w-1.5 h-1.5 rounded-full bg-st-primary absolute -bottom-1.5 transition-all',
-            isSystemActive(item) ? 'opacity-100 scale-100' : 'opacity-0 scale-50 group-hover:opacity-40'
-          ]"
-        ></span>
-      </div>
-    </nav>
-
     <!-- 右侧：高级操作胶囊栏与用户卡片 -->
-    <div class="flex items-center space-x-2.5 shrink-0">
+    <div class="flex items-center space-x-3 shrink-0">
       <!-- 多校区切换选择器 -->
-      <CampusSelector customClass="bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 !text-white !border-transparent" />
+      <CampusSelector customClass="bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 !text-white !border-transparent text-xs" />
 
-      <!-- 测试数据管理入口 -->
-      <button
-        @click="openTestDataModal"
-        class="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 text-xs font-semibold hover:bg-amber-100 transition-colors shadow-sm cursor-pointer"
-        title="测试数据管理：一键清空/恢复Mock数据"
-      >
-        <span class="text-sm">🧹</span>
-        <span class="hidden sm:inline">测试数据</span>
-        <span class="text-[10px] bg-amber-200 text-amber-900 px-1.5 py-0.2 rounded-full font-mono font-semibold">
-          {{ liveStats.studentCount }}学员/{{ liveStats.orderCount }}单
-        </span>
-      </button>
-
-      <!-- AI 助手入口 -->
-      <button
-        @click="handleAiAssistant"
-        class="flex items-center space-x-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold hover:bg-purple-100 transition-colors shadow-sm"
-        title="AI 智能助教与智能课评助手"
-      >
-        <span class="text-sm">✨</span>
-        <span class="hidden sm:inline">AI 助手</span>
-      </button>
-
-      <!-- 待办消息与红点 (9+) -->
+      <!-- 待办消息与通知 -->
       <el-popover placement="bottom" :width="280" trigger="click">
         <template #reference>
-          <div class="relative p-1.5 rounded-full text-st-secondary hover:text-st-primary hover:bg-gray-100 cursor-pointer transition-colors">
+          <div class="relative p-1.5 rounded-full text-st-secondary hover:text-st-primary hover:bg-gray-100 cursor-pointer transition-colors" title="待办通知">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
             <span class="absolute -top-0.5 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full border-2 border-white">
-              9+
+              3
             </span>
           </div>
         </template>
         <div class="text-xs space-y-2">
           <div class="font-bold text-st-title border-b border-gray-100 pb-1 flex justify-between">
             <span>待办事项通知</span>
-            <span class="text-st-primary cursor-pointer">全部已读</span>
+            <span class="text-st-primary cursor-pointer hover:underline">全部已读</span>
           </div>
-          <div class="p-2 bg-blue-50 rounded text-st-title">
-            <span class="font-semibold text-st-primary">[待收款审核]</span> 张小萌报读 Scratch 课包待收款核验
+          <div class="p-2 bg-blue-50 rounded text-st-title cursor-pointer hover:bg-blue-100 transition-colors" @click="$router.push('/financial/approvalFlow')">
+            <span class="font-semibold text-st-primary">[待审批]</span> 学员退费工单待审核与财务核验
           </div>
-          <div class="p-2 bg-red-50 rounded text-st-title">
-            <span class="font-semibold text-red-600">[排课冲突预警]</span> 周六 14:00 李老师出现多课重叠冲突
+          <div class="p-2 bg-amber-50 rounded text-st-title cursor-pointer hover:bg-amber-100 transition-colors" @click="$router.push('/studentCenter/unassigned')">
+            <span class="font-semibold text-amber-600">[学员入读]</span> 待分班学员池待履约排班入读
           </div>
-          <div class="p-2 bg-amber-50 rounded text-st-title">
-            <span class="font-semibold text-amber-600">[学员预警]</span> 待分班学员池新增 3 名学员未入班
+          <div class="p-2 bg-purple-50 rounded text-st-title cursor-pointer hover:bg-purple-100 transition-colors" @click="$router.push('/educational/timeSchedule')">
+            <span class="font-semibold text-purple-600">[排课看板]</span> 查看本周校区 7×15 网格排期
           </div>
         </div>
       </el-popover>
-
-      <!-- 下载任务中心 -->
-      <button
-        @click="handleDownloads"
-        class="p-1.5 rounded-full text-st-secondary hover:text-st-primary hover:bg-gray-100 transition-colors"
-        title="云端导出中心 / 下载任务"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-        </svg>
-      </button>
 
       <!-- 全屏切换 -->
       <button
@@ -273,16 +204,13 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
 import CampusSelector from './CampusSelector.vue'
 
-import type { MicroSystemItem } from '@/types'
-
 defineEmits(['toggle-sidebar'])
 
-const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -292,32 +220,6 @@ const avatarChar = computed(() => currentUserName.value ? currentUserName.value.
 const isTeacher = computed(() => authStore.isTeacher)
 
 const aiDialogVisible = ref(false)
-
-const microSystems: MicroSystemItem[] = [
-  { id: 'dashboard', name: '控制台', rootPath: '/dashboard' },
-  { id: 'curriculum', name: '教研', rootPath: '/curriculum/courseManage' },
-  { id: 'studentCenter', name: '学员', rootPath: '/studentCenter/allStudent' },
-  { id: 'educational', name: '教务', rootPath: '/educational/timeSchedule' },
-  { id: 'financial', name: '财务', rootPath: '/financial/orderManagement' },
-  { id: 'systemSetting', name: '系统', rootPath: '/systemSetting/authoritiesInfo' },
-  { id: 'operation', name: '运营', rootPath: '/dashboard', badge: '新', badgeType: 'primary' },
-  { id: 'store', name: '🔥店铺', rootPath: '/dashboard' },
-  { id: 'competition', name: '赛考', rootPath: '/studentCenter/serviceFee' },
-  { id: 'inventory', name: '进销存', rootPath: '/dashboard' },
-  { id: 'reports', name: '报表', rootPath: '/financial/chargingLedger' },
-  { id: 'mall', name: '商城', rootPath: '/dashboard' }
-]
-
-function isSystemActive(item: MicroSystemItem): boolean {
-  if (item.id === 'dashboard') {
-    return route.path === '/dashboard' || route.path === '/'
-  }
-  return route.path.startsWith(`/${item.id}`)
-}
-
-function handleSwitchSystem(item: MicroSystemItem) {
-  router.push(item.rootPath)
-}
 
 function handleGoHome() {
   router.push('/dashboard')

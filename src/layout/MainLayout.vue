@@ -9,9 +9,6 @@
 
       <!-- 主工作区 -->
       <main class="flex-1 flex flex-col overflow-hidden">
-        <!-- 分段多 Tab 标签栏 -->
-        <TagsView />
-
         <!-- 面包屑导航条 -->
         <div class="h-9 px-4 bg-white/70 border-b border-st-border flex items-center shrink-0">
           <Breadcrumb />
@@ -34,7 +31,6 @@
 import { ref } from 'vue'
 import TopHeader from './TopHeader.vue'
 import AppSidebar from './AppSidebar.vue'
-import TagsView from './TagsView.vue'
 import Breadcrumb from './Breadcrumb.vue'
 
 const collapsed = ref(false)

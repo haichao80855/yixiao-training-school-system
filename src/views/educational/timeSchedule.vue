@@ -1,15 +1,5 @@
 <template>
   <div class="p-5 space-y-3.5 bg-gray-50 min-h-screen">
-    <!-- 面包屑导航 -->
-    <div class="flex items-center text-xs text-st-muted space-x-2">
-      <span class="hover:text-st-primary cursor-pointer">教务</span>
-      <span>/</span>
-      <span>班级课次</span>
-      <span>/</span>
-      <span>排课日历</span>
-      <span>/</span>
-      <span class="text-st-title font-semibold">时间课表</span>
-    </div>
 
     <!-- 顶部子 Tab 切换条 (对标截图: 上课日历 / 课表汇总 / 时间课表 / 教室课表 / 讲师课表 / 班级课表 / 冲突记录) -->
     <div class="bg-white rounded-lg border border-st-border px-5 py-2.5 shadow-sm flex items-center justify-between">

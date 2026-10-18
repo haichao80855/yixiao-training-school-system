@@ -4,8 +4,6 @@
     <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
       <div>
         <div class="flex items-center space-x-2">
-          <span class="text-xs text-gray-500">教研</span>
-          <span class="text-xs text-gray-400">/</span>
           <h2 class="text-base font-bold text-gray-800">科目体系设置 (教研中心)</h2>
         </div>
         <p class="text-xs text-gray-500 mt-1">
