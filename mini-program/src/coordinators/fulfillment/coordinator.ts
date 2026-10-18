@@ -19,6 +19,8 @@ import type {
 import type { FulfillmentPort, DraftStoragePort } from './ports';
 import { HttpFulfillmentAdapter } from './adapters/http-fulfillment.adapter';
 import { UniStorageDraftAdapter, MemoryDraftStorageAdapter } from './adapters/storage-draft.adapter';
+import { mediaPipeline } from '../../services/media-pipeline';
+
 
 interface StudentBaseline {
   status: AttendanceStatus;
@@ -271,14 +273,14 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       scheduleEventId,
       mode: 'FULL_SETTLE',
       completedAt: new Date().toISOString(),
-      totalStudents: res?.summary?.totalStudents || 10,
-      presentCount: res?.summary?.defaultPresentCount || 10,
-      leaveCount: 0,
-      absentCount: 0,
-      totalDeductedLessons: res?.summary?.totalDeductedLessons || 10,
+      totalStudents: res?.summary?.totalStudents ?? (res?.students?.length ?? 0),
+      presentCount: res?.summary?.defaultPresentCount ?? (res?.settlement?.presentCount ?? 0),
+      leaveCount: res?.settlement?.leaveCount ?? 0,
+      absentCount: res?.settlement?.absentCount ?? 0,
+      totalDeductedLessons: res?.summary?.totalDeductedLessons ?? (res?.settlement?.totalDeductedLessons ?? 0),
       anomalyCount: 0,
       evaluationId: res?.evaluation?.id,
-      outboxCount: res?.outboxSummary?.enqueuedCount || 10,
+      outboxCount: res?.outboxSummary?.enqueuedCount ?? (res?.outbox?.enqueuedCount ?? 0),
     };
   }
 
@@ -328,35 +330,73 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
     const studyContent =
       singleDraft?.studyContent ||
       singleDraft?.content ||
-      studentOverride?.personalizedComment ||
+      targetStudent?.currentComment ||
       targetStudent?.comment ||
-      baselineContent;
+      studentOverride?.personalizedComment ||
+      (targetStudent?.isEvaluated || targetStudent?.evaluated ? '' : (raw?.evaluationDraft?.studyContentHtml || raw?.evaluationSummary?.studyContent || baselineContent));
 
     const rating =
       singleDraft?.rating ??
       studentOverride?.rating ??
       targetStudent?.rating ??
+      (targetStudent?.currentRating ? Number(targetStudent.currentRating) : undefined) ??
+      raw?.evaluationDraft?.overallRating ??
       baselineRating;
 
-    const photos: string[] =
-      singleDraft?.uploadedPhotos ||
-      singleDraft?.photos ||
-      globalDraft?.evaluation?.photoList ||
-      raw?.evaluationDraft?.photoList ||
-      [];
+    const isPersonalized = Boolean(
+      targetStudent?.hasPersonalEvaluation ||
+      targetStudent?.evaluatedAt ||
+      (Array.isArray(targetStudent?.photos) && targetStudent.photos.length > 0) ||
+      targetStudent?.videoUrl
+    );
 
-    const videoUrl: string =
-      singleDraft?.uploadedVideo ||
-      singleDraft?.videoUrl ||
-      globalDraft?.evaluation?.videoUrl ||
-      raw?.evaluationDraft?.videoUrl ||
-      '';
+    let rawPhotos: string[] = [];
+    if (Array.isArray(singleDraft?.uploadedPhotos)) {
+      rawPhotos = singleDraft.uploadedPhotos;
+    } else if (Array.isArray(singleDraft?.photos)) {
+      rawPhotos = singleDraft.photos;
+    } else if (isPersonalized) {
+      // 专属课评下，严格以学员专属多媒体为准 (即使清空也保持清空，绝不倒灌公共大纲相册)
+      rawPhotos = Array.isArray(targetStudent?.photos) ? targetStudent.photos : [];
+    } else {
+      // 尚未形成专属课评时，初始预填全班公共大纲相册
+      rawPhotos = globalDraft?.evaluation?.photoList || raw?.evaluationDraft?.photoList || raw?.evaluationSummary?.photoList || [];
+    }
+
+    let rawVideo = '';
+    if (singleDraft?.uploadedVideo !== undefined && singleDraft?.uploadedVideo !== null) {
+      rawVideo = singleDraft.uploadedVideo;
+    } else if (singleDraft?.videoUrl !== undefined && singleDraft?.videoUrl !== null) {
+      rawVideo = singleDraft.videoUrl;
+    } else if (isPersonalized) {
+      // 专属课评下，严格以学员专属视频为准 (即使清空也保持清空，绝不倒灌公共大纲视频)
+      rawVideo = targetStudent?.videoUrl || '';
+    } else {
+      // 尚未形成专属课评时，初始预填全班公共大纲视频
+      rawVideo = globalDraft?.evaluation?.videoUrl || raw?.evaluationDraft?.videoUrl || raw?.evaluationSummary?.videoUrl || '';
+    }
+
+    const photos: string[] = rawPhotos
+      .map((p) => mediaPipeline.canonicalizeUrl(p))
+      .filter((p) => Boolean(p) && !p.startsWith('wxfile://'));
+
+    const videoUrl: string = mediaPipeline.canonicalizeUrl(rawVideo);
+
+
+    const isEvaluated = Boolean(
+      targetStudent?.evaluated ||
+      targetStudent?.currentComment ||
+      (targetStudent?.comment && targetStudent.comment !== baselineContent) ||
+      raw?.evaluationDraft?.isExisting ||
+      (raw?.schedule?.status === 'completed' && Boolean(studyContent))
+    );
 
     const isModified = Boolean(
       (studyContent && studyContent !== baselineContent) ||
       rating !== baselineRating ||
       photos.length > 0 ||
-      videoUrl
+      videoUrl ||
+      isEvaluated
     );
 
     return {
@@ -372,6 +412,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       photos,
       videoUrl,
       isModified,
+      isEvaluated,
       _baselineToken: {
         baselineContent,
         baselineRating,
@@ -455,18 +496,25 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
         deductLessons: 1,
         personalizedComment: currentContent || baseContent,
         rating: currentRating,
+        photos: currentPhotos,
+        videoUrl: currentVideo,
+        isEvaluated: true,
       },
     ];
 
     const payload: any = {
       scheduleEventId,
       mode: 'PUBLISH_EVALUATION' as FulfillmentMode,
+      targetStudentId: studentId,
       anomalyOverrides,
       overrides: anomalyOverrides.map((a) => ({
         studentId: a.studentId,
         status: a.status,
         deductLessons: a.deductLessons,
         comment: a.personalizedComment,
+        photos: a.photos,
+        videoUrl: a.videoUrl,
+        isEvaluated: true,
       })),
       studyContentHtml: currentContent || baseContent,
       teacherComment: currentContent || baseContent,
@@ -479,6 +527,13 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
     };
 
     const res = await this.port.commitFulfillment(payload);
+
+    // 取消并清除该学员防抖定时器，防止滞后触发 doSave 将旧草稿重写回 Storage
+    const timerKey = `${scheduleEventId}_${studentId}`;
+    if (this.debounceTimers.has(timerKey)) {
+      clearTimeout(this.debounceTimers.get(timerKey));
+      this.debounceTimers.delete(timerKey);
+    }
 
     // 原子清除该学员的草稿缓存
     this.storage.removeDraft({ scheduleId: scheduleEventId, studentId });
@@ -523,8 +578,8 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       endTime: raw?.schedule?.endTime || '',
       timeRange: raw?.schedule?.timeRange || `${raw?.schedule?.date || ''} ${raw?.schedule?.startTime || ''}-${raw?.schedule?.endTime || ''}`.trim(),
       status: raw?.schedule?.status || 'scheduled',
-      expectedCount: raw?.schedule?.expectedCount || (raw?.students?.length ?? 10),
-      actualCount: raw?.schedule?.actualCount || (raw?.students?.length ?? 10),
+      expectedCount: raw?.schedule?.expectedCount ?? (raw?.students?.length ?? 0),
+      actualCount: raw?.schedule?.actualCount ?? (raw?.students ? raw.students.filter((s: any) => (s.recordedStatus || s.status) === 'present' || (s.recordedStatus || s.status) === 'late').length : 0),
       coursewareUrl: raw?.schedule?.coursewareUrl,
     };
 
@@ -565,10 +620,25 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
 
       const status: AttendanceStatus = draftedOverride?.status || s.status || s.recordedStatus || defaultStatus;
       const deductLessons: number = draftedOverride?.deductLessons ?? s.deductLessons ?? defaultDeduct;
-      const comment: string = draftedOverride?.personalizedComment || singleDraft?.studyContent || s.currentComment || '';
-      const rating: number = draftedOverride?.rating || (s.currentRating ? Number(s.currentRating) : 5);
+      const comment: string = draftedOverride?.personalizedComment || singleDraft?.studyContent || s.currentComment || s.comment || '';
+      const rating: number = draftedOverride?.rating || (s.currentRating !== undefined ? Number(s.currentRating) : (s.rating !== undefined ? Number(s.rating) : 5));
 
       const isAnomaly = status !== defaultStatus || deductLessons !== defaultDeduct || Boolean(comment) || rating !== 5;
+
+      const studentPhotos: string[] = Array.isArray(s.photos)
+        ? s.photos
+        : typeof s.photos === 'string'
+          ? JSON.parse(s.photos || '[]')
+          : (singleDraft?.photos || []);
+      const studentVideo: string | undefined = s.videoUrl || singleDraft?.videoUrl || undefined;
+
+      const isStudentEvaluated = Boolean(
+        s.isEvaluated ||
+        s.evaluated ||
+        (studentPhotos && studentPhotos.length > 0) ||
+        studentVideo ||
+        comment
+      );
 
       students.push({
         studentId,
@@ -583,6 +653,12 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
         comment,
         isAnomaly,
         isWechatBound: Boolean(s.wechatOpenId || s.isWechatBound),
+        isEvaluated: isStudentEvaluated,
+        isExempt: Boolean(s.isExempt),
+        evaluatedAt: s.evaluatedAt,
+        evaluatedSource: s.evaluatedSource || 'web',
+        photos: studentPhotos,
+        videoUrl: studentVideo,
       });
     }
 

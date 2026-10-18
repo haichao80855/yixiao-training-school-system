@@ -148,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { evaluationRosterProjector, type EvaluationRosterItemView, type EvaluationMetricsSummary, type EvaluationRosterView } from '../../projectors/evaluation-roster';
 import AppIcon from '../../components/AppIcon.vue';
@@ -185,6 +185,10 @@ const statusFilterLabel = computed(() => {
   return '全部状态';
 });
 
+const handleEvaluationUpdated = (_payload?: { studentId?: string }) => {
+  loadRoster(true);
+};
+
 onMounted(async () => {
   try {
     const info = uni.getSystemInfoSync();
@@ -197,7 +201,13 @@ onMounted(async () => {
     // #endif
   } catch (e) {}
 
+  uni.$on('studentEvaluationUpdated', handleEvaluationUpdated);
+
   await loadRoster(false);
+});
+
+onUnmounted(() => {
+  uni.$off('studentEvaluationUpdated', handleEvaluationUpdated);
 });
 
 // 监听校区上下文响应式切换，自动重载当前校区花名册

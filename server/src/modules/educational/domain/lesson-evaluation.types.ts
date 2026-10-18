@@ -46,6 +46,12 @@ export interface HydratedRosterItem {
   readonly isWechatBound: boolean;
   readonly attendanceStatus: 'present' | 'late' | 'leave' | 'absent' | 'unrecorded';
   readonly deductLessons: number;
+  readonly isEvaluated: boolean;
+  readonly isExempt?: boolean;
+  readonly evaluatedAt?: string;
+  readonly evaluatedSource?: string;
+  readonly photos: string[];
+  readonly videoUrl?: string;
   readonly personalizedComment?: string;
   readonly studentRating?: number;
   readonly performanceTag?: string;
@@ -125,9 +131,14 @@ export interface CommitEvaluationCommand {
     /** 可选：学员个性化特写覆盖项 */
     readonly studentOverrides?: Array<{
       readonly studentId: string;
+      readonly attendanceStatus?: 'present' | 'late' | 'leave' | 'absent' | 'unrecorded';
+      readonly deductLessons?: number;
       readonly personalizedComment?: string;
       readonly rating?: number;
       readonly performanceTag?: string;
+      readonly photos?: string[];
+      readonly videoUrl?: string;
+      readonly isEvaluated?: boolean;
     }>;
   };
 }

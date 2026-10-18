@@ -458,18 +458,50 @@ export class EducationalService {
             id: true,
             name: true,
             code: true,
+            capacity: true,
+            currentStudentCount: true,
             course: { select: { id: true, name: true, subject: true } },
+            studentPackages: {
+              where: { status: 'active' },
+              select: { studentId: true },
+            },
           },
+        },
+        attendances: {
+          where: { isReversed: false },
+          select: { studentId: true, status: true },
         },
         _count: { select: { attendances: true } },
         evaluation: { select: { id: true, status: true, updatedAt: true } },
       },
     });
 
-    return schedules.map((s: any) => ({
-      ...s,
-      evaluationStatus: s.evaluation?.status || 'none',
-    }));
+    return schedules.map((s: any) => {
+      const activePackageStudentIds = (s.class?.studentPackages || []).map((p: any) => p.studentId);
+      const attendanceStudentIds = (s.attendances || []).map((a: any) => a.studentId);
+      const uniqueStudentIds = Array.from(new Set([...activePackageStudentIds, ...attendanceStudentIds]));
+
+      const expectedCount = uniqueStudentIds.length > 0
+        ? uniqueStudentIds.length
+        : (s.class?.currentStudentCount ?? 0);
+
+      const presentAttendances = (s.attendances || []).filter(
+        (a: any) => a.status === 'present' || a.status === 'late'
+      );
+      const actualCount = presentAttendances.length;
+
+      return {
+        ...s,
+        studentIds: uniqueStudentIds,
+        totalStudents: expectedCount,
+        expectedCount,
+        studentCount: expectedCount,
+        signedCount: actualCount,
+        actualCount,
+        attendanceCount: actualCount,
+        evaluationStatus: s.evaluation?.status || 'none',
+      };
+    });
   }
 
   /**

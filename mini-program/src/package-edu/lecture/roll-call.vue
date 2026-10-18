@@ -106,13 +106,15 @@
       :schedule-id="schedule.id"
       :student-id="activeGrowthStudentId"
       :student-name="activeGrowthStudentName"
+      :class-name="schedule.className"
       @close="growthDrawerVisible = false"
     />
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { eduApi, ScheduleEventModel, StudentRollCallModel } from '../../api/edu';
 import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
 import AppIcon from '../../components/AppIcon.vue';
@@ -146,29 +148,84 @@ const schedule = ref<ScheduleEventModel>({
   semanticType: 'completed',
   classType: '线下课',
   status: 'completed',
-  expectedCount: 10,
-  actualCount: 10,
+  expectedCount: 0,
+  actualCount: 0,
 });
 
-// 参课学员名单 (对齐截图 016)
-const students = ref<StudentRollCallModel[]>([
-  { studentId: 's-01', studentNo: 'S950014', name: '董御', status: 'present', deductLessons: 1, remainingLessons: 84, tag: '正', evaluated: false },
-  { studentId: 's-02', studentNo: 'S950007', name: '张景恒', status: 'present', deductLessons: 1, remainingLessons: 72, tag: '正', evaluated: false },
-  { studentId: 's-03', studentNo: 'S950006', name: '吴炳润', status: 'present', deductLessons: 1, remainingLessons: 60, tag: '正', evaluated: false },
-  { studentId: 's-04', studentNo: 'S950003', name: '郑扶摇', status: 'present', deductLessons: 1, remainingLessons: 55, tag: '正', evaluated: false },
-  { studentId: 's-05', studentNo: 'S950005', name: '孙佳音', status: 'present', deductLessons: 1, remainingLessons: 48, tag: '正', evaluated: false },
-  { studentId: 's-06', studentNo: 'S950009', name: '赵梓涵', status: 'present', deductLessons: 1, remainingLessons: 42, tag: '正', evaluated: false },
-  { studentId: 's-07', studentNo: 'S950010', name: '周子程', status: 'present', deductLessons: 1, remainingLessons: 36, tag: '正', evaluated: false },
-  { studentId: 's-08', studentNo: 'S950011', name: '钱思睿', status: 'present', deductLessons: 1, remainingLessons: 30, tag: '正', evaluated: false },
-  { studentId: 's-09', studentNo: 'S950012', name: '李浩轩', status: 'present', deductLessons: 1, remainingLessons: 24, tag: '正', evaluated: false },
-  { studentId: 's-10', studentNo: 'S950013', name: '陈楚河', status: 'present', deductLessons: 1, remainingLessons: 18, tag: '正', evaluated: false },
-]);
+// 参课学员名单 (根据实际班级花名册水化)
+const students = ref<StudentRollCallModel[]>([]);
 
 const presentCount = computed(() => {
-  return students.value.filter((s) => s.status === 'present').length;
+  return students.value.filter((s) => s.status === 'present' || s.status === 'late').length;
 });
 
 const fulfillmentSession = ref<FulfillmentSession | null>(null);
+let activeScheduleId = '';
+
+const loadRollCallData = async (scheduleId: string) => {
+  activeScheduleId = scheduleId;
+  try {
+    const session = await fulfillmentCoordinator.loadSession(scheduleId);
+    fulfillmentSession.value = session;
+    schedule.value = session.schedule as any;
+    if (session.students) {
+      students.value = session.students.map((s) => {
+        const studentPhotos = s.photos || [];
+        const isStudentEvaluated = Boolean(
+          s.isEvaluated ||
+          (s as any).evaluated ||
+          (studentPhotos.length > 0) ||
+          s.videoUrl ||
+          s.comment
+        );
+        return {
+          studentId: s.studentId,
+          studentNo: s.studentNo,
+          name: s.name,
+          avatar: s.avatar,
+          status: s.status,
+          deductLessons: s.deductLessons,
+          remainingLessons: s.remainingLessons,
+          phone: s.phone,
+          tag: '正',
+          evaluated: isStudentEvaluated,
+          isEvaluated: isStudentEvaluated,
+          isExempt: Boolean(s.isExempt),
+          photos: studentPhotos,
+          videoUrl: s.videoUrl,
+          comment: s.comment,
+          rating: s.rating,
+        };
+      });
+    } else {
+      students.value = [];
+    }
+  } catch (e) {
+    const wb = await eduApi.getFulfillmentWorkbench(scheduleId);
+    if (wb) {
+      schedule.value = wb.schedule;
+      if (wb.students) {
+        students.value = wb.students.map((s: any) => ({
+          ...s,
+          name: s.studentName || s.name,
+          evaluated: Boolean(s.isEvaluated || s.evaluated || s.currentComment || s.comment || (s.photos && s.photos.length > 0) || s.videoUrl),
+        }));
+      } else {
+        students.value = [];
+      }
+    }
+  }
+};
+
+// 监听课评保存/提交广播通知 (0毫秒即时变为“看学情”)
+const handleEvaluationUpdated = (payload: { studentId?: string; evaluated?: boolean }) => {
+  if (payload?.studentId) {
+    const target = students.value.find((s) => s.studentId === payload.studentId);
+    if (target) {
+      target.evaluated = payload.evaluated !== undefined ? payload.evaluated : true;
+    }
+  }
+};
 
 onMounted(async () => {
   try {
@@ -182,40 +239,114 @@ onMounted(async () => {
     // #endif
   } catch (e) {}
 
+  // 注册全局课评更新广播
+  uni.$on('studentEvaluationUpdated', handleEvaluationUpdated);
+
   // 接收路由参数动态水化
   const pages = getCurrentPages();
   const curPage = pages[pages.length - 1];
   const query = (curPage as any)?.options || {};
   if (query.scheduleId) {
-    try {
-      const session = await fulfillmentCoordinator.loadSession(query.scheduleId);
-      fulfillmentSession.value = session;
-      schedule.value = session.schedule as any;
-      if (session.students && session.students.length > 0) {
-        students.value = session.students.map((s) => ({
-          studentId: s.studentId,
-          studentNo: s.studentNo,
-          name: s.name,
-          avatar: s.avatar,
-          status: s.status,
-          deductLessons: s.deductLessons,
-          remainingLessons: s.remainingLessons,
-          phone: s.phone,
-          tag: '正',
-          evaluated: Boolean(s.comment || s.rating !== 5),
-        }));
-      }
-    } catch (e) {
-      const wb = await eduApi.getFulfillmentWorkbench(query.scheduleId);
-      if (wb) {
-        schedule.value = wb.schedule;
-        if (wb.students && wb.students.length > 0) {
-          students.value = wb.students;
-        }
-      }
-    }
+    await loadRollCallData(query.scheduleId);
   }
 });
+
+onShow(async () => {
+  // 页面从子页面返回时，静默核验履约会话中已评价学员状态 (确保 Web 端与小程序双向实时互通)
+  if (activeScheduleId) {
+    try {
+      const session = await fulfillmentCoordinator.loadSession(activeScheduleId);
+      if (session && session.students && session.students.length > 0) {
+        session.students.forEach((s) => {
+          const item = students.value.find((stu) => stu.studentId === s.studentId);
+          if (item) {
+            item.status = s.status;
+            item.deductLessons = s.deductLessons;
+            const isStudentEvaluated = Boolean(
+              s.isEvaluated ||
+              (s as any).evaluated ||
+              s.comment ||
+              (s.photos && s.photos.length > 0) ||
+              s.videoUrl
+            );
+            if (isStudentEvaluated) {
+              item.evaluated = true;
+              item.isEvaluated = true;
+              if (Array.isArray(s.photos)) item.photos = s.photos;
+              item.videoUrl = s.videoUrl || undefined;
+              if (s.comment !== undefined) item.comment = s.comment;
+            }
+          }
+        });
+      }
+    } catch (e) {}
+  }
+});
+
+onUnmounted(() => {
+  uni.$off('studentEvaluationUpdated', handleEvaluationUpdated);
+  if (syncAttendanceTimer) {
+    clearTimeout(syncAttendanceTimer);
+    syncAttendanceTimer = null;
+  }
+});
+
+// 考勤变更静默同步定时器
+let syncAttendanceTimer: any = null;
+
+// 同步考勤变更 (本地 Storage 草稿即刻写入 + 服务端数据库静默落盘)
+const syncAttendanceChange = async (immediate = false) => {
+  if (!activeScheduleId) return;
+
+  const doSync = async () => {
+    // 1. 本地 Storage 草稿即刻落盘
+    if (fulfillmentSession.value) {
+      await fulfillmentSession.value.saveDraft();
+    }
+
+    // 2. 组装当前最新出勤与课耗，静默同步持久化至服务端数据库
+    try {
+      const studentOverrides = students.value.map((s) => ({
+        studentId: s.studentId,
+        attendanceStatus: s.status,
+        deductLessons: s.deductLessons,
+      }));
+
+      await eduApi.commitEvaluation({
+        scheduleEventId: activeScheduleId,
+        publish: false,
+        dispatchStrategy: 'ATTENDED_ONLY',
+        payload: {
+          lessonTitle: schedule.value.className ? `${schedule.value.className} - 随堂考勤` : '随堂考勤记录',
+          studyContentHtml: '随堂出勤记录与课评草稿',
+          teacherComment: '随堂教学进展正常',
+          overallRating: 5.0,
+          studentOverrides,
+        },
+      });
+    } catch (err) {
+      console.warn('[roll-call] 静默同步考勤到服务端异常 (本地草稿已保全):', err);
+    }
+  };
+
+  if (immediate) {
+    if (syncAttendanceTimer) {
+      clearTimeout(syncAttendanceTimer);
+      syncAttendanceTimer = null;
+    }
+    await doSync();
+  } else {
+    // 本地草稿 0 毫秒即时落盘，防退出丢失
+    if (fulfillmentSession.value) {
+      fulfillmentSession.value.saveDraft();
+    }
+    if (syncAttendanceTimer) clearTimeout(syncAttendanceTimer);
+    syncAttendanceTimer = setTimeout(() => {
+      doSync();
+      syncAttendanceTimer = null;
+    }, 300);
+  }
+};
 
 const getStatusText = (status: string) => {
   switch (status) {
@@ -238,6 +369,7 @@ const toggleStudentStatus = (stu: StudentRollCallModel) => {
   if (fulfillmentSession.value) {
     fulfillmentSession.value.setStudentStatus(stu.studentId, stu.status, stu.deductLessons);
   }
+  syncAttendanceChange();
 };
 
 const handleEditDeduct = (stu: StudentRollCallModel) => {
@@ -248,6 +380,7 @@ const handleEditDeduct = (stu: StudentRollCallModel) => {
       if (fulfillmentSession.value) {
         fulfillmentSession.value.setStudentStatus(stu.studentId, stu.status, stu.deductLessons);
       }
+      syncAttendanceChange();
       uni.showToast({ title: `已调整为扣除 ${stu.deductLessons} 课时`, icon: 'none' });
     },
   });
@@ -305,6 +438,7 @@ const handleBatchRollCall = () => {
       if (fulfillmentSession.value) {
         fulfillmentSession.value.batchMarkAttendance(targetStatus);
       }
+      syncAttendanceChange();
       uni.showToast({
         title: targetStatus === 'present' ? '已设置为全员到课' : '已设置为全员请假',
         icon: targetStatus === 'present' ? 'success' : 'none',
@@ -358,7 +492,8 @@ const handlePushAll = async () => {
   });
 };
 
-const handleGoBack = () => {
+const handleGoBack = async () => {
+  await syncAttendanceChange(true);
   uni.navigateBack({
     fail: () => {
       uni.reLaunch({ url: '/package-edu/lecture/index' });

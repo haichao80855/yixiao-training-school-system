@@ -105,6 +105,7 @@ async function main() {
     execSync('node test-class-lifecycle-coordinator.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-lesson-evaluation-coordinator.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-lesson-fulfillment-coordinator.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-student-centric-evaluation-matrix.js', { stdio: 'inherit', cwd: serverDir });
 
     // 运行候选 1 & 候选 2 数据持久化与防假双写对抗性测试
     console.log('\n>>> [Step 4/5] 运行数据持久化、防假双写与无异常吞噬对抗性实测套件...\n');
@@ -124,6 +125,12 @@ async function main() {
     execSync('node tests/test_mp_phase3_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase4_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase5_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_rollcall_evaluation_state.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_student_evaluation_isolation.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_evaluation_media_lifecycle.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_evaluation_attendance_draft_lifecycle.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_rollcall_attendance_persistence.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_workbench_attendance_headcount_verification.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
 
     console.log('\n================================================================================');
     console.log('🏆 恭喜！全栈端到端、双轨分层、小程序契约、后端微服务与对抗性持久化所有测试断言 100% 全部通过！');

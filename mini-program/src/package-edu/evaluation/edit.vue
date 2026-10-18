@@ -6,6 +6,9 @@
         <view class="nav-left" @click="handleBackClick">
           <text class="back-arrow">‹</text>
           <text class="nav-title">{{ studentName }}学员的课评</text>
+          <view v-if="isRevisionMode" class="revision-mode-badge">
+            <text class="badge-text">修改中</text>
+          </view>
         </view>
         <view class="capsule-placeholder" :style="{ width: capsuleRightWidth + 'px' }"></view>
       </view>
@@ -14,7 +17,7 @@
     <!-- 1. 课堂点评艺术分割线 (对齐截图 017) -->
     <view class="art-divider-row">
       <view class="divider-line"></view>
-      <text class="art-title">课堂点评</text>
+      <text class="art-title">{{ isRevisionMode ? '修改课堂点评' : '课堂点评' }}</text>
       <view class="divider-line"></view>
     </view>
 
@@ -66,9 +69,9 @@
       <text class="upload-section-title">上传照片/视频</text>
 
       <!-- 上传方块矩阵 -->
-      <view class="upload-boxes-grid">
-        <!-- 上传视频卡片 -->
-        <view class="upload-box-card" @click="handleChooseVideo">
+      <view class="upload-boxes-grid" v-if="!uploadedVideo || uploadedPhotos.length < 9">
+        <!-- 上传视频卡片 (最多允许上传1个视频，上传后自动隐藏) -->
+        <view class="upload-box-card" v-if="!uploadedVideo" @click="handleChooseVideo">
           <view class="box-icon-camera">
             <AppIcon name="video" size="56rpx" color="#2F54EB" />
           </view>
@@ -76,11 +79,11 @@
         </view>
 
         <!-- 上传照片卡片 -->
-        <view class="upload-box-card" @click="handleChoosePhoto">
+        <view class="upload-box-card" v-if="uploadedPhotos.length < 9" @click="handleChoosePhoto">
           <view class="box-icon-photo">
             <AppIcon name="camera" size="56rpx" color="#2F54EB" />
           </view>
-          <text class="box-text">上传照片</text>
+          <text class="box-text">上传照片{{ uploadedPhotos.length > 0 ? ` (${uploadedPhotos.length}/9)` : '' }}</text>
         </view>
       </view>
 
@@ -92,7 +95,7 @@
             <AppIcon name="video" size="48rpx" color="#FFFFFF" />
             <text class="video-label">实况视频</text>
           </view>
-          <view class="delete-badge" @click="uploadedVideo = ''">
+          <view class="delete-badge" @click="removeVideo">
             <AppIcon name="x" size="24rpx" color="#FFFFFF" />
           </view>
         </view>
@@ -113,8 +116,8 @@
         <AppIcon name="save" size="36rpx" color="#64748B" />
         <text class="save-text">保存</text>
       </view>
-      <button class="push-submit-btn" :loading="isSubmitting" @click="handleSubmitEvaluation">
-        推送
+      <button class="push-submit-btn" :class="{ 'revision-btn': isRevisionMode }" :loading="isSubmitting" @click="handleSubmitEvaluation">
+        {{ isRevisionMode ? '保存并更新' : '推送' }}
       </button>
     </view>
 
@@ -137,6 +140,9 @@ import { ref, onMounted } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { eduApi } from '../../api/edu';
 import { fulfillmentCoordinator, type StudentEvaluationDraft } from '../../coordinators/fulfillment';
+import { learningGrowthProjector } from '../../projectors/learning-growth';
+import { mediaPipeline } from '../../services/media-pipeline';
+
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
@@ -154,6 +160,7 @@ const uploadedVideo = ref<string>('');
 const hasModified = ref(false);
 const isSubmitting = ref(false);
 const showExitModal = ref(false);
+const isRevisionMode = ref(false);
 
 const studentDraft = ref<StudentEvaluationDraft | null>(null);
 
@@ -177,6 +184,10 @@ onMounted(async () => {
   if (query.studentId) studentId.value = query.studentId;
   if (query.scheduleId) scheduleId.value = query.scheduleId;
   if (query.className) className.value = decodeURIComponent(query.className);
+  const isRevisionParam = query.isRevision === '1' || query.isRevision === 'true' || Boolean(query.isRevision);
+  if (isRevisionParam) {
+    isRevisionMode.value = true;
+  }
 
   try {
     // 1. 随堂课评智能水化 (hydrateStudentDraft)：聚合课纲大纲标准与本地草稿
@@ -188,6 +199,9 @@ onMounted(async () => {
     if (draft.templateName) currentTemplateName.value = draft.templateName;
     if (draft.photos && draft.photos.length > 0) uploadedPhotos.value = [...draft.photos];
     if (draft.videoUrl) uploadedVideo.value = draft.videoUrl;
+    if (draft.isEvaluated || isRevisionParam) {
+      isRevisionMode.value = true;
+    }
   } catch (e) {
     // 默认大纲预置 (零心智通途兜底)
     studyContent.value = '本节课重点掌握字母拼读规则与自然拼读交互，学员发音精准，课堂表现专注积极！';
@@ -210,40 +224,52 @@ const handleEditClass = () => {
   uni.showToast({ title: '班级归属由教务排课自动锚定', icon: 'none' });
 };
 
-const handleChoosePhoto = () => {
-  uni.chooseImage({
-    count: 9 - uploadedPhotos.value.length,
-    sizeType: ['compressed'],
-    sourceType: ['album', 'camera'],
-    success: async (res) => {
-      uni.showLoading({ title: '正在上传照片...' });
-      for (const tempPath of res.tempFilePaths) {
-        const cdnUrl = await eduApi.uploadPhoto(tempPath, scheduleId.value);
-        uploadedPhotos.value.push(cdnUrl);
-      }
-      uni.hideLoading();
+const handleChoosePhoto = async () => {
+  const remainCount = 9 - uploadedPhotos.value.length;
+  if (remainCount <= 0) {
+    uni.showToast({ title: '最多支持上传 9 张照片', icon: 'none' });
+    return;
+  }
+  try {
+    const urls = await mediaPipeline.captureAndUploadPhotos({
+      maxCount: remainCount,
+      scheduleId: scheduleId.value,
+    });
+    if (urls && urls.length > 0) {
+      uploadedPhotos.value.push(...urls);
       hasModified.value = true;
       triggerAutoSave();
-      uni.showToast({ title: '照片已上传', icon: 'success' });
-    },
-  });
+    }
+  } catch (err) {
+    // 错误已由 mediaPipeline 抛出并展示
+  }
 };
 
-const handleChooseVideo = () => {
-  uni.chooseVideo({
-    sourceType: ['album', 'camera'],
-    maxDuration: 60,
-    camera: 'back',
-    success: async (res) => {
-      uni.showLoading({ title: '正在上传视频...' });
-      const videoCdn = await eduApi.uploadVideo(res.tempFilePath, scheduleId.value);
-      uploadedVideo.value = videoCdn;
-      uni.hideLoading();
+const handleChooseVideo = async () => {
+  if (uploadedVideo.value) {
+    uni.showToast({ title: '最多只能上传一个视频', icon: 'none' });
+    return;
+  }
+  try {
+    const videoUrl = await mediaPipeline.captureAndUploadVideo({
+      scheduleId: scheduleId.value,
+    });
+    if (videoUrl) {
+      uploadedVideo.value = videoUrl;
       hasModified.value = true;
       triggerAutoSave();
-      uni.showToast({ title: '课堂视频已就绪', icon: 'success' });
-    },
-  });
+    }
+  } catch (err) {
+    // 错误已由 mediaPipeline 抛出并展示
+  }
+};
+
+
+const removeVideo = () => {
+  uploadedVideo.value = '';
+  hasModified.value = true;
+  triggerAutoSave();
+  uni.showToast({ title: '视频已移除', icon: 'none' });
 };
 
 const removePhoto = (idx: number) => {
@@ -270,6 +296,46 @@ const triggerAutoSave = () => {
   );
 };
 
+// 广播课评完成状态并同步上一页实例
+const emitEvaluationSuccess = (targetStudentId: string, targetScheduleId: string) => {
+  // 1. 全局事件广播，通知所有监听页面 (课次详情页与课评管理页)
+  uni.$emit('studentEvaluationUpdated', {
+    scheduleId: targetScheduleId,
+    studentId: targetStudentId,
+    evaluated: true,
+  });
+
+  // 2. 失效学情卡本地投影缓存，确保再次点击【看学情】时即时呈现最新雷达与评语
+  try {
+    learningGrowthProjector.evictGrowthCache(targetScheduleId);
+  } catch (e) {}
+
+  // 3. 直接同步上一页页面栈实例 (0毫秒即时变绿/变为看学情)
+  try {
+    const pages = getCurrentPages();
+    if (pages.length >= 2) {
+      const prevPage = pages[pages.length - 2] as any;
+      const vm = prevPage?.$vm || prevPage;
+      if (vm && Array.isArray(vm.students)) {
+        const item = vm.students.find((s: any) => s.studentId === targetStudentId);
+        if (item) {
+          item.evaluated = true;
+          item.isEvaluated = true;
+          item.photos = [...uploadedPhotos.value];
+          item.videoUrl = uploadedVideo.value || undefined;
+          item.comment = studyContent.value;
+        }
+      }
+      if (vm && Array.isArray(vm.rosterItems)) {
+        const item = vm.rosterItems.find((s: any) => s.studentId === targetStudentId);
+        if (item) {
+          item.isPushed = true;
+        }
+      }
+    }
+  } catch (err) {}
+};
+
 const handleSaveDraft = async () => {
   await fulfillmentCoordinator.saveStudentDraft(
     scheduleId.value,
@@ -286,6 +352,7 @@ const handleSaveDraft = async () => {
     { immediate: true }
   );
   hasModified.value = false;
+  emitEvaluationSuccess(studentId.value, scheduleId.value);
   uni.showToast({ title: '已保存至草稿箱', icon: 'success' });
 };
 
@@ -310,7 +377,14 @@ const handleSubmitEvaluation = async () => {
     });
 
     hasModified.value = false;
-    uni.showToast({ title: '课评推送成功！已下发微信通知', icon: 'success' });
+    emitEvaluationSuccess(studentId.value, scheduleId.value);
+    
+    if (isRevisionMode.value) {
+      uni.showToast({ title: '课评已更新，已同步学情卡', icon: 'success' });
+    } else {
+      uni.showToast({ title: '课评推送成功！已下发微信通知', icon: 'success' });
+    }
+
     setTimeout(() => {
       uni.navigateBack();
     }, 800);
@@ -374,6 +448,22 @@ const confirmExit = () => {
         font-size: 32rpx;
         font-weight: 700;
         color: #111827;
+      }
+
+      .revision-mode-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4rpx 14rpx;
+        background: #EFF6FF;
+        border: 1rpx solid #BFDBFE;
+        border-radius: 8rpx;
+        margin-left: 12rpx;
+
+        .badge-text {
+          font-size: 20rpx;
+          color: #2563EB;
+          font-weight: 600;
+        }
       }
     }
   }
@@ -665,6 +755,11 @@ const confirmExit = () => {
     justify-content: center;
     border: none;
     box-shadow: 0 4rpx 16rpx rgba(37, 99, 235, 0.3);
+
+    &.revision-btn {
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+      box-shadow: 0 4rpx 16rpx rgba(37, 99, 235, 0.4);
+    }
   }
 }
 

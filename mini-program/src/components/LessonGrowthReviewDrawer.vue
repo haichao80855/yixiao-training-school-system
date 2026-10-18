@@ -9,17 +9,30 @@
             <text class="header-title">随堂多媒体学情成长卡</text>
             <text class="header-sub">ADR-0010 多媒体雷达实录</text>
           </view>
-          <view class="close-icon-btn" @click="handleClose">
-            <AppIcon name="x" size="36rpx" color="#94A3B8" />
+          <view class="header-right-actions">
+            <view class="header-edit-pill" @click="handleGoEdit">
+              <AppIcon name="edit" size="26rpx" color="#2563EB" />
+              <text class="edit-pill-text">改课评</text>
+            </view>
+            <view class="close-icon-btn" @click="handleClose">
+              <AppIcon name="x" size="36rpx" color="#94A3B8" />
+            </view>
           </view>
         </view>
       </view>
 
-      <!-- 抽屉滚动内容区 -->
-      <scroll-view class="drawer-scroll-body" scroll-y>
-        <view v-if="isLoading" class="loading-box">
-          <text class="loading-tip">正在投影学员多媒体学情雷达...</text>
-        </view>
+      <!-- 抽屉滚动内容区 (采用弹性容器包裹保证微信小程序 scroll-view 获得确定视口高度) -->
+      <view class="drawer-scroll-wrapper">
+        <scroll-view
+          class="drawer-scroll-body"
+          scroll-y
+          :enhanced="true"
+          :show-scrollbar="false"
+          :bounces="true"
+        >
+          <view v-if="isLoading" class="loading-box">
+            <text class="loading-tip">正在投影学员多媒体学情雷达...</text>
+          </view>
 
         <view v-else-if="growthData" class="growth-card-body">
           <!-- 1. 学员与课程概览卡片 -->
@@ -48,27 +61,12 @@
             </view>
 
             <view class="radar-box">
-              <svg viewBox="0 0 200 200" class="radar-svg">
-                <!-- 同心多边形背景网格线 (3 层: 33%, 66%, 100%) -->
-                <polygon points="100,73.6 125,91.8 115.5,121.4 84.5,121.4 75,91.8" fill="none" stroke="#E2E8F0" stroke-width="1" />
-                <polygon points="100,47.2 150.2,83.7 131,142.8 69,142.8 49.8,83.7" fill="none" stroke="#CBD5E1" stroke-width="1" />
-                <polygon points="100,20 176.1,75.3 147,164.7 53,164.7 23.9,75.3" fill="none" stroke="#94A3B8" stroke-width="1.5" />
-
-                <!-- 5 条辐射中轴线 -->
-                <line x1="100" y1="100" x2="100" y2="20" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
-                <line x1="100" y1="100" x2="176.1" y2="75.3" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
-                <line x1="100" y1="100" x2="147" y2="164.7" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
-                <line x1="100" y1="100" x2="53" y2="164.7" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
-                <line x1="100" y1="100" x2="23.9" y2="75.3" stroke="#CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
-
-                <!-- 投影多边形数据层 -->
-                <polygon
-                  :points="growthData.radarSvgPolygonPoints"
-                  fill="rgba(37, 99, 235, 0.28)"
-                  stroke="#2563EB"
-                  stroke-width="2.5"
-                />
-              </svg>
+              <image
+                v-if="radarSvgUri"
+                class="radar-svg-img"
+                :src="radarSvgUri"
+                mode="aspectFit"
+              />
 
               <!-- 5 维指标胶囊列表 -->
               <view class="dimension-chips-grid">
@@ -152,11 +150,13 @@
 
         <view class="drawer-bottom-space"></view>
       </scroll-view>
+      </view>
 
       <!-- 抽屉底部安全操作栏 -->
       <view class="drawer-action-footer">
         <view class="re-edit-btn" @click="handleGoEdit">
-          改课评
+          <AppIcon name="edit" size="30rpx" color="#2563EB" />
+          <text class="btn-text">改课评</text>
         </view>
         <view class="confirm-close-btn" @click="handleClose">
           确定并返回
@@ -167,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { learningGrowthProjector, type LessonGrowthView } from '../projectors/learning-growth';
 import AppIcon from './AppIcon.vue';
 
@@ -176,6 +176,7 @@ const props = defineProps<{
   scheduleId: string;
   studentId: string;
   className?: string;
+  studentName?: string;
 }>();
 
 const emit = defineEmits<{
@@ -185,6 +186,18 @@ const emit = defineEmits<{
 
 const isLoading = ref(false);
 const growthData = ref<LessonGrowthView | null>(null);
+
+const radarSvgUri = computed(() => {
+  if (growthData.value?.radarSvgDataUri) {
+    return growthData.value.radarSvgDataUri;
+  }
+  const points = growthData.value?.radarSvgPolygonPoints;
+  if (!points) return '';
+  if (typeof (learningGrowthProjector as any).generateRadarSvgDataUri === 'function') {
+    return (learningGrowthProjector as any).generateRadarSvgDataUri(points, growthData.value?.radarDimensions);
+  }
+  return '';
+});
 
 watch(
   () => [props.visible, props.scheduleId, props.studentId],
@@ -202,6 +215,7 @@ const loadGrowthData = async (scheduleId: string, studentId: string) => {
     const view = await learningGrowthProjector.projectLessonGrowth({
       scheduleId,
       studentId,
+      forceRefresh: true,
     });
     growthData.value = view;
   } catch (err) {
@@ -229,10 +243,10 @@ const handleGoEdit = () => {
   handleClose();
   const schId = props.scheduleId;
   const stuId = props.studentId;
-  const stuName = growthData.value?.studentName || '';
+  const stuName = growthData.value?.studentName || props.studentName || '';
   const clsName = props.className || growthData.value?.className || '';
   uni.navigateTo({
-    url: `/package-edu/evaluation/edit?studentId=${stuId}&studentName=${encodeURIComponent(stuName)}&scheduleId=${schId}&className=${encodeURIComponent(clsName)}`,
+    url: `/package-edu/evaluation/edit?studentId=${stuId}&studentName=${encodeURIComponent(stuName)}&scheduleId=${schId}&className=${encodeURIComponent(clsName)}&isRevision=1`,
   });
 };
 </script>
@@ -261,9 +275,11 @@ const handleGoEdit = () => {
 .growth-drawer-content {
   background: #F8FAFC;
   border-radius: 36rpx 36rpx 0 0;
-  max-height: 86vh;
+  height: 85vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   box-shadow: 0 -8rpx 32rpx rgba(0, 0, 0, 0.12);
   animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -274,10 +290,12 @@ const handleGoEdit = () => {
 }
 
 .drawer-header {
+  flex-shrink: 0;
   padding: 16rpx 32rpx 20rpx;
   background: #FFFFFF;
   border-radius: 36rpx 36rpx 0 0;
   border-bottom: 1rpx solid #F1F5F9;
+  z-index: 10;
 
   .drag-handle {
     width: 64rpx;
@@ -310,17 +328,56 @@ const handleGoEdit = () => {
       }
     }
 
-    .close-icon-btn {
-      padding: 10rpx;
-      cursor: pointer;
+    .header-right-actions {
+      display: flex;
+      align-items: center;
+      gap: 16rpx;
+
+      .header-edit-pill {
+        display: flex;
+        align-items: center;
+        gap: 8rpx;
+        padding: 8rpx 20rpx;
+        background: #EFF6FF;
+        border: 1rpx solid #BFDBFE;
+        border-radius: 28rpx;
+        cursor: pointer;
+        transition: opacity 0.2s;
+
+        &:active {
+          opacity: 0.75;
+        }
+
+        .edit-pill-text {
+          font-size: 24rpx;
+          font-weight: 600;
+          color: #2563EB;
+        }
+      }
+
+      .close-icon-btn {
+        padding: 10rpx;
+        cursor: pointer;
+      }
     }
   }
 }
 
-.drawer-scroll-body {
+.drawer-scroll-wrapper {
   flex: 1;
+  height: 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.drawer-scroll-body {
+  width: 100%;
+  height: 100%;
   padding: 24rpx;
   box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 
   .loading-box {
     padding: 100rpx 0;
@@ -444,15 +501,17 @@ const handleGoEdit = () => {
   }
 }
 
-/* 2. 原生 SVG 雷达 */
+/* 2. 原生 SVG 雷达 (小程序 <image> 矢量渲染) */
 .radar-box {
   display: flex;
   flex-direction: column;
   align-items: center;
 
+  .radar-svg-img,
   .radar-svg {
     width: 380rpx;
     height: 380rpx;
+    display: block;
   }
 
   .dimension-chips-grid {
@@ -591,11 +650,13 @@ const handleGoEdit = () => {
 }
 
 .drawer-bottom-space {
-  height: 40rpx;
+  height: 60rpx;
 }
 
-/* 底部操作按钮 */
+/* 底部操作按钮 (固定在抽屉底部，自适应全面屏安全区) */
 .drawer-action-footer {
+  flex-shrink: 0;
+  z-index: 10;
   padding: 20rpx 32rpx calc(24rpx + constant(safe-area-inset-bottom));
   padding: 20rpx 32rpx calc(24rpx + env(safe-area-inset-bottom));
   background: #FFFFFF;
@@ -608,6 +669,7 @@ const handleGoEdit = () => {
     width: 200rpx;
     height: 80rpx;
     background: #EFF6FF;
+    border: 1rpx solid #BFDBFE;
     color: #2563EB;
     font-size: 26rpx;
     font-weight: 600;
@@ -615,7 +677,19 @@ const handleGoEdit = () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 8rpx;
     cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:active {
+      opacity: 0.8;
+    }
+
+    .btn-text {
+      font-size: 26rpx;
+      font-weight: 600;
+      color: #2563EB;
+    }
   }
 
   .confirm-close-btn {

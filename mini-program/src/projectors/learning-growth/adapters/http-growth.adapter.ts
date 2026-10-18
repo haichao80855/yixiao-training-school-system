@@ -29,6 +29,10 @@ export class HttpGrowthQueryAdapter implements GrowthQueryPort {
 
   async fetchScheduleWorkbench(scheduleId: string): Promise<RawWorkbenchDto> {
     const wb = await eduApi.getFulfillmentWorkbench(scheduleId);
+    const evalData = wb.evaluationSummary || (wb as any).evaluationDraft;
+    const photoList = Array.isArray(evalData?.photoList) ? evalData.photoList : [];
+    const videoUrl = evalData?.videoUrl || '';
+
     return {
       schedule: {
         id: wb.schedule.id,
@@ -43,20 +47,34 @@ export class HttpGrowthQueryAdapter implements GrowthQueryPort {
         classType: wb.schedule.classType,
         status: wb.schedule.status,
       },
-      students: (wb.students || []).map((s) => ({
+      students: (wb.students || []).map((s: any) => ({
         studentId: s.studentId,
         studentNo: s.studentNo,
-        name: s.name,
+        name: s.name || s.studentName || '学员',
         phone: s.phone,
         status: s.status,
         deductLessons: s.deductLessons,
         remainingLessons: s.remainingLessons,
-        rating: 5,
-        comment: '',
-        evaluated: s.evaluated,
-        performanceTag: '专注标兵',
+        rating: s.rating ?? (s.currentRating ? Number(s.currentRating) : 5),
+        comment: s.comment || s.currentComment || '',
+        currentComment: s.currentComment || s.comment || '',
+        photos: Array.isArray(s.photos) ? s.photos : [],
+        videoUrl: s.videoUrl || undefined,
+        evaluated: Boolean(s.evaluated || s.isEvaluated),
+        isEvaluated: Boolean(s.isEvaluated || s.evaluated),
+        hasPersonalEvaluation: Boolean(s.hasPersonalEvaluation),
+        evaluatedAt: s.evaluatedAt,
+        performanceTag: s.performanceTag || '专注标兵',
       })),
-      evaluationSummary: wb.evaluationSummary,
+      evaluationSummary: evalData ? {
+        templateName: evalData.templateName,
+        studyContent: evalData.studyContent || evalData.studyContentHtml,
+        teacherComment: evalData.teacherComment,
+        photoList,
+        videoUrl,
+        overallRating: evalData.overallRating,
+      } : undefined,
     };
   }
 }
+

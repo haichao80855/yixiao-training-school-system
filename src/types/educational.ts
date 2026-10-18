@@ -224,10 +224,20 @@ export interface EvaluationTemplate {
 export interface StudentEvaluationItem {
   studentId: string;
   studentName: string;
+  studentNo?: string;
   rating: number;
   comment: string;
   performanceTag?: string;
   avatar?: string;
+  photos?: string[];
+  videoUrl?: string;
+  attendanceStatus?: 'present' | 'late' | 'leave' | 'absent' | 'unrecorded';
+  deductLessons?: number;
+  isEvaluated?: boolean;
+  isExempt?: boolean;
+  evaluatedAt?: string;
+  evaluatedSource?: string;
+  isWechatBound?: boolean;
 }
 
 export interface LessonEvaluation {

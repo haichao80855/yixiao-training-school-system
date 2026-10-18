@@ -15,12 +15,12 @@ export class MemoryMockStorageAdapter implements StorageEnginePort {
     this.urlPrefix = prefix.endsWith('/') ? prefix : `${prefix}/`;
   }
 
-  async write(relativePath: string, buffer: Buffer): Promise<StoragePersistResult> {
+  async write(relativePath: string, buffer: Buffer, baseUrl?: string): Promise<StoragePersistResult> {
     const cleanKey = relativePath.replace(/^[/\\]+/, '').replace(/\\/g, '/');
     this.files.set(cleanKey, Buffer.from(buffer));
     return {
       relativePath: cleanKey,
-      url: this.resolveUrl(cleanKey),
+      url: this.resolveUrl(cleanKey, baseUrl),
       absolutePath: `memory://${cleanKey}`,
       sizeBytes: buffer.length,
     };
@@ -48,10 +48,17 @@ export class MemoryMockStorageAdapter implements StorageEnginePort {
     return deletedCount;
   }
 
-  resolveUrl(relativePath: string): string {
+  resolveUrl(relativePath: string, baseUrl?: string): string {
     const cleanPath = relativePath.replace(/^[/\\]+/, '').replace(/\\/g, '/');
-    return `${this.urlPrefix}${cleanPath}`;
+    const relativeUrl = `${this.urlPrefix}${cleanPath}`;
+    const base = baseUrl || process.env.CDN_PUBLIC_BASE_URL || process.env.APP_BASE_URL;
+    if (base) {
+      const cleanBase = base.replace(/\/+$/, '');
+      return `${cleanBase}${relativeUrl}`;
+    }
+    return relativeUrl;
   }
+
 
   // 供单测断言使用的辅助方法
   getBuffer(relativePath: string): Buffer | undefined {

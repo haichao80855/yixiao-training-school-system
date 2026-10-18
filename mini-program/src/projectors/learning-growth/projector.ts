@@ -6,6 +6,7 @@ import type {
   LessonGrowthPhoto,
 } from './types';
 import type { GrowthQueryPort, GrowthCachePort, RawWorkbenchDto } from './ports';
+import { mediaPipeline } from '../../services/media-pipeline';
 
 export interface LearningGrowthProjectorOptions {
   queryPort: GrowthQueryPort;
@@ -94,13 +95,25 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
     const score = Math.round(ratingScore * 19.6);
     const radar = this.computeRadarDimensions(ratingScore);
     const radarSvg = this.generateRadarSvgPoints(radar);
+    const radarSvgDataUri = this.generateRadarSvgDataUri(radarSvg, radar);
 
     const photos: LessonGrowthPhoto[] = Array.isArray(lesson.photos)
-      ? lesson.photos.map((p: any) => ({
-          url: p.url || '',
-          thumbUrl: p.thumbUrl || p.url || '',
-        }))
+      ? lesson.photos.map((p: any) => {
+          const rawUrl = p.url || '';
+          const canonical = mediaPipeline.canonicalizeUrl(rawUrl);
+          return {
+            url: canonical,
+            thumbUrl: p.thumbUrl ? mediaPipeline.canonicalizeUrl(p.thumbUrl) : canonical,
+          };
+        })
       : [];
+
+    const video = lesson.video?.videoUrl
+      ? {
+          videoUrl: mediaPipeline.canonicalizeUrl(lesson.video.videoUrl),
+          coverUrl: lesson.video.coverUrl ? mediaPipeline.canonicalizeUrl(lesson.video.coverUrl) : undefined,
+        }
+      : undefined;
 
     return {
       studentId,
@@ -117,7 +130,7 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
         ? lesson.syllabusPoints
         : ['核心概念解析与实践', '随堂交互与逻辑思维拓展'],
       photos,
-      video: lesson.video ? { videoUrl: lesson.video.videoUrl, coverUrl: lesson.video.coverUrl } : undefined,
+      video,
       badges: Array.isArray(lesson.badges) && lesson.badges.length > 0
         ? lesson.badges
         : [
@@ -126,6 +139,7 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
           ],
       radarDimensions: radar,
       radarSvgPolygonPoints: radarSvg,
+      radarSvgDataUri,
       source: 'network_fresh',
       queriedAt: Date.now(),
     };
@@ -145,18 +159,46 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
     const score = Math.round(ratingScore * 19.6);
     const radar = this.computeRadarDimensions(ratingScore);
     const radarSvg = this.generateRadarSvgPoints(radar);
+    const radarSvgDataUri = this.generateRadarSvgDataUri(radarSvg, radar);
+
+    const isPersonalized = Boolean(
+      targetStudent.hasPersonalEvaluation ||
+      targetStudent.evaluatedAt ||
+      (Array.isArray(targetStudent?.photos) && targetStudent.photos.length > 0) ||
+      targetStudent.videoUrl
+    );
 
     const photos: LessonGrowthPhoto[] = [];
-    if (Array.isArray(wb.evaluationSummary?.photoList)) {
+    if (isPersonalized) {
+      // 学员已有专属课评/特写：严格只使用学员自身相册，即使清空也绝不回退至全班公共相册
+      if (Array.isArray(targetStudent?.photos)) {
+        for (const p of targetStudent.photos) {
+          if (p) {
+            const canonical = mediaPipeline.canonicalizeUrl(p);
+            photos.push({ url: canonical, thumbUrl: canonical });
+          }
+        }
+      }
+    } else if (Array.isArray(wb.evaluationSummary?.photoList)) {
+      // 仅当学员无独立专属课评时，才使用全班公共相册
       for (const p of wb.evaluationSummary.photoList) {
-        photos.push({ url: p, thumbUrl: p });
+        if (p) {
+          const canonical = mediaPipeline.canonicalizeUrl(p);
+          photos.push({ url: canonical, thumbUrl: canonical });
+        }
       }
     }
 
     const comment =
+      targetStudent.currentComment ||
       targetStudent.comment ||
       wb.evaluationSummary?.teacherComment ||
       '课堂专注投入，表现优异，随堂任务完成度高！';
+
+    const rawVideoUrl = isPersonalized
+      ? (targetStudent?.videoUrl || '')
+      : (targetStudent?.videoUrl || wb.evaluationSummary?.videoUrl || '');
+    const canonicalVideoUrl = rawVideoUrl ? mediaPipeline.canonicalizeUrl(rawVideoUrl) : '';
 
     return {
       studentId,
@@ -171,9 +213,8 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
       teacherComment: comment,
       syllabusPoints: ['核心知识体系构建', '模块化设计与逻辑实现', '团队互动与成果演示'],
       photos,
-      video: wb.evaluationSummary?.videoUrl
-        ? { videoUrl: wb.evaluationSummary.videoUrl }
-        : undefined,
+      video: canonicalVideoUrl ? { videoUrl: canonicalVideoUrl } : undefined,
+
       badges: [
         { name: '专注标兵', icon: 'star', desc: '课堂互动积极高效' },
         { name: '实践达人', icon: 'zap', desc: '实操环节高质量闭环' },
@@ -181,6 +222,7 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
       ],
       radarDimensions: radar,
       radarSvgPolygonPoints: radarSvg,
+      radarSvgDataUri,
       source: 'network_fresh',
       queriedAt: Date.now(),
     };
@@ -207,7 +249,7 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
    * 中心 (100, 100), 最大半径 R = 80
    * 顶点 0 (专注力) 朝正上方 (-π/2)
    */
-  private generateRadarSvgPoints(dimensions: RadarDimension[]): string {
+  public generateRadarSvgPoints(dimensions: RadarDimension[]): string {
     const cx = 100;
     const cy = 100;
     const maxR = 80;
@@ -230,6 +272,52 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
     return points.join(' ');
   }
 
+  /**
+   * 兼容微信小程序原生 WXML <image> 矢量渲染的完整 SVG Data URI 编码生成器
+   */
+  public generateRadarSvgDataUri(points: string, dimensions?: RadarDimension[]): string {
+    const coords = (points || '')
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((p) => {
+        const [x, y] = p.split(',').map(Number);
+        return { x: Number(x) || 100, y: Number(y) || 100 };
+      });
+
+    const circles = coords
+      .map(
+        (c) =>
+          `<circle cx="${c.x}" cy="${c.y}" r="3.5" fill="%232563EB" stroke="%23FFFFFF" stroke-width="1.5" />`
+      )
+      .join('');
+
+    const svgXml = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+      <!-- 同心正五边形背景网格 (3 层: 33%, 66%, 100%) -->
+      <polygon points="100,73.6 125,91.8 115.5,121.4 84.5,121.4 75,91.8" fill="none" stroke="%23E2E8F0" stroke-width="1" />
+      <polygon points="100,47.2 150.2,83.7 131,142.8 69,142.8 49.8,83.7" fill="none" stroke="%23CBD5E1" stroke-width="1" />
+      <polygon points="100,20 176.1,75.3 147,164.7 53,164.7 23.9,75.3" fill="none" stroke="%2394A3B8" stroke-width="1.5" />
+
+      <!-- 5 条辐射中轴线 -->
+      <line x1="100" y1="100" x2="100" y2="20" stroke="%23CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
+      <line x1="100" y1="100" x2="176.1" y2="75.3" stroke="%23CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
+      <line x1="100" y1="100" x2="147" y2="164.7" stroke="%23CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
+      <line x1="100" y1="100" x2="53" y2="164.7" stroke="%23CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
+      <line x1="100" y1="100" x2="23.9" y2="75.3" stroke="%23CBD5E1" stroke-width="1" stroke-dasharray="3,3" />
+
+      <!-- 投影多边形数据层 (蓝色半透明填充 + 2.5px 边框) -->
+      <polygon
+        points="${points}"
+        fill="rgba(37, 99, 235, 0.28)"
+        stroke="%232563EB"
+        stroke-width="2.5"
+      />
+      ${circles}
+    </svg>`;
+
+    return `data:image/svg+xml;utf8,${encodeURIComponent(svgXml)}`;
+  }
+
   private getScoreLevelText(score: number): string {
     if (score >= 95) return 'A+';
     if (score >= 90) return 'A';
@@ -240,6 +328,8 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
 
   private buildSafeFallbackView(scheduleId: string, studentId: string): LessonGrowthView {
     const radar = this.computeRadarDimensions(4.5);
+    const radarSvg = this.generateRadarSvgPoints(radar);
+    const radarSvgDataUri = this.generateRadarSvgDataUri(radarSvg, radar);
     return {
       studentId,
       studentName: '学员',
@@ -255,7 +345,8 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
       photos: [],
       badges: [{ name: '学习之星', icon: 'star', desc: '课堂表现良好' }],
       radarDimensions: radar,
-      radarSvgPolygonPoints: this.generateRadarSvgPoints(radar),
+      radarSvgPolygonPoints: radarSvg,
+      radarSvgDataUri,
       source: 'degraded_fallback',
       queriedAt: Date.now(),
     };

@@ -47,10 +47,15 @@ export interface RawWorkbenchDto {
     phone?: string;
     status?: string;
     deductLessons?: number;
-    remainingLessons?: number;
     rating?: number;
     comment?: string;
+    currentComment?: string;
+    photos?: string[];
+    videoUrl?: string;
     evaluated?: boolean;
+    isEvaluated?: boolean;
+    hasPersonalEvaluation?: boolean;
+    evaluatedAt?: string;
     performanceTag?: string;
   }>;
   evaluationSummary?: {

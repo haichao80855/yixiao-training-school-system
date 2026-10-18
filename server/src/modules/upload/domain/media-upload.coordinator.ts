@@ -6,6 +6,7 @@ export interface UploadClassroomPhotosCommand {
   files: Express.Multer.File[];
   campusId: string;
   scheduleEventId?: string;
+  baseUrl?: string;
 }
 
 export interface PhotoItemDto {
@@ -34,7 +35,9 @@ export interface UploadClassroomVideoCommand {
   file: Express.Multer.File;
   campusId: string;
   scheduleEventId?: string;
+  baseUrl?: string;
 }
+
 
 export interface VideoUploadResult {
   videoUrl: string;
@@ -61,7 +64,7 @@ export class MediaUploadCoordinator {
    * 采用 Promise.allSettled 容错流水线，单张损坏或超标不阻断整批正常上传
    */
   async uploadClassroomPhotos(command: UploadClassroomPhotosCommand): Promise<ClassroomPhotoBatchResult> {
-    const { files, campusId, scheduleEventId } = command;
+    const { files, campusId, scheduleEventId, baseUrl } = command;
 
     if (!files || files.length === 0) {
       throw new BadRequestException('请至少选择一张随堂照片上传');
@@ -76,7 +79,7 @@ export class MediaUploadCoordinator {
     const dateStr = this.formatDate(new Date());
 
     const results = await Promise.allSettled(
-      files.map(async (file) => this.processSinglePhoto(file, cleanCampusId, cleanScheduleId, dateStr))
+      files.map(async (file) => this.processSinglePhoto(file, cleanCampusId, cleanScheduleId, dateStr, baseUrl))
     );
 
     const items: PhotoItemDto[] = [];
@@ -112,7 +115,8 @@ export class MediaUploadCoordinator {
     file: Express.Multer.File,
     campusId: string,
     scheduleEventId: string,
-    dateStr: string
+    dateStr: string,
+    baseUrl?: string
   ): Promise<PhotoItemDto> {
     const filename = file.originalname || 'photo.jpg';
 
@@ -144,9 +148,9 @@ export class MediaUploadCoordinator {
     let resolvedUrl: string;
 
     if (exists) {
-      resolvedUrl = this.storageEngine.resolveUrl(relativePath);
+      resolvedUrl = this.storageEngine.resolveUrl(relativePath, baseUrl);
     } else {
-      const persistRes = await this.storageEngine.write(relativePath, file.buffer);
+      const persistRes = await this.storageEngine.write(relativePath, file.buffer, baseUrl);
       resolvedUrl = persistRes.url;
     }
 
@@ -162,6 +166,7 @@ export class MediaUploadCoordinator {
       sha256: hash,
     };
   }
+
 
   /**
    * 级联反结课冲正：注销该课次下的随堂照片资产
@@ -227,7 +232,7 @@ export class MediaUploadCoordinator {
    * 采用二进制 Magic Number 格式真伪嗅探、100MB 上限安全门禁与 SHA-256 秒传去重
    */
   async uploadClassroomVideo(command: UploadClassroomVideoCommand): Promise<VideoUploadResult> {
-    const { file, campusId, scheduleEventId } = command;
+    const { file, campusId, scheduleEventId, baseUrl } = command;
 
     if (!file || !file.buffer || file.buffer.length === 0) {
       throw new BadRequestException('请选择有效的视频文件上传');
@@ -241,10 +246,10 @@ export class MediaUploadCoordinator {
       throw new BadRequestException(`您上传的视频文件大小为 ${sizeMb}MB，超出系统 100MB 上限`);
     }
 
-    // 2. 二进制魔数真实格式嗅探
-    const detected = this.sniffVideoFormat(file.buffer);
+    // 2. 二进制魔数真实格式嗅探 (深度兼容 iPhone MOV, 微信视频与各主流编码)
+    const detected = this.sniffVideoFormat(file.buffer, file);
     if (!detected) {
-      throw new BadRequestException(`文件 [${filename}] 格式非法，仅支持真实 MP4、WebM 或 QuickTime MOV 格式视频`);
+      throw new BadRequestException(`文件 [${filename}] 格式非法，仅支持真实 MP4、WebM、MOV 或主流常用视频`);
     }
 
     // 3. 计算 SHA-256 不可变指纹
@@ -263,9 +268,9 @@ export class MediaUploadCoordinator {
     let resolvedUrl: string;
 
     if (exists) {
-      resolvedUrl = this.storageEngine.resolveUrl(relativePath);
+      resolvedUrl = this.storageEngine.resolveUrl(relativePath, baseUrl);
     } else {
-      const persistRes = await this.storageEngine.write(relativePath, file.buffer);
+      const persistRes = await this.storageEngine.write(relativePath, file.buffer, baseUrl);
       resolvedUrl = persistRes.url;
     }
 
@@ -278,34 +283,50 @@ export class MediaUploadCoordinator {
     };
   }
 
+
   /**
    * 基于二进制 Header 嗅探真实视频格式 (Magic Number)
+   * 支持前 256 字节广域扫描、苹果 QuickTime wide atom 容错与 MimeType/扩展名深度兜底
    */
-  sniffVideoFormat(buffer: Buffer): DetectedFormat | null {
-    if (!buffer || buffer.length < 12) return null;
+  sniffVideoFormat(buffer: Buffer, file?: Express.Multer.File): DetectedFormat | null {
+    if (!buffer || buffer.length < 8) return null;
 
-    // WebM / Matroska: 1A 45 DF A3
-    if (buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) {
+    // 1. WebM / Matroska: 1A 45 DF A3
+    if (buffer.length >= 12 && buffer[0] === 0x1a && buffer[1] === 0x45 && buffer[2] === 0xdf && buffer[3] === 0xa3) {
       return { ext: 'webm', mime: 'video/webm' };
     }
 
-    // MP4 / MOV: ISO Base Media file (ftyp at offset 4)
-    const boxType = buffer.subarray(4, 8).toString('ascii');
-    if (boxType === 'ftyp') {
-      const majorBrand = buffer.subarray(8, 12).toString('ascii').toLowerCase();
-      if (majorBrand.startsWith('qt')) {
+    // 2. AVI: RIFF....AVI 
+    if (buffer.length >= 12 && buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'AVI ') {
+      return { ext: 'avi', mime: 'video/x-msvideo' };
+    }
+
+    // 3. MP4 / MOV 广域扫描：在前 256 字节内扫描标准 ISO Box 标识 (ftyp, moov, mdat, wide)
+    const scanLimit = Math.min(buffer.length, 256);
+    const headerStr = buffer.subarray(0, scanLimit).toString('binary');
+    if (headerStr.includes('ftyp') || headerStr.includes('moov') || headerStr.includes('mdat') || headerStr.includes('wide')) {
+      if (headerStr.includes('qt  ')) {
         return { ext: 'mov', mime: 'video/quicktime' };
       }
       return { ext: 'mp4', mime: 'video/mp4' };
     }
 
-    // QuickTime (moov, wide, mdat at offset 4)
-    if (['moov', 'wide', 'mdat'].includes(boxType)) {
-      return { ext: 'mov', mime: 'video/quicktime' };
+    // 4. MimeType 或 文件扩展名智能兜底 (容错微信小程序临时录制容器)
+    if (file) {
+      const mime = (file.mimetype || '').toLowerCase();
+      if (mime.includes('mp4') || mime.includes('quicktime') || mime.includes('webm') || mime.includes('video')) {
+        return { ext: mime.includes('quicktime') ? 'mov' : 'mp4', mime: mime || 'video/mp4' };
+      }
+      const filename = (file.originalname || '').toLowerCase();
+      if (/\.(mp4|mov|webm|3gp|m4v|avi)$/i.test(filename)) {
+        const ext = filename.split('.').pop() || 'mp4';
+        return { ext, mime: ext === 'mov' ? 'video/quicktime' : 'video/mp4' };
+      }
     }
 
     return null;
   }
+
 
   /**
    * 格式化 300x300 九宫格预览 URL

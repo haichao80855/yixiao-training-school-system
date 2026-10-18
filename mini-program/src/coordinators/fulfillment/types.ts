@@ -9,6 +9,9 @@ export interface StudentFulfillmentOverride {
   rating?: number;
   personalizedComment?: string;
   performanceTag?: string;
+  photos?: string[];
+  videoUrl?: string;
+  isEvaluated?: boolean;
 }
 
 export interface SessionStudentItem {
@@ -24,6 +27,12 @@ export interface SessionStudentItem {
   comment?: string;
   isAnomaly: boolean;
   isWechatBound?: boolean;
+  isEvaluated?: boolean;
+  isExempt?: boolean;
+  evaluatedAt?: string;
+  evaluatedSource?: string;
+  photos?: string[];
+  videoUrl?: string;
 }
 
 export interface SessionEvaluationDraft {
@@ -123,6 +132,7 @@ export interface StudentEvaluationDraft {
   photos: string[];
   videoUrl?: string;
   isModified?: boolean;
+  isEvaluated?: boolean;
   /** 不可变基线快照凭证，用于差分计算与防篡改比对 */
   readonly _baselineToken: {
     baselineContent: string;

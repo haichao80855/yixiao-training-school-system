@@ -19,7 +19,7 @@ export abstract class StorageEnginePort {
    * @param relativePath 相对存储根路径，如 photos/campus-bj-hq/sch-123/20261014/abc.jpg
    * @param buffer 文件二进制 Buffer
    */
-  abstract write(relativePath: string, buffer: Buffer): Promise<StoragePersistResult>;
+  abstract write(relativePath: string, buffer: Buffer, baseUrl?: string): Promise<StoragePersistResult>;
 
   /**
    * 检查相对路径文件是否存在
@@ -37,7 +37,8 @@ export abstract class StorageEnginePort {
   abstract deleteByPrefix(prefix: string): Promise<number>;
 
   /**
-   * 解析相对路径的对外访问 URL
+   * 解析相对路径的对外访问 URL (支持传入外部 baseUrl 规范化为绝对路径)
    */
-  abstract resolveUrl(relativePath: string): string;
+  abstract resolveUrl(relativePath: string, baseUrl?: string): string;
 }
+

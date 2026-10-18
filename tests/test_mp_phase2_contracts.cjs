@@ -57,7 +57,12 @@ assert.ok(lectureContent.includes('calendar-strip-card') || lectureContent.inclu
 assert.ok(lectureContent.includes('showActionSheet'), '❌ 讲台页面缺少 ActionSheet 更多操作抽屉');
 assert.ok(lectureContent.includes('showResourceModal'), '❌ 讲台页面缺少备课资源/PPT-HTML弹窗');
 assert.ok(lectureContent.includes('package-edu/lecture/roll-call'), '❌ 讲台页面缺少点名签到直连跳转');
-console.log('✔ 讲台课表页 (012~015) 周日历、卡片操作与备课资源交互契约通过');
+assert.ok(lectureContent.includes('isCalendarExpanded'), '❌ 讲台日历缺少下拉展开状态机');
+assert.ok(lectureContent.includes('month-calendar-panel'), '❌ 讲台日历缺少下拉月视图面板');
+assert.ok(lectureContent.includes('handlePrevPeriod'), '❌ 讲台日历缺少向前翻月/翻周选取上月日期方法');
+assert.ok(lectureContent.includes('todayDateStr'), '❌ 讲台日历缺少动态今日日期计算');
+assert.ok(lectureContent.includes('handleMonthPickerChange'), '❌ 讲台日历缺少月份选择器切换方法');
+console.log('✔ 讲台课表页 (012~015) 周日历下拉展开、选取上月日期与今日默认选中契约通过');
 
 // 4. 验证课次点名签到 (package-edu/lecture/roll-call.vue - 对齐截图 016)
 const rollCallPath = path.resolve(__dirname, '../mini-program/src/package-edu/lecture/roll-call.vue');
@@ -76,9 +81,12 @@ const evalEditContent = fs.readFileSync(evalEditPath, 'utf8');
 assert.ok(evalEditContent.includes('template-selector-card') || evalEditContent.includes('currentTemplateName'), '❌ 课评页缺少预设模板选择');
 assert.ok(evalEditContent.includes('studyContent'), '❌ 课评页缺少学习内容输入区域');
 assert.ok(evalEditContent.includes('handleChoosePhoto') && evalEditContent.includes('handleChooseVideo'), '❌ 课评页缺少随堂实况照片/视频上传');
+assert.ok(evalEditContent.includes('!uploadedVideo'), '❌ 课评页上传一个视频后未隐藏上传视频卡片');
+assert.ok(evalEditContent.includes('removeVideo'), '❌ 课评页缺少移除视频方法');
+assert.ok(evalEditContent.includes('最多只能上传一个视频'), '❌ 课评页缺少最多上传一个视频的拦截防线');
 assert.ok(evalEditContent.includes('showExitModal'), '❌ 课评页缺少退出防丢确认弹窗 (018_课评_退出提醒)');
 assert.ok(evalEditContent.includes('handleSubmitEvaluation') && evalEditContent.includes('handleSaveDraft'), '❌ 课评页缺少保存草稿与提交推送动作');
-console.log('✔ 课评编辑页 (017~018) 模板选择、多媒体上传与退出确认弹窗契约通过');
+console.log('✔ 课评编辑页 (017~018) 模板选择、单视频上限与隐藏、多媒体上传与退出确认弹窗契约通过');
 
 // 6. 验证课评管理列表 (package-edu/evaluation/manage.vue - 对齐截图 055)
 const evalManagePath = path.resolve(__dirname, '../mini-program/src/package-edu/evaluation/manage.vue');
@@ -88,5 +96,27 @@ assert.ok(evalManageContent.includes('search-input') || evalManageContent.includ
 assert.ok(evalManageContent.includes('push-status-tag'), '❌ 课评管理缺少已推送/未推送状态标签');
 assert.ok(evalManageContent.includes('evaluation-student-card'), '❌ 课评管理缺少课评记录卡片列表');
 console.log('✔ 课评管理页 (055) 检索、状态流转与课评记录卡片契约通过');
+
+// 7. 验证课评写错修订闭环 (Evaluation Revision Lifecycle - ADR-0010 & 方案二)
+const drawerPath = path.resolve(__dirname, '../mini-program/src/components/LessonGrowthReviewDrawer.vue');
+const drawerContent = fs.readFileSync(drawerPath, 'utf8');
+
+assert.ok(drawerContent.includes('header-edit-pill'), '❌ 学情卡抽屉头部缺少【改课评】快捷操作胶囊');
+assert.ok(drawerContent.includes('re-edit-btn'), '❌ 学情卡抽屉底部缺少【改课评】操作按钮');
+assert.ok(drawerContent.includes('isRevision=1'), '❌ 学情卡跳转编辑页缺少 isRevision=1 参数');
+
+assert.ok(evalEditContent.includes('isRevisionMode'), '❌ 课评编辑页缺少 isRevisionMode 修订模式感知');
+assert.ok(evalEditContent.includes('保存并更新'), '❌ 课评编辑页修订模式缺少【保存并更新】文案切换');
+assert.ok(evalEditContent.includes('evictGrowthCache'), '❌ 课评编辑页提交缺少失效学情卡本地缓存调用');
+
+const coordinatorPath = path.resolve(__dirname, '../mini-program/src/coordinators/fulfillment/coordinator.ts');
+const coordinatorContent = fs.readFileSync(coordinatorPath, 'utf8');
+assert.ok(coordinatorContent.includes('isEvaluated'), '❌ 履约协调器 hydrateStudentDraft 缺少 isEvaluated 已评标记');
+assert.ok(coordinatorContent.includes('currentComment'), '❌ 履约协调器 hydrateStudentDraft 缺少历史评语回填');
+// 8. 验证 5 维核心素养雷达图原生 WXML 渲染兼容性 (ADR-0010 & 微信小程序 vector image 规范)
+assert.ok(drawerContent.includes('radar-svg-img'), '❌ 学情卡雷达图缺少微信小程序原生 <image class="radar-svg-img"> 矢量渲染载体');
+assert.ok(drawerContent.includes('radarSvgUri'), '❌ 学情卡雷达图缺少动态 radarSvgUri 数据绑定');
+assert.ok(!drawerContent.includes('<svg viewBox'), '❌ 学情卡雷达图严禁直接使用 WXML 不支持的裸 <svg> 标签');
+console.log('✔ 5 维核心素养雷达图微信小程序矢量渲染与 WXML 兼容性契约通过');
 
 console.log('\n🎉 所有阶段二契约断言均 100% 验证通过！');

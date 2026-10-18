@@ -37,6 +37,16 @@ export interface StudentRollCallModel {
   phone?: string;
   tag?: string;
   evaluated?: boolean;
+  isEvaluated?: boolean;
+  isExempt?: boolean;
+  evaluatedAt?: string;
+  evaluatedSource?: string;
+  photos?: string[];
+  videoUrl?: string;
+  comment?: string;
+  rating?: number;
+  currentComment?: string;
+  currentRating?: number;
 }
 
 export interface FulfillmentWorkbenchModel {
@@ -98,12 +108,23 @@ export interface CommitEvaluationPayload {
   operatorId?: string;
   operatorName?: string;
   idempotencyKey?: string;
+  dispatchStrategy?: 'ATTENDED_ONLY' | 'ALL_ROSTER' | 'UNSENT_RETRY';
   studentComments?: Array<{ studentId: string; comment: string; rating?: number }>;
-  studentOverrides?: Array<{ studentId: string; personalizedComment?: string; rating?: number; performanceTag?: string }>;
+  studentOverrides?: Array<{
+    studentId: string;
+    attendanceStatus?: 'present' | 'leave' | 'absent' | 'late' | 'unrecorded';
+    deductLessons?: number;
+    personalizedComment?: string;
+    rating?: number;
+    performanceTag?: string;
+    photos?: string[];
+    videoUrl?: string;
+    isEvaluated?: boolean;
+  }>;
   payload?: any;
 }
 
-const BASE_URL = 'https://17a6937c.r38.cpolar.top';
+export const BASE_URL = 'https://73fa5aff.r38.cpolar.top';
 
 /**
  * 教务模块统一 API 客户端
@@ -126,29 +147,41 @@ export const eduApi = {
       });
 
       if (Array.isArray(res)) {
-        return res.map((item) => ({
-          id: item.id,
-          campusId: item.campusId,
-          classId: item.classId,
-          className: item.class?.name || item.className || '周二18.30周六10.00班-12',
-          courseId: item.class?.courseId || item.courseId || 'crs-default',
-          courseName: item.class?.course?.name || item.courseName || '启蒙英语',
-          teacherId: item.teacherId,
-          teacherName: item.teacher?.realName || item.teacherName || '冯老师',
-          advisorName: item.class?.advisor?.realName || item.advisorName || item.teacher?.realName || '冯老师',
-          classroomId: item.classroomId,
-          classroomName: item.classroom?.name || item.classroomName || '启蒙英语教室',
-          date: item.date,
-          startTime: item.startTime,
-          endTime: item.endTime,
-          timeRange: item.timeRange || `${item.date} ${item.startTime}-${item.endTime}`,
-          semanticType: item.semanticType || (item.status === 'completed' ? 'completed' : 'regular'),
-          classType: item.classType || '线下课',
-          status: item.status || 'scheduled',
-          expectedCount: item.class?.currentStudentCount ?? item.expectedCount ?? 10,
-          actualCount: item._count?.attendances ?? (item.attendances ? item.attendances.filter((a: any) => a.status === 'present').length : (item.actualCount || 10)),
-          coursewareUrl: item.coursewareUrl,
-        }));
+        return res.map((item) => {
+          const actualCount = item.attendances
+            ? item.attendances.filter((a: any) => a.status === 'present' || a.status === 'late').length
+            : (item.actualCount ?? item.signedCount ?? 0);
+
+          const expectedCount = item.expectedCount
+            ?? item.totalStudents
+            ?? item.studentCount
+            ?? item.class?.currentStudentCount
+            ?? (Array.isArray(item.studentIds) ? item.studentIds.length : (item.class?.capacity ?? 0));
+
+          return {
+            id: item.id,
+            campusId: item.campusId,
+            classId: item.classId,
+            className: item.class?.name || item.className || '周二18.30周六10.00班-12',
+            courseId: item.class?.courseId || item.courseId || 'crs-default',
+            courseName: item.class?.course?.name || item.courseName || '启蒙英语',
+            teacherId: item.teacherId,
+            teacherName: item.teacher?.realName || item.teacherName || '冯老师',
+            advisorName: item.class?.advisor?.realName || item.advisorName || item.teacher?.realName || '冯老师',
+            classroomId: item.classroomId,
+            classroomName: item.classroom?.name || item.classroomName || '启蒙英语教室',
+            date: item.date,
+            startTime: item.startTime,
+            endTime: item.endTime,
+            timeRange: item.timeRange || `${item.date} ${item.startTime}-${item.endTime}`,
+            semanticType: item.semanticType || (item.status === 'completed' ? 'completed' : 'regular'),
+            classType: item.classType || '线下课',
+            status: item.status || 'scheduled',
+            expectedCount,
+            actualCount,
+            coursewareUrl: item.coursewareUrl,
+          };
+        });
       }
       return [];
     } catch (e) {
@@ -185,24 +218,52 @@ export const eduApi = {
             semanticType: res.schedule.status === 'completed' ? 'completed' : 'regular',
             classType: res.schedule.classType || '线下课',
             status: res.schedule.status || 'scheduled',
-            expectedCount: res.summary?.totalStudents ?? res.students?.length ?? 10,
-            actualCount: res.summary?.defaultPresentCount ?? (res.students ? res.students.filter((s: any) => (s.recordedStatus || s.defaultStatus) === 'present').length : 10),
+            expectedCount: res.schedule?.expectedCount ?? res.summary?.totalStudents ?? (res.students ? res.students.length : 0),
+            actualCount: res.schedule?.actualCount !== undefined
+              ? res.schedule.actualCount
+              : (res.summary?.defaultPresentCount ?? (res.students ? res.students.filter((s: any) => (s.recordedStatus || s.defaultStatus) === 'present' || (s.recordedStatus || s.defaultStatus) === 'late').length : 0)),
             coursewareUrl: res.schedule.coursewareUrl,
           },
-          students: (res.students || []).map((s: any) => ({
-            studentId: s.studentId,
-            studentNo: s.studentNo,
-            name: s.studentName || s.name || '学员',
-            avatar: s.avatar,
-            status: (s.recordedStatus || s.status || s.defaultStatus || 'present') as any,
-            deductLessons: s.deductLessons ?? s.defaultDeductLessons ?? 1,
-            packageId: s.packageId,
-            packageName: s.packageName,
-            remainingLessons: s.remainingLessons ?? 0,
-            phone: s.phone,
-            tag: s.tag || (s.bonusLessons > 0 ? '赠' : '正'),
-            evaluated: Boolean(s.currentComment || s.currentRating || s.evaluated),
-          })),
+          students: (res.students || []).map((s: any) => {
+            const studentPhotos = Array.isArray(s.photos)
+              ? s.photos
+              : typeof s.photos === 'string'
+                ? JSON.parse(s.photos || '[]')
+                : [];
+            const isStudentEvaluated = Boolean(
+              s.isEvaluated ||
+              s.evaluated ||
+              (studentPhotos && studentPhotos.length > 0) ||
+              s.videoUrl ||
+              s.currentComment ||
+              s.comment
+            );
+            return {
+              studentId: s.studentId,
+              studentNo: s.studentNo,
+              name: s.studentName || s.name || '学员',
+              avatar: s.avatar,
+              status: (s.recordedStatus || s.status || s.defaultStatus || 'present') as any,
+              deductLessons: s.deductLessons ?? s.defaultDeductLessons ?? 1,
+              packageId: s.packageId,
+              packageName: s.packageName,
+              remainingLessons: s.remainingLessons ?? 0,
+              phone: s.phone,
+              tag: s.tag || (s.bonusLessons > 0 ? '赠' : '正'),
+              evaluated: isStudentEvaluated,
+              isEvaluated: isStudentEvaluated,
+              isExempt: Boolean(s.isExempt),
+              hasPersonalEvaluation: Boolean(s.hasPersonalEvaluation || s.evaluatedAt || (studentPhotos && studentPhotos.length > 0) || s.videoUrl),
+              photos: studentPhotos,
+              videoUrl: s.videoUrl || undefined,
+              comment: s.currentComment || s.comment || undefined,
+              rating: s.currentRating !== undefined ? Number(s.currentRating) : (s.rating !== undefined ? Number(s.rating) : 5),
+              currentComment: s.currentComment || s.comment || undefined,
+              currentRating: s.currentRating !== undefined ? Number(s.currentRating) : undefined,
+              evaluatedAt: s.evaluatedAt || undefined,
+              evaluatedSource: s.evaluatedSource || 'web',
+            };
+          }),
           evaluationSummary: res.evaluationDraft ? {
             templateId: res.evaluationDraft.templateId,
             templateName: res.evaluationDraft.templateName,
@@ -418,17 +479,36 @@ export const eduApi = {
             try {
               const resJson = JSON.parse(uploadRes.data);
               const data = resJson.data || resJson;
-              const url = Array.isArray(data) ? data[0]?.url || data[0] : (data?.url || data);
-              resolve(url || filePath);
+              let url = '';
+              if (Array.isArray(data?.persistedUrls) && data.persistedUrls.length > 0) {
+                url = data.persistedUrls[0];
+              } else if (Array.isArray(data?.items) && data.items.length > 0) {
+                url = data.items[0]?.originalUrl || data.items[0]?.url;
+              } else if (Array.isArray(data)) {
+                url = data[0]?.originalUrl || data[0]?.url || data[0];
+              } else if (typeof data === 'string') {
+                url = data;
+              } else if (data?.url) {
+                url = data.url;
+              }
+
+              if (url) {
+                if (url.startsWith('/')) {
+                  url = `${BASE_URL}${url}`;
+                }
+                resolve(url);
+              } else {
+                reject(new Error('上传响应未能解析出有效图片网络地址'));
+              }
             } catch (e) {
-              resolve(filePath);
+              reject(new Error('解析上传图片响应异常'));
             }
           } else {
-            resolve(filePath); // 降级返回本地临时文件以保证展示
+            reject(new Error(`上传图片失败，服务端状态码: ${uploadRes.statusCode}`));
           }
         },
-        fail: () => {
-          resolve(filePath); // 模拟器离线容错兜底
+        fail: (err) => {
+          reject(new Error(err?.errMsg || '网络请求超时或无法连接服务器'));
         },
       });
     });
@@ -437,11 +517,12 @@ export const eduApi = {
   // 7. 上传视频
   async uploadVideo(filePath: string, scheduleEventId?: string): Promise<string> {
     const campusId = uni.getStorageSync('currentCampusId') || 'campus-bj-hq';
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       uni.uploadFile({
         url: `${BASE_URL}/api/upload/video`,
         filePath,
         name: 'file',
+        timeout: 120000,
         formData: {
           scheduleEventId: scheduleEventId || '',
           campusId,
@@ -449,19 +530,33 @@ export const eduApi = {
         header: {
           'x-campus-id': campusId,
         },
+
         success: (uploadRes) => {
-          try {
-            const resJson = JSON.parse(uploadRes.data);
-            const data = resJson.data || resJson;
-            resolve(data?.videoUrl || data?.url || filePath);
-          } catch (e) {
-            resolve(filePath);
+          if (uploadRes.statusCode >= 200 && uploadRes.statusCode < 300) {
+            try {
+              const resJson = JSON.parse(uploadRes.data);
+              const data = resJson.data || resJson;
+              let videoUrl = data?.videoUrl || data?.url;
+              if (videoUrl) {
+                if (videoUrl.startsWith('/')) {
+                  videoUrl = `${BASE_URL}${videoUrl}`;
+                }
+                resolve(videoUrl);
+              } else {
+                reject(new Error('上传响应未能解析出有效视频网络地址'));
+              }
+            } catch (e) {
+              reject(new Error('解析上传视频响应异常'));
+            }
+          } else {
+            reject(new Error(`上传视频失败，服务端状态码: ${uploadRes.statusCode}`));
           }
         },
-        fail: () => {
-          resolve(filePath);
+        fail: (err) => {
+          reject(new Error(err?.errMsg || '网络请求超时或无法连接视频服务器'));
         },
       });
     });
   },
+
 };

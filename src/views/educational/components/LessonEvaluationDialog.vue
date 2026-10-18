@@ -1,441 +1,537 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="随堂课评工作台 (家长端联动与教学留存)"
-    width="780px"
+    title="随堂课评工作台 (学员专属透视与双端同步)"
+    width="1020px"
     destroy-on-close
     :close-on-click-modal="false"
     class="lesson-evaluation-dialog !rounded-xl"
   >
-    <div class="space-y-4 max-h-[75vh] overflow-y-auto px-1 pr-3">
-      <!-- 顶部模板选择栏 -->
-      <div class="flex items-center gap-3 bg-blue-50/60 p-3 rounded-lg border border-blue-100">
-        <label class="text-xs font-semibold text-st-title shrink-0">选择点评模板</label>
-        <el-select
-          v-model="selectedTemplateId"
-          placeholder="请选择课评模板"
-          class="!w-64"
-          @change="handleApplyTemplate"
-        >
-          <el-option
-            v-for="tpl in templateList"
-            :key="tpl.id"
-            :label="tpl.name"
-            :value="tpl.id"
-          >
-            <span class="float-left text-xs">{{ tpl.name }}</span>
-            <span class="float-right text-xs text-st-muted font-normal ml-3">[{{ tpl.category }}]</span>
-          </el-option>
-        </el-select>
-        <div class="text-[11px] text-blue-600 ml-auto flex items-center gap-1">
-          <span>💡 切换模板将载入预设的标准核心素养点与点评框架</span>
-        </div>
-      </div>
-
-      <!-- 随堂考勤与家长微信绑定透视条 -->
-      <div v-if="workbenchSummary" class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs">
-        <div class="flex items-center gap-3">
-          <span class="font-semibold text-slate-700">👥 参课学员: {{ workbenchSummary.totalEnrolled }} 人</span>
-          <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            实到: {{ workbenchSummary.attendedCount }} 人
-          </span>
-          <span v-if="workbenchSummary.absentCount > 0" class="text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-            请假/缺席: {{ workbenchSummary.absentCount }} 人
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
-            📱 微信已绑定: {{ workbenchSummary.wechatBoundCount }} 人
-          </span>
-          <span v-if="workbenchSummary.wechatUnboundCount > 0" class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-            ⚠️ 未绑微信: {{ workbenchSummary.wechatUnboundCount }} 人
-          </span>
-        </div>
-      </div>
-
-      <el-form label-position="left" label-width="85px" size="default" class="space-y-4">
-        <!-- 课次名称 -->
-        <el-form-item required>
-          <template #label>
-            <span class="text-xs font-semibold text-st-title">课次名称</span>
-          </template>
-          <div class="flex items-center gap-3 w-full">
-            <span class="text-sm font-bold text-st-title">{{ form.lessonTitle || currentLesson?.lessonTitle }}</span>
-            <el-button link type="primary" size="small" class="!text-xs" @click="handleAdjustLessonTime">
-              调整课次
-            </el-button>
-            <span class="text-xs text-st-muted ml-auto bg-gray-100 px-2 py-0.5 rounded">
-              班级: {{ currentLesson?.className }}
+    <div v-loading="loading" class="space-y-3.5 max-h-[80vh] overflow-y-auto px-1 pr-2">
+      <!-- 1. 顶部排课全景与模板选择栏 -->
+      <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-3 rounded-xl border border-blue-100 flex flex-wrap items-center justify-between gap-3">
+        <div class="space-y-0.5">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-white bg-indigo-600 px-2 py-0.5 rounded shadow-xs">
+              {{ currentLesson?.className }}
+            </span>
+            <span class="text-sm font-extrabold text-st-title">
+              {{ form.lessonTitle || currentLesson?.lessonTitle }}
             </span>
           </div>
-        </el-form-item>
+          <div class="text-xs text-st-secondary flex items-center gap-3">
+            <span>📅 {{ currentLesson?.date }} {{ currentLesson?.startTime }} - {{ currentLesson?.endTime }}</span>
+            <span>🏫 {{ currentLesson?.classroomName }}</span>
+            <span>👨‍🏫 {{ currentLesson?.teacherName }}</span>
+          </div>
+        </div>
 
-        <!-- 学习内容 (富文本编辑器) -->
-        <el-form-item required>
-          <template #label>
-            <span class="text-xs font-semibold text-st-title">学习内容</span>
-          </template>
-          <div class="w-full border border-st-border rounded-lg overflow-hidden bg-white shadow-xs">
-            <!-- 仿原生富文本工具栏 -->
-            <div class="bg-gray-50 border-b border-st-border p-1.5 flex flex-wrap items-center gap-1 text-xs select-none">
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 font-bold transition-colors"
-                title="加粗"
-                @click="execCmd('bold')"
-              >
-                B
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 italic font-serif transition-colors"
-                title="斜体"
-                @click="execCmd('italic')"
-              >
-                I
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 underline transition-colors"
-                title="下划线"
-                @click="execCmd('underline')"
-              >
-                U
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 line-through transition-colors"
-                title="删除线"
-                @click="execCmd('strikeThrough')"
-              >
-                S
-              </button>
-              <div class="w-px h-4 bg-gray-300 mx-1"></div>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                title="有序列表"
-                @click="execCmd('insertOrderedList')"
-              >
-                1. ≡
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                title="无序列表"
-                @click="execCmd('insertUnorderedList')"
-              >
-                • ≡
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 text-[11px] transition-colors"
-                title="下标"
-                @click="execCmd('subscript')"
-              >
-                x₂
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 text-[11px] transition-colors"
-                title="上标"
-                @click="execCmd('superscript')"
-              >
-                x²
-              </button>
-              <div class="w-px h-4 bg-gray-300 mx-1"></div>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                title="居左对齐"
-                @click="execCmd('justifyLeft')"
-              >
-                ⇤
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                title="居中对齐"
-                @click="execCmd('justifyCenter')"
-              >
-                ≡
-              </button>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 transition-colors"
-                title="居右对齐"
-                @click="execCmd('justifyRight')"
-              >
-                ⇥
-              </button>
-              <div class="w-px h-4 bg-gray-300 mx-1"></div>
-              <span class="text-gray-400 text-[11px]">Normal</span>
-              <button
-                type="button"
-                class="px-2 py-1 rounded hover:bg-gray-200 ml-auto text-gray-500 hover:text-red-500 transition-colors"
-                title="清除格式"
-                @click="execCmd('removeFormat')"
-              >
-                Tx 清格式
-              </button>
+        <!-- 教学大纲模板选择器 -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold text-st-title shrink-0">大纲模板:</label>
+          <el-select
+            v-model="selectedTemplateId"
+            placeholder="切换大纲模板"
+            size="small"
+            class="!w-48"
+            @change="handleApplyTemplate"
+          >
+            <el-option
+              v-for="tpl in templateList"
+              :key="tpl.id"
+              :label="tpl.name"
+              :value="tpl.id"
+            >
+              <span class="float-left text-xs">{{ tpl.name }}</span>
+              <span class="float-right text-xs text-st-muted font-normal ml-2">[{{ tpl.category }}]</span>
+            </el-option>
+          </el-select>
+        </div>
+      </div>
+
+      <!-- 2. 主体两栏布局：左侧学员名册进度矩阵 (35%)，右侧专属多媒体点评 (65%) -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+        <!-- 左侧：班级学员名册与双端课评进度矩阵 (4列) -->
+        <div class="md:col-span-5 flex flex-col border border-st-border rounded-xl bg-gray-50/50 p-3 space-y-3">
+          <!-- 顶部完成度大盘与筛选 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-st-title flex items-center gap-1.5">
+                <span>📋</span>
+                <span>学员名册与课评进度</span>
+              </span>
+              <span class="font-mono font-bold text-indigo-600">
+                {{ evaluatedStudentsCount }} / {{ activeStudentsCount }} 人 ({{ progressPercent }}%)
+              </span>
             </div>
 
-            <!-- 富文本输入区 -->
+            <!-- 进度条 -->
+            <el-progress
+              :percentage="progressPercent"
+              :status="progressPercent === 100 ? 'success' : undefined"
+              :stroke-width="6"
+              :show-text="false"
+            />
+
+            <!-- 快捷筛选药丸 -->
+            <div class="flex items-center gap-1.5 pt-1">
+              <button
+                type="button"
+                :class="[
+                  'px-2.5 py-0.5 text-xs rounded-full font-medium transition-colors border',
+                  filterTab === 'all'
+                    ? 'bg-white text-indigo-700 border-indigo-300 shadow-xs'
+                    : 'bg-transparent text-gray-500 border-transparent hover:text-gray-700'
+                ]"
+                @click="filterTab = 'all'"
+              >
+                全部 ({{ rosterList.length }})
+              </button>
+              <button
+                type="button"
+                :class="[
+                  'px-2.5 py-0.5 text-xs rounded-full font-medium transition-colors border',
+                  filterTab === 'pending'
+                    ? 'bg-amber-50 text-amber-700 border-amber-300 shadow-xs'
+                    : 'bg-transparent text-gray-500 border-transparent hover:text-gray-700'
+                ]"
+                @click="filterTab = 'pending'"
+              >
+                待评 ({{ pendingStudentsCount }})
+              </button>
+              <button
+                type="button"
+                :class="[
+                  'px-2.5 py-0.5 text-xs rounded-full font-medium transition-colors border',
+                  filterTab === 'evaluated'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs'
+                    : 'bg-transparent text-gray-500 border-transparent hover:text-gray-700'
+                ]"
+                @click="filterTab = 'evaluated'"
+              >
+                已评 ({{ evaluatedStudentsCount }})
+              </button>
+            </div>
+          </div>
+
+          <!-- 学员卡片流 -->
+          <div class="space-y-2 max-h-[56vh] overflow-y-auto pr-1">
             <div
-              ref="editorRef"
-              contenteditable="true"
-              class="p-3 text-xs text-st-title min-h-[110px] max-h-[200px] overflow-y-auto outline-none leading-relaxed prose prose-sm max-w-none"
-              placeholder="请输入本堂课掌握的核心编程语法、硬件结构或算法任务..."
-              @input="handleEditorInput"
-            ></div>
-          </div>
-        </el-form-item>
-
-        <!-- 综合评价 (5 星) -->
-        <el-form-item required>
-          <template #label>
-            <span class="text-xs font-semibold text-st-title">综合评价</span>
-          </template>
-          <div class="flex items-center gap-3">
-            <el-rate
-              v-model="form.rating"
-              :colors="['#F7BA2A', '#F7BA2A', '#FF9900']"
-              size="large"
-              allow-half
-            />
-            <span class="text-xs font-bold text-amber-500">{{ form.rating }} 星卓越表现</span>
-          </div>
-        </el-form-item>
-
-        <!-- 课堂视频 -->
-        <el-form-item>
-          <template #label>
-            <span class="text-xs text-st-secondary">课堂视频</span>
-          </template>
-          <div class="flex items-center gap-3">
-            <el-button size="small" plain :loading="uploadingVideo" @click="handleSelectVideo">
-              {{ uploadingVideo ? '正在上传视频...' : (form.videoUrl ? '重新选择' : '上传课堂实操视频') }}
-            </el-button>
-            <template v-if="form.videoUrl">
-              <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-medium cursor-pointer hover:underline" @click="handlePreviewVideo">
-                <span>查看视频</span>
-                <span class="text-emerald-700 bg-emerald-100 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">▶</span>
-              </div>
-              <el-button link type="danger" size="small" class="!text-xs" @click="handleRemoveVideo">
-                移除视频
-              </el-button>
-            </template>
-          </div>
-        </el-form-item>
-
-        <!-- 课堂记录 (九宫格相册) -->
-        <el-form-item>
-          <template #label>
-            <span class="text-xs text-st-secondary">课堂记录</span>
-          </template>
-          <div class="w-full space-y-2">
-            <div class="text-[11px] text-st-muted">
-              视频与照片合计最多支持上传9个，其中仅支持1个视频
-            </div>
-
-            <!-- 照片网格 -->
-            <div class="flex flex-wrap gap-2.5 items-center">
-              <!-- 添加照片方框 -->
-              <div
-                v-if="form.photoList.length < 9"
-                class="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-st-primary hover:bg-blue-50/30 transition-all text-gray-400 hover:text-st-primary"
-                :class="{ 'opacity-60 pointer-events-none': uploadingPhotos }"
-                @click="handleAddPhoto"
-              >
-                <span v-if="!uploadingPhotos" class="text-2xl font-light leading-none">+</span>
-                <span v-else class="text-xs animate-spin mb-1">⏳</span>
-                <span class="text-[10px] mt-1">{{ uploadingPhotos ? '上传中...' : '添加现场照' }}</span>
-              </div>
-
-              <!-- 照片缩略图卡片 -->
-              <div
-                v-for="(photo, idx) in form.photoList"
-                :key="idx"
-                class="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 shadow-xs group"
-              >
-                <img :src="photo" class="w-full h-full object-cover transition-transform group-hover:scale-105" alt="课堂照片" />
-                <!-- 遮罩与删除按钮 -->
-                <div class="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span class="text-white text-xs cursor-pointer hover:underline" @click="handlePreviewPhoto(photo)">查看</span>
+              v-for="st in filteredRosterList"
+              :key="st.studentId"
+              :class="[
+                'p-2.5 rounded-lg border transition-all cursor-pointer flex flex-col gap-2',
+                activeStudentId === st.studentId
+                  ? 'bg-indigo-50/70 border-indigo-400 shadow-xs ring-1 ring-indigo-200'
+                  : 'bg-white border-gray-200 hover:border-gray-300'
+              ]"
+              @click="handleSelectStudent(st)"
+            >
+              <!-- 顶部行：姓名、微信标、考勤切换 -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-st-title text-sm">{{ st.studentName }}</span>
+                  <span
+                    v-if="st.isWechatBound"
+                    class="text-[11px] text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-100"
+                    title="已绑定微信公众号，可接收推送"
+                  >
+                    📱 微信已绑
+                  </span>
+                  <span
+                    v-else
+                    class="text-[10px] text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-100"
+                    title="未绑定微信"
+                  >
+                    未绑微信
+                  </span>
                 </div>
-                <button
-                  type="button"
-                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-600 text-white flex items-center justify-center text-xs leading-none shadow hover:bg-red-700 transition-colors z-10"
-                  title="删除此照片"
-                  @click.stop="handleRemovePhoto(idx)"
-                >
-                  ✕
-                </button>
+
+                <!-- 考勤状态快捷切换 -->
+                <el-dropdown trigger="click" @command="(cmd: any) => handleUpdateAttendance(st, cmd)">
+                  <span
+                    :class="[
+                      'text-xs font-semibold px-2 py-0.5 rounded cursor-pointer border flex items-center gap-1',
+                      st.attendanceStatus === 'present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                      st.attendanceStatus === 'late' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      st.attendanceStatus === 'leave' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      'bg-rose-50 text-rose-700 border-rose-200'
+                    ]"
+                  >
+                    <span>{{ getAttendanceText(st.attendanceStatus) }}</span>
+                    <span class="text-[9px]">▼</span>
+                  </span>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item command="present">🟢 到课</el-dropdown-item>
+                      <el-dropdown-item command="late">🟡 迟到</el-dropdown-item>
+                      <el-dropdown-item command="leave">🔵 请假 (自动免评)</el-dropdown-item>
+                      <el-dropdown-item command="absent">🔴 缺席 (自动免评)</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </div>
+
+              <!-- 底部行：课评状态徽章与多媒体统计 -->
+              <div class="flex items-center justify-between text-xs pt-1 border-t border-gray-100">
+                <!-- 课评状态 -->
+                <div class="flex items-center gap-1.5">
+                  <span
+                    v-if="st.isExempt"
+                    class="text-gray-400 text-[11px] font-medium flex items-center gap-1"
+                  >
+                    <span>⚪</span>
+                    <span>请假免评</span>
+                  </span>
+                  <span
+                    v-else-if="st.isEvaluated"
+                    class="text-emerald-700 font-bold text-[11px] flex items-center gap-1"
+                  >
+                    <span>🟢 已评定</span>
+                    <span v-if="st.evaluatedSource === 'mp'" class="text-[10px] text-indigo-600 bg-indigo-50 px-1 rounded">
+                      📱 手机端
+                    </span>
+                    <span v-else class="text-[10px] text-gray-500 bg-gray-100 px-1 rounded">
+                      💻 网页
+                    </span>
+                  </span>
+                  <span
+                    v-else
+                    class="text-amber-600 font-medium text-[11px] flex items-center gap-1"
+                  >
+                    <span>🟡 待评价</span>
+                  </span>
+                </div>
+
+                <!-- 专属多媒体计数 -->
+                <div class="flex items-center gap-2 text-xs text-st-muted font-mono">
+                  <span v-if="st.videoUrl" class="text-blue-600 font-semibold" title="已有专属实操视频">
+                    🎥 1视频
+                  </span>
+                  <span v-if="st.photos && st.photos.length > 0" class="text-purple-600 font-semibold" title="专属相册照片数">
+                    📷 {{ st.photos.length }}张
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </el-form-item>
+        </div>
 
-        <!-- 老师点评 (带 AI 润色与 AI 帮我重写) -->
-        <el-form-item required>
-          <template #label>
-            <div class="flex flex-col">
-              <span class="text-xs font-semibold text-st-title">老师点评</span>
-            </div>
-          </template>
-          <div class="w-full space-y-1.5">
-            <!-- 顶部 AI 帮我重写动作条 -->
-            <div class="flex items-center justify-between">
-              <button
-                type="button"
-                class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-3 py-1 rounded-full transition-all border border-indigo-200 active:scale-95"
-                @click="handleAiRewrite"
-              >
-                <span class="text-sm">✨</span>
-                <span>AI 帮我重写</span>
-              </button>
-              <span class="text-[11px] text-gray-400">已输入 {{ form.teacherComment.length }} 字</span>
-            </div>
-
-            <!-- 点评文本框 -->
-            <el-input
-              v-model="form.teacherComment"
-              type="textarea"
-              :rows="4"
-              placeholder="请输入针对全班或具体学员的学情反馈与表扬建议..."
-              class="w-full !text-xs leading-relaxed"
-            />
-
-            <!-- 底部辅助工具栏 -->
-            <div class="flex items-center justify-between text-xs pt-1">
-              <el-button
-                type="warning"
-                plain
+        <!-- 右侧：当前选中学员专属多媒体与个性化学情创作区 (7列) -->
+        <div class="md:col-span-7 flex flex-col border border-st-border rounded-xl bg-white p-3.5 space-y-4">
+          <!-- 选中学员标题头 -->
+          <div v-if="activeStudent" class="flex items-center justify-between border-b border-gray-100 pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="text-base font-extrabold text-st-title">
+                【{{ activeStudent.studentName }}】专属课评
+              </span>
+              <el-tag
+                :type="activeStudent.isExempt ? 'info' : (activeStudent.isEvaluated ? 'success' : 'warning')"
                 size="small"
-                class="!px-3 !py-1 !text-xs font-medium"
-                :loading="polishing"
-                @click="handleAiPolish"
+                effect="plain"
               >
-                🪄 AI 润色
-              </el-button>
+                {{ activeStudent.isExempt ? '请假免评' : (activeStudent.isEvaluated ? '已评定' : '待评价') }}
+              </el-tag>
+            </div>
 
-              <div class="flex items-center gap-3">
-                <el-button link type="primary" size="small" class="!text-xs" @click="handleCycleCommentTemplate">
-                  🔄 点击模板/切换
-                </el-button>
-                <span v-if="form.aiPolished" class="text-[11px] text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                  ✓ 已完成 AI 润色
+            <div class="text-xs text-st-muted">
+              <span>扣减课时: {{ activeStudent.deductLessons }} 课时</span>
+            </div>
+          </div>
+
+          <!-- 若当前学员请假或缺席：给出友好的免评提示与快捷切回入口 -->
+          <div v-if="activeStudent?.isExempt" class="p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 space-y-3">
+            <div class="text-3xl">☕</div>
+            <div class="font-bold text-sm text-st-title">该学员当前出勤为「{{ getAttendanceText(activeStudent.attendanceStatus) }}」</div>
+            <div class="text-xs text-st-muted max-w-sm mx-auto">
+              未实际到课学员已由系统自动置为「请假免评」并锁定，不会扣减误消课时，也不会向家长推送随堂评价，从根源杜绝客诉风险。
+            </div>
+            <el-button size="small" type="primary" plain @click="handleUpdateAttendance(activeStudent, 'present')">
+              若为误记，点击恢复为「到课」并开放课评
+            </el-button>
+          </div>
+
+          <!-- 到课学员：专属课评创作表单 -->
+          <div v-else-if="activeStudent" class="space-y-4 max-h-[58vh] overflow-y-auto pr-1">
+            <!-- 1. 班级学习内容与教学大纲 (可折叠查看，全班基线共享) -->
+            <el-collapse v-model="outlineCollapseNames" class="!border-none">
+              <el-collapse-item name="outline" class="!border-none">
+                <template #title>
+                  <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
+                    <span>📖 课程学习内容与知识点大纲</span>
+                    <span class="text-[11px] font-normal text-st-muted">（全班教学主题背景）</span>
+                  </div>
+                </template>
+                <div class="pt-1.5 space-y-1.5">
+                  <el-input
+                    v-model="form.studyContent"
+                    type="textarea"
+                    :rows="2"
+                    placeholder="请输入本堂课的核心知识点与学习内容..."
+                    class="!text-xs leading-relaxed"
+                  />
+                </div>
+              </el-collapse-item>
+            </el-collapse>
+
+            <!-- 2. 该学员专属实操视频 (最多 1 个，限制 100MB) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
+                  <span>🎥</span>
+                  <span>{{ activeStudent.studentName }} 的专属实操视频</span>
+                  <span class="text-[11px] font-normal text-st-muted">(单视频 ≤ 100MB，独享不公开)</span>
+                </span>
+                <span v-if="activeStudent.videoUrl" class="text-xs text-emerald-600 font-medium">
+                  ✓ 专属视频已就绪
                 </span>
               </div>
+
+              <div class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <el-button
+                  size="small"
+                  type="primary"
+                  plain
+                  :loading="uploadingVideo"
+                  @click="handleSelectStudentVideo"
+                >
+                  {{ uploadingVideo ? '正在上传专属视频...' : (activeStudent.videoUrl ? '重新上传视频' : '上传课堂实操视频') }}
+                </el-button>
+
+                <template v-if="activeStudent.videoUrl">
+                  <el-button link type="primary" size="small" @click="handlePreviewVideo(activeStudent.videoUrl)">
+                    ▶ 在线播放预览
+                  </el-button>
+                  <el-button link type="danger" size="small" @click="handleRemoveStudentVideo">
+                    移除视频
+                  </el-button>
+                </template>
+                <div v-else class="text-xs text-st-muted">
+                  支持 mp4/mov 格式，上传后该视频将专属呈现于该学员家长的学情报告中。
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. 该学员专属现场照片 (最多 9 张) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
+                  <span>📷</span>
+                  <span>{{ activeStudent.studentName }} 的专属现场照片</span>
+                  <span class="text-[11px] font-normal text-st-muted">(最多 9 张，每张 ≤ 10MB)</span>
+                </span>
+                <span class="text-xs font-mono font-semibold text-purple-700">
+                  {{ activeStudent.photos.length }} / 9 张
+                </span>
+              </div>
+
+              <!-- 照片网格 -->
+              <div class="flex flex-wrap gap-2 items-center bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                <!-- 添加照片小方块 -->
+                <div
+                  v-if="activeStudent.photos.length < 9"
+                  class="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/30 transition-all text-gray-400 hover:text-indigo-600"
+                  :class="{ 'opacity-60 pointer-events-none': uploadingPhotos }"
+                  @click="handleAddStudentPhotos"
+                >
+                  <span v-if="!uploadingPhotos" class="text-xl font-light leading-none">+</span>
+                  <span v-else class="text-xs animate-spin">⏳</span>
+                  <span class="text-[10px] mt-1">{{ uploadingPhotos ? '上传中' : '添加照片' }}</span>
+                </div>
+
+                <!-- 缩略图卡片 -->
+                <div
+                  v-for="(photo, pIdx) in activeStudent.photos"
+                  :key="pIdx"
+                  class="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 shadow-xs group"
+                >
+                  <img :src="photo" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="现场照片" />
+                  <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <span class="text-white text-xs cursor-pointer hover:underline" @click="handlePreviewPhoto(photo)">查看</span>
+                    <span class="text-red-300 text-xs cursor-pointer hover:underline" @click="handleRemoveStudentPhoto(pIdx)">删除</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. 老师个性化点评 (配备 AI 润色与 AI 重写) -->
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
+                  <span>✍️</span>
+                  <span>{{ activeStudent.studentName }} 的随堂特写评语</span>
+                </span>
+
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-0.5 rounded-full transition-all border border-indigo-200"
+                    @click="handleAiRewriteForStudent"
+                  >
+                    <span>✨</span>
+                    <span>AI 帮我重写</span>
+                  </button>
+                  <span class="text-[11px] text-gray-400 font-mono">已输入 {{ (activeStudent.comment || '').length }} 字</span>
+                </div>
+              </div>
+
+              <!-- 点评输入框 -->
+              <el-input
+                v-model="activeStudent.comment"
+                type="textarea"
+                :rows="3"
+                :placeholder="`请输入针对 ${activeStudent.studentName} 的个性化学习反馈、专注力与表扬建议...`"
+                class="w-full !text-xs leading-relaxed"
+              />
+
+              <!-- 辅助工具栏 -->
+              <div class="flex items-center justify-between text-xs pt-0.5">
+                <el-button
+                  type="warning"
+                  plain
+                  size="small"
+                  class="!px-2.5 !py-0.5 !text-xs font-medium"
+                  :loading="polishing"
+                  @click="handleAiPolishForStudent"
+                >
+                  🪄 AI 润色
+                </el-button>
+
+                <div class="flex items-center gap-2">
+                  <el-button link type="primary" size="small" class="!text-xs" @click="handleCycleCommentTemplateForStudent">
+                    🔄 快速载入预设评语
+                  </el-button>
+                  <span v-if="activeStudent.aiPolished" class="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                    ✓ 已 AI 润色
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. 五维素养星级打分与特长标签 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+              <div class="space-y-1">
+                <span class="text-xs font-bold text-slate-700">五维核心素养评级:</span>
+                <div class="flex items-center gap-2">
+                  <el-rate
+                    v-model="activeStudent.rating"
+                    allow-half
+                    size="default"
+                    :colors="['#F7BA2A', '#F7BA2A', '#FF9900']"
+                  />
+                  <span class="text-xs font-bold text-amber-600">{{ activeStudent.rating }} 星</span>
+                </div>
+              </div>
+
+              <div class="space-y-1">
+                <span class="text-xs font-bold text-slate-700">当堂特长表现标签:</span>
+                <el-select
+                  v-model="activeStudent.performanceTag"
+                  placeholder="选择特长能力标签"
+                  size="small"
+                  clearable
+                  class="w-full"
+                >
+                  <el-option label="动手达人" value="动手达人" />
+                  <el-option label="逻辑缜密" value="逻辑缜密" />
+                  <el-option label="专注投入" value="专注投入" />
+                  <el-option label="创意丰富" value="创意丰富" />
+                  <el-option label="积极互动" value="积极互动" />
+                  <el-option label="抗挫力强" value="抗挫力强" />
+                </el-select>
+              </div>
+            </div>
+
+            <!-- 6. 底部流线穿梭操作条 -->
+            <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+              <el-button size="small" @click="handleSaveCurrentStudentDraft">
+                暂存当前学员
+              </el-button>
+
+              <el-button type="primary" size="small" class="!px-3.5" @click="handleSaveAndNextStudent">
+                暂存并评下一位 →
+              </el-button>
             </div>
           </div>
-        </el-form-item>
-      </el-form>
+        </div>
+      </div>
     </div>
 
     <!-- 弹窗底部操作按钮 -->
     <template #footer>
       <div class="flex items-center justify-between pt-2 border-t border-st-border">
-        <div class="text-xs text-st-muted flex items-center gap-2">
-          <span v-if="form.status === 'published'" class="text-emerald-600 font-medium">● 状态: 已向家长端发送</span>
-          <span v-else class="text-gray-500">○ 状态: 暂存草稿</span>
-          <span v-if="form.publishTime" class="text-[11px]">({{ form.publishTime }})</span>
+        <div class="text-xs text-st-muted flex items-center gap-3">
+          <span>共 {{ rosterList.length }} 人</span>
+          <span class="text-emerald-600 font-semibold">已评定: {{ evaluatedStudentsCount }} 人</span>
+          <span class="text-amber-600 font-semibold">待评价: {{ pendingStudentsCount }} 人</span>
+          <span v-if="exemptStudentsCount > 0" class="text-gray-400">请假免评: {{ exemptStudentsCount }} 人</span>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2.5">
           <el-button @click="visible = false">取消</el-button>
-          <el-button type="info" plain :loading="saving" @click="handleSave(false)">
-            保存草稿
+          <el-button type="info" plain :loading="saving" @click="handleSaveAll(false)">
+            暂存全班草稿
           </el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave(true)">
-            保存并发送家长端
+          <el-button type="primary" :loading="saving" @click="handleSaveAll(true)">
+            正式发布并推送家长微信
           </el-button>
         </div>
       </div>
     </template>
-  </el-dialog>
 
-  <!-- 课堂实况录像播放预览模态框 -->
-  <el-dialog
-    v-model="videoPreviewVisible"
-    title="课堂实况录像播放"
-    width="680px"
-    append-to-body
-    destroy-on-close
-  >
-    <div class="flex flex-col items-center justify-center bg-black rounded-lg overflow-hidden p-2">
-      <video
-        v-if="videoPreviewVisible && form.videoUrl"
-        :src="form.videoUrl"
-        controls
-        autoplay
-        class="w-full max-h-[60vh] rounded bg-black"
-      >
-        您的浏览器暂不支持内置视频播放，请直接下载后查看。
-      </video>
-    </div>
-    <template #footer>
-      <div class="flex justify-between items-center text-xs text-gray-500">
-        <span class="truncate max-w-[420px]" :title="form.videoUrl">视频地址: {{ form.videoUrl }}</span>
-        <el-button size="small" @click="videoPreviewVisible = false">关闭</el-button>
+    <!-- 视频在线播放弹窗 -->
+    <el-dialog
+      v-model="videoPreviewVisible"
+      title="课堂实操视频预览"
+      width="640px"
+      append-to-body
+      destroy-on-close
+    >
+      <div class="flex justify-center p-2 bg-black rounded-lg">
+        <video
+          v-if="currentPreviewVideoUrl"
+          :src="currentPreviewVideoUrl"
+          controls
+          autoplay
+          class="max-h-[60vh] max-w-full rounded"
+        ></video>
       </div>
-    </template>
+    </el-dialog>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, nextTick } from 'vue'
-import { ElMessage, ElMessageBox, ElNotification } from 'element-plus'
-import type { WorkbenchLessonCard, EvaluationTemplate, LessonEvaluation } from '@/types/educational'
+import { ref, reactive, computed } from 'vue'
+import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
 import { educationalApi, uploadApi } from '@/api'
 import { getEvaluationTemplates } from '@/constants/evaluation'
+import type { WorkbenchLessonCard, EvaluationTemplate } from '@/types/educational'
 
 const emit = defineEmits<{
-  (e: 'success', evaluation: any): void
+  (e: 'success', receipt: any): void
 }>()
 
 const visible = ref(false)
+const loading = ref(false)
 const saving = ref(false)
-const polishing = ref(false)
-const uploadingPhotos = ref(false)
 const uploadingVideo = ref(false)
-const videoPreviewVisible = ref(false)
-const editorRef = ref<HTMLDivElement>()
+const uploadingPhotos = ref(false)
+const polishing = ref(false)
 
 const currentLesson = ref<WorkbenchLessonCard | null>(null)
 const templateList = ref<EvaluationTemplate[]>([])
-const selectedTemplateId = ref('')
-const workbenchSummary = ref<{
-  totalEnrolled: number
-  attendedCount: number
-  absentCount: number
-  wechatBoundCount: number
-  wechatUnboundCount: number
-} | null>(null)
-const workbenchRoster = ref<any[]>([])
+const selectedTemplateId = ref('tmpl-common')
+const outlineCollapseNames = ref<string[]>(['outline'])
 
-const defaultPhotos = [
-  'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=500&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1588072432836-e10032774350?w=500&auto=format&fit=crop&q=60',
-  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=500&auto=format&fit=crop&q=60'
-]
+// 视频预览
+const videoPreviewVisible = ref(false)
+const currentPreviewVideoUrl = ref('')
 
-const form = reactive<{
-  lessonTimeId: string
-  classId: string
-  className: string
-  lessonTitle: string
-  templateId: string
-  templateName: string
-  studyContent: string
-  rating: number
-  videoUrl: string
-  photoList: string[]
-  teacherComment: string
-  aiPolished: boolean
-  status: 'draft' | 'published'
-  publishTime?: string
-}>({
+// 筛选 Tab: 'all' | 'pending' | 'evaluated'
+const filterTab = ref<'all' | 'pending' | 'evaluated'>('all')
+
+// 全班大纲公共字段
+const form = reactive({
   lessonTimeId: '',
   classId: '',
   className: '',
@@ -444,59 +540,112 @@ const form = reactive<{
   templateName: '通用课评模板',
   studyContent: '',
   rating: 5,
-  videoUrl: '',
-  photoList: [],
   teacherComment: '',
   aiPolished: false,
-  status: 'draft'
 })
 
-// 富文本简易指令调用
-function execCmd(command: string, value: string = '') {
-  document.execCommand(command, false, value)
-  if (editorRef.value) {
-    form.studyContent = editorRef.value.innerHTML
+// 单学员草稿模型契约
+export interface StudentRosterDraft {
+  studentId: string
+  studentName: string
+  studentNo: string
+  avatar?: string
+  wechatOpenId?: string | null
+  isWechatBound: boolean
+  attendanceStatus: 'present' | 'late' | 'leave' | 'absent' | 'unrecorded'
+  deductLessons: number
+  isEvaluated: boolean
+  isExempt: boolean
+  evaluatedAt?: string
+  evaluatedSource?: string
+  rating: number
+  comment: string
+  performanceTag: string
+  photos: string[]
+  videoUrl: string
+  aiPolished?: boolean
+}
+
+const rosterList = ref<StudentRosterDraft[]>([])
+const activeStudentId = ref<string>('')
+
+const activeStudent = computed<StudentRosterDraft | undefined>(() => {
+  return rosterList.value.find((s) => s.studentId === activeStudentId.value)
+})
+
+// 过滤后的学员名册
+const filteredRosterList = computed(() => {
+  if (filterTab.value === 'pending') {
+    return rosterList.value.filter((s) => !s.isExempt && !s.isEvaluated)
+  }
+  if (filterTab.value === 'evaluated') {
+    return rosterList.value.filter((s) => !s.isExempt && s.isEvaluated)
+  }
+  return rosterList.value
+})
+
+// 统计指标
+const exemptStudentsCount = computed(() => rosterList.value.filter((s) => s.isExempt).length)
+const activeStudentsCount = computed(() => rosterList.value.filter((s) => !s.isExempt).length)
+const evaluatedStudentsCount = computed(() => rosterList.value.filter((s) => !s.isExempt && s.isEvaluated).length)
+const pendingStudentsCount = computed(() => rosterList.value.filter((s) => !s.isExempt && !s.isEvaluated).length)
+
+const progressPercent = computed(() => {
+  const active = activeStudentsCount.value
+  if (active === 0) return 100
+  return Math.min(100, Math.round((evaluatedStudentsCount.value / active) * 100))
+})
+
+function getAttendanceText(status: string): string {
+  switch (status) {
+    case 'present': return '🟢 到课'
+    case 'late': return '🟡 迟到'
+    case 'leave': return '🔵 请假'
+    case 'absent': return '🔴 缺席'
+    default: return '⚪ 待打卡'
   }
 }
 
-function handleEditorInput() {
-  if (editorRef.value) {
-    form.studyContent = editorRef.value.innerHTML
+// 选中某学员
+function handleSelectStudent(student: StudentRosterDraft) {
+  activeStudentId.value = student.studentId
+}
+
+// 切换考勤
+function handleUpdateAttendance(student: StudentRosterDraft, status: 'present' | 'late' | 'leave' | 'absent') {
+  student.attendanceStatus = status
+  if (status === 'leave' || status === 'absent') {
+    student.isExempt = true
+    student.deductLessons = 0
+    ElMessage.info(`已将 ${student.studentName} 考勤标记为「${getAttendanceText(status)}」，系统自动设为免评`)
+  } else {
+    student.isExempt = false
+    student.deductLessons = 1
+    ElMessage.success(`已将 ${student.studentName} 考勤标记为「${getAttendanceText(status)}」，已开放课评录入`)
   }
 }
 
 // 切换模板
 function handleApplyTemplate(templateId: string) {
-  const tpl = templateList.value.find(t => t.id === templateId)
+  const tpl = templateList.value.find((t) => t.id === templateId)
   if (!tpl) return
   form.templateId = tpl.id
   form.templateName = tpl.name
   form.studyContent = tpl.defaultStudyContent
   form.teacherComment = tpl.defaultTeacherComment
-  if (editorRef.value) {
-    editorRef.value.innerHTML = tpl.defaultStudyContent
+
+  // 若当前学员没有个性化评语，自动灌装
+  if (activeStudent.value && !activeStudent.value.comment) {
+    activeStudent.value.comment = tpl.defaultTeacherComment
   }
-  ElMessage.success(`已载入「${tpl.name}」预设学习内容与评语框架！`)
+  ElMessage.success(`已载入「${tpl.name}」标准学习内容与评语框架！`)
 }
 
-// 调整课次
-function handleAdjustLessonTime() {
-  ElMessageBox.prompt('请输入调整后的课次名称（例如：第28讲：超声波避障算法）：', '调整课次', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    inputValue: form.lessonTitle
-  }).then(({ value }) => {
-    if (value && value.trim()) {
-      form.lessonTitle = value.trim()
-      ElMessage.success('课次名称已更新')
-    }
-  }).catch(() => {
-    // 弹窗取消
-  })
-}
+// 专属视频上传 (限制 ≤ 100MB)
+function handleSelectStudentVideo() {
+  if (!activeStudent.value) return
+  const currentTarget = activeStudent.value
 
-// 视频选择与真实上传 (支持 <= 100MB 校验门禁)
-function handleSelectVideo() {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'video/mp4,video/quicktime,video/webm'
@@ -525,11 +674,12 @@ function handleSelectVideo() {
       })
 
       if (res && res.data?.videoUrl) {
-        form.videoUrl = res.data.videoUrl
-        ElMessage.success(`课堂实操视频「${file.name}」(${(file.size / 1024 / 1024).toFixed(1)}MB) 上传成功！`)
+        currentTarget.videoUrl = res.data.videoUrl
+        currentTarget.isEvaluated = true
+        ElMessage.success(`已为【${currentTarget.studentName}】成功上传专属课堂实操视频！`)
       }
     } catch (err: any) {
-      ElMessage.error(err?.message || '上传课堂实操视频失败，请稍后重试')
+      ElMessage.error(err?.message || '上传专属实操视频失败，请稍后重试')
     } finally {
       uploadingVideo.value = false
     }
@@ -537,24 +687,25 @@ function handleSelectVideo() {
   input.click()
 }
 
-function handlePreviewVideo() {
-  if (!form.videoUrl) {
-    ElMessage.warning('当前暂未上传随堂实操视频')
-    return
-  }
+function handlePreviewVideo(url?: string) {
+  if (!url) return
+  currentPreviewVideoUrl.value = url
   videoPreviewVisible.value = true
 }
 
-function handleRemoveVideo() {
-  form.videoUrl = ''
-  ElMessage.info('已移除课堂实操视频')
+function handleRemoveStudentVideo() {
+  if (!activeStudent.value) return
+  activeStudent.value.videoUrl = ''
+  ElMessage.info(`已移除【${activeStudent.value.studentName}】的专属视频`)
 }
 
-// 课堂照片墙管理 (至多 9 张，单张 <= 10MB)
-function handleAddPhoto() {
-  const currentCount = form.photoList.length
+// 专属照片上传 (最多 9 张)
+function handleAddStudentPhotos() {
+  if (!activeStudent.value) return
+  const currentTarget = activeStudent.value
+  const currentCount = currentTarget.photos.length
   if (currentCount >= 9) {
-    ElMessage.warning('随堂课堂照片最多允许上传 9 张')
+    ElMessage.warning('专属课堂照片最多允许上传 9 张')
     return
   }
 
@@ -574,7 +725,6 @@ function handleAddPhoto() {
       selectedFiles = selectedFiles.slice(0, maxAllowed)
     }
 
-    // 10MB 体积前置校验
     const MAX_BYTES = 10 * 1024 * 1024
     const validFiles: File[] = []
     const oversizedFiles: string[] = []
@@ -609,25 +759,15 @@ function handleAddPhoto() {
       })
 
       if (res && res.data) {
-        const { persistedUrls, successCount, failureCount, errors } = res.data
+        const { persistedUrls, successCount } = res.data
         if (persistedUrls && persistedUrls.length > 0) {
-          form.photoList.push(...persistedUrls)
+          currentTarget.photos.push(...persistedUrls)
+          currentTarget.isEvaluated = true
         }
-
-        if (failureCount > 0 && errors && errors.length > 0) {
-          const reasons = errors.map((err) => `${err.filename}: ${err.reason}`).join('; ')
-          ElNotification({
-            title: '部分照片上传受阻',
-            message: reasons,
-            type: 'warning',
-            duration: 6000,
-          })
-        }
-
-        ElMessage.success(`已成功添加 ${successCount} 张现场实录照片，当前共计 ${form.photoList.length} 张`)
+        ElMessage.success(`已为【${currentTarget.studentName}】添加 ${successCount} 张专属照片！`)
       }
     } catch (err: any) {
-      ElMessage.error(err?.message || '上传现场实录照片失败，请稍后重试')
+      ElMessage.error(err?.message || '上传专属照片失败，请稍后重试')
     } finally {
       uploadingPhotos.value = false
     }
@@ -636,8 +776,9 @@ function handleAddPhoto() {
   input.click()
 }
 
-function handleRemovePhoto(index: number) {
-  form.photoList.splice(index, 1)
+function handleRemoveStudentPhoto(index: number) {
+  if (!activeStudent.value) return
+  activeStudent.value.photos.splice(index, 1)
   ElMessage.info('已移除照片')
 }
 
@@ -645,60 +786,102 @@ function handlePreviewPhoto(url: string) {
   window.open(url, '_blank')
 }
 
-// AI 帮我重写
-function handleAiRewrite() {
-  const loading = ElMessage({
-    message: '✨ AI 教学大模型正在基于本节课学习内容与 5 星表现生成个性化点评...',
+// AI 重写
+function handleAiRewriteForStudent() {
+  if (!activeStudent.value) return
+  const target = activeStudent.value
+
+  const loadingMsg = ElMessage({
+    message: `✨ AI 正在为【${target.studentName}】生成高情商个性化随堂评语...`,
     duration: 0,
     type: 'info'
   })
+
   setTimeout(() => {
-    loading.close()
-    form.teacherComment = `【课堂表现与素养反馈】本节课学习了《${form.lessonTitle || '少儿编程'}》，孩子展现了极高的专注度与动手探索热情。在完成核心逻辑编写时，不仅能熟练运用嵌套条件判断，还能主动思考异常边界情况。遇到程序报错时能耐心运用调试打印排查，表现出成熟的计算思维与工程抗挫力，值得大大的表扬！建议课后多尝试变换参数，持续拓展思维广度。`
-    form.aiPolished = true
-    ElMessage.success('AI 已为您生成全新个性化高情商评语！')
-  }, 800)
+    loadingMsg.close()
+    target.comment = `【${target.studentName}随堂学情反馈】在本节课中，${target.studentName}展现出极高的课堂专注力与探索求知欲。面对新授核心知识点时吸收迅速，逻辑结构清晰。在实操练习环节，不仅能独立解决问题，还具备成熟的排查能力，表现非常出色！建议继续保持探索热情，期待下节课更亮眼的发挥！`
+    target.aiPolished = true
+    target.isEvaluated = true
+    ElMessage.success(`AI 已为【${target.studentName}】生成专属评语！`)
+  }, 700)
 }
 
 // AI 润色
-function handleAiPolish() {
-  if (!form.teacherComment) {
+function handleAiPolishForStudent() {
+  if (!activeStudent.value) return
+  const target = activeStudent.value
+  if (!target.comment) {
     ElMessage.warning('请先输入评语草稿再进行 AI 润色')
     return
   }
+
   polishing.value = true
   setTimeout(() => {
     polishing.value = false
-    form.teacherComment = `【专业教师寄语】${form.teacherComment.trim()} 🌟 在教育心理学正向激励引导下，孩子不仅掌握了计算机科学精髓，更培养了严谨的逻辑闭环与自信表达能力，期待下节课更精彩的表现！`
-    form.aiPolished = true
-    ElMessage.success('AI 润色成功！文采与共育温度显著提升。')
-  }, 600)
+    target.comment = `【专属学情特写】${target.comment.trim()} 🌟 在课堂探究中，孩子的思维发散性与动手闭环能力均有亮眼突破，展现出坚韧的专注品质！`
+    target.aiPolished = true
+    target.isEvaluated = true
+    ElMessage.success(`已完成【${target.studentName}】评语的 AI 深度润色！`)
+  }, 500)
 }
 
-// 循环切换评语模板
+// 循环常用评语
 let commentIdx = 0
-function handleCycleCommentTemplate() {
+function handleCycleCommentTemplateForStudent() {
+  if (!activeStudent.value) return
+  const target = activeStudent.value
   const sampleComments = [
-    '通过游戏的方式，吸引学生的学习兴趣，在整个编程过程中，循序渐进的对不同角色进行有序设计，同时了解到物体的抛物线运动轨迹，增加新的知识点。',
-    '孩子今天在硬件接线环节表现突出，不仅准确辨别了正负引脚与信号线，还能向同桌讲解传感器工作原理，具备优秀的小导师潜质！',
-    '算法思维敏锐，能独立运用二分查找缩短程序运行耗时，对代码优雅度和规范性有较高自我要求，表现非常棒！'
+    `${target.studentName}今天在课堂上思维非常活跃，在核心难点环节能举一反三，表现可圈可点！`,
+    `${target.studentName}动手实操能力过硬，对细节把控到位，遇到问题能耐心排查，进步十分显著！`,
+    `课堂注意力集中，听讲认真踏实，顺利完成了本节课的全部进阶任务，值得大大的表扬！`
   ]
   commentIdx = (commentIdx + 1) % sampleComments.length
-  form.teacherComment = sampleComments[commentIdx]
-  ElMessage.info('已载入常用预设评语库')
+  target.comment = sampleComments[commentIdx]
+  target.isEvaluated = true
+  ElMessage.info('已载入常用预设评语')
 }
 
-// 打开弹窗并载入 (调用协调器 hydrateEvaluation 接口)
+// 暂存当前学员草稿
+function handleSaveCurrentStudentDraft() {
+  if (!activeStudent.value) return
+  activeStudent.value.isEvaluated = true
+  ElMessage.success(`【${activeStudent.value.studentName}】的课评草稿已暂存！`)
+}
+
+// 暂存并评下一位
+function handleSaveAndNextStudent() {
+  if (!activeStudent.value) return
+  activeStudent.value.isEvaluated = true
+
+  // 寻找下一个待评价且未免评的学员
+  const nextPending = rosterList.value.find((s) => !s.isExempt && !s.isEvaluated && s.studentId !== activeStudent.value?.studentId)
+  if (nextPending) {
+    activeStudentId.value = nextPending.studentId
+    ElMessage.success(`已暂存！已自动切换至待评学员【${nextPending.studentName}】`)
+    return
+  }
+
+  // 若无待评价学员，切换到下一个学员
+  const currentIndex = rosterList.value.findIndex((s) => s.studentId === activeStudent.value?.studentId)
+  if (currentIndex >= 0 && currentIndex < rosterList.value.length - 1) {
+    activeStudentId.value = rosterList.value[currentIndex + 1].studentId
+    ElMessage.success(`已暂存！已切换至下一位学员【${rosterList.value[currentIndex + 1].studentName}】`)
+  } else {
+    ElMessage.success('🎉 恭喜！当前班级所有在读到课学员课评已全部录入完毕！')
+  }
+}
+
+// 打开弹窗并载入数据 (权威水化)
 async function open(lesson: WorkbenchLessonCard) {
   currentLesson.value = lesson
   templateList.value = getEvaluationTemplates()
+  filterTab.value = 'all'
+  loading.value = true
 
   try {
     const res = await educationalApi.getEvaluationWorkbench(lesson.id)
     if (res?.data) {
-      const { schedule, evaluation, roster, summary } = res.data
-      workbenchSummary.value = summary || null
-      workbenchRoster.value = roster || []
+      const { schedule, evaluation, roster } = res.data
 
       form.lessonTimeId = schedule.id
       form.classId = schedule.classId
@@ -708,53 +891,75 @@ async function open(lesson: WorkbenchLessonCard) {
       form.templateName = evaluation.templateName || '通用课评模板'
       form.studyContent = evaluation.studyContentHtml || ''
       form.rating = evaluation.overallRating || 5
-      form.photoList = Array.isArray(evaluation.photoList) && evaluation.photoList.length > 0 ? [...evaluation.photoList] : []
       form.teacherComment = evaluation.teacherComment || ''
-      form.videoUrl = evaluation.videoUrl || ''
-      form.aiPolished = evaluation.aiPolished || false
-      form.status = evaluation.status || 'draft'
-      form.publishTime = evaluation.lastPublishedAt || undefined
       selectedTemplateId.value = form.templateId
+
+      // 将 roster 转换为单学员独立维护的 Draft 列表
+      const rawRoster: any[] = Array.isArray(roster) ? roster : []
+      rosterList.value = rawRoster.map((item) => {
+        const isExempt = item.attendanceStatus === 'leave' || item.attendanceStatus === 'absent' || item.isExempt
+        const studentPhotos = Array.isArray(item.photos) ? item.photos : []
+        const studentVideo = item.videoUrl || ''
+        const hasEvaluated = Boolean(item.isEvaluated || item.personalizedComment || studentPhotos.length > 0 || studentVideo)
+
+        return {
+          studentId: item.studentId,
+          studentName: item.studentName,
+          studentNo: item.studentNo || '',
+          avatar: item.avatar || undefined,
+          wechatOpenId: item.wechatOpenId,
+          isWechatBound: Boolean(item.isWechatBound),
+          attendanceStatus: item.attendanceStatus || 'present',
+          deductLessons: isExempt ? 0 : (item.deductLessons ?? 1),
+          isEvaluated: hasEvaluated,
+          isExempt,
+          evaluatedAt: item.evaluatedAt,
+          evaluatedSource: item.evaluatedSource || 'web',
+          rating: item.studentRating ?? 5.0,
+          comment: item.personalizedComment || (hasEvaluated ? '' : evaluation.teacherComment) || '',
+          performanceTag: item.performanceTag || '专注投入',
+          photos: [...studentPhotos],
+          videoUrl: studentVideo,
+          aiPolished: false,
+        }
+      })
+
+      // 默认选中第一个待评价学员，若全已评则选中第一个学员
+      const firstPending = rosterList.value.find((s) => !s.isExempt && !s.isEvaluated)
+      if (firstPending) {
+        activeStudentId.value = firstPending.studentId
+      } else if (rosterList.value.length > 0) {
+        activeStudentId.value = rosterList.value[0].studentId
+      }
     }
   } catch (err: any) {
-    ElMessage.error(err.message || '水化课评数据失败，使用基础初始值')
-    form.lessonTimeId = lesson.id
-    form.classId = lesson.classId || ''
-    form.className = lesson.className || ''
-    form.lessonTitle = lesson.lessonTitle || `${lesson.className || '教学班'}`
-    form.templateId = 'tmpl-common'
-    form.templateName = '通用课评模板'
-    form.studyContent = ''
-    form.rating = 5
-    form.photoList = []
-    form.videoUrl = ''
-    form.teacherComment = ''
-    form.status = 'draft'
+    ElMessage.error(err.message || '加载课评工作台失败')
+  } finally {
+    loading.value = false
   }
 
   visible.value = true
-
-  nextTick(() => {
-    if (editorRef.value) {
-      editorRef.value.innerHTML = form.studyContent
-    }
-  })
 }
 
-// 提交保存 (调用协调器 commitEvaluation 接口)
-async function handleSave(publish: boolean) {
+// 统一保存或正式发布
+async function handleSaveAll(publish: boolean) {
   if (!form.studyContent || !form.studyContent.trim()) {
-    ElMessage.warning('请输入学习内容')
+    ElMessage.warning('请输入课程学习内容大纲')
     return
   }
-  if (!form.rating) {
-    ElMessage.warning('请选择综合评价星级')
-    return
-  }
-  if (!form.teacherComment || !form.teacherComment.trim()) {
-    ElMessage.warning('请输入老师点评内容')
-    return
-  }
+
+  // 组装所有学员的专属数据 (studentOverrides)
+  const studentOverrides = rosterList.value.map((s) => ({
+    studentId: s.studentId,
+    attendanceStatus: s.attendanceStatus,
+    deductLessons: s.deductLessons,
+    personalizedComment: s.comment,
+    rating: s.rating,
+    performanceTag: s.performanceTag,
+    photos: s.photos,
+    videoUrl: s.videoUrl,
+    isEvaluated: s.isEvaluated || Boolean(s.comment || s.photos.length > 0 || s.videoUrl),
+  }))
 
   saving.value = true
   try {
@@ -768,10 +973,11 @@ async function handleSave(publish: boolean) {
         lessonTitle: form.lessonTitle,
         studyContentHtml: form.studyContent,
         overallRating: form.rating,
-        videoUrl: form.videoUrl,
-        photoList: form.photoList,
-        teacherComment: form.teacherComment,
+        videoUrl: activeStudent.value?.videoUrl || '',
+        photoList: activeStudent.value?.photos || [],
+        teacherComment: activeStudent.value?.comment || form.teacherComment || '随堂学习进展顺利',
         aiPolished: form.aiPolished,
+        studentOverrides,
       },
     })
 
@@ -782,12 +988,12 @@ async function handleSave(publish: boolean) {
       const skippedCount = receipt?.dispatchResult?.wechatSkippedCount || 0
       ElNotification({
         title: '课评发布成功',
-        message: `课评已落盘并同步至学员考勤！已向 ${sentCount} 位绑定微信家长推送学情报告${skippedCount > 0 ? ` (另有 ${skippedCount} 位家长未绑定微信号)` : ''}。`,
+        message: `学员专属课评已落盘并同步至双端！已向 ${sentCount} 位绑定微信家长下发独立学情报告${skippedCount > 0 ? ` (另有 ${skippedCount} 位家长未绑定微信)` : ''}。`,
         type: 'success',
-        duration: 4500,
+        duration: 5000,
       })
     } else {
-      ElMessage.success('课评草稿已持久化落盘至数据库！')
+      ElMessage.success('全班学员专属课评草稿已持久化落盘至数据库！')
     }
 
     emit('success', receipt)
@@ -806,9 +1012,10 @@ defineExpose({ open })
 .lesson-evaluation-dialog :deep(.el-dialog__header) {
   border-bottom: 1px solid #eef2f6;
   margin-right: 0;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
 }
 .lesson-evaluation-dialog :deep(.el-dialog__body) {
-  padding-top: 14px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 </style>

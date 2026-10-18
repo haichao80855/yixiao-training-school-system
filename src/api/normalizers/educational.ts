@@ -83,8 +83,18 @@ export function normalizeSchedule(raw: any): ScheduleEvent {
     ? raw.studentIds
     : (raw.class?.studentPackages ? raw.class.studentPackages.map((p: any) => p.studentId) : []);
 
-  const attendanceCount = Number(raw.attendanceCount ?? raw._count?.attendances ?? 0);
-  const totalCount = Number(raw.totalCount ?? raw.class?.capacity ?? 8);
+  const attendanceCount = Number(
+    raw.signedCount ??
+    raw.actualCount ??
+    (raw.attendances ? raw.attendances.filter((a: any) => a.status === 'present' || a.status === 'late').length : (raw.attendanceCount ?? raw._count?.attendances ?? 0))
+  );
+  const totalCount = Number(
+    raw.totalStudents ??
+    raw.expectedCount ??
+    raw.studentCount ??
+    raw.totalCount ??
+    (studentIds.length || (raw.class?.currentStudentCount ?? (raw.class?.capacity ?? 0)))
+  );
   const laneIndex = Number(raw.laneIndex ?? raw.lane ?? 0);
 
   return {
@@ -192,8 +202,8 @@ export function normalizeAttendanceRecord(raw: any): AttendanceRecord {
 
 export function normalizeWorkbenchLessonCard(raw: any): WorkbenchLessonCard {
   const evt = normalizeSchedule(raw);
-  const studentCount = Number(raw.totalStudents ?? raw.totalCount ?? evt.totalCount ?? evt.studentIds?.length ?? 8);
-  const signedCount = Number(raw.signedCount ?? raw.attendanceCount ?? evt.attendanceCount ?? 0);
+  const studentCount = Number(raw.totalStudents ?? raw.expectedCount ?? raw.studentCount ?? evt.totalCount ?? (evt.studentIds?.length || 0));
+  const signedCount = Number(raw.signedCount ?? raw.actualCount ?? evt.attendanceCount ?? raw.attendanceCount ?? 0);
   const evalStatus = (raw.evaluationStatus || 'none') as 'none' | 'draft' | 'published';
 
   return {

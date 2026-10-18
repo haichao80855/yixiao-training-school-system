@@ -565,6 +565,11 @@ model LessonEvaluationStudentItem {
   avatar          String?
   growthScores    String?  // JSON
   homeworkTask    String?
+  photos          String?  @default("[]") // JSON: string[] 学员专属照片 (≤9张)
+  videoUrl        String?                 // 学员专属实操视频 (≤1个)
+  isEvaluated     Boolean  @default(false) // 是否已完成课评
+  evaluatedAt     DateTime?               // 评定落盘时间
+  evaluatedSource String?  @default("web") // 评定录入端 (web | mp)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @default(now()) @updatedAt
 

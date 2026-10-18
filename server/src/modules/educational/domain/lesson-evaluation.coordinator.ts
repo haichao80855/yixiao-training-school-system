@@ -141,6 +141,23 @@ export class LessonEvaluationCoordinator {
         else wechatUnboundCount++;
 
         const override = studentItemMap.get(student.id);
+        let studentPhotos: string[] = [];
+        if (override?.photos) {
+          try {
+            studentPhotos = typeof override.photos === 'string' ? JSON.parse(override.photos) : (Array.isArray(override.photos) ? override.photos : []);
+          } catch {
+            studentPhotos = [];
+          }
+        }
+        const studentVideo = override?.videoUrl || undefined;
+        const isExempt = att.status === 'leave' || att.status === 'absent';
+        const isStudentEvaluated = Boolean(
+          override?.isEvaluated ||
+          override?.comment ||
+          (studentPhotos.length > 0) ||
+          studentVideo ||
+          (existingEval?.status === 'published' && isAttended)
+        );
 
         roster.push({
           studentId: student.id,
@@ -151,6 +168,12 @@ export class LessonEvaluationCoordinator {
           isWechatBound: isBound,
           attendanceStatus: att.status as any,
           deductLessons: att.deductLessons,
+          isEvaluated: isStudentEvaluated,
+          isExempt,
+          evaluatedAt: override?.evaluatedAt ? override.evaluatedAt.toISOString() : undefined,
+          evaluatedSource: override?.evaluatedSource || 'web',
+          photos: studentPhotos,
+          videoUrl: studentVideo,
           personalizedComment: override?.comment || att.comment || undefined,
           studentRating: override?.rating || (att.rating === 'A+' ? 5 : att.rating === 'A' ? 4.5 : att.rating === 'B+' ? 4 : 3.5),
           performanceTag: override?.performanceTag || undefined,
@@ -175,6 +198,21 @@ export class LessonEvaluationCoordinator {
         else wechatUnboundCount++;
 
         const override = studentItemMap.get(student.id);
+        let studentPhotos: string[] = [];
+        if (override?.photos) {
+          try {
+            studentPhotos = typeof override.photos === 'string' ? JSON.parse(override.photos) : (Array.isArray(override.photos) ? override.photos : []);
+          } catch {
+            studentPhotos = [];
+          }
+        }
+        const studentVideo = override?.videoUrl || undefined;
+        const isStudentEvaluated = Boolean(
+          override?.isEvaluated ||
+          override?.comment ||
+          (studentPhotos.length > 0) ||
+          studentVideo
+        );
 
         roster.push({
           studentId: student.id,
@@ -185,6 +223,12 @@ export class LessonEvaluationCoordinator {
           isWechatBound: isBound,
           attendanceStatus: 'unrecorded',
           deductLessons: 1,
+          isEvaluated: isStudentEvaluated,
+          isExempt: false,
+          evaluatedAt: override?.evaluatedAt ? override.evaluatedAt.toISOString() : undefined,
+          evaluatedSource: override?.evaluatedSource || 'web',
+          photos: studentPhotos,
+          videoUrl: studentVideo,
           personalizedComment: override?.comment || undefined,
           studentRating: override?.rating || 5,
           performanceTag: override?.performanceTag || undefined,
@@ -339,37 +383,47 @@ export class LessonEvaluationCoordinator {
     for (const ov of studentOverrides) {
       overrideMap.set(ov.studentId, ov);
     }
+    const isSingleStudentUpdate = studentOverrides.length === 1;
+    const singleTargetStudentId = isSingleStudentUpdate ? studentOverrides[0].studentId : null;
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. 落盘课评聚合根 LessonEvaluation
+      // 1. 落盘课评聚合根 LessonEvaluation (单学员修改时保留排课公共内容)
+      const evalUpdateData: any = isSingleStudentUpdate && existing
+        ? {
+            currentRevision: publish ? nextRevisionNumber : existing?.currentRevision || 0,
+            publishedAt: publish ? new Date() : existing?.publishedAt,
+            idempotencyKey: command.idempotencyKey || null,
+          }
+        : {
+            lessonTitle: payload.lessonTitle || existing?.lessonTitle,
+            templateId: payload.templateId || existing?.templateId || 'tmpl-common',
+            templateName: payload.templateName || existing?.templateName || '通用课评模板',
+            studyContent: payload.studyContentHtml || existing?.studyContent,
+            overallRating: payload.overallRating ?? existing?.overallRating ?? 5.0,
+            teacherComment: payload.teacherComment || existing?.teacherComment || '课堂教学进展顺利，随堂表现良好',
+            voiceUrl: payload.voiceUrl !== undefined ? (payload.voiceUrl || null) : existing?.voiceUrl,
+            voiceDuration: payload.voiceDuration !== undefined ? payload.voiceDuration : existing?.voiceDuration,
+            videoUrl: payload.videoUrl !== undefined ? (payload.videoUrl || null) : existing?.videoUrl,
+            photoList: (payload.photoList && payload.photoList.length > 0) ? photoListJson : (existing?.photoList || photoListJson),
+            aiPolished: payload.aiPolished ?? existing?.aiPolished ?? false,
+            status: publish ? 'published' : (existing?.status || 'draft'),
+            currentRevision: publish ? nextRevisionNumber : existing?.currentRevision || 0,
+            publishedAt: publish ? new Date() : existing?.publishedAt,
+            idempotencyKey: command.idempotencyKey || null,
+          };
+
       const evalRecord = await tx.lessonEvaluation.upsert({
         where: { scheduleEventId: schedule.id },
-        update: {
-          lessonTitle: payload.lessonTitle,
-          templateId: payload.templateId || 'tmpl-common',
-          templateName: payload.templateName || '通用课评模板',
-          studyContent: payload.studyContentHtml,
-          overallRating: payload.overallRating ?? 5.0,
-          teacherComment: payload.teacherComment || '课堂教学进展顺利，随堂表现良好',
-          voiceUrl: payload.voiceUrl || null,
-          voiceDuration: payload.voiceDuration || 0,
-          videoUrl: payload.videoUrl || null,
-          photoList: photoListJson,
-          aiPolished: payload.aiPolished ?? false,
-          status: publish ? 'published' : 'draft',
-          currentRevision: publish ? nextRevisionNumber : existing?.currentRevision || 0,
-          publishedAt: publish ? new Date() : existing?.publishedAt,
-          idempotencyKey: command.idempotencyKey || null,
-        },
+        update: evalUpdateData,
         create: {
           campusId: schedule.campusId,
           scheduleEventId: schedule.id,
           classId: schedule.classId,
           teacherId: schedule.teacherId,
-          lessonTitle: payload.lessonTitle,
+          lessonTitle: payload.lessonTitle || `${schedule.class?.name || '班级'} - 随堂考勤`,
           templateId: payload.templateId || 'tmpl-common',
           templateName: payload.templateName || '通用课评模板',
-          studyContent: payload.studyContentHtml,
+          studyContent: payload.studyContentHtml || '随堂教学出勤记录',
           overallRating: payload.overallRating ?? 5.0,
           teacherComment: payload.teacherComment || '课堂教学进展顺利，随堂表现良好',
           voiceUrl: payload.voiceUrl || null,
@@ -386,6 +440,10 @@ export class LessonEvaluationCoordinator {
 
       // 2. 落盘单学员特写条目 LessonEvaluationStudentItem
       for (const ov of studentOverrides) {
+        const ovPhotosJson = Array.isArray(ov.photos) ? JSON.stringify(ov.photos) : undefined;
+        const ovVideo = ov.videoUrl !== undefined ? (ov.videoUrl || null) : undefined;
+        const isEval = ov.isEvaluated !== undefined ? ov.isEvaluated : Boolean(ov.personalizedComment || (ov.photos && ov.photos.length > 0) || ov.videoUrl);
+
         await tx.lessonEvaluationStudentItem.upsert({
           where: {
             evaluationId_studentId: {
@@ -397,6 +455,11 @@ export class LessonEvaluationCoordinator {
             rating: ov.rating,
             comment: ov.personalizedComment,
             performanceTag: ov.performanceTag,
+            ...(ovPhotosJson !== undefined ? { photos: ovPhotosJson } : {}),
+            ...(ovVideo !== undefined ? { videoUrl: ovVideo } : {}),
+            isEvaluated: isEval,
+            evaluatedAt: isEval ? new Date() : undefined,
+            evaluatedSource: (command as any).source || 'web',
           },
           create: {
             evaluationId: evalRecord.id,
@@ -404,8 +467,137 @@ export class LessonEvaluationCoordinator {
             rating: ov.rating,
             comment: ov.personalizedComment,
             performanceTag: ov.performanceTag,
+            photos: ovPhotosJson || '[]',
+            videoUrl: ovVideo || null,
+            isEvaluated: isEval,
+            evaluatedAt: isEval ? new Date() : null,
+            evaluatedSource: (command as any).source || 'web',
           },
         });
+      }
+
+      // 3. 考勤状态双向同步与资产安全落盘 (草稿态与发布态均一致维护)
+      for (const ov of studentOverrides) {
+        if (!ov.attendanceStatus || ov.attendanceStatus === 'unrecorded') {
+          continue;
+        }
+
+        const targetStatus = ov.attendanceStatus;
+        const isDeductible = targetStatus === 'present' || targetStatus === 'late';
+        const targetDeduct = ov.deductLessons !== undefined ? ov.deductLessons : (isDeductible ? 1 : 0);
+
+        const existingAtt = schedule.attendances.find((a) => a.studentId === ov.studentId && !a.isReversed);
+
+        if (existingAtt) {
+          // 检查考勤状态或扣课时是否发生变化
+          const isStatusChanged = existingAtt.status !== targetStatus;
+          const isDeductChanged = existingAtt.deductLessons !== targetDeduct;
+
+          if (isStatusChanged || isDeductChanged) {
+            // 如果该日程已完成消课且课包课时发生变动，需要维护课包余额安全
+            if (schedule.status === 'completed') {
+              if (existingAtt.deductLessons > 0 && targetDeduct === 0) {
+                // 原扣课，现免消 (例如 present -> leave)：原路退还课包课时
+                let pkg: any = null;
+                if (existingAtt.packageId) {
+                  pkg = await tx.studentCoursePackage.findUnique({ where: { id: existingAtt.packageId } });
+                }
+                if (!pkg) {
+                  pkg = await tx.studentCoursePackage.findFirst({
+                    where: { studentId: ov.studentId, courseId: schedule.class.courseId },
+                  });
+                }
+                if (pkg && pkg.status !== 'refunded') {
+                  const nextStatus = pkg.status === 'frozen' ? 'frozen' : 'active';
+                  await tx.studentCoursePackage.update({
+                    where: { id: pkg.id },
+                    data: {
+                      remainingLessons: { increment: existingAtt.deductLessons },
+                      consumedLessons: { decrement: existingAtt.deductLessons },
+                      status: nextStatus,
+                    },
+                  });
+                }
+                existingAtt.regularBurned = 0;
+                existingAtt.bonusBurned = 0;
+              } else if (existingAtt.deductLessons === 0 && targetDeduct > 0) {
+                // 原免消，现扣课 (例如 leave -> present)：正课优先扣除课包课时
+                const pkg = await tx.studentCoursePackage.findFirst({
+                  where: { studentId: ov.studentId, courseId: schedule.class.courseId, status: 'active' },
+                  orderBy: { createdAt: 'asc' },
+                });
+                if (pkg) {
+                  const regularRemaining = Math.max(0, pkg.remainingLessons - pkg.bonusLessons);
+                  const burnRegular = regularRemaining >= targetDeduct ? targetDeduct : regularRemaining;
+                  const burnBonus = targetDeduct - burnRegular;
+                  await tx.studentCoursePackage.update({
+                    where: { id: pkg.id },
+                    data: {
+                      remainingLessons: { decrement: targetDeduct },
+                      consumedLessons: { increment: targetDeduct },
+                      status: pkg.remainingLessons - targetDeduct <= 0 ? 'completed' : 'active',
+                    },
+                  });
+                  existingAtt.packageId = pkg.id;
+                  existingAtt.regularBurned = burnRegular;
+                  existingAtt.bonusBurned = burnBonus;
+                }
+              }
+            }
+
+            await tx.attendanceRecord.update({
+              where: { id: existingAtt.id },
+              data: {
+                status: targetStatus,
+                deductLessons: targetDeduct,
+                regularBurned: targetDeduct === 0 ? 0 : existingAtt.regularBurned,
+                bonusBurned: targetDeduct === 0 ? 0 : existingAtt.bonusBurned,
+              },
+            });
+            existingAtt.status = targetStatus;
+            existingAtt.deductLessons = targetDeduct;
+          }
+        } else {
+          // 尚未存在 AttendanceRecord，在暂存草稿或发布时初始化创建
+          let targetPkg: any = null;
+          let regularBurned = 0;
+          let bonusBurned = 0;
+
+          if (schedule.status === 'completed' && targetDeduct > 0) {
+            targetPkg = await tx.studentCoursePackage.findFirst({
+              where: { studentId: ov.studentId, courseId: schedule.class.courseId, status: 'active' },
+              orderBy: { createdAt: 'asc' },
+            });
+            if (targetPkg) {
+              const regularRemaining = Math.max(0, targetPkg.remainingLessons - targetPkg.bonusLessons);
+              regularBurned = regularRemaining >= targetDeduct ? targetDeduct : regularRemaining;
+              bonusBurned = targetDeduct - regularBurned;
+              await tx.studentCoursePackage.update({
+                where: { id: targetPkg.id },
+                data: {
+                  remainingLessons: { decrement: targetDeduct },
+                  consumedLessons: { increment: targetDeduct },
+                  status: targetPkg.remainingLessons - targetDeduct <= 0 ? 'completed' : 'active',
+                },
+              });
+            }
+          }
+
+          const newAtt = await tx.attendanceRecord.create({
+            data: {
+              scheduleEventId: schedule.id,
+              studentId: ov.studentId,
+              packageId: targetPkg ? targetPkg.id : null,
+              status: targetStatus,
+              deductLessons: targetDeduct,
+              regularBurned,
+              bonusBurned,
+              operator: command.operatorName,
+              isReversed: false,
+            },
+          });
+          schedule.attendances.push(newAtt as any);
+        }
       }
 
       let fingerprint = '';
@@ -414,7 +606,7 @@ export class LessonEvaluationCoordinator {
       let wechatSkippedCount = 0;
       const unboundStudents: Array<{ studentId: string; studentName: string; parentPhone: string }> = [];
 
-      // 3. 仅发布态触发：不可变版本快照 + 考勤双向渗透 + 事务性信箱
+      // 4. 仅发布态触发：不可变版本快照 + 考勤评语双向渗透 + 事务性信箱
       if (publish) {
         // A. 构建不可变快照并计算 SHA-256 数据指纹
         const snapshotObj = {
@@ -449,6 +641,9 @@ export class LessonEvaluationCoordinator {
 
         // B. 双向考勤防腐同步 (激活 ADR-0005 学情雷达)
         for (const att of schedule.attendances) {
+          if (isSingleStudentUpdate && singleTargetStudentId && att.studentId !== singleTargetStudentId) {
+            continue; // 单学员修改时跳过其他学员，保持原有考勤评语不变
+          }
           const ov = overrideMap.get(att.studentId);
           const studentRating = ov?.rating ?? payload.overallRating;
           const studentComment = ov?.personalizedComment || payload.teacherComment;
@@ -499,6 +694,9 @@ export class LessonEvaluationCoordinator {
         const strategy = command.dispatchStrategy || 'ATTENDED_ONLY';
         const candidateStudents = schedule.attendances
           .filter((att) => {
+            if (isSingleStudentUpdate && singleTargetStudentId) {
+              return att.studentId === singleTargetStudentId;
+            }
             if (strategy === 'ATTENDED_ONLY') {
               return att.status === 'present' || att.status === 'late';
             }
@@ -509,7 +707,9 @@ export class LessonEvaluationCoordinator {
         for (const st of candidateStudents) {
           const ov = overrideMap.get(st.id);
           const stRating = ov?.rating ?? payload.overallRating;
-          const stComment = ov?.personalizedComment || payload.teacherComment;
+          const stComment = ov?.personalizedComment || (isSingleStudentUpdate ? (ov?.personalizedComment || existing?.teacherComment || payload.teacherComment) : payload.teacherComment);
+          const stPhotos = Array.isArray(ov?.photos) ? ov.photos : (isSingleStudentUpdate ? [] : (payload.photoList || []));
+          const stVideo = ov?.videoUrl !== undefined ? ov.videoUrl : (isSingleStudentUpdate ? null : payload.videoUrl);
 
           const outboxPayload = {
             evaluationId: evalRecord.id,
@@ -523,9 +723,9 @@ export class LessonEvaluationCoordinator {
             rating: stRating,
             ratingText: `${stRating} 星卓越表现`,
             teacherComment: stComment,
-            photoCount: (payload.photoList || []).length,
+            photoCount: stPhotos.length,
             hasVoice: Boolean(payload.voiceUrl),
-            hasVideo: Boolean(payload.videoUrl),
+            hasVideo: Boolean(stVideo),
             publishedAt: new Date().toISOString(),
           };
 

@@ -108,7 +108,7 @@
     <div class="bg-white rounded-lg p-4 shadow-xs border border-st-border space-y-3">
       <div class="flex items-center justify-between">
         <div class="font-bold text-sm text-[#1f303d] flex items-center gap-2">
-          <span>当日课程</span>
+          <span>{{ currentLessonSectionTitle }}</span>
           <span class="text-xs font-normal text-st-muted">（共 {{ cardList.length }} 节排课）</span>
         </div>
 
@@ -191,23 +191,41 @@
           @keyup.enter="loadData"
         />
 
-        <!-- 日期范围选择器 -->
+        <!-- 日期范围选择器与快捷按钮 -->
         <div class="flex items-center gap-1.5 w-full">
           <el-date-picker
             v-model="filters.date"
             type="date"
             value-format="YYYY-MM-DD"
-            placeholder="选择排课日期 (可清空)"
+            placeholder="选择排课日期"
+            popper-class="workbench-date-popper"
+            :cell-class-name="getCalendarCellClassName"
             clearable
             class="!w-full"
             @change="loadData"
           />
-          <el-button type="primary" class="!px-3 shrink-0" @click="loadData">
-            搜索
-          </el-button>
+          <el-button-group class="shrink-0 flex items-center">
+            <el-button
+              size="default"
+              :type="isTodayActive ? 'primary' : 'default'"
+              class="!px-2.5 text-xs font-medium"
+              @click="handleSelectToday"
+            >
+              今日
+            </el-button>
+            <el-button
+              size="default"
+              :type="!filters.date ? 'primary' : 'default'"
+              class="!px-2.5 text-xs font-medium"
+              @click="handleSelectAllDates"
+            >
+              全部
+            </el-button>
+          </el-button-group>
         </div>
       </div>
     </div>
+
 
     <!-- 课程卡片列表流 (Card View, 1:1 复刻截图 1 & 截图 2) -->
     <div v-if="viewMode === 'card'">
@@ -364,12 +382,17 @@
       <div v-else class="bg-white rounded-xl p-12 text-center border border-st-border">
         <el-empty :description="isSuperAdminUser ? '当前校区所选筛选条件下暂无排课安排' : '当前讲师在所选排课日期暂无执教排课安排'">
           <template #extra>
-            <el-button v-if="onlyMyLessons && !isSuperAdminUser && !isDataScopeSelf" type="primary" plain size="small" @click="onlyMyLessons = false; loadData()">
-              切换查看全校区所有排课
-            </el-button>
-            <el-button v-else-if="filters.date || (!isDataScopeSelf && filters.teacherId) || filters.status || filters.search || filters.classroomId || filters.mode" type="primary" plain size="small" @click="handleResetFilters">
-              重置全部筛选条件
-            </el-button>
+            <div class="flex items-center justify-center gap-2">
+              <el-button v-if="onlyMyLessons && !isSuperAdminUser && !isDataScopeSelf" type="primary" plain size="small" @click="onlyMyLessons = false; loadData()">
+                切换查看全校区所有排课
+              </el-button>
+              <el-button v-if="filters.date" type="primary" plain size="small" @click="handleSelectAllDates">
+                查看全部排课
+              </el-button>
+              <el-button v-if="filters.date || (!isDataScopeSelf && filters.teacherId) || filters.status || filters.search || filters.classroomId || filters.mode" size="small" @click="handleResetFilters">
+                重置全部筛选条件
+              </el-button>
+            </div>
           </template>
         </el-empty>
       </div>
@@ -466,7 +489,7 @@
             <div class="text-st-muted mt-0.5">授课老师: {{ activeLessonForSignIn.teacherName }} | 教室: {{ activeLessonForSignIn.classroomName }}</div>
           </div>
           <div class="text-right">
-            <div class="text-emerald-600 font-bold text-sm">{{ tempAttendanceList.filter(s => s.status === 'present').length }} / {{ tempAttendanceList.length }} 人实到</div>
+            <div class="text-emerald-600 font-bold text-sm">{{ tempAttendanceList.filter(s => s.status === 'present' || s.status === 'late').length }} / {{ tempAttendanceList.length }} 人实到</div>
             <div class="text-[11px] text-st-muted">扣减标准: 1.0课时/人</div>
           </div>
         </div>
@@ -588,8 +611,100 @@ const filters = reactive({
   classroomId: '',
   mode: '',
   search: '',
-  date: ''
+  date: getTodayDateStr()
 })
+
+const isTodayActive = computed(() => {
+  return filters.date === getTodayDateStr()
+})
+
+const currentLessonSectionTitle = computed(() => {
+  const today = getTodayDateStr()
+  if (!filters.date) {
+    return '全部日程排课'
+  }
+  if (filters.date === today) {
+    return '当日课程'
+  }
+  return `${filters.date} 课程`
+})
+
+function handleSelectToday() {
+  filters.date = getTodayDateStr()
+  loadData()
+}
+
+function handleSelectAllDates() {
+  filters.date = ''
+  loadData()
+}
+
+interface DateSummary {
+  total: number
+  pending: number
+  completed: number
+}
+const scheduleDateSummaryMap = ref<Map<string, DateSummary>>(new Map())
+
+function formatDateStr(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function getCalendarCellClassName(date: Date): string {
+  if (!date || !(date instanceof Date)) return ''
+  const dateStr = formatDateStr(date)
+  const summary = scheduleDateSummaryMap.value.get(dateStr)
+  if (!summary || summary.total === 0) return ''
+
+  if (summary.pending > 0) {
+    return 'workbench-cal-dot-pending'
+  }
+  if (summary.completed > 0) {
+    return 'workbench-cal-dot-completed'
+  }
+  return 'workbench-cal-dot-pending'
+}
+
+async function loadCalendarHeatmap() {
+  try {
+    let teacherIdParam: string | undefined = undefined
+    if (isDataScopeSelf.value) {
+      teacherIdParam = authStore.user?.teacherId || authStore.user?.id
+    } else if (onlyMyLessons.value && !isSuperAdminUser.value) {
+      teacherIdParam = authStore.user?.teacherId || authStore.user?.id
+    } else if (filters.teacherId) {
+      teacherIdParam = filters.teacherId
+    }
+
+    const res = await educationalApi.getSchedules({
+      campusId: tenantStore.currentCampusId,
+      teacherId: teacherIdParam,
+    })
+
+    const list = Array.isArray(res?.data) ? res.data : []
+    const map = new Map<string, DateSummary>()
+
+    for (const item of list) {
+      if (!item.date) continue
+      const d = String(item.date).split('T')[0]
+      const current = map.get(d) || { total: 0, pending: 0, completed: 0 }
+      current.total += 1
+      if (item.status === 'completed') {
+        current.completed += 1
+      } else {
+        current.pending += 1
+      }
+      map.set(d, current)
+    }
+
+    scheduleDateSummaryMap.value = map
+  } catch (err) {
+    console.error('Failed to load schedule calendar heatmap:', err)
+  }
+}
 
 const classroomList = ref<Classroom[]>([])
 const teacherList = ref<Teacher[]>([])
@@ -623,6 +738,7 @@ const tempAttendanceList = ref<{ studentId: string; studentName: string; status:
 
 async function loadData() {
   await loadOptions()
+  void loadCalendarHeatmap()
   const isTeacher = isTeacherUser.value
   const isSuper = isSuperAdminUser.value
 
@@ -670,7 +786,7 @@ function handleResetFilters() {
   filters.classroomId = ''
   filters.mode = ''
   filters.search = ''
-  filters.date = ''
+  filters.date = getTodayDateStr()
   loadData()
 }
 
@@ -798,3 +914,40 @@ onMounted(() => {
   loadData()
 })
 </script>
+
+<style>
+/* 日历下拉热力圆点全局样式 (挂载至 popper-class="workbench-date-popper") */
+.workbench-date-popper .el-date-table td.workbench-cal-dot-pending .el-date-table-cell__text,
+.workbench-date-popper .el-date-table td.workbench-cal-dot-completed .el-date-table-cell__text {
+  position: relative;
+}
+
+.workbench-date-popper .el-date-table td.workbench-cal-dot-pending .el-date-table-cell__text::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #2563eb; /* 待上课/有排课: 品牌蓝 */
+}
+
+.workbench-date-popper .el-date-table td.workbench-cal-dot-completed .el-date-table-cell__text::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #7052ff; /* 全部结课: 优雅紫 */
+}
+
+/* 单元格被选中高亮时，小圆点反白为白色以保证辨识度 */
+.workbench-date-popper .el-date-table td.current .el-date-table-cell__text::after {
+  background-color: #ffffff !important;
+}
+</style>

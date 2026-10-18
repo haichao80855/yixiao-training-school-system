@@ -5,7 +5,7 @@ export interface ApiResponse<T = any> {
   success?: boolean;
 }
 
-const BASE_URL = 'https://17a6937c.r38.cpolar.top';
+const BASE_URL = 'https://73fa5aff.r38.cpolar.top';
 
 // 401 防并发抖动重定向锁
 let isRedirecting = false;

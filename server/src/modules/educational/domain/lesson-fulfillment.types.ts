@@ -86,6 +86,13 @@ export interface FulfillmentStudentView {
   readonly recordedStatus?: AttendanceStatus;
   readonly currentComment?: string;
   readonly currentRating?: string | number;
+  readonly isEvaluated?: boolean;
+  readonly isExempt?: boolean;
+  readonly hasPersonalEvaluation?: boolean;
+  readonly evaluatedAt?: string;
+  readonly evaluatedSource?: string;
+  readonly photos?: string[];
+  readonly videoUrl?: string;
 }
 
 export interface FulfillmentWorkbenchView {
@@ -106,6 +113,8 @@ export interface FulfillmentWorkbenchView {
     readonly teacherName: string;
     readonly status: string;
     readonly canSettle: boolean;
+    readonly expectedCount?: number;
+    readonly actualCount?: number;
   };
 
   readonly evaluationDraft: {
@@ -148,11 +157,15 @@ export interface StudentFulfillmentOverride {
   readonly rating?: number;
   readonly personalizedComment?: string;
   readonly performanceTag?: string;
+  readonly photos?: string[];
+  readonly videoUrl?: string;
+  readonly isEvaluated?: boolean;
 }
 
 export interface FulfillLessonCommand {
   readonly scheduleEventId: string;
   readonly mode?: FulfillmentMode;
+  readonly targetStudentId?: string;
   readonly lessonTitle?: string;
   readonly templateId?: string;
   readonly templateName?: string;

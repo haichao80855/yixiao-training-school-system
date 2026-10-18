@@ -21,7 +21,7 @@ export class LocalStorageEngineAdapter implements StorageEnginePort {
     this.urlPrefix = prefix.endsWith('/') ? prefix : `${prefix}/`;
   }
 
-  async write(relativePath: string, buffer: Buffer): Promise<StoragePersistResult> {
+  async write(relativePath: string, buffer: Buffer, baseUrl?: string): Promise<StoragePersistResult> {
     const cleanRelativePath = relativePath.replace(/^[/\\]+/, '');
     const fullPath = path.join(this.baseDir, cleanRelativePath);
     const dir = path.dirname(fullPath);
@@ -31,11 +31,12 @@ export class LocalStorageEngineAdapter implements StorageEnginePort {
 
     return {
       relativePath: cleanRelativePath,
-      url: this.resolveUrl(cleanRelativePath),
+      url: this.resolveUrl(cleanRelativePath, baseUrl),
       absolutePath: fullPath,
       sizeBytes: buffer.length,
     };
   }
+
 
   async exists(relativePath: string): Promise<boolean> {
     const cleanRelativePath = relativePath.replace(/^[/\\]+/, '');
@@ -81,8 +82,15 @@ export class LocalStorageEngineAdapter implements StorageEnginePort {
     return deletedCount;
   }
 
-  resolveUrl(relativePath: string): string {
+  resolveUrl(relativePath: string, baseUrl?: string): string {
     const cleanPath = relativePath.replace(/^[/\\]+/, '').replace(/\\/g, '/');
-    return `${this.urlPrefix}${cleanPath}`;
+    const relativeUrl = `${this.urlPrefix}${cleanPath}`;
+    const base = baseUrl || process.env.CDN_PUBLIC_BASE_URL || process.env.APP_BASE_URL;
+    if (base) {
+      const cleanBase = base.replace(/\/+$/, '');
+      return `${cleanBase}${relativeUrl}`;
+    }
+    return relativeUrl;
   }
 }
+

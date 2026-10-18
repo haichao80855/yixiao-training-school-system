@@ -37,6 +37,7 @@ export interface LessonGrowthView {
   readonly badges: readonly LessonGrowthBadge[]; // 荣誉勋章
   readonly radarDimensions: readonly RadarDimension[]; // 5 维素养数据
   readonly radarSvgPolygonPoints: string;   // 原生 SVG 多边形顶点坐标序列
+  readonly radarSvgDataUri?: string;        // 兼容微信小程序原生 WXML <image> 矢量雷达 Data URI
   readonly source: 'network_fresh' | 'cache_instant' | 'degraded_fallback';
   readonly queriedAt: number;
 }
@@ -61,4 +62,14 @@ export interface LearningGrowthProjector {
    * 清除指定排课的本地学情缓存
    */
   evictGrowthCache(scheduleId: string): void;
+
+  /**
+   * 原生 5 维多边形顶点坐标计算
+   */
+  generateRadarSvgPoints(dimensions: RadarDimension[]): string;
+
+  /**
+   * 兼容微信小程序原生 WXML <image> 渲染的完整 SVG Data URI 编码生成器
+   */
+  generateRadarSvgDataUri(points: string, dimensions?: RadarDimension[]): string;
 }

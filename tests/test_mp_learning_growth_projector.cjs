@@ -176,6 +176,12 @@ async function runAllTests() {
     const zeroFirstPair = zeroPoints.split(' ')[0].split(',');
     assert.strictEqual(parseFloat(zeroFirstPair[0]), 100, '0 分防坍塌保底顶点 X 必须仍为 100');
     assert.strictEqual(parseFloat(zeroFirstPair[1]), 92, '0 分防坍塌保底顶点 Y 必须内缩至 92');
+
+    // 测试 SVG Data URI 编码生成 (兼容微信小程序 WXML <image>)
+    const dataUri = projector.generateRadarSvgDataUri(fullPoints, fullDimensions);
+    assert.ok(dataUri.startsWith('data:image/svg+xml;utf8,'), 'Data URI 必须以 data:image/svg+xml;utf8, 开头');
+    assert.ok(dataUri.includes('viewBox%3D%220%200%20200%20200%22') || dataUri.includes('viewBox'), 'Data URI 必须包含 viewBox');
+    assert.ok(dataUri.includes('points%3D%22') || dataUri.includes('points'), 'Data URI 必须包含多边形 points');
   });
 
   // --------------------------------------------------------------------------

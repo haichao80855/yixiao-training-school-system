@@ -137,6 +137,16 @@ export class LessonFulfillmentCoordinator {
       studentPackageMap.set(pkg.studentId, pkg);
     }
 
+    const existingEval = schedule.evaluation;
+    let photoList: string[] = [];
+    if (existingEval?.photoList) {
+      try {
+        photoList = JSON.parse(existingEval.photoList);
+      } catch {
+        photoList = [];
+      }
+    }
+
     // 确定唯一学员集合
     const candidateStudentIds = Array.from(
       new Set([
@@ -164,6 +174,25 @@ export class LessonFulfillmentCoordinator {
       const defaultDeductLessons = recorded ? recorded.deductLessons : 1;
       const defaultRating = evalItem?.rating || 5.0;
 
+      let studentPhotos: string[] = [];
+      if (evalItem?.photos) {
+        try {
+          studentPhotos = typeof evalItem.photos === 'string' ? JSON.parse(evalItem.photos) : (Array.isArray(evalItem.photos) ? evalItem.photos : []);
+        } catch {
+          studentPhotos = [];
+        }
+      }
+      const studentVideo = evalItem?.videoUrl || undefined;
+      const isExempt = defaultStatus === 'leave' || defaultStatus === 'absent';
+      const hasPersonalEvaluation = Boolean(evalItem);
+      const isStudentEvaluated = Boolean(
+        evalItem?.isEvaluated ||
+        evalItem?.comment ||
+        (studentPhotos.length > 0) ||
+        studentVideo ||
+        (existingEval?.status === 'published' && (defaultStatus === 'present' || defaultStatus === 'late'))
+      );
+
       students.push({
         studentId: student.id,
         studentNo: student.studentNo,
@@ -182,19 +211,16 @@ export class LessonFulfillmentCoordinator {
         defaultRating,
         isRecorded: !!recorded,
         recordedStatus,
+        isEvaluated: isStudentEvaluated,
+        isExempt,
+        hasPersonalEvaluation,
+        evaluatedAt: evalItem?.evaluatedAt ? evalItem.evaluatedAt.toISOString() : undefined,
+        evaluatedSource: evalItem?.evaluatedSource || 'web',
+        photos: studentPhotos,
+        videoUrl: studentVideo,
         currentComment: evalItem?.comment || recorded?.comment || '',
         currentRating: evalItem?.rating || recorded?.rating || 5.0,
       });
-    }
-
-    const existingEval = schedule.evaluation;
-    let photoList: string[] = [];
-    if (existingEval?.photoList) {
-      try {
-        photoList = JSON.parse(existingEval.photoList);
-      } catch {
-        photoList = [];
-      }
     }
 
     const defaultPresentCount = students.filter(
@@ -223,6 +249,10 @@ export class LessonFulfillmentCoordinator {
         teacherName: schedule.teacher?.realName || '主教讲师',
         status: schedule.status,
         canSettle: schedule.status !== 'completed',
+        expectedCount: students.length,
+        actualCount: schedule.attendances.filter(
+          (a) => !a.isReversed && (a.status === 'present' || a.status === 'late'),
+        ).length,
       },
       evaluationDraft: {
         isExisting: !!existingEval,
@@ -525,25 +555,41 @@ export class LessonFulfillmentCoordinator {
 
         revisionNumber = (existingEval?.currentRevision || 0) + 1;
 
+        // 判断是否为单学员专有课评修改/提交 (确保学员数据绝对隔离，绝不串改同班其他学员)
+        const isSingleStudentUpdate = Boolean(
+          command.targetStudentId ||
+          (mode === 'PUBLISH_EVALUATION' && overrideMap.size === 1)
+        );
+        const singleTargetStudentId = command.targetStudentId || (isSingleStudentUpdate ? Array.from(overrideMap.keys())[0] : null);
+
+        // 如果是单学员更新，且排课公共课评已存在：绝不覆盖已有的全班大纲、公共评语、公共相册与视频
+        const evalUpdateData: any = isSingleStudentUpdate && existingEval
+          ? {
+              currentRevision: revisionNumber,
+              publishedAt: new Date(),
+              idempotencyKey: command.idempotencyKey || null,
+            }
+          : {
+              lessonTitle,
+              templateId: command.templateId || 'tmpl-common',
+              templateName: command.templateName || '通用课评模板',
+              studyContent: studyContentHtml,
+              overallRating,
+              teacherComment,
+              voiceUrl: command.voiceUrl || null,
+              voiceDuration: command.voiceDuration || 0,
+              videoUrl: command.videoUrl || null,
+              photoList: photoListJson,
+              aiPolished: command.aiPolished ?? false,
+              status: 'published',
+              currentRevision: revisionNumber,
+              publishedAt: new Date(),
+              idempotencyKey: command.idempotencyKey || null,
+            };
+
         evalRecordResult = await tx.lessonEvaluation.upsert({
           where: { scheduleEventId: schedule.id },
-          update: {
-            lessonTitle,
-            templateId: command.templateId || 'tmpl-common',
-            templateName: command.templateName || '通用课评模板',
-            studyContent: studyContentHtml,
-            overallRating,
-            teacherComment,
-            voiceUrl: command.voiceUrl || null,
-            voiceDuration: command.voiceDuration || 0,
-            videoUrl: command.videoUrl || null,
-            photoList: photoListJson,
-            aiPolished: command.aiPolished ?? false,
-            status: 'published',
-            currentRevision: revisionNumber,
-            publishedAt: new Date(),
-            idempotencyKey: command.idempotencyKey || null,
-          },
+          update: evalUpdateData,
           create: {
             campusId: schedule.campusId,
             scheduleEventId: schedule.id,
@@ -567,8 +613,17 @@ export class LessonFulfillmentCoordinator {
           },
         });
 
-        // 落盘单学员特写项
+        // 落盘单学员特写项 (如果是单学员修改，严格只落盘该学员条目)
         for (const [studentId, ov] of overrideMap.entries()) {
+          if (isSingleStudentUpdate && singleTargetStudentId && studentId !== singleTargetStudentId) {
+            continue;
+          }
+          const ovPhotos = Array.isArray((ov as any).photos)
+            ? JSON.stringify((ov as any).photos)
+            : ((ov as any).photos !== undefined ? (ov as any).photos : undefined);
+          const ovVideo = (ov as any).videoUrl !== undefined ? ((ov as any).videoUrl || null) : undefined;
+          const isEval = (ov as any).isEvaluated !== undefined ? (ov as any).isEvaluated : Boolean(ov.personalizedComment || ovPhotos || ovVideo);
+
           await tx.lessonEvaluationStudentItem.upsert({
             where: {
               evaluationId_studentId: {
@@ -580,6 +635,11 @@ export class LessonFulfillmentCoordinator {
               rating: ov.rating,
               comment: ov.personalizedComment,
               performanceTag: ov.performanceTag,
+              ...(ovPhotos !== undefined ? { photos: ovPhotos } : {}),
+              ...(ovVideo !== undefined ? { videoUrl: ovVideo } : {}),
+              isEvaluated: isEval,
+              evaluatedAt: isEval ? new Date() : undefined,
+              evaluatedSource: (command as any).source || 'web',
             },
             create: {
               evaluationId: evalRecordResult.id,
@@ -587,6 +647,11 @@ export class LessonFulfillmentCoordinator {
               rating: ov.rating,
               comment: ov.personalizedComment,
               performanceTag: ov.performanceTag,
+              photos: ovPhotos || '[]',
+              videoUrl: ovVideo || null,
+              isEvaluated: isEval,
+              evaluatedAt: isEval ? new Date() : null,
+              evaluatedSource: (command as any).source || 'web',
             },
           });
         }
@@ -597,10 +662,10 @@ export class LessonFulfillmentCoordinator {
           scheduleEventId: schedule.id,
           className: cls.name,
           lessonTitle,
-          studyContent: studyContentHtml,
-          overallRating,
-          teacherComment,
-          photoList: command.photoList || [],
+          studyContent: isSingleStudentUpdate && existingEval ? existingEval.studyContent : studyContentHtml,
+          overallRating: isSingleStudentUpdate && existingEval ? existingEval.overallRating : overallRating,
+          teacherComment: isSingleStudentUpdate && existingEval ? existingEval.teacherComment : teacherComment,
+          photoList: isSingleStudentUpdate && existingEval ? (existingEval.photoList ? JSON.parse(existingEval.photoList) : []) : (command.photoList || []),
           revisionNumber,
           publishedBy: operator,
           timestamp: new Date().toISOString(),
@@ -616,7 +681,7 @@ export class LessonFulfillmentCoordinator {
             evaluationId: evalRecordResult.id,
             revisionNumber,
             snapshotData: JSON.stringify(snapshotObj),
-            revisionReason: revisionNumber === 1 ? '随堂一键结课履约发布' : '结课课评修订更新',
+            revisionReason: revisionNumber === 1 ? '随堂一键结课履约发布' : (isSingleStudentUpdate ? `学员 [${singleTargetStudentId}] 课评单独修订` : '结课课评修订更新'),
             fingerprint,
             publishedBy: operator,
           },
@@ -629,6 +694,10 @@ export class LessonFulfillmentCoordinator {
         });
 
         const targetAttendances = latestAttendances.filter((att) => {
+          // 单学员更新时仅向被修改的目标学员派发信箱，严禁串发或骚扰同班其他学员！
+          if (isSingleStudentUpdate && singleTargetStudentId) {
+            return att.studentId === singleTargetStudentId;
+          }
           if (dispatchStrategy === 'ATTENDED_ONLY') {
             return att.status === 'present' || att.status === 'late';
           }
@@ -641,8 +710,14 @@ export class LessonFulfillmentCoordinator {
         for (const att of targetAttendances) {
           const st = att.student;
           const ov = overrideMap.get(st.id);
-          const stRating = ov?.rating ?? overallRating;
-          const stComment = ov?.personalizedComment || teacherComment;
+          const stRating = ov?.rating ?? existingEval?.overallRating ?? overallRating;
+          const stComment = ov?.personalizedComment || (isSingleStudentUpdate ? (ov?.personalizedComment || existingEval?.teacherComment || teacherComment) : teacherComment);
+          const stPhotos = Array.isArray((ov as any)?.photos)
+            ? (ov as any).photos
+            : (isSingleStudentUpdate ? [] : (command.photoList || []));
+          const stVideo = (ov as any)?.videoUrl !== undefined
+            ? (ov as any).videoUrl
+            : (isSingleStudentUpdate ? null : command.videoUrl);
 
           const outboxPayload = {
             evaluationId: evalRecordResult.id,
@@ -656,9 +731,9 @@ export class LessonFulfillmentCoordinator {
             rating: stRating,
             ratingText: `${stRating} 星卓越表现`,
             teacherComment: stComment,
-            photoCount: (command.photoList || []).length,
+            photoCount: stPhotos.length,
             hasVoice: Boolean(command.voiceUrl),
-            hasVideo: Boolean(command.videoUrl),
+            hasVideo: Boolean(stVideo),
             publishedAt: new Date().toISOString(),
           };
 

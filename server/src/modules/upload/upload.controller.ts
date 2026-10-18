@@ -6,9 +6,11 @@ import {
   UseInterceptors,
   Body,
   Headers,
+  Req,
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import type { Request } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { MediaUploadCoordinator } from './domain/media-upload.coordinator';
 
@@ -32,6 +34,7 @@ export class UploadController {
   )
   async uploadClassroomPhotos(
     @UploadedFiles() files: Express.Multer.File[],
+    @Req() req: Request,
     @Body('scheduleEventId') scheduleEventId?: string,
     @Body('campusId') bodyCampusId?: string,
     @Headers('x-campus-id') headerCampusId?: string
@@ -41,11 +44,16 @@ export class UploadController {
     }
 
     const campusId = bodyCampusId || headerCampusId || 'campus-bj-hq';
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const protocol = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || req.protocol || 'http';
+    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3001';
+    const baseUrl = `${protocol}://${host}`;
 
     const result = await this.coordinator.uploadClassroomPhotos({
       files,
       campusId,
       scheduleEventId,
+      baseUrl,
     });
 
     return result;
@@ -62,6 +70,7 @@ export class UploadController {
   )
   async uploadClassroomVideo(
     @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
     @Body('scheduleEventId') scheduleEventId?: string,
     @Body('campusId') bodyCampusId?: string,
     @Headers('x-campus-id') headerCampusId?: string
@@ -71,13 +80,19 @@ export class UploadController {
     }
 
     const campusId = bodyCampusId || headerCampusId || 'campus-bj-hq';
+    const forwardedProto = req.headers['x-forwarded-proto'];
+    const protocol = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || req.protocol || 'http';
+    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3001';
+    const baseUrl = `${protocol}://${host}`;
 
     const result = await this.coordinator.uploadClassroomVideo({
       file,
       campusId,
       scheduleEventId,
+      baseUrl,
     });
 
     return result;
   }
 }
+
