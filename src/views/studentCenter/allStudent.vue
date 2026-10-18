@@ -367,22 +367,22 @@
       </el-table>
 
       <!-- 表格底部批量与分页 -->
-      <div class="flex flex-wrap items-center justify-between mt-4 pt-4 border-t border-slate-100 gap-3">
-        <div class="flex items-center space-x-2">
-          <span class="text-xs text-st-muted">批量操作：</span>
-          <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchMove">批量转班</el-button>
-          <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchNotify">发送通知短信</el-button>
-          <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchExport">导出选中 ({{ selectedRows.length }})</el-button>
-        </div>
-
-        <el-pagination
+      <div class="mt-4 pt-4 border-t border-slate-100">
+        <AppPagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50]"
-          layout="total, sizes, prev, pager, next, jumper"
+          :page-sizes="[10, 20, 50, 100]"
           :total="filteredStudents.length"
-          size="small"
-        />
+        >
+          <template #left>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs text-st-muted">批量操作：</span>
+              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchMove">批量转班</el-button>
+              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchNotify">发送通知短信</el-button>
+              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchExport">导出选中 ({{ selectedRows.length }})</el-button>
+            </div>
+          </template>
+        </AppPagination>
       </div>
     </div>
 
@@ -433,6 +433,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'
+import AppPagination from '@/components/AppPagination.vue'
 import type { Student } from '@/types/student'
 
 import StudentProfileDrawer from './components/StudentProfileDrawer.vue'

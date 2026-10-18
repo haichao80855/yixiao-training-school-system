@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="随堂课评工作台 (学员专属透视与双端同步)"
-    width="1020px"
+    :width="DIALOG_SIZE.xl"
     destroy-on-close
     :close-on-click-modal="false"
     class="lesson-evaluation-dialog !rounded-xl"
@@ -483,7 +483,7 @@
     <el-dialog
       v-model="videoPreviewVisible"
       title="课堂实操视频预览"
-      width="640px"
+      :width="DIALOG_SIZE.md"
       append-to-body
       destroy-on-close
     >
@@ -505,6 +505,7 @@ import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
 import { educationalApi, uploadApi } from '@/api'
 import { getEvaluationTemplates } from '@/constants/evaluation'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { WorkbenchLessonCard, EvaluationTemplate } from '@/types/educational'
 
 const emit = defineEmits<{

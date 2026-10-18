@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     :title="isEdit ? `编辑课程：${form.name}` : '新建教研课程向导'"
-    width="900px"
+    :width="DIALOG_SIZE.lg"
     destroy-on-close
     :close-on-click-modal="false"
     class="course-editor-dialog rounded-xl"
@@ -441,6 +441,7 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { curriculumApi } from '@/api'
 import { COURSE_COVERS } from '@/constants/curriculum'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { CourseItem, CourseUnit, LessonItem } from '@/types/curriculum'
 
 const props = defineProps<{

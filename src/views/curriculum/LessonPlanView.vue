@@ -171,7 +171,7 @@
     </div>
 
     <!-- 录入新课时教案弹窗 -->
-    <el-dialog v-model="addPlanDialogVisible" title="录入课时教案与课件" width="560px" class="rounded-xl">
+    <el-dialog v-model="addPlanDialogVisible" title="录入课时教案与课件" :width="DIALOG_SIZE.md" class="rounded-xl">
       <el-form :model="planForm" label-width="90px" size="default" class="pr-4 py-2">
         <el-form-item label="所属课程">
           <el-select v-model="planForm.courseId" class="w-full">
@@ -213,6 +213,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import CoursewarePlayerDialog from './components/CoursewarePlayerDialog.vue'
 import { curriculumApi } from '@/api'
+import { DIALOG_SIZE } from '@/constants/ui'
 import { PRESET_LESSON_PLANS } from '@/constants/curriculum'
 import type { CourseItem, CourseUnit, LessonPlanItem } from '@/types/curriculum'
 

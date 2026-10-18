@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="人脸识别考勤底库录入"
-    width="520px"
+    :width="DIALOG_SIZE.md"
     destroy-on-close
     :close-on-click-modal="false"
   >
@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student } from '@/types/student'
 import { studentApi } from '@/api'
 

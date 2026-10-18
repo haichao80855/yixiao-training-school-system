@@ -251,7 +251,7 @@
     </div>
 
     <!-- 弹窗: 新建角色组 -->
-    <el-dialog v-model="showAddRoleModal" title="新建系统业务角色组" width="480px" destroy-on-close>
+    <el-dialog v-model="showAddRoleModal" title="新建系统业务角色组" :width="DIALOG_SIZE.sm" destroy-on-close>
       <el-form :model="newRoleForm" label-width="85px" size="small" class="pt-2">
         <el-form-item label="角色名称" required>
           <el-input v-model="newRoleForm.name" placeholder="如：教务排课助理" />
@@ -287,6 +287,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { RoleItem, PermissionNode, DataScope } from '@/types/system'
 import { systemApi } from '@/api'
 

@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="学员签约报读与开单向导"
-    width="760px"
+    :width="DIALOG_SIZE.lg"
     destroy-on-close
     :close-on-click-modal="false"
   >
@@ -223,6 +223,7 @@ import { ElMessage } from 'element-plus'
 import type { Student } from '@/types/student'
 import { studentApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { CourseItem } from '@/types/curriculum'
 
 const props = defineProps<{

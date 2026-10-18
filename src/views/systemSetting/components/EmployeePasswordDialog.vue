@@ -3,7 +3,7 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
     title="重置员工密码"
-    width="420px"
+    :width="DIALOG_SIZE.sm"
     destroy-on-close
   >
     <div class="text-xs space-y-3 pt-2">
@@ -54,6 +54,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { SystemUser } from '@/types/system'
 
 const props = defineProps<{

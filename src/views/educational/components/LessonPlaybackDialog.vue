@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="上传课堂实录与回放视频"
-    width="520px"
+    :width="DIALOG_SIZE.md"
     destroy-on-close
   >
     <div v-if="lesson" class="space-y-4 text-xs">
@@ -55,6 +55,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { WorkbenchLessonCard } from '@/types/educational'
 
 const visible = ref(false)

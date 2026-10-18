@@ -134,21 +134,17 @@
       </el-table>
 
       <!-- 服务端分页组件 -->
-      <div class="flex justify-end mt-4">
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :total="totalCount"
-          :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
+      <AppPagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :total="totalCount"
+        :page-sizes="[10, 20, 50, 100]"
+        @change="loadData"
+      />
     </div>
 
     <!-- 测评报告弹窗 -->
-    <el-dialog v-model="reportDialogVisible" title="学员学科能力测评与智能分班报告" width="600px">
+    <el-dialog v-model="reportDialogVisible" title="学员学科能力测评与智能分班报告" :width="DIALOG_SIZE.md">
       <div v-if="activeItem" class="space-y-4 text-xs">
         <div class="p-3 bg-slate-50 border rounded flex justify-between items-center">
           <div>
@@ -195,7 +191,7 @@
     </el-dialog>
 
     <!-- 加入班级弹窗 -->
-    <el-dialog v-model="assignDialogVisible" :title="activeItem ? '分配入班排课' : '批量分配入班排课'" width="580px" destroy-on-close>
+    <el-dialog v-model="assignDialogVisible" :title="activeItem ? '分配入班排课' : '批量分配入班排课'" :width="DIALOG_SIZE.md" destroy-on-close>
       <div v-if="activeItem || selectedRows.length > 0" class="space-y-3 text-xs">
         <div v-if="activeItem" class="p-3 bg-blue-50/60 border border-blue-100 rounded-lg flex items-center justify-between">
           <div>
@@ -279,6 +275,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { educationalApi } from '@/api'
+import AppPagination from '@/components/AppPagination.vue'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { UnassignedStudentItemView, UnassignedRosterSummary } from '@/types/educational'
 
 export interface AvailableClassOption {

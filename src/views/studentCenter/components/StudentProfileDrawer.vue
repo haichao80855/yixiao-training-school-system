@@ -529,7 +529,7 @@
     </div>
 
     <!-- 充值弹窗 -->
-    <el-dialog v-model="showRechargeDialog" title="电子钱包充值" width="400px" append-to-body>
+    <el-dialog v-model="showRechargeDialog" title="电子钱包充值" :width="DIALOG_SIZE.sm" append-to-body>
       <el-form label-position="top" size="small">
         <el-form-item label="充值实存本金金额 (¥)" required>
           <el-input-number v-model="rechargeForm.amount" :min="100" :step="500" class="w-full" />
@@ -545,7 +545,7 @@
     </el-dialog>
 
     <!-- 提现弹窗 -->
-    <el-dialog v-model="showWithdrawDialog" title="本金合规提现" width="400px" append-to-body>
+    <el-dialog v-model="showWithdrawDialog" title="本金合规提现" :width="DIALOG_SIZE.sm" append-to-body>
       <el-form label-position="top" size="small">
         <el-form-item label="提现出账金额 (¥，不可超过本金余额)" required>
           <el-input-number v-model="withdrawAmount" :min="10" :max="student?.wallet.principalBalance || 0" :step="100" class="w-full" />
@@ -558,7 +558,7 @@
     </el-dialog>
 
     <!-- 新增跟进记录弹窗 -->
-    <el-dialog v-model="showAddCommDialog" title="新增家校跟进与回访记录" width="500px" append-to-body>
+    <el-dialog v-model="showAddCommDialog" title="新增家校跟进与回访记录" :width="DIALOG_SIZE.sm" append-to-body>
       <el-form label-position="top" size="small">
         <div class="grid grid-cols-2 gap-3">
           <el-form-item label="沟通类型" required>
@@ -592,7 +592,7 @@
     </el-dialog>
 
     <!-- 证书预览弹窗 -->
-    <el-dialog v-model="showCertPreview" title="全国青少年科技与编程考级荣誉证书" width="550px" append-to-body>
+    <el-dialog v-model="showCertPreview" title="全国青少年科技与编程考级荣誉证书" :width="DIALOG_SIZE.md" append-to-body>
       <div v-if="previewCert" class="border-4 border-amber-500/60 rounded-xl p-6 bg-amber-50/20 text-center space-y-4">
         <div class="text-amber-800 font-serif text-lg font-bold">★ 荣 誉 证 书 ★</div>
         <div class="text-xl font-bold text-st-title">{{ student?.name }} 同学：</div>
@@ -612,6 +612,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student, StudentCoursePackage, CompetitionRecord } from '@/types/student'
 import { studentApi } from '@/api'
 

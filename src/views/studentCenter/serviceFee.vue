@@ -159,7 +159,7 @@
     </div>
 
     <!-- 凭证查看弹窗 -->
-    <el-dialog v-model="voucherDialogVisible" title="考级报考与易快报核销对账凭证" width="560px">
+    <el-dialog v-model="voucherDialogVisible" title="考级报考与易快报核销对账凭证" :width="DIALOG_SIZE.md">
       <div v-if="activeRecord" class="space-y-4 text-xs">
         <div class="border rounded p-4 bg-slate-50 space-y-2">
           <div class="flex justify-between border-b pb-2">
@@ -190,7 +190,7 @@
     </el-dialog>
 
     <!-- 新增报考记录弹窗 -->
-    <el-dialog v-model="showAddDialog" title="新增考级 / 赛事代报名记录" width="560px">
+    <el-dialog v-model="showAddDialog" title="新增考级 / 赛事代报名记录" :width="DIALOG_SIZE.md">
       <el-form label-position="top" size="small">
         <div class="grid grid-cols-2 gap-3">
           <el-form-item label="报考学员" required>
@@ -231,7 +231,7 @@
     </el-dialog>
 
     <!-- 单条核销登记弹窗 -->
-    <el-dialog v-model="singleVerifyDialog" title="易快报财务核销入账登记" width="450px">
+    <el-dialog v-model="singleVerifyDialog" title="易快报财务核销入账登记" :width="DIALOG_SIZE.sm">
       <div v-if="verifyTarget" class="space-y-3 text-xs">
         <div class="p-3 bg-blue-50 border border-blue-200 rounded text-blue-900">
           为学员 <b class="font-bold">{{ verifyTarget.studentName }}</b> 的报考项目 [{{ verifyTarget.examType }}] 登记核销，金额 ¥{{ verifyTarget.fee }}。
@@ -254,6 +254,7 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { studentApi } from '@/api'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student } from '@/types/student'
 import type { ServiceFeeRecordItem } from '@/api/modules/student'
 

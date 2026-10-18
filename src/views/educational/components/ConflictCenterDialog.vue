@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="三维排课冲突检测中心"
-    width="740px"
+    :width="DIALOG_SIZE.lg"
     destroy-on-close
   >
     <div class="space-y-4">
@@ -65,6 +65,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { ScheduleEvent } from '@/types/educational'
 
 const visible = ref(false)

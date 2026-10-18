@@ -3,7 +3,7 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
     title="转让超级管理员最高权限"
-    width="460px"
+    :width="DIALOG_SIZE.sm"
     destroy-on-close
   >
     <div class="text-xs space-y-3 pt-2">
@@ -46,6 +46,7 @@
 import { ref, computed, watch } from 'vue'
 import { WarningFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { SystemUser } from '@/types/system'
 
 const props = defineProps<{

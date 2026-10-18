@@ -245,18 +245,14 @@
       </el-empty>
     </div>
 
-    <!-- 分页器组件 (右下对齐，高保真还原原图) -->
-    <div v-if="filteredCourses.length > 0" class="flex justify-end items-center py-2 px-1">
-      <el-pagination
-        v-model:current-page="currentPage"
-        v-model:page-size="pageSize"
-        :page-sizes="[12, 18, 24, 36, 48]"
-        :total="filteredCourses.length"
-        layout="sizes, prev, pager, next, jumper, total"
-        background
-        size="small"
-      />
-    </div>
+    <!-- 分页器组件 -->
+    <AppPagination
+      v-if="filteredCourses.length > 0"
+      v-model:current-page="currentPage"
+      v-model:page-size="pageSize"
+      :page-sizes="[12, 18, 24, 36, 48]"
+      :total="filteredCourses.length"
+    />
 
     <!-- 三步分步式课程编辑器向导 -->
     <CourseEditorDialog
@@ -269,7 +265,7 @@
     <el-dialog
       v-model="batchAuthVisible"
       title="批量校区授权设置"
-      width="560px"
+      :width="DIALOG_SIZE.md"
       class="rounded-xl"
     >
       <div class="space-y-4 text-xs">
@@ -305,6 +301,8 @@ import { ElMessage } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { curriculumApi } from '@/api'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
+import AppPagination from '@/components/AppPagination.vue'
+import { DIALOG_SIZE } from '@/constants/ui'
 import CourseEditorDialog from './components/CourseEditorDialog.vue'
 import type { CourseItem, CourseAttribute } from '@/types/curriculum'
 

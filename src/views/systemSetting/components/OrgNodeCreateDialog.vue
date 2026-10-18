@@ -3,7 +3,7 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
     :title="parent ? `在 [${parent.name}] 下新建下级节点` : '新建组织架构节点'"
-    width="480px"
+    :width="DIALOG_SIZE.sm"
     destroy-on-close
   >
     <el-form :model="form" label-width="95px" size="small" class="pt-2">
@@ -41,6 +41,7 @@
 <script setup lang="ts">
 import { reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { OrgNode, OrgNodeType } from '@/types/system'
 
 const props = defineProps<{

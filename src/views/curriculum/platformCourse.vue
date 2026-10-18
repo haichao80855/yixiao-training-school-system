@@ -202,17 +202,13 @@
     </div>
 
     <!-- 分页器 -->
-    <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-100 flex items-center justify-between">
-      <span class="text-xs text-gray-500">
-        共 {{ filteredCourses.length }} 项数据，当前第 {{ currentPage }} / {{ Math.ceil(filteredCourses.length / pageSize) || 1 }} 页
-      </span>
-      <el-pagination
+    <div class="bg-white rounded-lg px-4 shadow-sm border border-gray-100">
+      <AppPagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
-        :page-sizes="[15, 20, 30, 50]"
-        layout="sizes, prev, pager, next, jumper"
+        :page-sizes="[10, 20, 30, 50]"
         :total="filteredCourses.length"
-        size="small"
+        :summary-text="`共 ${filteredCourses.length} 项数据，当前第 ${currentPage} / ${Math.ceil(filteredCourses.length / pageSize) || 1} 页`"
       />
     </div>
 
@@ -224,6 +220,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { platformData } from '@/constants/platformCourse'
+import AppPagination from '@/components/AppPagination.vue'
 import PlatformCourseDetailDrawer from './components/PlatformCourseDetailDrawer.vue'
 
 interface PlatformCourse {

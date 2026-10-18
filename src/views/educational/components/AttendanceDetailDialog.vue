@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="考勤课消明细与冲正审计"
-    width="680px"
+    :width="DIALOG_SIZE.lg"
     destroy-on-close
   >
     <div v-if="record" class="space-y-4">
@@ -89,6 +89,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { AttendanceRecord } from '@/types/educational'
 
 const visible = ref(false)

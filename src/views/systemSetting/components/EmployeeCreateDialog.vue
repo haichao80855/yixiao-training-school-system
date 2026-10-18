@@ -3,7 +3,7 @@
     :model-value="modelValue"
     @update:model-value="$emit('update:modelValue', $event)"
     title="新增系统在职员工"
-    width="540px"
+    :width="DIALOG_SIZE.md"
     destroy-on-close
   >
     <el-form :model="form" label-width="95px" size="small" class="pt-2">
@@ -67,6 +67,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { RoleItem, DataScope } from '@/types/system'
 
 const props = defineProps<{

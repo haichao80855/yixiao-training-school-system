@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     :title="isEdit ? '编辑排课课次' : '快速新建排课'"
-    width="620px"
+    :width="DIALOG_SIZE.md"
     destroy-on-close
     :close-on-click-modal="false"
   >
@@ -156,6 +156,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { educationalApi } from '@/api'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { ScheduleEvent, CollisionResult, LessonClassType, ClassItem, Teacher, Classroom } from '@/types/educational'
 
 const props = defineProps<{

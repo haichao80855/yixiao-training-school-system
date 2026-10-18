@@ -116,7 +116,7 @@
     </div>
 
     <!-- AI 助手弹窗 -->
-    <el-dialog v-model="aiDialogVisible" title="🤖 拓视未来教育 AI 智能助教与课评引擎" width="500px">
+    <el-dialog v-model="aiDialogVisible" title="🤖 拓视未来教育 AI 智能助教与课评引擎" :width="DIALOG_SIZE.sm">
       <div class="space-y-3 text-xs">
         <p class="text-st-secondary">已连接拓视未来教育 AI 大模型中枢，为您实时提供智能课评生成、排课冲突建议与学员留存分析支持。</p>
         <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
@@ -129,7 +129,7 @@
       </template>
     </el-dialog>
     <!-- 测试数据管理弹窗 -->
-    <el-dialog v-model="testDataModalVisible" title="🧹 测试数据与 Mock 数据管理中枢" width="540px" destroy-on-close>
+    <el-dialog v-model="testDataModalVisible" title="🧹 测试数据与 Mock 数据管理中枢" :width="DIALOG_SIZE.md" destroy-on-close>
       <div class="space-y-4 text-xs">
         <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 leading-relaxed">
           <div class="font-bold text-sm mb-1 flex items-center gap-1.5">
@@ -207,6 +207,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
+import { DIALOG_SIZE } from '@/constants/ui'
 import CampusSelector from './CampusSelector.vue'
 
 defineEmits(['toggle-sidebar'])

@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="一键结课履约工作台 (随堂消课 · 随堂课评 · 家长通知)"
-    width="880px"
+    :width="DIALOG_SIZE.lg"
     destroy-on-close
     :close-on-click-modal="false"
     class="lesson-fulfillment-dialog !rounded-xl"
@@ -328,6 +328,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { educationalApi } from '@/api/modules/educational'
+import { DIALOG_SIZE } from '@/constants/ui'
 
 const emit = defineEmits<{
   (e: 'success', receipt: any): void

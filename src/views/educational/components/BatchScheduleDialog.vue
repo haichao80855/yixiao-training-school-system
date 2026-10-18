@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="班级批量循环排课向导"
-    width="640px"
+    :width="DIALOG_SIZE.md"
     destroy-on-close
     :close-on-click-modal="false"
   >
@@ -154,6 +154,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { educationalApi } from '@/api'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { ClassItem, Teacher, Classroom } from '@/types/educational'
 
 const props = defineProps<{

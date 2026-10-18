@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     title="学员 7 种异常状态流转状态机"
-    width="720px"
+    :width="DIALOG_SIZE.lg"
     destroy-on-close
     :close-on-click-modal="false"
   >
@@ -308,6 +308,7 @@ import type { Student, MovementType } from '@/types/student'
 import { studentApi, educationalApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useDict } from '@/composables/useDict'
+import { DIALOG_SIZE } from '@/constants/ui'
 
 const { items: transReasonDict } = useDict('trans_reason')
 

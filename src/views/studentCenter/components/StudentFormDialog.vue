@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     :title="isEdit ? '编辑学员档案' : '新增建档学员'"
-    width="680px"
+    :width="DIALOG_SIZE.md"
     destroy-on-close
     :close-on-click-modal="false"
   >
@@ -108,6 +108,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import type { Student, StudentStatus } from '@/types/student'
 import { studentApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
+import { DIALOG_SIZE } from '@/constants/ui'
 
 const props = defineProps<{
   modelValue: boolean

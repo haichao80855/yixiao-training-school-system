@@ -569,21 +569,14 @@
       </el-table>
 
       <!-- 分页控制栏 (10/20/50条/页) -->
-      <div class="flex items-center justify-between pt-3 mt-3 border-t border-gray-100 text-xs">
-        <div class="text-st-muted">
-          当前显示第 {{ (filterForm.page - 1) * filterForm.pageSize + 1 }} 至
-          {{ Math.min(filterForm.page * filterForm.pageSize, totalCount) }} 条，
-          共 {{ totalCount }} 条
-        </div>
-        <el-pagination
+      <div class="border-t border-gray-100 mt-3">
+        <AppPagination
           v-model:current-page="filterForm.page"
           v-model:page-size="filterForm.pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          layout="sizes, prev, pager, next, jumper"
           :total="totalCount"
-          size="small"
-          @current-change="loadOrders"
-          @size-change="() => { filterForm.page = 1; loadOrders(); }"
+          :summary-text="`当前显示第 ${(filterForm.page - 1) * filterForm.pageSize + 1} 至 ${Math.min(filterForm.page * filterForm.pageSize, totalCount)} 条，共 ${totalCount} 条`"
+          @change="() => loadOrders()"
         />
       </div>
     </div>
@@ -592,7 +585,7 @@
     <el-dialog
       v-model="voucherDialogVisible"
       title="收款凭证核验与管理"
-      width="560px"
+      :width="DIALOG_SIZE.md"
       destroy-on-close
     >
       <div v-if="currentVoucherOrder" class="space-y-4 text-xs">
@@ -663,7 +656,7 @@
     <el-dialog
       v-model="modifyDialogVisible"
       title="修改订单流水信息"
-      width="500px"
+      :width="DIALOG_SIZE.sm"
       destroy-on-close
     >
       <div v-if="currentEditOrder" class="space-y-3 text-xs">
@@ -723,7 +716,7 @@
     <el-dialog
       v-model="classSelectDialogVisible"
       title="选择报读班级"
-      width="620px"
+      :width="DIALOG_SIZE.md"
       destroy-on-close
     >
       <div class="space-y-3">
@@ -828,6 +821,8 @@ import { financialApi, studentApi, educationalApi } from '@/api'
 import { FinanceAggregator } from '@/utils/financeAggregator'
 import SummaryStrip from '@/components/SummaryStrip.vue'
 import HighDensityGrid from '@/components/HighDensityGrid.vue'
+import AppPagination from '@/components/AppPagination.vue'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type {
   OrderRecord,
   FinanceFilterForm,

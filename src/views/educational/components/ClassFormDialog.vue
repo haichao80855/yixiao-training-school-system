@@ -2,7 +2,7 @@
   <el-dialog
     v-model="visible"
     :title="isEdit ? '编辑班级档案' : '新设教学班级'"
-    width="640px"
+    :width="DIALOG_SIZE.md"
     destroy-on-close
     :close-on-click-modal="false"
     :close-on-press-escape="false"
@@ -127,7 +127,7 @@
   <el-dialog
     v-model="showAddClassroomModal"
     title="快速新建教学教室"
-    width="440px"
+    :width="DIALOG_SIZE.sm"
     append-to-body
     class="rounded-xl"
   >
@@ -160,6 +160,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { educationalApi, curriculumApi } from '@/api'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { ClassItem, ClassStatus, Classroom, Teacher } from '@/types/educational'
 import type { CourseItem } from '@/types/curriculum'
 
