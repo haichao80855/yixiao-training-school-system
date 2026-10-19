@@ -6,7 +6,7 @@
     destroy-on-close
     :close-on-click-modal="false"
   >
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="95px" size="default">
+    <el-form ref="formRef" :model="form" :rules="rules" :label-width="FORM_LABEL_WIDTH.md" size="default">
       <!-- 班级选择 -->
       <el-form-item label="上课班级" prop="classId">
         <el-select
@@ -118,7 +118,7 @@
       <div v-if="collisionResult && collisionResult.hasConflict" class="mb-3">
         <div class="bg-rose-50 border border-rose-300 rounded-lg p-3 text-xs text-rose-800 space-y-1 animate-pulse">
           <div class="font-bold flex items-center gap-1.5 text-rose-700 text-sm">
-            <span>⚠️</span>
+            <AlertTriangle class="w-4 h-4 text-rose-600" />
             <span>三维冲突检测告警 ({{ collisionResult.conflicts.length }}处时段碰撞)</span>
           </div>
           <div v-for="(c, idx) in collisionResult.conflicts" :key="idx" class="pl-5 text-xs text-rose-700 leading-relaxed">
@@ -135,7 +135,7 @@
 
       <div v-else-if="form.startTime && form.endTime && form.date && form.teacherId && form.classroomId" class="mb-3">
         <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-xs text-emerald-700 flex items-center gap-2">
-          <span>✓</span>
+          <CheckCircle2 class="w-4 h-4 text-emerald-600 shrink-0" />
           <span>三维排课防撞校验通过：讲师、教室与学员在当前时段均无冲突，符合 07:00-22:00 运营规则。</span>
         </div>
       </div>
@@ -155,8 +155,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { AlertTriangle, CheckCircle2 } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { ScheduleEvent, CollisionResult, LessonClassType, ClassItem, Teacher, Classroom } from '@/types/educational'
 
 const props = defineProps<{

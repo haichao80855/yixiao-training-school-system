@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 space-y-4 bg-[#F0F2F5] min-h-[calc(100vh-60px)]">
+  <div class="p-5 space-y-4 bg-st-bg min-h-[calc(100vh-60px)]">
     <!-- 头部说明条 -->
     <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -28,12 +28,12 @@
         @click="selectedCategory = stat.key"
         :class="[
           'bg-white rounded-lg p-4 border transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center justify-between',
-          selectedCategory === stat.key ? 'border-[#1890FF] ring-1 ring-blue-100 bg-blue-50/20' : 'border-gray-200 hover:border-gray-300'
+          selectedCategory === stat.key ? 'border-st-primary ring-1 ring-st-primary/20 bg-st-primary/5' : 'border-gray-200 hover:border-gray-300'
         ]"
       >
         <div class="space-y-1">
           <div class="text-xs text-gray-500 flex items-center space-x-1.5">
-            <span class="text-base">{{ stat.icon }}</span>
+            <component :is="stat.icon" class="w-4 h-4 text-st-primary" />
             <span class="font-medium text-gray-700">{{ stat.title }}</span>
           </div>
           <div class="text-2xl font-bold font-mono text-gray-800">
@@ -41,8 +41,8 @@
           </div>
           <div class="text-[11px] text-gray-400">涵盖 {{ stat.courseTotal }} 门标准化课系</div>
         </div>
-        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-gray-50 text-[#1890FF]">
-          <span class="text-lg">{{ stat.badgeIcon }}</span>
+        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 text-st-primary">
+          <component :is="stat.icon" class="w-5 h-5" />
         </div>
       </div>
     </div>
@@ -55,10 +55,10 @@
           <span class="text-gray-500 font-medium">分类过滤：</span>
           <el-radio-group v-model="selectedCategory" size="small">
             <el-radio-button label="all">全部科目 ({{ subjects.length }})</el-radio-button>
-            <el-radio-button label="programming">💻 软件编程 (3)</el-radio-button>
-            <el-radio-button label="robotics">🤖 硬件机器人 (1)</el-radio-button>
-            <el-radio-button label="science">🔬 科学探索 (1)</el-radio-button>
-            <el-radio-button label="art">🎨 数智艺术 (1)</el-radio-button>
+            <el-radio-button label="programming">软件编程 (3)</el-radio-button>
+            <el-radio-button label="robotics">硬件机器人 (1)</el-radio-button>
+            <el-radio-button label="science">科学探索 (1)</el-radio-button>
+            <el-radio-button label="art">数智艺术 (1)</el-radio-button>
           </el-radio-group>
         </div>
 
@@ -91,7 +91,7 @@
 
         <el-table-column prop="name" label="科目名称" min-width="180">
           <template #default="{ row }">
-            <div class="font-bold text-gray-800 text-sm hover:text-[#1890FF] transition-colors">
+            <div class="font-bold text-gray-800 text-sm hover:text-st-primary transition-colors">
               {{ row.name }}
             </div>
             <div class="text-[11px] text-gray-400 mt-0.5">{{ row.description }}</div>
@@ -103,7 +103,7 @@
             <span
               :class="[
                 'px-2 py-0.5 rounded text-[11px] font-medium border',
-                row.category === 'programming' ? 'bg-blue-50 text-[#1890FF] border-blue-200' :
+                row.category === 'programming' ? 'bg-blue-50 text-st-primary border-blue-200' :
                 row.category === 'robotics' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                 row.category === 'science' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -170,14 +170,14 @@
     <el-dialog
       v-model="subjectDialogVisible"
       :title="isEditSubject ? `编辑科目：${subjectForm.name}` : '新增科目分类体系'"
-      width="580px"
+      :width="DIALOG_SIZE.md"
       class="rounded-xl"
     >
       <el-form
         ref="subjectFormRef"
         :model="subjectForm"
         :rules="subjectRules"
-        label-width="100px"
+        :label-width="FORM_LABEL_WIDTH.md"
         size="default"
         class="pr-4 py-2"
       >
@@ -224,8 +224,10 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { Code2, Bot, Microscope, Palette } from 'lucide-vue-next'
 import { curriculumApi } from '@/api'
 import { PRESET_SUBJECTS } from '@/constants/curriculum'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { SubjectItem } from '@/types/curriculum'
 
 const subjects = ref<SubjectItem[]>([...PRESET_SUBJECTS])
@@ -266,33 +268,29 @@ const categoryStats = computed(() => {
   return [
     {
       key: 'programming',
-      icon: '💻',
+      icon: Code2,
       title: '软件编程体系',
-      badgeIcon: '⌨️',
       count: programming.length,
       courseTotal: programming.reduce((sum, s) => sum + s.courseCount, 0)
     },
     {
       key: 'robotics',
-      icon: '🤖',
+      icon: Bot,
       title: '硬件创客体系',
-      badgeIcon: '⚙️',
       count: robotics.length,
       courseTotal: robotics.reduce((sum, s) => sum + s.courseCount, 0)
     },
     {
       key: 'science',
-      icon: '🔬',
+      icon: Microscope,
       title: '科学探索体系',
-      badgeIcon: '🧪',
       count: science.length,
       courseTotal: science.reduce((sum, s) => sum + s.courseCount, 0)
     },
     {
       key: 'art',
-      icon: '🎨',
+      icon: Palette,
       title: '数智艺术体系',
-      badgeIcon: '🖌️',
       count: art.length,
       courseTotal: art.reduce((sum, s) => sum + s.courseCount, 0)
     }

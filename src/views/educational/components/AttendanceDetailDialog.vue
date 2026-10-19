@@ -30,7 +30,7 @@
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-black/10 text-xs">
           <div><span class="text-st-muted">上课时间：</span><span class="font-mono text-st-title">{{ record.date }} {{ record.startTime }}</span></div>
-          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title">👨‍🏫 {{ record.teacherName }}</span></div>
+          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ record.teacherName }}</span></div>
           <div><span class="text-st-muted">应到/实到：</span><span class="font-medium text-st-title">{{ record.totalStudents }} / {{ record.presentCount + record.lateCount }} 人</span></div>
           <div><span class="text-st-muted">消课课时：</span><span class="font-bold text-emerald-700">{{ record.deductedLessonsTotal }} 课时</span></div>
         </div>
@@ -38,7 +38,7 @@
         <!-- 反结课冲正警示条 -->
         <div v-if="record.isReversed" class="mt-2 bg-white/90 p-2.5 rounded border border-amber-300 text-xs text-amber-900 space-y-1">
           <div class="font-bold flex items-center gap-1 text-amber-800">
-            <span>↩️</span>
+            <Undo2 class="w-4 h-4 text-amber-700" />
             <span>反结课冲正记录 (红字冲正完成)</span>
           </div>
           <div class="text-[11px] text-amber-800 space-y-0.5">
@@ -51,7 +51,7 @@
       <!-- 学员考勤打卡明细 -->
       <div class="space-y-2">
         <h4 class="text-xs font-bold text-st-title flex items-center justify-between">
-          <span>👥 本次点名明细列表</span>
+          <span class="inline-flex items-center gap-1.5"><Users class="w-4 h-4 text-st-primary" />本次点名明细列表</span>
           <span class="text-st-muted text-[11px]">共 {{ record.studentAttendances?.length || 0 }} 名学员</span>
         </h4>
 
@@ -89,6 +89,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { User, Users, Undo2 } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { AttendanceRecord } from '@/types/educational'
 

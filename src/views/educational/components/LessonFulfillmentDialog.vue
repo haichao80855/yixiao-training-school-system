@@ -20,9 +20,9 @@
             </span>
           </div>
           <div class="text-xs text-st-secondary flex items-center gap-3">
-            <span>📅 {{ currentLesson?.date }} {{ currentLesson?.startTime }} - {{ currentLesson?.endTime }}</span>
-            <span>🏫 {{ currentLesson?.classroomName }}</span>
-            <span>👨‍🏫 {{ currentLesson?.teacherName }}</span>
+            <span class="inline-flex items-center gap-1"><Calendar class="w-3.5 h-3.5 text-st-primary" />{{ currentLesson?.date }} {{ currentLesson?.startTime }} - {{ currentLesson?.endTime }}</span>
+            <span class="inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />{{ currentLesson?.classroomName }}</span>
+            <span class="inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ currentLesson?.teacherName }}</span>
           </div>
         </div>
 
@@ -31,10 +31,10 @@
           <span class="text-xs font-semibold text-st-title">结课模式:</span>
           <el-radio-group v-model="fulfillmentMode" size="small">
             <el-radio-button label="FULL_SETTLE">
-              ⚡ 一键全量结课 (消课+课评+通知)
+              一键全量结课 (消课+课评+通知)
             </el-radio-button>
             <el-radio-button label="ATTENDANCE_ONLY">
-              ⏱️ 仅随堂打卡 (课后补评)
+              仅随堂打卡 (课后补评)
             </el-radio-button>
           </el-radio-group>
         </div>
@@ -66,11 +66,13 @@
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-st-title flex items-center gap-1">
-              <span>📋</span> 学员考勤与个性化学情 (全员默认出勤打卡)
+            <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
+              <ClipboardList class="w-4 h-4 text-st-primary" />
+              <span>学员考勤与个性化学情 (全员默认出勤打卡)</span>
             </span>
-            <span class="text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              💡 90% 课堂无需逐项修改，点击异常学员即可快速切换
+            <span class="text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
+              <Lightbulb class="w-3.5 h-3.5 text-emerald-600" />
+              <span>90% 课堂无需逐项修改，点击异常学员即可快速切换</span>
             </span>
           </div>
           <el-button link type="primary" size="small" @click="handleBatchAllPresent">
@@ -94,9 +96,10 @@
                 size="small"
                 type="danger"
                 effect="plain"
-                class="!text-[10px] !px-1.5"
+                class="!text-[10px] !px-1.5 inline-flex items-center gap-0.5"
               >
-                ⚠️ 余 {{ st.remainingLessons }} 课时
+                <AlertTriangle class="w-3 h-3 text-danger" />
+                <span>余 {{ st.remainingLessons }} 课时</span>
               </el-tag>
               <el-tag
                 v-else
@@ -107,65 +110,41 @@
               >
                 余 {{ st.remainingLessons }} 课时
               </el-tag>
-              <span v-if="st.isWechatBound" class="text-emerald-600 text-[11px]" title="已绑定微信公众号">
-                📱
+              <span v-if="st.isWechatBound" class="text-emerald-600 text-[11px] inline-flex items-center" title="已绑定微信公众号">
+                <Smartphone class="w-3.5 h-3.5" />
               </span>
-              <span v-else class="text-gray-400 text-[11px]" title="未绑定微信公众号">
-                ⚪
+              <span v-else class="text-gray-300 text-[11px] inline-flex items-center" title="未绑定微信公众号">
+                <Smartphone class="w-3.5 h-3.5 opacity-40" />
               </span>
             </div>
 
             <!-- 出勤状态切换按钮组 -->
-            <div class="flex items-center gap-1">
-              <button
-                type="button"
-                :class="[
-                  'px-2.5 py-1 rounded text-xs font-semibold transition-all cursor-pointer border',
-                  st.status === 'present'
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-emerald-50'
-                ]"
+            <el-button-group size="small">
+              <el-button
+                :type="st.status === 'present' ? 'success' : 'default'"
                 @click="changeStudentStatus(st, 'present')"
               >
-                🟢 到课
-              </button>
-              <button
-                type="button"
-                :class="[
-                  'px-2.5 py-1 rounded text-xs font-semibold transition-all cursor-pointer border',
-                  st.status === 'late'
-                    ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-amber-50'
-                ]"
+                到课
+              </el-button>
+              <el-button
+                :type="st.status === 'late' ? 'warning' : 'default'"
                 @click="changeStudentStatus(st, 'late')"
               >
-                🟡 迟到
-              </button>
-              <button
-                type="button"
-                :class="[
-                  'px-2.5 py-1 rounded text-xs font-semibold transition-all cursor-pointer border',
-                  st.status === 'leave'
-                    ? 'bg-blue-500 text-white border-blue-500 shadow-xs'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-blue-50'
-                ]"
+                迟到
+              </el-button>
+              <el-button
+                :type="st.status === 'leave' ? 'primary' : 'default'"
                 @click="changeStudentStatus(st, 'leave')"
               >
-                🔵 请假
-              </button>
-              <button
-                type="button"
-                :class="[
-                  'px-2.5 py-1 rounded text-xs font-semibold transition-all cursor-pointer border',
-                  st.status === 'absent'
-                    ? 'bg-rose-500 text-white border-rose-500 shadow-xs'
-                    : 'bg-white text-gray-600 border-gray-200 hover:bg-rose-50'
-                ]"
+                请假
+              </el-button>
+              <el-button
+                :type="st.status === 'absent' ? 'danger' : 'default'"
                 @click="changeStudentStatus(st, 'absent')"
               >
-                🔴 缺席
-              </button>
-            </div>
+                缺席
+              </el-button>
+            </el-button-group>
 
             <!-- 扣减课时显示 -->
             <div class="flex items-center gap-1 min-w-[70px]">
@@ -246,7 +225,7 @@
           <!-- 多媒体资产直传 (< 100MB 拦截) -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50/70 p-3 rounded-lg border border-gray-200">
             <div>
-              <label class="text-xs font-semibold text-st-title block mb-1">📸 课堂随堂相册 (最多 9 张)</label>
+              <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Image class="w-3.5 h-3.5 text-st-primary" />课堂随堂相册 (最多 9 张)</label>
               <div class="flex items-center gap-2">
                 <el-button size="small" type="primary" plain @click="handleAddPhoto">
                   添加现场照片
@@ -260,19 +239,20 @@
                   class="relative w-12 h-12 rounded border overflow-hidden group"
                 >
                   <img :src="p" class="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    class="absolute inset-0 bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                  <el-button
+                    link
+                    type="danger"
+                    class="!absolute !inset-0 !m-0 !p-0 !text-white !bg-black/60 !rounded-none opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
                     @click="handleRemovePhoto(idx)"
                   >
-                    ✕
-                  </button>
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
                 </div>
               </div>
             </div>
 
             <div>
-              <label class="text-xs font-semibold text-st-title block mb-1">📹 课堂视频亮点 (限制 &le; 100MB)</label>
+              <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Video class="w-3.5 h-3.5 text-st-primary" />课堂视频亮点 (限制 &le; 100MB)</label>
               <div class="flex items-center gap-2">
                 <input
                   ref="videoInputRef"
@@ -284,8 +264,9 @@
                 <el-button size="small" type="primary" plain @click="videoInputRef?.click()">
                   上传随堂视频
                 </el-button>
-                <span v-if="form.videoUrl" class="text-[11px] text-emerald-600 font-bold truncate max-w-[150px]">
-                  ✅ 已就绪 ({{ form.videoUrl.slice(-15) }})
+                <span v-if="form.videoUrl" class="text-[11px] text-emerald-600 font-bold truncate max-w-[150px] inline-flex items-center gap-1">
+                  <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
+                  <span>已就绪 ({{ form.videoUrl.slice(-15) }})</span>
                 </span>
                 <span v-else class="text-[11px] text-st-muted">单视频不得超过 100MB</span>
               </div>
@@ -298,11 +279,11 @@
     <template #footer>
       <div class="flex items-center justify-between px-1">
         <div class="text-xs text-st-muted flex items-center gap-2">
-          <span>⚡ 正课优先消耗 (Regular-First)</span>
+          <span class="inline-flex items-center gap-1"><Zap class="w-3.5 h-3.5 text-amber-500" />正课优先消耗 (Regular-First)</span>
           <span class="text-gray-300">|</span>
-          <span>🔒 SHA-256 不可变数字指纹</span>
+          <span class="inline-flex items-center gap-1"><Lock class="w-3.5 h-3.5 text-blue-500" />SHA-256 不可变数字指纹</span>
           <span class="text-gray-300">|</span>
-          <span>🛡️ ACB 财务防腐屏障</span>
+          <span class="inline-flex items-center gap-1"><Shield class="w-3.5 h-3.5 text-emerald-500" />ACB 财务防腐屏障</span>
         </div>
         <div class="flex items-center gap-2">
           <el-button @click="visible = false">取消</el-button>
@@ -311,7 +292,7 @@
             :loading="submitting"
             :class="[
               fulfillmentMode === 'FULL_SETTLE'
-                ? '!bg-gradient-to-r !from-[#ff7a45] !to-[#fa541c] hover:!opacity-90 !border-none text-white font-bold'
+                ? '!bg-gradient-to-r !from-amber-500 !to-orange-600 hover:!opacity-90 !border-none text-white font-bold'
                 : '!bg-indigo-600 text-white font-bold'
             ]"
             @click="handleSubmitFulfillment"
@@ -327,6 +308,23 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
+import {
+  Calendar,
+  MapPin,
+  User,
+  Zap,
+  Clock,
+  ClipboardList,
+  Lightbulb,
+  Image,
+  Video,
+  CheckCircle2,
+  Shield,
+  Lock,
+  AlertTriangle,
+  Smartphone
+} from 'lucide-vue-next'
 import { educationalApi } from '@/api/modules/educational'
 import { DIALOG_SIZE } from '@/constants/ui'
 
@@ -549,7 +547,7 @@ async function handleSubmitFulfillment() {
       const receipt = res.data
       ElMessageBox.alert(
         `<div class="space-y-2 text-xs">
-          <p class="font-bold text-sm text-emerald-600">🎉 ${receipt.message}</p>
+          <p class="font-bold text-sm text-emerald-600">${receipt.message}</p>
           <div class="bg-gray-50 p-2.5 rounded border border-gray-200 font-mono space-y-1">
             <p>流水单号: <strong>${receipt.receiptId}</strong></p>
             <p>实消总学时: <strong>${receipt.settlement?.totalDeductedLessons ?? 0} 课时</strong> (实收正课: ${receipt.settlement?.regularBurned ?? 0}, 赠课: ${receipt.settlement?.bonusBurned ?? 0})</p>

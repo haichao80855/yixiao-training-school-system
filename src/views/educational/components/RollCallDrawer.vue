@@ -25,8 +25,8 @@
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-200 text-xs">
           <div><span class="text-st-muted">上课日期：</span><span class="font-mono text-st-title">{{ event.date }}</span></div>
           <div><span class="text-st-muted">上课时段：</span><span class="font-mono text-st-title">{{ event.startTime }} - {{ event.endTime }}</span></div>
-          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title">👨‍🏫 {{ event.teacherName }}</span></div>
-          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title">📍 {{ event.classroomName }}</span></div>
+          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ event.teacherName }}</span></div>
+          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />{{ event.classroomName }}</span></div>
         </div>
       </div>
 
@@ -40,8 +40,9 @@
           <span class="text-blue-600">迟到: {{ countStatus('late') }}</span>
         </div>
 
-        <el-button type="success" size="small" plain @click="handleAllPresent">
-          ⚡ 一键全勤
+        <el-button type="success" size="small" plain @click="handleAllPresent" class="inline-flex items-center gap-1">
+          <Zap class="w-3.5 h-3.5" />
+          <span>一键全勤</span>
         </el-button>
       </div>
 
@@ -120,6 +121,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { User, MapPin, Zap } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
 import type { ScheduleEvent, StudentAttendanceItem, AttendanceStatus } from '@/types/educational'
 

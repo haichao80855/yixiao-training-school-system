@@ -244,8 +244,8 @@ const filteredUsers = computed(() => {
 
 <style scoped>
 .st-staff-table :deep(.el-table__header th) {
-  background-color: #fafafa;
-  color: #262626;
+  background-color: var(--st-color-bg, #fafafa);
+  color: var(--st-color-text-title, #262626);
   font-weight: 600;
 }
 </style>

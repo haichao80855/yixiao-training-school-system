@@ -9,7 +9,7 @@
     <!-- 状态 2: 错误状态 (令牌过期或签名不合法) -->
     <div v-else-if="errorMessage" class="max-w-md mx-auto p-6 pt-20 text-center space-y-4">
       <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
-        🔒
+        <Lock class="w-8 h-8" />
       </div>
       <h3 class="text-base font-bold text-slate-800">无法访问该学情报告</h3>
       <p class="text-xs text-slate-500 leading-relaxed px-4">
@@ -29,7 +29,7 @@
         <div class="flex items-center space-x-4 relative z-10">
           <div class="w-14 h-14 rounded-full border-2 border-white/80 overflow-hidden shadow-md bg-white/20 flex items-center justify-center text-xl font-bold">
             <img v-if="headerData.avatar" :src="headerData.avatar" class="w-full h-full object-cover" />
-            <span v-else>🌟</span>
+            <Sparkles v-else class="w-7 h-7 text-amber-300" />
           </div>
           <div>
             <div class="flex items-center space-x-2">
@@ -69,8 +69,9 @@
           <!-- 教师寄语与表现标签 -->
           <div class="bg-gradient-to-r from-blue-50/70 to-indigo-50/40 p-3.5 rounded-xl border border-blue-100/60 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-blue-900 flex items-center gap-1">
-                <span>👩‍🏫</span> {{ lesson.teacherName }} 老师随堂寄语
+              <span class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
+                <User class="w-4 h-4 text-blue-700" />
+                <span>{{ lesson.teacherName }} 老师随堂寄语</span>
               </span>
               <span v-if="lesson.performanceTag" class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
                 {{ lesson.performanceTag }}
@@ -87,7 +88,7 @@
             class="bg-emerald-500 text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-xs"
           >
             <div class="flex items-center space-x-2.5">
-              <span class="text-base">🎤</span>
+              <Mic class="w-5 h-5 text-white" />
               <div>
                 <div class="text-xs font-bold">随堂原声点评</div>
                 <div class="text-[10px] text-emerald-100">点击播放老师当堂语音</div>
@@ -101,8 +102,9 @@
 
           <!-- 9 宫格精彩照片流 -->
           <div v-if="lesson.photos && lesson.photos.length > 0" class="space-y-1.5">
-            <div class="text-xs text-slate-500 font-medium flex items-center gap-1">
-              <span>📸</span> 课堂精彩瞬间 ({{ lesson.photos.length }} 张)
+            <div class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+              <Image class="w-4 h-4 text-slate-600" />
+              <span>课堂精彩瞬间 ({{ lesson.photos.length }} 张)</span>
             </div>
             <div
               class="grid gap-2"
@@ -124,7 +126,7 @@
           <!-- 随堂视频入口 -->
           <div v-if="lesson.video" class="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <span class="text-lg">🎬</span>
+              <Video class="w-5 h-5 text-slate-700" />
               <div>
                 <div class="text-xs font-bold text-slate-800">课堂实操编程视频作品</div>
                 <div class="text-[10px] text-slate-400">见证孩子亲手实现的编程奇迹</div>
@@ -155,7 +157,7 @@
               :key="b.id"
               class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/60 px-2.5 py-1 rounded-full text-[11px]"
             >
-              <span>🏆</span>
+              <Trophy class="w-3.5 h-3.5 text-amber-600" />
               <span class="font-bold">{{ b.title }}</span>
             </div>
           </div>
@@ -174,6 +176,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { Lock, Sparkles, User, Mic, Image, Video, Trophy } from 'lucide-vue-next';
 
 const route = useRoute();
 const loading = ref(true);

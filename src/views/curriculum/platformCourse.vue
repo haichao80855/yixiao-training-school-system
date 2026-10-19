@@ -1,15 +1,15 @@
 <template>
-  <div class="p-4 space-y-4 bg-[#F5F7FA] min-h-[calc(100vh-60px)]">
+  <div class="p-4 space-y-4 bg-st-bg min-h-[calc(100vh-60px)]">
     <!-- 顶部状态栏与统计信息 -->
     <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-50 text-[#1890FF] flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-lg bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
           002599
         </div>
         <div>
           <div class="flex items-center space-x-2">
             <h1 class="text-base font-bold text-gray-900">拓视未来教育·资源平台课程库</h1>
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-[#1890FF] font-medium">企业级数据同步</span>
+            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-st-primary font-medium">企业级数据同步</span>
             <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 font-medium">全量课件互动白板已接入</span>
           </div>
           <p class="text-xs text-gray-500 mt-1">
@@ -21,7 +21,7 @@
       <div class="flex items-center space-x-6 text-sm text-gray-600 bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-100">
         <div>
           <span class="text-gray-400 text-xs block">总课程数</span>
-          <span class="text-lg font-bold text-[#1890FF]">{{ totalCourses }}</span> 门
+          <span class="text-lg font-bold text-st-primary">{{ totalCourses }}</span> 门
         </div>
         <div class="h-6 w-px bg-gray-200"></div>
         <div>
@@ -41,30 +41,26 @@
       <!-- 快捷科目/类别筛选 -->
       <div class="flex flex-wrap items-center gap-2 pt-1">
         <span class="text-xs font-semibold text-gray-500 w-16">所属学科:</span>
-        <button
+        <el-button
+          size="small"
+          round
+          :type="selectedSubject === '' ? 'primary' : 'default'"
+          class="!m-0"
           @click="selectedSubject = ''"
-          :class="[
-            'px-2.5 py-1 text-xs rounded-md transition-colors',
-            selectedSubject === ''
-              ? 'bg-[#1890FF] text-white font-medium'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          ]"
         >
           全部 ({{ totalCourses }})
-        </button>
-        <button
+        </el-button>
+        <el-button
           v-for="sub in topSubjects"
           :key="sub.name"
+          size="small"
+          round
+          :type="selectedSubject === sub.name ? 'primary' : 'default'"
+          class="!m-0"
           @click="selectedSubject = sub.name"
-          :class="[
-            'px-2.5 py-1 text-xs rounded-md transition-colors',
-            selectedSubject === sub.name
-              ? 'bg-[#1890FF] text-white font-medium'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-          ]"
         >
           {{ sub.name }} ({{ sub.count }})
-        </button>
+        </el-button>
       </div>
 
       <!-- 输入框与下拉选择搜索 -->
@@ -120,7 +116,7 @@
         </div>
 
         <div class="text-xs text-gray-500">
-          已筛选出 <span class="font-bold text-[#1890FF]">{{ filteredCourses.length }}</span> 门课程
+          已筛选出 <span class="font-bold text-st-primary">{{ filteredCourses.length }}</span> 门课程
         </div>
       </div>
     </div>
@@ -151,7 +147,7 @@
           </span>
 
           <!-- 授权来源 -->
-          <span class="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] rounded bg-[#1890FF]/85 text-white font-medium">
+          <span class="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] rounded bg-st-primary/90 text-white font-medium">
             盛通授权
           </span>
         </div>
@@ -160,7 +156,7 @@
         <div class="p-3.5 flex-1 flex flex-col justify-between">
           <div>
             <div class="flex items-start justify-between gap-1 mb-1.5">
-              <h3 class="text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-[#1890FF] transition-colors" :title="course.courseName">
+              <h3 class="text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-st-primary transition-colors" :title="course.courseName">
                 {{ course.courseName }}
               </h3>
             </div>
@@ -169,7 +165,7 @@
             </p>
 
             <div class="flex flex-wrap gap-1 mb-2">
-              <span class="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-[#1890FF] border border-blue-100">
+              <span class="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-st-primary border border-blue-100">
                 {{ course.configCourseSubjectName || '综合素养' }}
               </span>
               <span v-if="course.planLessonTotal" class="text-[11px] px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">

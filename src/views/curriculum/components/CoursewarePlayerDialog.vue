@@ -8,11 +8,11 @@
     class="courseware-player-dialog !rounded-xl overflow-hidden"
     :before-close="handleClose"
   >
-    <div class="flex flex-col h-[82vh] bg-[#0c1021] rounded-lg overflow-hidden relative">
+    <div class="flex flex-col h-[82vh] bg-slate-950 rounded-lg overflow-hidden relative">
       <!-- 顶部控制条 -->
-      <div class="h-12 bg-[#141b34] px-4 flex items-center justify-between border-b border-gray-800 text-white z-10">
+      <div class="h-12 bg-slate-900 px-4 flex items-center justify-between border-b border-gray-800 text-white z-10">
         <div class="flex items-center space-x-3">
-          <span class="px-2 py-0.5 rounded bg-[#1890FF] text-xs font-bold">盛通白板课件</span>
+          <span class="px-2 py-0.5 rounded bg-st-primary text-xs font-bold">盛通白板课件</span>
           <span class="text-sm font-semibold truncate max-w-[450px]" :title="lessonName">
             {{ lessonName }}
           </span>
@@ -45,7 +45,7 @@
       </div>
 
       <!-- 课件主展示区域 -->
-      <div ref="containerRef" class="flex-1 w-full h-full relative flex items-center justify-center bg-[#070b18] overflow-hidden">
+      <div ref="containerRef" class="flex-1 w-full h-full relative flex items-center justify-center bg-slate-950 overflow-hidden">
         <!-- 如果存在原生交互式课件 HTML -->
         <iframe
           v-if="pptUrl"

@@ -12,7 +12,8 @@
 
       <div class="flex items-center space-x-2">
         <el-button @click="showClassroomManageModal = true">
-          🏛️ 教室管理
+          <template #icon><Building2 class="w-3.5 h-3.5" /></template>
+          教室管理
         </el-button>
         <el-button
           type="success"
@@ -20,7 +21,8 @@
           :disabled="selectedRows.length === 0"
           @click="handleBatchScheduleSelected"
         >
-          📅 批量排课 {{ selectedRows.length > 0 ? `(已选 ${selectedRows.length} 班)` : '' }}
+          <template #icon><Calendar class="w-3.5 h-3.5" /></template>
+          批量排课 {{ selectedRows.length > 0 ? `(已选 ${selectedRows.length} 班)` : '' }}
         </el-button>
         <el-button type="primary" @click="handleCreateClass">
           + 新设教学班级
@@ -35,8 +37,8 @@
           <div class="text-xs text-st-muted">校区班级总数</div>
           <div class="text-2xl font-bold text-st-title mt-1">{{ classStats.totalClasses }} <span class="text-xs font-normal text-st-muted">个</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
-          🏫
+        <div class="w-10 h-10 rounded-full bg-blue-50 text-st-primary flex items-center justify-center font-bold">
+          <Building2 class="w-5 h-5 text-st-primary" />
         </div>
       </div>
 
@@ -45,8 +47,8 @@
           <div class="text-xs text-st-muted">在读学员总规模</div>
           <div class="text-2xl font-bold text-emerald-600 mt-1">{{ classStats.totalStudents }} <span class="text-xs font-normal text-st-muted">人</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
-          👥
+        <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+          <Users class="w-5 h-5 text-emerald-600" />
         </div>
       </div>
 
@@ -55,8 +57,8 @@
           <div class="text-xs text-st-muted">综合满班率</div>
           <div class="text-2xl font-bold text-indigo-600 mt-1">{{ classStats.avgFillRate }}%</div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
-          📈
+        <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+          <TrendingUp class="w-5 h-5 text-indigo-600" />
         </div>
       </div>
 
@@ -65,8 +67,8 @@
           <div class="text-xs text-st-muted">秋季在招班级</div>
           <div class="text-2xl font-bold text-amber-600 mt-1">{{ classStats.recruitingClasses }} <span class="text-xs font-normal text-st-muted">个</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
-          🎯
+        <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
+          <Target class="w-5 h-5 text-amber-600" />
         </div>
       </div>
     </div>
@@ -82,7 +84,7 @@
           @clear="loadData"
           @keyup.enter="loadData"
         >
-          <template #prefix>🔍</template>
+          <template #prefix><Search class="w-3.5 h-3.5 text-gray-400" /></template>
         </el-input>
 
         <el-select v-model="statusFilter" placeholder="班级状态" clearable class="!w-36" @change="loadData">
@@ -115,7 +117,7 @@
           effect="plain"
           class="font-medium font-mono"
         >
-          {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人班级)' : (authStore.user?.dataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+          {{ isDataScopeSelf ? '仅本人数据 (已锁定只看本人班级)' : (authStore.user?.dataScope === 'all' ? '全部校区数据透视' : '本校数据透视') }}
         </el-tag>
         <span v-if="selectedRows.length > 0" class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
           已勾选 {{ selectedRows.length }} 个教学班级
@@ -158,9 +160,9 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="teacherName" label="主讲老师" width="105">
+        <el-table-column prop="teacherName" label="主讲老师" width="115">
           <template #default="{ row }">
-            <span class="font-medium text-st-title">👨‍🏫 {{ row.teacherName }}</span>
+            <span class="font-medium text-st-title flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" /> {{ row.teacherName }}</span>
           </template>
         </el-table-column>
 
@@ -172,7 +174,7 @@
 
         <el-table-column prop="classroomName" label="固定教室" width="130">
           <template #default="{ row }">
-            <span class="text-xs text-st-secondary truncate">📍 {{ row.classroomName }}</span>
+            <span class="text-xs text-st-secondary truncate flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-st-secondary" /> {{ row.classroomName }}</span>
           </template>
         </el-table-column>
 
@@ -395,6 +397,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Building2, Calendar, Search, Users, TrendingUp, Target, User, MapPin } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'

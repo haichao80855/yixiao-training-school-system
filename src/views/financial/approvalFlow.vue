@@ -40,45 +40,38 @@
 
     <!-- 3 大业务主 Tab (常规收款确认 | 季度扣费审批 | 退费多级复核) -->
     <div class="bg-white rounded-lg px-4 py-2.5 shadow-card border border-st-border flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center space-x-2">
-        <button
+      <el-button-group size="small">
+        <el-button
           v-for="biz in businessTabs"
           :key="biz.key"
+          :type="activeBusinessTab === biz.key ? 'primary' : 'default'"
           @click="handleBusinessTabChange(biz.key)"
-          :class="[
-            'px-4 py-1.5 text-xs font-bold rounded transition-all flex items-center space-x-1.5',
-            activeBusinessTab === biz.key
-              ? 'bg-st-primary text-white shadow-sm'
-              : 'text-st-regular bg-gray-100 hover:bg-gray-200/80'
-          ]"
         >
           <span>{{ biz.name }}</span>
           <span
             :class="[
-              'text-[10px] px-1.5 py-0.2 rounded-full font-mono',
+              'text-[10px] px-1.5 py-0.2 rounded-full font-mono ml-1.5',
               activeBusinessTab === biz.key ? 'bg-white text-st-primary' : 'bg-gray-200 text-st-muted'
             ]"
           >
             {{ businessCounts[biz.key] || 0 }}
           </span>
-        </button>
-      </div>
+        </el-button>
+      </el-button-group>
 
       <!-- 横向状态分段 Tab (待我审批 | 已通过 | 已驳回 | 全部单据) -->
       <div class="flex items-center space-x-1">
-        <button
+        <el-button
           v-for="st in statusTabs"
           :key="st.key"
+          size="small"
+          :type="activeStatusTab === st.key ? 'primary' : 'default'"
+          :plain="activeStatusTab === st.key"
+          class="!m-0"
           @click="activeStatusTab = st.key"
-          :class="[
-            'px-3 py-1 text-xs rounded transition-colors',
-            activeStatusTab === st.key
-              ? 'bg-blue-50 text-st-primary font-bold border border-blue-200'
-              : 'text-st-regular hover:bg-gray-100'
-          ]"
         >
           {{ st.name }}
-        </button>
+        </el-button>
       </div>
     </div>
 

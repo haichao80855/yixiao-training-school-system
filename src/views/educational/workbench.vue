@@ -9,10 +9,10 @@
 
       <div class="flex items-center gap-3">
         <el-tag v-if="isSuperAdminUser" size="small" type="danger" effect="light" class="font-medium">
-          👑 超级管理员 (全校区排课全景透视)
+          超级管理员 (全校区排课全景透视)
         </el-tag>
         <el-tag v-else-if="isTeacher" size="small" type="success" effect="light" class="font-medium">
-          👨‍🏫 当前讲师：{{ currentTeacherName }}
+          当前讲师：{{ currentTeacherName }}
         </el-tag>
         <!-- 权限范围徽章 -->
         <el-tag
@@ -22,7 +22,7 @@
           effect="plain"
           class="font-medium font-mono"
         >
-          {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人课程)' : (currentDataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+          {{ isDataScopeSelf ? '仅本人数据 (已锁定只看本人课程)' : (currentDataScope === 'all' ? '全部校区数据透视' : '本校数据透视') }}
         </el-tag>
         <!-- 仅看我的课程开关：仅当非本人专属数据（即本校/全校数据权限）时允许自由切换；本人权限已锁定只看本人课程 -->
         <div v-if="isTeacher && !isSuperAdminUser && !isDataScopeSelf" class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-200">
@@ -34,7 +34,7 @@
           />
         </div>
         <el-tag size="small" type="primary" effect="plain" class="font-medium">
-          🏫 {{ currentCampus.name }}
+          {{ currentCampus.name }}
         </el-tag>
         <span class="text-xs text-st-muted">系统时间：2026-09-22</span>
       </div>
@@ -48,7 +48,7 @@
           <div class="text-2xl font-extrabold text-st-primary font-mono tracking-tight">
             {{ stats.lessonCount }}
           </div>
-          <div class="text-xs text-[#5e6d82] mt-1 font-medium">课次数量</div>
+          <div class="text-xs text-st-secondary mt-1 font-medium">课次数量</div>
         </div>
 
         <!-- 2. 未结课课次数量 -->
@@ -56,7 +56,7 @@
           <div class="text-2xl font-extrabold text-st-primary font-mono tracking-tight">
             {{ stats.uncompletedCount }}
           </div>
-          <div class="text-xs text-[#5e6d82] mt-1 font-medium">未结课课次数量</div>
+          <div class="text-xs text-st-secondary mt-1 font-medium">未结课课次数量</div>
         </div>
 
         <!-- 3. 上课人次 -->
@@ -64,7 +64,7 @@
           <div class="text-2xl font-extrabold text-st-primary font-mono tracking-tight">
             {{ stats.totalStudentTimes }}
           </div>
-          <div class="text-xs text-[#5e6d82] mt-1 font-medium">上课人次</div>
+          <div class="text-xs text-st-secondary mt-1 font-medium">上课人次</div>
         </div>
 
         <!-- 4. 到课人次 -->
@@ -72,7 +72,7 @@
           <div class="text-2xl font-extrabold text-emerald-600 font-mono tracking-tight">
             {{ stats.attendedTimes }}
           </div>
-          <div class="text-xs text-[#5e6d82] mt-1 font-medium">到课人次</div>
+          <div class="text-xs text-st-secondary mt-1 font-medium">到课人次</div>
         </div>
 
         <!-- 5. 未到人次 -->
@@ -80,7 +80,7 @@
           <div class="text-2xl font-extrabold text-amber-600 font-mono tracking-tight">
             {{ stats.absentTimes }}
           </div>
-          <div class="text-xs text-[#5e6d82] mt-1 font-medium">未到人次</div>
+          <div class="text-xs text-st-secondary mt-1 font-medium">未到人次</div>
         </div>
 
         <!-- 6. 未签到人次 -->
@@ -88,7 +88,7 @@
           <div class="text-2xl font-extrabold text-rose-500 font-mono tracking-tight">
             {{ stats.unsignedTimes }}
           </div>
-          <div class="text-xs text-[#5e6d82] mt-1 font-medium">未签到人次</div>
+          <div class="text-xs text-st-secondary mt-1 font-medium">未签到人次</div>
         </div>
 
         <!-- 7. 已签到人次 / 出勤率 -->
@@ -96,7 +96,7 @@
           <div class="text-2xl font-extrabold text-indigo-600 font-mono tracking-tight">
             {{ stats.attendedTimes }} <span class="text-xs font-normal text-st-muted">({{ stats.signedRate }}%)</span>
           </div>
-          <div class="text-xs text-[#5e6d82] mt-1 font-medium">已签到人次</div>
+          <div class="text-xs text-st-secondary mt-1 font-medium">已签到人次</div>
         </div>
       </div>
     </div>
@@ -104,36 +104,26 @@
     <!-- 当日课程综合高密度筛选栏 -->
     <div class="bg-white rounded-lg p-4 shadow-xs border border-st-border space-y-3">
       <div class="flex items-center justify-between">
-        <div class="font-bold text-sm text-[#1f303d] flex items-center gap-2">
+        <div class="font-bold text-sm text-st-title flex items-center gap-2">
           <span>{{ currentLessonSectionTitle }}</span>
           <span class="text-xs font-normal text-st-muted">（共 {{ cardList.length }} 节排课）</span>
         </div>
 
         <!-- 视图切换 -->
-        <div class="flex items-center gap-1 bg-gray-100 p-0.5 rounded border border-gray-200">
-          <button
-            type="button"
-            :class="[
-              'px-2.5 py-1 text-xs rounded font-medium transition-all flex items-center gap-1',
-              viewMode === 'card' ? 'bg-white text-st-primary shadow-xs' : 'text-gray-500 hover:text-st-title'
-            ]"
+        <el-button-group size="small">
+          <el-button
+            :type="viewMode === 'card' ? 'primary' : 'default'"
             @click="viewMode = 'card'"
           >
-            <span>▦</span>
-            <span>卡片视图</span>
-          </button>
-          <button
-            type="button"
-            :class="[
-              'px-2.5 py-1 text-xs rounded font-medium transition-all flex items-center gap-1',
-              viewMode === 'table' ? 'bg-white text-st-primary shadow-xs' : 'text-gray-500 hover:text-st-title'
-            ]"
+            卡片视图
+          </el-button>
+          <el-button
+            :type="viewMode === 'table' ? 'primary' : 'default'"
             @click="viewMode = 'table'"
           >
-            <span>≡</span>
-            <span>表格视图</span>
-          </button>
-        </div>
+            表格视图
+          </el-button>
+        </el-button-group>
       </div>
 
       <!-- 筛选输入矩阵 -->
@@ -242,8 +232,8 @@
             :class="[
               'absolute transform rotate-45 text-center text-[10px] font-bold py-0.5 right-[-32px] top-[14px] w-[110px] text-white shadow-xs',
               card.status === 'completed'
-                ? 'bg-[#7052ff]'
-                : (card.status === 'in_progress' ? 'bg-blue-600 animate-pulse' : 'bg-[#409eff]')
+                ? 'bg-purple-600'
+                : (card.status === 'in_progress' ? 'bg-blue-600 animate-pulse' : 'bg-st-primary')
             ]"
           >
             {{ card.status === 'completed' ? '已上课' : (card.status === 'in_progress' ? '上课中' : '未上课') }}
@@ -254,7 +244,7 @@
         <div class="p-4 space-y-2.5">
           <!-- 标签与时间 -->
           <div class="flex items-center gap-2 pr-12">
-            <span class="bg-[#ff9500] text-white text-[11px] font-semibold px-2 py-0.5 rounded shadow-xs">
+            <span class="bg-st-warning text-white text-[11px] font-semibold px-2 py-0.5 rounded shadow-xs">
               线下课
             </span>
             <span class="text-xs text-st-secondary font-mono">
@@ -271,7 +261,7 @@
 
           <!-- 班级胶囊标签 -->
           <div>
-            <span class="inline-flex items-center text-[11px] text-[#409eff] bg-[#ecf5ff] px-2.5 py-0.5 rounded font-medium border border-[#d9ecff]">
+            <span class="inline-flex items-center text-[11px] text-st-primary bg-blue-50 px-2.5 py-0.5 rounded font-medium border border-blue-200">
               正常班 | {{ card.className }}
             </span>
           </div>
@@ -284,13 +274,15 @@
             </div>
 
             <!-- 可点击的签到比例 -->
-            <button
-              type="button"
-              class="text-xs font-bold text-[#409eff] hover:underline cursor-pointer flex items-center gap-0.5"
+            <el-button
+              link
+              type="primary"
+              size="small"
+              class="!p-0 text-xs font-bold"
               @click="handleOpenSignIn(card)"
             >
-              <span>签到({{ card.signedCount }}/{{ card.totalStudents }})</span>
-            </button>
+              签到({{ card.signedCount }}/{{ card.totalStudents }})
+            </el-button>
           </div>
 
           <!-- 校区与教务 -->
@@ -300,79 +292,73 @@
           </div>
 
           <!-- 中间主状态控制药丸按钮 (上课 / 结课) -->
-          <div class="flex items-center justify-end gap-2.5 pt-2">
-            <button
-              type="button"
-              :class="[
-                'px-5 py-1.5 rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer',
-                card.status === 'in_progress'
-                  ? 'bg-blue-600 text-white ring-2 ring-blue-300'
-                  : 'bg-[#409eff] hover:bg-blue-600 text-white'
-              ]"
+          <div class="flex items-center justify-end gap-2 pt-2">
+            <el-button
+              type="primary"
+              size="small"
+              round
+              :class="card.status === 'in_progress' ? 'ring-2 ring-blue-300' : ''"
               @click="handleStartLesson(card)"
             >
               {{ card.status === 'in_progress' ? '授课中...' : '上课' }}
-            </button>
+            </el-button>
 
-            <button
-              type="button"
-              :class="[
-                'px-5 py-1.5 rounded-full text-xs font-bold text-white transition-all shadow-xs cursor-pointer',
-                card.status === 'completed'
-                  ? 'bg-gray-400 cursor-not-allowed opacity-80'
-                  : 'bg-gradient-to-r from-[#ff7a45] to-[#fa541c] hover:opacity-90'
-              ]"
+            <el-button
+              :type="card.status === 'completed' ? 'info' : 'warning'"
+              size="small"
+              round
+              :disabled="card.status === 'completed'"
               @click="handleFinishLesson(card)"
             >
               {{ card.status === 'completed' ? '已结课' : '结课' }}
-            </button>
+            </el-button>
           </div>
         </div>
 
         <!-- 卡片底部 4 大操作常态图标栏 (下边框分割横排) -->
-        <div class="border-t border-st-border bg-gray-50/50 px-3 py-2.5 grid grid-cols-4 divide-x divide-gray-200 text-center select-none">
+        <div class="border-t border-st-border bg-gray-50/50 px-2 py-2 grid grid-cols-4 divide-x divide-gray-200 text-center select-none">
           <!-- 1. 备课 -->
-          <button
-            type="button"
-            class="flex flex-col items-center justify-center gap-1 text-[#5e6d82] hover:text-st-primary transition-colors cursor-pointer group"
+          <el-button
+            link
+            class="!h-auto !py-1 !px-0 flex flex-col items-center justify-center gap-1 text-st-secondary hover:!text-st-primary group"
             @click="handleOpenLessonPlan(card)"
           >
-            <span class="text-base group-hover:scale-110 transition-transform">📖</span>
-            <span class="text-[11px] font-medium">备课</span>
-          </button>
+            <BookOpen class="w-4 h-4 text-st-secondary group-hover:text-st-primary transition-transform group-hover:scale-110" />
+            <span class="text-[11px] font-medium text-st-secondary group-hover:text-st-primary">备课</span>
+          </el-button>
 
           <!-- 2. 签到 -->
-          <button
-            type="button"
-            class="flex flex-col items-center justify-center gap-1 text-[#5e6d82] hover:text-st-primary transition-colors cursor-pointer group"
+          <el-button
+            link
+            class="!h-auto !py-1 !px-0 flex flex-col items-center justify-center gap-1 text-st-secondary hover:!text-st-primary group"
             @click="handleOpenSignIn(card)"
           >
-            <span class="text-base group-hover:scale-110 transition-transform">📅</span>
-            <span class="text-[11px] font-medium">签到</span>
-          </button>
+            <Calendar class="w-4 h-4 text-st-secondary group-hover:text-st-primary transition-transform group-hover:scale-110" />
+            <span class="text-[11px] font-medium text-st-secondary group-hover:text-st-primary">签到</span>
+          </el-button>
 
           <!-- 3. 课评 (核心高亮) -->
-          <button
-            type="button"
-            class="flex flex-col items-center justify-center gap-1 text-[#5e6d82] hover:text-indigo-600 transition-colors cursor-pointer group"
+          <el-button
+            link
+            class="!h-auto !py-1 !px-0 flex flex-col items-center justify-center gap-1 text-st-secondary hover:!text-indigo-600 transition-colors group"
             @click="handleOpenEvaluation(card)"
           >
             <div class="relative">
-              <span class="text-base group-hover:scale-110 transition-transform text-amber-500">⭐</span>
-              <span v-if="card.evaluationStatus === 'published'" class="absolute -top-1 -right-2 w-2 h-2 rounded-full bg-emerald-500"></span>
+              <Sparkles class="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
+              <span v-if="card.evaluationStatus === 'published'" class="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-emerald-500"></span>
             </div>
             <span class="text-[11px] font-semibold text-indigo-700 group-hover:underline">课评</span>
-          </button>
+          </el-button>
 
           <!-- 4. 上传回放 -->
-          <button
-            type="button"
-            class="flex flex-col items-center justify-center gap-1 text-[#5e6d82] hover:text-st-primary transition-colors cursor-pointer group"
+          <el-button
+            link
+            class="!h-auto !py-1 !px-0 flex flex-col items-center justify-center gap-1 text-st-secondary hover:!text-st-primary group"
             @click="handleOpenPlayback(card)"
           >
-            <span class="text-base group-hover:scale-110 transition-transform">📺</span>
-            <span class="text-[11px] font-medium">上传回放</span>
-          </button>
+            <Video class="w-4 h-4 text-st-secondary group-hover:text-st-primary transition-transform group-hover:scale-110" />
+            <span class="text-[11px] font-medium text-st-secondary group-hover:text-st-primary">上传回放</span>
+          </el-button>
         </div>
       </div>
       </div>
@@ -413,7 +399,7 @@
 
         <el-table-column prop="teacherName" label="授课老师" width="110">
           <template #default="{ row }">
-            <span class="font-medium text-st-title">👨‍🏫 {{ row.teacherName }}</span>
+            <span class="font-medium text-st-title">{{ row.teacherName }}</span>
           </template>
         </el-table-column>
 
@@ -476,7 +462,7 @@
     <el-dialog
       v-model="signInDialogVisible"
       title="随堂签到与课消核销"
-      width="640px"
+      :width="DIALOG_SIZE.md"
       destroy-on-close
     >
       <div v-if="activeLessonForSignIn" class="space-y-4 text-xs">
@@ -496,7 +482,7 @@
           <el-table-column label="出勤状态" min-width="260">
             <template #default="{ row }">
               <el-radio-group v-model="row.status" size="small">
-                <el-radio-button label="present">到课 ✓</el-radio-button>
+                <el-radio-button label="present">到课</el-radio-button>
                 <el-radio-button label="late">迟到</el-radio-button>
                 <el-radio-button label="leave">请假</el-radio-button>
                 <el-radio-button label="absent">缺勤</el-radio-button>
@@ -529,9 +515,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { BookOpen, Calendar, Sparkles, Video } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
+import { DIALOG_SIZE } from '@/constants/ui'
 import type { WorkbenchLessonCard, LessonEvaluation, Teacher, Classroom } from '@/types/educational'
 import LessonFulfillmentDialog from './components/LessonFulfillmentDialog.vue'
 import LessonEvaluationDialog from './components/LessonEvaluationDialog.vue'
@@ -928,7 +916,7 @@ onMounted(() => {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: #2563eb; /* 待上课/有排课: 品牌蓝 */
+  background-color: var(--st-color-primary, #3B82F6); /* 待上课/有排课: 品牌蓝 */
 }
 
 .workbench-date-popper .el-date-table td.workbench-cal-dot-completed .el-date-table-cell__text::after {
@@ -940,11 +928,11 @@ onMounted(() => {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: #7052ff; /* 全部结课: 优雅紫 */
+  background-color: #8B5CF6; /* 全部结课: 优雅紫 */
 }
 
 /* 单元格被选中高亮时，小圆点反白为白色以保证辨识度 */
 .workbench-date-popper .el-date-table td.current .el-date-table-cell__text::after {
-  background-color: #ffffff !important;
+  background-color: var(--st-color-card, #ffffff) !important;
 }
 </style>

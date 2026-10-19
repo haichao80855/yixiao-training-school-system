@@ -18,7 +18,7 @@
           <div class="text-2xl font-bold font-mono text-emerald-600 mt-1">¥ {{ verifiedTotalFee.toFixed(2) }}</div>
         </div>
         <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
-          ✓
+          <CheckCircle2 class="w-5 h-5" />
         </div>
       </div>
 
@@ -28,7 +28,7 @@
           <div class="text-2xl font-bold font-mono text-st-primary mt-1">{{ records.length }} <span class="text-xs font-normal">人次</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
-          🏆
+          <Trophy class="w-5 h-5" />
         </div>
       </div>
 
@@ -41,7 +41,7 @@
           </div>
         </div>
         <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
-          🔗
+          <Link2 class="w-5 h-5" />
         </div>
       </div>
     </div>
@@ -253,6 +253,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { CheckCircle2, Trophy, Link2 } from 'lucide-vue-next'
 import { studentApi } from '@/api'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student } from '@/types/student'

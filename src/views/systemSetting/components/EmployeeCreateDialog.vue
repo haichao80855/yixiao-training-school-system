@@ -6,7 +6,7 @@
     :width="DIALOG_SIZE.md"
     destroy-on-close
   >
-    <el-form :model="form" label-width="95px" size="small" class="pt-2">
+    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
       <div class="grid grid-cols-2 gap-x-3">
         <el-form-item label="员工姓名" required>
           <el-input v-model="form.name" placeholder="真实姓名" />
@@ -67,7 +67,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { RoleItem, DataScope } from '@/types/system'
 
 const props = defineProps<{

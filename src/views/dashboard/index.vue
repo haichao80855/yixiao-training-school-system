@@ -40,29 +40,25 @@
 
         <!-- 横幅右侧：快捷主控与实时刷新 -->
         <div class="flex items-center space-x-3 shrink-0">
-          <button
-            @click="handleManualRefresh"
-            :disabled="refreshing"
-            class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-white/15 hover:bg-white/25 active:bg-white/30 border border-white/25 text-white text-xs font-semibold backdrop-blur-md transition-all shadow-sm cursor-pointer disabled:opacity-60"
+          <el-button
+            size="small"
+            :loading="refreshing"
+            class="!bg-white/15 !border-white/25 !text-white hover:!bg-white/25 !rounded-xl !px-3.5 !py-2"
             title="重新拉取并更新数据统计"
+            @click="handleManualRefresh"
           >
-            <svg
-              :class="['w-4 h-4 transition-transform duration-700', refreshing ? 'animate-spin' : '']"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>{{ refreshing ? '正在同步...' : '刷新数据' }}</span>
-          </button>
+            {{ refreshing ? '正在同步...' : '刷新数据' }}
+          </el-button>
 
-          <button
+          <el-button
+            size="small"
+            type="primary"
+            class="!bg-white !text-blue-700 hover:!bg-blue-50 font-bold !border-none !rounded-xl !px-4 !py-2 shadow-md hover:shadow-lg"
             @click="$router.push('/educational/workbench')"
-            class="inline-flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-white text-blue-700 hover:bg-blue-50 active:bg-blue-100 text-xs font-bold transition-all shadow-md cursor-pointer hover:shadow-lg hover:-translate-y-0.5"
           >
-            <span>🖥️ 进入教学讲台</span>
-          </button>
+            <Monitor class="w-4 h-4 mr-1.5" />
+            <span>进入教学讲台</span>
+          </el-button>
         </div>
       </div>
     </div>
@@ -70,39 +66,39 @@
     <!-- 4大核心业务 KPI 指标看板 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- 营收总额 -->
-      <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-500">实收营收流水 (本月)</span>
+          <span class="text-xs font-medium text-st-secondary">实收营收流水 (本月)</span>
           <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
-            ¥
+            <CircleDollarSign class="w-5 h-5" />
           </div>
         </div>
         <div class="my-3">
-          <div class="text-2xl font-extrabold text-slate-800 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
             ¥ {{ stats.totalRevenue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
           </div>
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-50 text-slate-400">
-          <span>已支付订单: <strong class="text-slate-700 font-semibold font-mono">{{ stats.paidOrderCount }}</strong> 笔</span>
+        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
+          <span>已支付订单: <strong class="text-st-regular font-semibold font-mono">{{ stats.paidOrderCount }}</strong> 笔</span>
           <span class="text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded text-[11px]">环比 +12.8% ↑</span>
         </div>
       </div>
 
       <!-- 在读学员 -->
-      <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-500">在籍在读学员总量</span>
+          <span class="text-xs font-medium text-st-secondary">在籍在读学员总量</span>
           <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
-            🎓
+            <GraduationCap class="w-5 h-5" />
           </div>
         </div>
         <div class="my-3 flex items-baseline gap-1.5">
-          <div class="text-2xl font-extrabold text-slate-800 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
             {{ stats.studentCount }}
           </div>
-          <span class="text-xs text-slate-400 font-medium">人</span>
+          <span class="text-xs text-st-muted font-medium">人</span>
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-50 text-slate-400">
+        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
           <span>归属校区生源池</span>
           <span class="text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded text-[11px]">
             待分班 {{ stats.unassignedCount }} 人
@@ -111,20 +107,20 @@
       </div>
 
       <!-- 本周排课 -->
-      <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-500">本周排课日程</span>
+          <span class="text-xs font-medium text-st-secondary">本周排课日程</span>
           <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
-            📅
+            <Calendar class="w-5 h-5" />
           </div>
         </div>
         <div class="my-3 flex items-baseline gap-1.5">
-          <div class="text-2xl font-extrabold text-slate-800 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
             {{ stats.scheduleCount }}
           </div>
-          <span class="text-xs text-slate-400 font-medium">节课次</span>
+          <span class="text-xs text-st-muted font-medium">节课次</span>
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-50 text-slate-400">
+        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
           <span>冲突监测:</span>
           <span
             :class="[
@@ -132,26 +128,26 @@
               stats.conflictCount > 0 ? 'bg-red-50 text-red-600 font-bold' : 'bg-emerald-50 text-emerald-600'
             ]"
           >
-            {{ stats.conflictCount > 0 ? `⚠️ ${stats.conflictCount} 处时段冲突` : '✅ 无排课冲突' }}
+            {{ stats.conflictCount > 0 ? `检测到 ${stats.conflictCount} 处冲突` : '无排课冲突' }}
           </span>
         </div>
       </div>
 
       <!-- 授权课程体系 -->
-      <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-500">已授权标准化课程体系</span>
+          <span class="text-xs font-medium text-st-secondary">已授权标准化课程体系</span>
           <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
-            📚
+            <BookOpen class="w-5 h-5" />
           </div>
         </div>
         <div class="my-3 flex items-baseline gap-1.5">
-          <div class="text-2xl font-extrabold text-slate-800 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
             {{ stats.courseCount }}
           </div>
-          <span class="text-xs text-slate-400 font-medium">门标准课</span>
+          <span class="text-xs text-st-muted font-medium">门标准课</span>
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-50 text-slate-400">
+        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
           <span>教研中心统一质控</span>
           <span class="text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded text-[11px]">标准化课件就绪</span>
         </div>
@@ -159,14 +155,14 @@
     </div>
 
     <!-- 核心业务高频入口网格 (经过精炼的9大真实业务枢纽) -->
-    <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-      <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+    <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm">
+      <div class="flex items-center justify-between mb-4 pb-2 border-b border-st-border">
         <div class="flex items-center space-x-2">
           <span class="w-1.5 h-4 bg-st-primary rounded-full"></span>
-          <h2 class="text-sm font-bold text-slate-800">高频业务直通车</h2>
-          <span class="text-xs text-slate-400 font-normal">一键快速直达核心业务操作页面</span>
+          <h2 class="text-sm font-bold text-st-title">高频业务直通车</h2>
+          <span class="text-xs text-st-muted font-normal">一键快速直达核心业务操作页面</span>
         </div>
-        <span class="text-xs text-blue-600 font-medium">9大核心业务中枢</span>
+        <span class="text-xs text-st-primary font-medium">9大核心业务中枢</span>
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
@@ -174,15 +170,15 @@
           v-for="item in quickAccessList"
           :key="item.name"
           @click="$router.push(item.path)"
-          class="flex flex-col items-center p-3 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/40 hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
+          class="flex flex-col items-center p-3 rounded-xl border border-st-border hover:border-blue-200 hover:bg-blue-50/40 hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
         >
-          <div :class="['w-11 h-11 rounded-xl flex items-center justify-center text-xl mb-2 shadow-sm transition-transform group-hover:scale-110', item.bgClass]">
-            <span>{{ item.icon }}</span>
+          <div :class="['w-11 h-11 rounded-xl flex items-center justify-center mb-2 shadow-sm transition-transform group-hover:scale-110', item.bgClass]">
+            <component :is="item.icon" class="w-5 h-5" />
           </div>
-          <span class="text-xs font-semibold text-slate-700 group-hover:text-st-primary transition-colors">
+          <span class="text-xs font-semibold text-st-regular group-hover:text-st-primary transition-colors">
             {{ item.name }}
           </span>
-          <span class="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
+          <span class="text-[10px] text-st-muted mt-0.5 line-clamp-1">
             {{ item.desc }}
           </span>
         </div>
@@ -192,21 +188,24 @@
     <!-- 下半区：双栏排版（左侧：近期排课与消课日程；右侧：教务待办与运行预警） -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <!-- 左侧：近期待授排课日程监控 (7×15 调度动态) -->
-      <div class="lg:col-span-8 bg-white rounded-xl p-5 border border-slate-100 shadow-sm flex flex-col justify-between">
+      <div class="lg:col-span-8 bg-st-card rounded-xl p-5 border border-st-border shadow-sm flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+          <div class="flex items-center justify-between pb-3 mb-4 border-b border-st-border">
             <div class="flex items-center space-x-2">
               <span class="w-1.5 h-4 bg-indigo-500 rounded-full"></span>
-              <h2 class="text-sm font-bold text-slate-800">近期排课日程监控</h2>
-              <span class="text-xs text-slate-400">实时展示当前校区即将开展的教学日程</span>
+              <h2 class="text-sm font-bold text-st-title">近期排课日程监控</h2>
+              <span class="text-xs text-st-muted">实时展示当前校区即将开展的教学日程</span>
             </div>
-            <button
+            <el-button
+              link
+              type="primary"
+              size="small"
+              class="flex items-center gap-1"
               @click="$router.push('/educational/timeSchedule')"
-              class="text-xs font-semibold text-st-primary hover:text-blue-700 flex items-center gap-1 cursor-pointer transition-colors"
             >
               <span>查看完整课表看板</span>
-              <span>→</span>
-            </button>
+              <ArrowRight class="w-3.5 h-3.5 ml-0.5 inline" />
+            </el-button>
           </div>
 
           <!-- 日程列表 -->
@@ -214,7 +213,7 @@
             <div
               v-for="item in recentSchedules"
               :key="item.id"
-              class="p-3.5 rounded-xl border border-slate-100 hover:border-blue-200 hover:bg-slate-50/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              class="p-3.5 rounded-xl border border-st-border hover:border-blue-200 hover:bg-st-bg transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
             >
               <div class="flex items-center space-x-3.5">
                 <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
@@ -222,8 +221,8 @@
                 </div>
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-bold text-xs text-slate-800">{{ item.lessonTitle || item.courseName || '标准课程' }}</span>
-                    <span class="text-[11px] px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-medium">
+                    <span class="font-bold text-xs text-st-title">{{ item.lessonTitle || item.courseName || '标准课程' }}</span>
+                    <span class="text-[11px] px-1.5 py-0.2 rounded bg-blue-50 text-st-primary font-medium">
                       {{ item.className || '标准班级' }}
                     </span>
                     <span
@@ -233,35 +232,36 @@
                       时段冲突
                     </span>
                   </div>
-                  <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-3 flex-wrap">
-                    <span>👨‍🏫 授课讲师: <strong class="text-slate-600">{{ item.teacherName || '未指定' }}</strong></span>
-                    <span>🏫 教室: <strong class="text-slate-600">{{ item.classroomName || '默认教室' }}</strong></span>
-                    <span v-if="item.timeSlot">⏱️ 时段: {{ item.timeSlot }}</span>
+                  <div class="text-[11px] text-st-muted mt-1 flex items-center gap-3 flex-wrap">
+                    <span>授课讲师: <strong class="text-st-secondary">{{ item.teacherName || '未指定' }}</strong></span>
+                    <span>教室: <strong class="text-st-secondary">{{ item.classroomName || '默认教室' }}</strong></span>
+                    <span v-if="item.timeSlot">时段: {{ item.timeSlot }}</span>
                   </div>
                 </div>
               </div>
 
               <!-- 操作区 -->
               <div class="flex items-center space-x-2 shrink-0 self-end sm:self-center">
-                <button
+                <el-button
+                  size="small"
                   @click="$router.push('/educational/workbench')"
-                  class="px-2.5 py-1 text-xs rounded-lg font-medium text-st-primary hover:bg-blue-50 transition-colors cursor-pointer"
                 >
                   讲台
-                </button>
-                <button
+                </el-button>
+                <el-button
+                  type="primary"
+                  size="small"
                   @click="$router.push('/educational/attendance')"
-                  class="px-2.5 py-1 text-xs rounded-lg font-medium bg-blue-50 text-st-primary hover:bg-st-primary hover:text-white transition-colors cursor-pointer"
                 >
                   点名消课
-                </button>
+                </el-button>
               </div>
             </div>
           </div>
 
           <!-- 空日程状态 -->
-          <div v-else class="py-12 flex flex-col items-center justify-center text-center text-slate-400 space-y-2">
-            <span class="text-3xl">🗓️</span>
+          <div v-else class="py-12 flex flex-col items-center justify-center text-center text-st-muted space-y-2">
+            <CalendarDays class="w-10 h-10 text-st-muted mx-auto" />
             <p class="text-xs">当前校区暂无临近待上课排期</p>
             <el-button size="small" type="primary" plain @click="$router.push('/educational/timeSchedule')">
               前往排课日历添加课次
@@ -269,7 +269,7 @@
           </div>
         </div>
 
-        <div class="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+        <div class="pt-3 mt-4 border-t border-st-border flex items-center justify-between text-xs text-st-muted">
           <span>数据依据当前校区作用域实时过滤</span>
           <span>共监控到 {{ recentSchedules.length }} 场重要教学课次</span>
         </div>
@@ -278,11 +278,11 @@
       <!-- 右侧：教务待办事项与运行预警 -->
       <div class="lg:col-span-4 space-y-4">
         <!-- 待办处理卡片 -->
-        <div class="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+        <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-st-border">
             <div class="flex items-center space-x-2">
               <span class="w-1.5 h-4 bg-amber-500 rounded-full"></span>
-              <h2 class="text-sm font-bold text-slate-800">校区待办与提醒</h2>
+              <h2 class="text-sm font-bold text-st-title">校区待办与提醒</h2>
             </div>
             <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold font-mono">
               实时监控
@@ -293,18 +293,18 @@
             <!-- 待审批工单 -->
             <div
               @click="$router.push('/financial/approvalFlow')"
-              class="p-3 rounded-xl bg-slate-50 hover:bg-blue-50/60 border border-slate-100 hover:border-blue-200 transition-all cursor-pointer flex items-center justify-between group"
+              class="p-3 rounded-xl bg-st-bg hover:bg-blue-50/60 border border-st-border hover:border-blue-200 transition-all cursor-pointer flex items-center justify-between group"
             >
               <div class="flex items-center space-x-2.5">
-                <span class="text-base">📋</span>
+                <ClipboardCheck class="w-4 h-4 text-blue-600 shrink-0" />
                 <div>
-                  <div class="font-semibold text-slate-700 group-hover:text-st-primary transition-colors">
+                  <div class="font-semibold text-st-regular group-hover:text-st-primary transition-colors">
                     业务退费审批工单
                   </div>
-                  <div class="text-[11px] text-slate-400">财务中心待复核审批单据</div>
+                  <div class="text-[11px] text-st-muted">财务中心待复核审批单据</div>
                 </div>
               </div>
-              <span class="font-mono font-bold text-xs text-blue-600 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+              <span class="font-mono font-bold text-xs text-blue-600 bg-white px-2 py-0.5 rounded-full border border-st-border">
                 {{ stats.pendingApprovalCount }} 笔待办
               </span>
             </div>
@@ -312,18 +312,18 @@
             <!-- 待分班学员池 -->
             <div
               @click="$router.push('/studentCenter/unassigned')"
-              class="p-3 rounded-xl bg-slate-50 hover:bg-amber-50/60 border border-slate-100 hover:border-amber-200 transition-all cursor-pointer flex items-center justify-between group"
+              class="p-3 rounded-xl bg-st-bg hover:bg-amber-50/60 border border-st-border hover:border-amber-200 transition-all cursor-pointer flex items-center justify-between group"
             >
               <div class="flex items-center space-x-2.5">
-                <span class="text-base">👥</span>
+                <Users class="w-4 h-4 text-amber-600 shrink-0" />
                 <div>
-                  <div class="font-semibold text-slate-700 group-hover:text-amber-700 transition-colors">
+                  <div class="font-semibold text-st-regular group-hover:text-amber-700 transition-colors">
                     待分班学员履约池
                   </div>
-                  <div class="text-[11px] text-slate-400">已购课但尚未安排班级的学员</div>
+                  <div class="text-[11px] text-st-muted">已购课但尚未安排班级的学员</div>
                 </div>
               </div>
-              <span class="font-mono font-bold text-xs text-amber-600 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+              <span class="font-mono font-bold text-xs text-amber-600 bg-white px-2 py-0.5 rounded-full border border-st-border">
                 {{ stats.unassignedCount }} 人待排
               </span>
             </div>
@@ -331,15 +331,15 @@
             <!-- 冲突排课预警 -->
             <div
               @click="$router.push('/educational/timeSchedule')"
-              class="p-3 rounded-xl bg-slate-50 hover:bg-purple-50/60 border border-slate-100 hover:border-purple-200 transition-all cursor-pointer flex items-center justify-between group"
+              class="p-3 rounded-xl bg-st-bg hover:bg-purple-50/60 border border-st-border hover:border-purple-200 transition-all cursor-pointer flex items-center justify-between group"
             >
               <div class="flex items-center space-x-2.5">
-                <span class="text-base">⚡</span>
+                <Zap class="w-4 h-4 text-purple-600 shrink-0" />
                 <div>
-                  <div class="font-semibold text-slate-700 group-hover:text-purple-700 transition-colors">
+                  <div class="font-semibold text-st-regular group-hover:text-purple-700 transition-colors">
                     排课冲突智能预警
                   </div>
-                  <div class="text-[11px] text-slate-400">教师或教室在此时段是否重叠</div>
+                  <div class="text-[11px] text-st-muted">教师或教室在此时段是否重叠</div>
                 </div>
               </div>
               <span
@@ -355,15 +355,15 @@
         </div>
 
         <!-- 运营合规背书与租户环境卡片 -->
-        <div class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl p-5 text-white shadow-sm">
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 text-white shadow-sm">
           <div class="flex items-center space-x-2 mb-2">
-            <span class="text-base">🛡️</span>
+            <ShieldCheck class="w-4 h-4 text-emerald-400 shrink-0" />
             <span class="font-bold text-xs tracking-wide">上市公司合规数据保护</span>
           </div>
-          <p class="text-[11px] text-slate-300 leading-relaxed">
+          <p class="text-[11px] text-gray-300 leading-relaxed">
             当前系统直连上市公司标准化教育数据库，多校区学员学籍、签约订单、消课流水均已实现硬隔离合规存证。
           </p>
-          <div class="mt-3 pt-3 border-t border-slate-700/60 flex items-center justify-between text-[11px] text-slate-400 font-mono">
+          <div class="mt-3 pt-3 border-t border-gray-700/60 flex items-center justify-between text-[11px] text-gray-400 font-mono">
             <span>作用域: {{ currentCampus.code }}</span>
             <span class="text-emerald-400 font-semibold">● 存证已同步</span>
           </div>
@@ -377,6 +377,21 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import {
+  GraduationCap,
+  Users,
+  Calendar,
+  Monitor,
+  School,
+  Clock,
+  BookOpen,
+  CircleDollarSign,
+  ClipboardCheck,
+  CalendarDays,
+  ShieldCheck,
+  Zap,
+  ArrowRight
+} from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi, studentApi, curriculumApi, educationalApi } from '@/api'
@@ -490,14 +505,14 @@ watch(() => tenantStore.currentCampusId, () => {
 
 // 精炼的9大核心业务直通车（每一个对应独立完整的业务页面）
 const quickAccessList = [
-  { name: '学员全景', desc: '档案与生命周期', icon: '🎓', bgClass: 'bg-blue-50 text-blue-600', path: '/studentCenter/allStudent' },
-  { name: '待分班池', desc: '待入班履约学员', icon: '👥', bgClass: 'bg-orange-50 text-orange-600', path: '/studentCenter/unassigned' },
-  { name: '排课看板', desc: '7×15智能排课', icon: '📅', bgClass: 'bg-purple-50 text-purple-600', path: '/educational/timeSchedule' },
-  { name: '教学讲台', desc: '讲师课堂互动', icon: '🖥️', bgClass: 'bg-cyan-50 text-cyan-600', path: '/educational/workbench' },
-  { name: '班级班容', desc: '班级负荷与预警', icon: '🏫', bgClass: 'bg-emerald-50 text-emerald-600', path: '/educational/classManagement' },
-  { name: '考勤消课', desc: '一键点名与扣课', icon: '⏱️', bgClass: 'bg-teal-50 text-teal-600', path: '/educational/attendance' },
-  { name: '课程研发', desc: '标准化教研大纲', icon: '📚', bgClass: 'bg-indigo-50 text-indigo-600', path: '/curriculum/courseManage' },
-  { name: '财务流水', desc: '营收订单与核验', icon: '💰', bgClass: 'bg-amber-50 text-amber-600', path: '/financial/orderManagement' },
-  { name: '审批中心', desc: '业务退费审批单', icon: '📋', bgClass: 'bg-rose-50 text-rose-600', path: '/financial/approvalFlow' }
+  { name: '学员全景', desc: '档案与生命周期', icon: GraduationCap, bgClass: 'bg-blue-50 text-blue-600', path: '/studentCenter/allStudent' },
+  { name: '待分班池', desc: '待入班履约学员', icon: Users, bgClass: 'bg-orange-50 text-orange-600', path: '/studentCenter/unassigned' },
+  { name: '排课看板', desc: '7×15智能排课', icon: Calendar, bgClass: 'bg-purple-50 text-purple-600', path: '/educational/timeSchedule' },
+  { name: '教学讲台', desc: '讲师课堂互动', icon: Monitor, bgClass: 'bg-cyan-50 text-cyan-600', path: '/educational/workbench' },
+  { name: '班级班容', desc: '班级负荷与预警', icon: School, bgClass: 'bg-emerald-50 text-emerald-600', path: '/educational/classManagement' },
+  { name: '考勤消课', desc: '一键点名与扣课', icon: Clock, bgClass: 'bg-teal-50 text-teal-600', path: '/educational/attendance' },
+  { name: '课程研发', desc: '标准化教研大纲', icon: BookOpen, bgClass: 'bg-indigo-50 text-indigo-600', path: '/curriculum/courseManage' },
+  { name: '财务流水', desc: '营收订单与核验', icon: CircleDollarSign, bgClass: 'bg-amber-50 text-amber-600', path: '/financial/orderManagement' },
+  { name: '审批中心', desc: '业务退费审批单', icon: ClipboardCheck, bgClass: 'bg-rose-50 text-rose-600', path: '/financial/approvalFlow' }
 ]
 </script>

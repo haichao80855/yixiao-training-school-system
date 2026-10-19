@@ -27,6 +27,9 @@ export const FORM_LABEL_WIDTH = {
   default: '100px',
   long: '120px',
   short: '80px',
+  sm: '80px',
+  md: '100px',
+  lg: '120px',
 } as const
 
 /**

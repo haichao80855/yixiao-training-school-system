@@ -6,7 +6,7 @@
       class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-sm select-none"
       :class="customClass"
     >
-      <span class="text-amber-300">📍</span>
+      <MapPin class="w-3.5 h-3.5 text-amber-300" />
       <span>当前所在</span>
       <span class="text-blue-200 underline underline-offset-2">[切换]</span>
       <span class="font-bold text-white">{{ currentCampus.name }}</span>
@@ -54,7 +54,8 @@
             </div>
 
             <div v-if="campus.id === currentCampus.id" class="text-st-primary font-bold flex items-center space-x-1">
-              <span>✓ 当前激活</span>
+              <Check class="w-3.5 h-3.5" />
+              <span>当前激活</span>
             </div>
             <div v-else class="text-xs text-st-muted">
               点击切换
@@ -76,6 +77,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
+import { MapPin, Check } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 
 defineProps<{

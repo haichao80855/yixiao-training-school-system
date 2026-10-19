@@ -24,9 +24,9 @@
         </div>
 
         <div class="grid grid-cols-3 gap-2 pt-2 border-t border-blue-200 text-xs">
-          <div><span class="text-st-muted">主讲讲师：</span><span class="font-bold text-st-title">👨‍🏫 {{ classItem.teacherName }}</span></div>
-          <div><span class="text-st-muted">班主任：</span><span class="font-medium text-st-title">📋 {{ classItem.assistantName || '张学管' }}</span></div>
-          <div><span class="text-st-muted">固定教室：</span><span class="font-medium text-st-title">📍 {{ classItem.classroomName }}</span></div>
+          <div><span class="text-st-muted">主讲讲师：</span><span class="font-bold text-st-title">{{ classItem.teacherName }}</span></div>
+          <div><span class="text-st-muted">班主任：</span><span class="font-medium text-st-title">{{ classItem.assistantName || '张学管' }}</span></div>
+          <div><span class="text-st-muted">固定教室：</span><span class="font-medium text-st-title">{{ classItem.classroomName }}</span></div>
           <div><span class="text-st-muted">开班周期：</span><span class="font-mono text-st-title">{{ classItem.startDate }} ~ {{ classItem.endDate }}</span></div>
           <div><span class="text-st-muted">固定规律：</span><span class="font-medium text-st-title">{{ classItem.scheduleDesc || '每周六 09:00-10:30' }}</span></div>
           <div><span class="text-st-muted">课次进度：</span><span class="font-bold text-st-primary">{{ classItem.completedLessons || 0 }} / {{ classItem.totalLessons || 48 }} 讲</span></div>
@@ -72,14 +72,17 @@
               </div>
 
               <div class="flex items-center space-x-3 text-[11px]">
-                <span v-if="rosterHealth.statistics.criticalCount > 0" class="text-rose-600 font-bold">
-                  🚨 极度枯竭: {{ rosterHealth.statistics.criticalCount }}人
+                <span v-if="rosterHealth.statistics.criticalCount > 0" class="text-rose-600 font-bold flex items-center gap-1">
+                  <AlertCircle class="w-3.5 h-3.5 inline-block shrink-0" />
+                  极度枯竭: {{ rosterHealth.statistics.criticalCount }}人
                 </span>
-                <span v-if="rosterHealth.statistics.warningCount > 0" class="text-amber-600 font-bold">
-                  ⚠️ 预警跟进: {{ rosterHealth.statistics.warningCount }}人
+                <span v-if="rosterHealth.statistics.warningCount > 0" class="text-amber-600 font-bold flex items-center gap-1">
+                  <AlertTriangle class="w-3.5 h-3.5 inline-block shrink-0" />
+                  预警跟进: {{ rosterHealth.statistics.warningCount }}人
                 </span>
-                <span v-if="rosterHealth.statistics.dormantCount > 0" class="text-purple-600 font-bold">
-                  💤 停消休眠: {{ rosterHealth.statistics.dormantCount }}人
+                <span v-if="rosterHealth.statistics.dormantCount > 0" class="text-purple-600 font-bold flex items-center gap-1">
+                  <Moon class="w-3.5 h-3.5 inline-block shrink-0" />
+                  停消休眠: {{ rosterHealth.statistics.dormantCount }}人
                 </span>
                 <span class="text-slate-500">
                   正常在读: {{ rosterHealth.statistics.normalCount }}人
@@ -116,8 +119,9 @@
                         {{ row.remainingLessons }} 课时
                       </span>
                     </div>
-                    <div v-if="row.isDormant" class="text-[10px] text-purple-600 font-semibold">
-                      💤 停消 {{ row.inactiveDays }} 天
+                    <div v-if="row.isDormant" class="text-[10px] text-purple-600 font-semibold flex items-center gap-0.5">
+                      <Moon class="w-3 h-3 inline-block shrink-0" />
+                      停消 {{ row.inactiveDays }} 天
                     </div>
                   </div>
                 </template>
@@ -235,7 +239,8 @@
             size="small"
             @click="handleActivateClass"
           >
-            🚀 正式开班
+            <template #icon><Rocket class="w-3.5 h-3.5" /></template>
+            正式开班
           </el-button>
           <el-button
             v-if="classItem?.status === 'in_progress'"
@@ -243,7 +248,8 @@
             size="small"
             @click="handleCompleteClass"
           >
-            🎓 正常结课
+            <template #icon><GraduationCap class="w-3.5 h-3.5" /></template>
+            正常结课
           </el-button>
           <el-button
             v-if="classItem?.status !== 'completed' && classItem?.status !== 'cancelled'"
@@ -252,7 +258,8 @@
             size="small"
             @click="handleCancelClass"
           >
-            ⚠️ 异常解散
+            <template #icon><AlertTriangle class="w-3.5 h-3.5" /></template>
+            异常解散
           </el-button>
         </div>
         <el-button @click="visible = false">关闭</el-button>
@@ -264,6 +271,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { AlertCircle, AlertTriangle, Moon, Rocket, GraduationCap } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
 import type { ClassItem, ScheduleEvent, AttendanceRecord } from '@/types/educational'
 import type { ClassRosterHealthReport } from '@/types/student'

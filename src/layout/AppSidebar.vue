@@ -67,7 +67,7 @@
             <span class="font-medium text-xs">教务中心</span>
           </template>
           <el-menu-item index="/educational/workbench" class="!h-10 !pl-10 !text-xs font-semibold text-st-primary">
-            🖥️ 教学讲台
+            教学讲台
           </el-menu-item>
           <el-menu-item index="/educational/timeSchedule" class="!h-10 !pl-10 !text-xs">
             7×15 排课网格
@@ -190,14 +190,14 @@ function openCampusModal() {
 
 <style scoped>
 :deep(.el-menu-item.is-active) {
-  background-color: #ECF5FF !important;
-  color: #1890FF !important;
+  background-color: var(--st-color-border-light, #ECF5FF) !important;
+  color: var(--st-color-primary, #1890FF) !important;
   font-weight: 600;
-  border-right: 3px solid #1890FF;
+  border-right: 3px solid var(--st-color-primary, #1890FF);
 }
 
 :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
-  color: #1890FF !important;
+  color: var(--st-color-primary, #1890FF) !important;
   font-weight: 600;
 }
 </style>

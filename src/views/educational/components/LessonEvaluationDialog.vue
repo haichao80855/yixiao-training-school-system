@@ -20,9 +20,9 @@
             </span>
           </div>
           <div class="text-xs text-st-secondary flex items-center gap-3">
-            <span>📅 {{ currentLesson?.date }} {{ currentLesson?.startTime }} - {{ currentLesson?.endTime }}</span>
-            <span>🏫 {{ currentLesson?.classroomName }}</span>
-            <span>👨‍🏫 {{ currentLesson?.teacherName }}</span>
+            <span class="flex items-center gap-1"><Calendar class="w-3.5 h-3.5" /> {{ currentLesson?.date }} {{ currentLesson?.startTime }} - {{ currentLesson?.endTime }}</span>
+            <span class="flex items-center gap-1"><MapPin class="w-3.5 h-3.5" /> {{ currentLesson?.classroomName }}</span>
+            <span class="flex items-center gap-1"><User class="w-3.5 h-3.5" /> {{ currentLesson?.teacherName }}</span>
           </div>
         </div>
 
@@ -57,7 +57,7 @@
           <div class="space-y-2">
             <div class="flex items-center justify-between text-xs">
               <span class="font-bold text-st-title flex items-center gap-1.5">
-                <span>📋</span>
+                <ClipboardList class="w-4 h-4 text-st-primary" />
                 <span>学员名册与课评进度</span>
               </span>
               <span class="font-mono font-bold text-indigo-600">
@@ -74,44 +74,29 @@
             />
 
             <!-- 快捷筛选药丸 -->
-            <div class="flex items-center gap-1.5 pt-1">
-              <button
-                type="button"
-                :class="[
-                  'px-2.5 py-0.5 text-xs rounded-full font-medium transition-colors border',
-                  filterTab === 'all'
-                    ? 'bg-white text-indigo-700 border-indigo-300 shadow-xs'
-                    : 'bg-transparent text-gray-500 border-transparent hover:text-gray-700'
-                ]"
+            <el-button-group size="small">
+              <el-button
+                :type="filterTab === 'all' ? 'primary' : 'default'"
+                class="!px-2.5"
                 @click="filterTab = 'all'"
               >
                 全部 ({{ rosterList.length }})
-              </button>
-              <button
-                type="button"
-                :class="[
-                  'px-2.5 py-0.5 text-xs rounded-full font-medium transition-colors border',
-                  filterTab === 'pending'
-                    ? 'bg-amber-50 text-amber-700 border-amber-300 shadow-xs'
-                    : 'bg-transparent text-gray-500 border-transparent hover:text-gray-700'
-                ]"
+              </el-button>
+              <el-button
+                :type="filterTab === 'pending' ? 'warning' : 'default'"
+                class="!px-2.5"
                 @click="filterTab = 'pending'"
               >
                 待评 ({{ pendingStudentsCount }})
-              </button>
-              <button
-                type="button"
-                :class="[
-                  'px-2.5 py-0.5 text-xs rounded-full font-medium transition-colors border',
-                  filterTab === 'evaluated'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-xs'
-                    : 'bg-transparent text-gray-500 border-transparent hover:text-gray-700'
-                ]"
+              </el-button>
+              <el-button
+                :type="filterTab === 'evaluated' ? 'success' : 'default'"
+                class="!px-2.5"
                 @click="filterTab = 'evaluated'"
               >
                 已评 ({{ evaluatedStudentsCount }})
-              </button>
-            </div>
+              </el-button>
+            </el-button-group>
           </div>
 
           <!-- 学员卡片流 -->
@@ -133,10 +118,11 @@
                   <span class="font-bold text-st-title text-sm">{{ st.studentName }}</span>
                   <span
                     v-if="st.isWechatBound"
-                    class="text-[11px] text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-100"
+                    class="text-[11px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1"
                     title="已绑定微信公众号，可接收推送"
                   >
-                    📱 微信已绑
+                    <Smartphone class="w-3 h-3" />
+                    <span>微信已绑</span>
                   </span>
                   <span
                     v-else
@@ -151,22 +137,39 @@
                 <el-dropdown trigger="click" @command="(cmd: any) => handleUpdateAttendance(st, cmd)">
                   <span
                     :class="[
-                      'text-xs font-semibold px-2 py-0.5 rounded cursor-pointer border flex items-center gap-1',
+                      'text-xs font-semibold px-2 py-0.5 rounded cursor-pointer border flex items-center gap-1.5',
                       st.attendanceStatus === 'present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                       st.attendanceStatus === 'late' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                       st.attendanceStatus === 'leave' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                       'bg-rose-50 text-rose-700 border-rose-200'
                     ]"
                   >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full inline-block"
+                      :class="[
+                        st.attendanceStatus === 'present' ? 'bg-emerald-500' :
+                        st.attendanceStatus === 'late' ? 'bg-amber-500' :
+                        st.attendanceStatus === 'leave' ? 'bg-blue-500' :
+                        'bg-rose-500'
+                      ]"
+                    ></span>
                     <span>{{ getAttendanceText(st.attendanceStatus) }}</span>
-                    <span class="text-[9px]">▼</span>
+                    <span class="text-[9px] opacity-60">▼</span>
                   </span>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item command="present">🟢 到课</el-dropdown-item>
-                      <el-dropdown-item command="late">🟡 迟到</el-dropdown-item>
-                      <el-dropdown-item command="leave">🔵 请假 (自动免评)</el-dropdown-item>
-                      <el-dropdown-item command="absent">🔴 缺席 (自动免评)</el-dropdown-item>
+                      <el-dropdown-item command="present">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1.5"></span>到课
+                      </el-dropdown-item>
+                      <el-dropdown-item command="late">
+                        <span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>迟到
+                      </el-dropdown-item>
+                      <el-dropdown-item command="leave">
+                        <span class="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>请假 (自动免评)
+                      </el-dropdown-item>
+                      <el-dropdown-item command="absent">
+                        <span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-1.5"></span>缺席 (自动免评)
+                      </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -180,36 +183,42 @@
                     v-if="st.isExempt"
                     class="text-gray-400 text-[11px] font-medium flex items-center gap-1"
                   >
-                    <span>⚪</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>
                     <span>请假免评</span>
                   </span>
                   <span
                     v-else-if="st.isEvaluated"
                     class="text-emerald-700 font-bold text-[11px] flex items-center gap-1"
                   >
-                    <span>🟢 已评定</span>
-                    <span v-if="st.evaluatedSource === 'mp'" class="text-[10px] text-indigo-600 bg-indigo-50 px-1 rounded">
-                      📱 手机端
+                    <CheckCircle2 class="w-3 h-3 text-emerald-600 inline-block" />
+                    <span>已评定</span>
+                    <span v-if="st.evaluatedSource === 'mp'" class="text-[10px] text-indigo-600 bg-indigo-50 px-1 rounded flex items-center gap-0.5">
+                      <Smartphone class="w-2.5 h-2.5" />
+                      手机端
                     </span>
-                    <span v-else class="text-[10px] text-gray-500 bg-gray-100 px-1 rounded">
-                      💻 网页
+                    <span v-else class="text-[10px] text-gray-500 bg-gray-100 px-1 rounded flex items-center gap-0.5">
+                      <Monitor class="w-2.5 h-2.5" />
+                      网页
                     </span>
                   </span>
                   <span
                     v-else
                     class="text-amber-600 font-medium text-[11px] flex items-center gap-1"
                   >
-                    <span>🟡 待评价</span>
+                    <Clock class="w-3 h-3 text-amber-500 inline-block" />
+                    <span>待评价</span>
                   </span>
                 </div>
 
                 <!-- 专属多媒体计数 -->
                 <div class="flex items-center gap-2 text-xs text-st-muted font-mono">
-                  <span v-if="st.videoUrl" class="text-blue-600 font-semibold" title="已有专属实操视频">
-                    🎥 1视频
+                  <span v-if="st.videoUrl" class="text-blue-600 font-semibold flex items-center gap-0.5" title="已有专属实操视频">
+                    <Video class="w-3 h-3" />
+                    <span>1视频</span>
                   </span>
-                  <span v-if="st.photos && st.photos.length > 0" class="text-purple-600 font-semibold" title="专属相册照片数">
-                    📷 {{ st.photos.length }}张
+                  <span v-if="st.photos && st.photos.length > 0" class="text-purple-600 font-semibold flex items-center gap-0.5" title="专属相册照片数">
+                    <ImageIcon class="w-3 h-3" />
+                    <span>{{ st.photos.length }}张</span>
                   </span>
                 </div>
               </div>
@@ -241,7 +250,9 @@
 
           <!-- 若当前学员请假或缺席：给出友好的免评提示与快捷切回入口 -->
           <div v-if="activeStudent?.isExempt" class="p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 space-y-3">
-            <div class="text-3xl">☕</div>
+            <div class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+              <Coffee class="w-6 h-6" />
+            </div>
             <div class="font-bold text-sm text-st-title">该学员当前出勤为「{{ getAttendanceText(activeStudent.attendanceStatus) }}」</div>
             <div class="text-xs text-st-muted max-w-sm mx-auto">
               未实际到课学员已由系统自动置为「请假免评」并锁定，不会扣减误消课时，也不会向家长推送随堂评价，从根源杜绝客诉风险。
@@ -258,7 +269,8 @@
               <el-collapse-item name="outline" class="!border-none">
                 <template #title>
                   <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
-                    <span>📖 课程学习内容与知识点大纲</span>
+                    <BookOpen class="w-3.5 h-3.5 text-st-primary" />
+                    <span>课程学习内容与知识点大纲</span>
                     <span class="text-[11px] font-normal text-st-muted">（全班教学主题背景）</span>
                   </div>
                 </template>
@@ -278,12 +290,13 @@
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
-                  <span>🎥</span>
+                  <Video class="w-3.5 h-3.5 text-st-primary" />
                   <span>{{ activeStudent.studentName }} 的专属实操视频</span>
                   <span class="text-[11px] font-normal text-st-muted">(单视频 ≤ 100MB，独享不公开)</span>
                 </span>
-                <span v-if="activeStudent.videoUrl" class="text-xs text-emerald-600 font-medium">
-                  ✓ 专属视频已就绪
+                <span v-if="activeStudent.videoUrl" class="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                  <CheckCircle2 class="w-3.5 h-3.5" />
+                  专属视频已就绪
                 </span>
               </div>
 
@@ -316,7 +329,7 @@
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
-                  <span>📷</span>
+                  <ImageIcon class="w-3.5 h-3.5 text-st-primary" />
                   <span>{{ activeStudent.studentName }} 的专属现场照片</span>
                   <span class="text-[11px] font-normal text-st-muted">(最多 9 张，每张 ≤ 10MB)</span>
                 </span>
@@ -335,7 +348,7 @@
                   @click="handleAddStudentPhotos"
                 >
                   <span v-if="!uploadingPhotos" class="text-xl font-light leading-none">+</span>
-                  <span v-else class="text-xs animate-spin">⏳</span>
+                  <Loader2 v-else class="w-4 h-4 animate-spin text-st-primary" />
                   <span class="text-[10px] mt-1">{{ uploadingPhotos ? '上传中' : '添加照片' }}</span>
                 </div>
 
@@ -358,19 +371,21 @@
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
-                  <span>✍️</span>
+                  <Edit3 class="w-3.5 h-3.5 text-st-primary" />
                   <span>{{ activeStudent.studentName }} 的随堂特写评语</span>
                 </span>
 
                 <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    class="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-0.5 rounded-full transition-all border border-indigo-200"
+                  <el-button
+                    type="primary"
+                    link
+                    size="small"
+                    class="!text-indigo-700 hover:!text-indigo-900 !bg-indigo-50 hover:!bg-indigo-100 !px-2.5 !py-1 !rounded-full transition-all !border !border-indigo-200 !h-auto font-bold inline-flex items-center gap-1"
                     @click="handleAiRewriteForStudent"
                   >
-                    <span>✨</span>
+                    <Sparkles class="w-3.5 h-3.5" />
                     <span>AI 帮我重写</span>
-                  </button>
+                  </el-button>
                   <span class="text-[11px] text-gray-400 font-mono">已输入 {{ (activeStudent.comment || '').length }} 字</span>
                 </div>
               </div>
@@ -394,15 +409,18 @@
                   :loading="polishing"
                   @click="handleAiPolishForStudent"
                 >
-                  🪄 AI 润色
+                  <template #icon><Sparkles class="w-3.5 h-3.5" /></template>
+                  AI 润色
                 </el-button>
 
                 <div class="flex items-center gap-2">
-                  <el-button link type="primary" size="small" class="!text-xs" @click="handleCycleCommentTemplateForStudent">
-                    🔄 快速载入预设评语
+                  <el-button link type="primary" size="small" class="!text-xs flex items-center gap-1" @click="handleCycleCommentTemplateForStudent">
+                    <RefreshCw class="w-3.5 h-3.5" />
+                    快速载入预设评语
                   </el-button>
-                  <span v-if="activeStudent.aiPolished" class="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
-                    ✓ 已 AI 润色
+                  <span v-if="activeStudent.aiPolished" class="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1">
+                    <Check class="w-3 h-3" />
+                    已 AI 润色
                   </span>
                 </div>
               </div>
@@ -417,7 +435,7 @@
                     v-model="activeStudent.rating"
                     allow-half
                     size="default"
-                    :colors="['#F7BA2A', '#F7BA2A', '#FF9900']"
+                    :colors="['var(--st-color-warning, #F59E0B)', 'var(--st-color-warning, #F59E0B)', 'var(--st-color-warning-deep, #D46B08)']"
                   />
                   <span class="text-xs font-bold text-amber-600">{{ activeStudent.rating }} 星</span>
                 </div>
@@ -503,6 +521,25 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
+import {
+  Sparkles,
+  Edit3,
+  Calendar,
+  MapPin,
+  User,
+  ClipboardList,
+  Smartphone,
+  CheckCircle2,
+  Monitor,
+  Clock,
+  Video,
+  Image as ImageIcon,
+  Coffee,
+  BookOpen,
+  Loader2,
+  RefreshCw,
+  Check
+} from 'lucide-vue-next'
 import { educationalApi, uploadApi } from '@/api'
 import { getEvaluationTemplates } from '@/constants/evaluation'
 import { DIALOG_SIZE } from '@/constants/ui'
@@ -599,11 +636,11 @@ const progressPercent = computed(() => {
 
 function getAttendanceText(status: string): string {
   switch (status) {
-    case 'present': return '🟢 到课'
-    case 'late': return '🟡 迟到'
-    case 'leave': return '🔵 请假'
-    case 'absent': return '🔴 缺席'
-    default: return '⚪ 待打卡'
+    case 'present': return '到课'
+    case 'late': return '迟到'
+    case 'leave': return '请假'
+    case 'absent': return '缺席'
+    default: return '待打卡'
   }
 }
 
@@ -793,7 +830,7 @@ function handleAiRewriteForStudent() {
   const target = activeStudent.value
 
   const loadingMsg = ElMessage({
-    message: `✨ AI 正在为【${target.studentName}】生成高情商个性化随堂评语...`,
+    message: `AI 正在为【${target.studentName}】生成高情商个性化随堂评语...`,
     duration: 0,
     type: 'info'
   })
@@ -819,7 +856,7 @@ function handleAiPolishForStudent() {
   polishing.value = true
   setTimeout(() => {
     polishing.value = false
-    target.comment = `【专属学情特写】${target.comment.trim()} 🌟 在课堂探究中，孩子的思维发散性与动手闭环能力均有亮眼突破，展现出坚韧的专注品质！`
+    target.comment = `【专属学情特写】${target.comment.trim()} 在课堂探究中，孩子的思维发散性与动手闭环能力均有亮眼突破，展现出坚韧的专注品质！`
     target.aiPolished = true
     target.isEvaluated = true
     ElMessage.success(`已完成【${target.studentName}】评语的 AI 深度润色！`)
@@ -868,7 +905,7 @@ function handleSaveAndNextStudent() {
     activeStudentId.value = rosterList.value[currentIndex + 1].studentId
     ElMessage.success(`已暂存！已切换至下一位学员【${rosterList.value[currentIndex + 1].studentName}】`)
   } else {
-    ElMessage.success('🎉 恭喜！当前班级所有在读到课学员课评已全部录入完毕！')
+    ElMessage.success('恭喜！当前班级所有在读到课学员课评已全部录入完毕！')
   }
 }
 
@@ -1011,7 +1048,7 @@ defineExpose({ open })
 
 <style scoped>
 .lesson-evaluation-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid var(--st-color-border-light, #eef2f6);
   margin-right: 0;
   padding-bottom: 12px;
 }

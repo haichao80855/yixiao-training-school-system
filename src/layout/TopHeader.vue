@@ -20,15 +20,17 @@
       </div>
 
       <!-- 侧边栏折叠/展开按钮 -->
-      <button
-        @click="$emit('toggle-sidebar')"
-        class="ml-2 p-1.5 rounded text-st-secondary hover:text-st-primary hover:bg-st-primary-light transition-colors"
+      <el-button
+        link
+        size="small"
+        class="!ml-2 !p-1.5 text-st-secondary hover:!text-st-primary hover:!bg-st-primary-light transition-colors"
         title="折叠/展开侧边栏"
+        @click="$emit('toggle-sidebar')"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-      </button>
+      </el-button>
     </div>
 
     <!-- 右侧：高级操作胶囊栏与用户卡片 -->
@@ -66,15 +68,17 @@
       </el-popover>
 
       <!-- 全屏切换 -->
-      <button
-        @click="toggleFullScreen"
-        class="p-1.5 rounded-full text-st-secondary hover:text-st-primary hover:bg-gray-100 transition-colors hidden sm:block"
+      <el-button
+        link
+        size="small"
+        class="!p-1.5 !rounded-full text-st-secondary hover:!text-st-primary hover:!bg-gray-100 transition-colors hidden sm:inline-flex"
         title="切换全屏模式"
+        @click="toggleFullScreen"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
         </svg>
-      </button>
+      </el-button>
 
       <!-- 用户信息与下拉菜单 -->
       <el-dropdown trigger="click" @command="handleUserCommand">
@@ -98,17 +102,21 @@
             <el-dropdown-item command="profile">个人中心</el-dropdown-item>
             <el-dropdown-item command="password">修改密码</el-dropdown-item>
             <el-dropdown-item command="campus" divided>切换工作校区</el-dropdown-item>
-            <el-dropdown-item command="switch-teacher" divided>
-              👨‍🏫 快速换成：张老师 (讲师)
+            <el-dropdown-item command="switch-teacher" divided class="flex items-center gap-1.5">
+              <UserCheck class="w-4 h-4 mr-1 text-st-primary" />
+              <span>快速换成：张老师 (讲师)</span>
             </el-dropdown-item>
-            <el-dropdown-item command="switch-admin">
-              👑 快速换成：冬海潮 (管理员)
+            <el-dropdown-item command="switch-admin" class="flex items-center gap-1.5">
+              <ShieldCheck class="w-4 h-4 mr-1 text-amber-500" />
+              <span>快速换成：冬海潮 (管理员)</span>
             </el-dropdown-item>
-            <el-dropdown-item command="test-data" divided>
-              🧹 测试数据管理 / 清空Mock数据
+            <el-dropdown-item command="test-data" divided class="flex items-center gap-1.5">
+              <Database class="w-4 h-4 mr-1 text-st-secondary" />
+              <span>测试数据管理 / 清空Mock数据</span>
             </el-dropdown-item>
-            <el-dropdown-item command="logout" divided class="!text-rose-600 font-semibold">
-              🚪 安全退出
+            <el-dropdown-item command="logout" divided class="!text-rose-600 font-semibold flex items-center gap-1.5">
+              <LogOut class="w-4 h-4 mr-1 text-rose-600" />
+              <span>安全退出</span>
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -116,7 +124,7 @@
     </div>
 
     <!-- AI 助手弹窗 -->
-    <el-dialog v-model="aiDialogVisible" title="🤖 拓视未来教育 AI 智能助教与课评引擎" :width="DIALOG_SIZE.sm">
+    <el-dialog v-model="aiDialogVisible" title="拓视未来教育 AI 智能助教与课评引擎" :width="DIALOG_SIZE.sm">
       <div class="space-y-3 text-xs">
         <p class="text-st-secondary">已连接拓视未来教育 AI 大模型中枢，为您实时提供智能课评生成、排课冲突建议与学员留存分析支持。</p>
         <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
@@ -129,11 +137,11 @@
       </template>
     </el-dialog>
     <!-- 测试数据管理弹窗 -->
-    <el-dialog v-model="testDataModalVisible" title="🧹 测试数据与 Mock 数据管理中枢" :width="DIALOG_SIZE.md" destroy-on-close>
+    <el-dialog v-model="testDataModalVisible" title="测试数据与 Mock 数据管理中枢" :width="DIALOG_SIZE.md" destroy-on-close>
       <div class="space-y-4 text-xs">
         <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 leading-relaxed">
           <div class="font-bold text-sm mb-1 flex items-center gap-1.5">
-            <span>⚙️</span>
+            <Settings class="w-4 h-4 text-st-primary" />
             <span>系统业务测试数据状态（已为您清空初始 Mock 数据）</span>
           </div>
           <div>当前系统内预设业务模拟数据已全部清空，方便您自由录入学员、签约开单、创建班级与排课测试。</div>
@@ -180,7 +188,7 @@
         </div>
 
         <div class="text-[11px] text-gray-400">
-          💡 提示：点击“一键清空全部业务数据”可将学员、班级、课表与订单全部重置为 0；需要恢复官方演示数据时可随时点击“恢复初始演示Mock数据”。
+          提示：点击“一键清空全部业务数据”可将学员、班级、课表与订单全部重置为 0；需要恢复官方演示数据时可随时点击“恢复初始演示Mock数据”。
         </div>
       </div>
       <template #footer>
@@ -206,6 +214,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { UserCheck, ShieldCheck, Database, LogOut, Settings, Info } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { DIALOG_SIZE } from '@/constants/ui'
 import CampusSelector from './CampusSelector.vue'

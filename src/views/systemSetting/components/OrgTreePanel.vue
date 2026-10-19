@@ -184,9 +184,9 @@ defineExpose({
   border-radius: 4px;
 }
 .st-org-tree :deep(.el-tree-node__content:hover) {
-  background-color: #f0f7ff;
+  background-color: var(--st-color-border-light, #f0f7ff);
 }
 .st-org-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
-  background-color: #e6f7ff;
+  background-color: var(--st-color-border-light, #e6f7ff);
 }
 </style>

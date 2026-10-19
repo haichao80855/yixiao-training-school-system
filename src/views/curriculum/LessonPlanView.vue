@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 space-y-4 bg-[#F0F2F5] min-h-[calc(100vh-60px)]">
+  <div class="p-5 space-y-4 bg-st-bg min-h-[calc(100vh-60px)]">
     <!-- 顶部概览与操作栏 -->
     <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
       <div>
@@ -63,7 +63,7 @@
         <!-- 单元大纲头 -->
         <div class="bg-gradient-to-r from-gray-50 to-white px-5 py-3 border-b border-gray-200 flex items-center justify-between">
           <div class="flex items-center space-x-3">
-            <span class="w-2.5 h-2.5 rounded-full bg-[#1890FF]"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-st-primary"></span>
             <span class="font-bold text-sm text-gray-800">{{ unit.title }}</span>
             <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
               共 {{ unit.lessons ? unit.lessons.length : 0 }} 讲
@@ -85,12 +85,12 @@
           >
             <!-- 左侧课次与目标 -->
             <div class="flex items-start space-x-3.5 flex-1 min-w-[280px]">
-              <div class="w-8 h-8 rounded-full bg-blue-50 text-[#1890FF] font-bold font-mono flex items-center justify-center shrink-0 mt-0.5">
+              <div class="w-8 h-8 rounded-full bg-blue-50 text-st-primary font-bold font-mono flex items-center justify-center shrink-0 mt-0.5">
                 {{ lesson.order }}
               </div>
               <div class="space-y-1">
                 <div class="flex items-center space-x-2">
-                  <span class="font-bold text-gray-800 text-sm hover:text-[#1890FF] transition-colors">
+                  <span class="font-bold text-gray-800 text-sm hover:text-st-primary transition-colors">
                     {{ lesson.title }}
                   </span>
                   <span class="px-1.5 py-0.2 rounded text-[10px] bg-gray-100 text-gray-600 font-mono">
@@ -110,7 +110,7 @@
             <!-- 右侧课件版本与操作 -->
             <div class="flex items-center space-x-4 shrink-0">
               <div class="text-right space-y-0.5 text-[11px] text-gray-400">
-                <div class="font-mono text-gray-600">课件版本：<span class="text-[#1890FF] font-semibold">v2.4</span></div>
+                <div class="font-mono text-gray-600">课件版本：<span class="text-st-primary font-semibold">v2.4</span></div>
                 <div>随堂互动题：{{ lesson.quizCount || 5 }} 道</div>
               </div>
 
@@ -172,7 +172,7 @@
 
     <!-- 录入新课时教案弹窗 -->
     <el-dialog v-model="addPlanDialogVisible" title="录入课时教案与课件" :width="DIALOG_SIZE.md" class="rounded-xl">
-      <el-form :model="planForm" label-width="90px" size="default" class="pr-4 py-2">
+      <el-form :model="planForm" :label-width="FORM_LABEL_WIDTH.md" size="default" class="pr-4 py-2">
         <el-form-item label="所属课程">
           <el-select v-model="planForm.courseId" class="w-full">
             <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
@@ -213,7 +213,7 @@ import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import CoursewarePlayerDialog from './components/CoursewarePlayerDialog.vue'
 import { curriculumApi } from '@/api'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import { PRESET_LESSON_PLANS } from '@/constants/curriculum'
 import type { CourseItem, CourseUnit, LessonPlanItem } from '@/types/curriculum'
 

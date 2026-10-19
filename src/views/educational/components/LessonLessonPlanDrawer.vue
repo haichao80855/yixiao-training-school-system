@@ -24,7 +24,7 @@
       <!-- 教学目标与核心素养 -->
       <div class="border rounded-lg p-3 bg-white space-y-2">
         <div class="font-bold text-st-title flex items-center gap-1.5">
-          <span>🎯</span>
+          <Target class="w-4 h-4 text-st-primary" />
           <span>本课教学目标与知识图谱</span>
         </div>
         <ul class="list-disc list-inside space-y-1 text-st-secondary pl-1 leading-relaxed">
@@ -37,7 +37,7 @@
       <!-- 硬件材料与教具清单 -->
       <div class="border rounded-lg p-3 bg-white space-y-2">
         <div class="font-bold text-st-title flex items-center gap-1.5">
-          <span>🧰</span>
+          <Wrench class="w-4 h-4 text-st-primary" />
           <span>随堂教具与器材调配清单</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
@@ -91,6 +91,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Target, Wrench } from 'lucide-vue-next'
 import type { WorkbenchLessonCard } from '@/types/educational'
 
 const visible = ref(false)

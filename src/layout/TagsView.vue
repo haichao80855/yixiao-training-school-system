@@ -31,11 +31,9 @@
 
     <!-- 右侧标签快捷操作 -->
     <el-dropdown trigger="click" @command="handleCommand">
-      <button class="p-1 rounded text-st-muted hover:text-st-primary hover:bg-gray-100 transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
+      <el-button link size="small" class="!p-1 text-st-muted hover:!text-st-primary hover:!bg-gray-100 transition-colors">
+        <el-icon><ArrowDown /></el-icon>
+      </el-button>
       <template #dropdown>
         <el-dropdown-menu>
           <el-dropdown-item command="closeOthers">关闭其他标签</el-dropdown-item>

@@ -134,7 +134,7 @@
                   </div>
                   <el-progress
                     :percentage="calcProgress(pkg)"
-                    :color="pkg.status === 'active' ? '#10b981' : '#f59e0b'"
+                    :color="pkg.status === 'active' ? 'var(--st-color-success, #10b981)' : 'var(--st-color-warning, #f59e0b)'"
                     :stroke-width="8"
                   />
                 </div>
@@ -208,9 +208,11 @@
                   size="small"
                   type="primary"
                   plain
+                  class="inline-flex items-center gap-1"
                   @click="copyShareLink(profileDetail?.portfolioShareToken || student?.portfolioShareToken)"
                 >
-                  🔗 复制家长端总览链接
+                  <Link2 class="w-3.5 h-3.5" />
+                  <span>复制家长端总览链接</span>
                 </el-button>
                 <el-button size="small" plain @click="handleAddRecord">+ 录入课评</el-button>
               </div>
@@ -270,8 +272,9 @@
 
                   <!-- 开箱即用 9 宫格相册 (图片自带缩略图 thumbnailUrl 与全量预览 previewList) -->
                   <div v-if="(rec.photos && rec.photos.length > 0) || (rec.photoList && rec.photoList.length > 0)" class="pt-1">
-                    <div class="text-[11px] text-st-muted mb-1 flex items-center gap-1">
-                      <span>📸 随堂精彩瞬间 ({{ rec.photos?.length || rec.photoList?.length }} 张)</span>
+                    <div class="text-[11px] text-st-muted mb-1 flex items-center gap-1.5">
+                      <Image class="w-3.5 h-3.5 text-st-primary" />
+                      <span>随堂精彩瞬间 ({{ rec.photos?.length || rec.photoList?.length }} 张)</span>
                     </div>
                     <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
                       <template v-if="rec.photos && rec.photos.length > 0">
@@ -305,14 +308,15 @@
                   <div v-if="rec.voiceUrl || rec.videoUrl" class="flex flex-wrap items-center gap-3 pt-1">
                     <!-- 语音播放器 -->
                     <div v-if="rec.voiceUrl" class="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 px-3 py-1.5 rounded-full text-xs font-mono border border-emerald-200/60">
-                      <span>🎤 随堂原声点评</span>
+                      <Mic class="w-3.5 h-3.5 text-emerald-700" />
+                      <span>随堂原声点评</span>
                       <span v-if="rec.voiceMeta">({{ rec.voiceMeta.durationFormatted }})</span>
                       <audio controls :src="rec.voiceUrl" class="h-6 w-40" />
                     </div>
 
                     <!-- 视频链接 -->
                     <div v-if="rec.videoUrl" class="inline-flex items-center gap-1.5 text-xs text-blue-600 font-semibold bg-blue-50 px-3 py-1.5 rounded-full border border-blue-200/60">
-                      <span>🎥</span>
+                      <Video class="w-3.5 h-3.5 text-blue-600" />
                       <a :href="rec.videoUrl" target="_blank" class="hover:underline">查看实操编程视频作品</a>
                     </div>
                   </div>
@@ -430,8 +434,8 @@
             <!-- 软电话外呼模拟条 -->
             <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between">
               <div class="flex items-center space-x-3 text-xs">
-                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
-                  ☎
+                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <Phone class="w-4 h-4" />
                 </div>
                 <div>
                   <div class="font-semibold text-st-title">软电话 (TQSIP / 容联云通讯中心) 状态：在线</div>
@@ -476,7 +480,10 @@
                 <!-- 录音模拟试听控件 -->
                 <div class="bg-gray-50 rounded p-2 flex items-center justify-between text-[11px] text-st-secondary">
                   <div class="flex items-center space-x-2">
-                    <button class="text-st-primary hover:underline font-bold">▶ 播放通话录音</button>
+                    <el-button link type="primary" size="small" class="!font-bold inline-flex items-center gap-1">
+                      <Play class="w-3 h-3 fill-current" />
+                      <span>播放通话录音</span>
+                    </el-button>
                     <span>音频波形: ▃▅▇█▅▃ 128kbps MP3</span>
                   </div>
                   <span class="font-mono">录音存档: TQSIP-REC-2026.mp3</span>
@@ -612,6 +619,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Play, Link2, Image, Mic, Video, Phone } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student, StudentCoursePackage, CompetitionRecord } from '@/types/student'
 import { studentApi } from '@/api'

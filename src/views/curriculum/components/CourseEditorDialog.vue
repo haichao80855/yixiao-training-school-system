@@ -22,7 +22,7 @@
         ref="step1FormRef"
         :model="form"
         :rules="step1Rules"
-        label-width="110px"
+        :label-width="FORM_LABEL_WIDTH.md"
         size="default"
         class="pr-4"
       >
@@ -182,20 +182,17 @@
               <div class="flex-1 text-xs text-gray-500">
                 <div class="font-medium text-gray-700 mb-1">封面推荐预设（点击直接选用）：</div>
                 <div class="flex flex-wrap gap-2">
-                  <button
+                  <el-button
                     v-for="(url, key) in presetCovers"
                     :key="key"
-                    type="button"
+                    size="small"
+                    :type="form.cover === url ? 'primary' : 'default'"
+                    :plain="form.cover === url"
+                    class="!m-0"
                     @click="form.cover = url"
-                    :class="[
-                      'px-2 py-1 rounded text-xs border transition-all',
-                      form.cover === url
-                        ? 'border-[#1890FF] bg-blue-50 text-[#1890FF] font-semibold'
-                        : 'border-gray-200 bg-white hover:bg-gray-50 text-gray-600'
-                    ]"
                   >
                     {{ coverLabels[key] || key }}
-                  </button>
+                  </el-button>
                 </div>
               </div>
             </div>
@@ -251,7 +248,7 @@
           :class="[
             'p-3.5 rounded-lg border cursor-pointer transition-all duration-200 flex items-start justify-between select-none',
             form.authorizedCampusIds.includes(campus.id)
-              ? 'border-[#1890FF] bg-blue-50/40 shadow-sm'
+              ? 'border-st-primary bg-st-primary/5 shadow-sm'
               : 'border-gray-200 bg-white hover:border-gray-300'
           ]"
         >
@@ -276,8 +273,9 @@
             </div>
           </div>
           <div class="text-xs font-medium pt-0.5">
-            <span v-if="form.authorizedCampusIds.includes(campus.id)" class="text-[#1890FF]">
-              已授权 ✓
+            <span v-if="form.authorizedCampusIds.includes(campus.id)" class="text-st-primary flex items-center gap-1">
+              <Check class="w-3.5 h-3.5" />
+              已授权
             </span>
             <span v-else class="text-gray-400">
               未授权
@@ -310,7 +308,7 @@
         <!-- 单元表头 -->
         <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
           <div class="flex items-center space-x-2 flex-1 mr-4">
-            <span class="w-2.5 h-2.5 rounded-full bg-[#1890FF] shrink-0"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-st-primary shrink-0"></span>
             <el-input
               v-model="unit.title"
               placeholder="单元标题，例如：第一单元：基础语法"
@@ -407,7 +405,7 @@
                 ↓
               </el-button>
               <el-button link type="danger" size="small" @click="deleteLesson(unit, lIdx)">
-                ✕
+                <Trash2 class="w-3.5 h-3.5" />
               </el-button>
             </div>
           </div>
@@ -438,10 +436,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { Check, Trash2 } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { curriculumApi } from '@/api'
 import { COURSE_COVERS } from '@/constants/curriculum'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { CourseItem, CourseUnit, LessonItem } from '@/types/curriculum'
 
 const props = defineProps<{

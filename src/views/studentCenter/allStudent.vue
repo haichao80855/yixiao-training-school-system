@@ -63,10 +63,10 @@
           <label class="block text-xs text-st-secondary mb-1">课消风控与续费决策</label>
           <el-select v-model="selectedWarningLevel" size="small" placeholder="全部风控" class="w-full" clearable>
             <el-option label="全部风控状态" value="all" />
-            <el-option label="🚨 紧急续约 (<=4课时)" value="critical" />
-            <el-option label="⚠️ 预警跟进 (<=8课时)" value="warning" />
-            <el-option label="💤 停消休眠 (>=14天)" value="dormant" />
-            <el-option label="✅ 课消充沛正常" value="normal" />
+            <el-option label="紧急续约 (<=4课时)" value="critical" />
+            <el-option label="预警跟进 (<=8课时)" value="warning" />
+            <el-option label="停消休眠 (>=14天)" value="dormant" />
+            <el-option label="课消充沛正常" value="normal" />
           </el-select>
         </div>
 
@@ -158,7 +158,7 @@
                   class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[8px]"
                   title="已录入人脸"
                 >
-                  ✓
+                  <Check class="w-2.5 h-2.5" />
                 </span>
               </div>
               <div>
@@ -178,7 +178,9 @@
             <div class="text-xs">
               <div class="font-mono flex items-center space-x-1">
                 <span>{{ row.phone }}</span>
-                <el-button link type="primary" size="small" class="!p-0 text-[11px]" @click="quickCall(row)">☎</el-button>
+                <el-button link type="primary" size="small" class="!p-0 text-[11px]" @click="quickCall(row)">
+                  <Phone class="w-3 h-3 ml-0.5" />
+                </el-button>
               </div>
               <div class="text-[11px] text-st-secondary mt-0.5 flex items-center space-x-1">
                 <span v-if="row.wechatBound" class="text-emerald-600">● 微信已绑</span>
@@ -251,7 +253,7 @@
                   size="small"
                   effect="dark"
                 >
-                  🚨 极度枯竭
+                  极度枯竭
                 </el-tag>
                 <el-tag
                   v-else-if="row.warningLevel === 'warning'"
@@ -259,7 +261,7 @@
                   size="small"
                   effect="light"
                 >
-                  ⚠️ 续费预警
+                  续费预警
                 </el-tag>
                 <el-tag
                   v-else
@@ -267,14 +269,14 @@
                   size="small"
                   effect="plain"
                 >
-                  ✅ 充沛正常
+                  充沛正常
                 </el-tag>
                 <span class="font-mono text-st-muted text-[11px]">
                   余 {{ row.totalRemainingLessons ?? row.coursePackages?.reduce((s: number, p: any) => s + (p.remainingLessons || 0), 0) ?? 0 }} 课时
                 </span>
               </div>
               <div v-if="row.consumptionHealth?.dormantRisk && row.consumptionHealth.dormantRisk !== 'active'" class="text-[10px] text-purple-600 font-semibold">
-                💤 停消休眠 {{ row.consumptionHealth.inactiveDays }} 天
+                停消休眠 {{ row.consumptionHealth.inactiveDays }} 天
               </div>
               <div v-else-if="row.consumptionHealth?.estimatedDepletionDays !== undefined" class="text-[10px] text-st-muted">
                 预计 {{ row.consumptionHealth.estimatedDepletionDays }} 天后课时耗尽
@@ -430,6 +432,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Phone, Check } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'

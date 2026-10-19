@@ -70,13 +70,13 @@ defineEmits<{
 <style scoped>
 .st-tabs :deep(.el-tabs__item) {
   font-size: 13px;
-  color: #595959;
+  color: var(--st-color-text-secondary, #64748B);
 }
 .st-tabs :deep(.el-tabs__item.is-active) {
-  color: #1890FF;
+  color: var(--st-color-primary, #3B82F6);
   font-weight: bold;
 }
 .st-tabs :deep(.el-tabs__active-bar) {
-  background-color: #1890FF;
+  background-color: var(--st-color-primary, #3B82F6);
 }
 </style>

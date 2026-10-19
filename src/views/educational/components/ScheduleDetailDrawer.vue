@@ -25,8 +25,8 @@
 
         <!-- 冲突告警条目 -->
         <div v-if="event.hasConflict" class="mt-3 bg-white/80 p-2.5 rounded border border-rose-300 text-xs text-rose-700 space-y-1">
-          <div class="font-bold flex items-center gap-1">
-            <span>⚠️</span>
+          <div class="font-bold flex items-center gap-1.5">
+            <AlertTriangle class="w-3.5 h-3.5 text-rose-600" />
             <span>冲突原因排查 ({{ event.conflictType || '时段重叠' }})</span>
           </div>
           <p class="leading-relaxed">{{ event.conflictReason || '与同校区其他课次存在时间、教师或教室资源争抢冲突' }}</p>
@@ -43,8 +43,8 @@
         <div class="grid grid-cols-2 gap-2">
           <div><span class="text-st-muted">上课日期：</span><span class="font-medium text-st-title">{{ event.date }}</span></div>
           <div><span class="text-st-muted">上课时段：</span><span class="font-medium text-st-title">{{ event.startTime }} - {{ event.endTime }} ({{ event.durationMinutes }}分钟)</span></div>
-          <div><span class="text-st-muted">授课讲师：</span><span class="font-medium text-st-title">👨‍🏫 {{ event.teacherName }}</span></div>
-          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title">📍 {{ event.classroomName }}</span></div>
+          <div><span class="text-st-muted">授课讲师：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ event.teacherName }}</span></div>
+          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />{{ event.classroomName }}</span></div>
           <div><span class="text-st-muted">课次讲数：</span><span class="font-medium text-st-title">第 {{ event.lessonNumber || 1 }} 讲</span></div>
           <div><span class="text-st-muted">课次类型：</span><span class="font-medium text-st-title">{{ event.classType === 'formal' ? '正式课' : event.classType === 'make_up' ? '补课' : '公开试听' }}</span></div>
         </div>
@@ -57,7 +57,8 @@
       <div class="space-y-2">
         <div class="flex items-center justify-between">
           <h4 class="text-xs font-bold text-st-title flex items-center gap-1.5">
-            <span>👥 本班应到学员</span>
+            <Users class="w-4 h-4 text-st-primary" />
+            <span>本班应到学员</span>
             <span class="text-st-muted font-normal">({{ studentList.length }} 人)</span>
           </h4>
           <span class="text-[11px] text-st-muted">实到已出勤: {{ event.attendanceCount || 0 }} 人</span>
@@ -102,6 +103,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { User, MapPin, Users, AlertTriangle } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
 import { EducationalCollisionEngine } from '@/utils/collisionEngine'
 import type { ScheduleEvent } from '@/types/educational'

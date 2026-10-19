@@ -4,14 +4,15 @@
     <!-- 顶部子 Tab 切换条 (对标截图: 上课日历 / 课表汇总 / 时间课表 / 教室课表 / 讲师课表 / 班级课表 / 冲突记录) -->
     <div class="bg-white rounded-lg border border-st-border px-5 py-2.5 shadow-sm flex items-center justify-between">
       <div class="flex items-center space-x-6 text-sm font-medium">
-        <button
+        <el-button
           v-for="tab in subTabs"
           :key="tab.key"
+          link
           :class="[
-            'pb-1.5 pt-1 relative transition-colors',
+            'pb-1.5 pt-1 relative transition-colors !text-sm',
             currentSubTab === tab.key
-              ? 'text-st-primary font-bold after:content-[\'\'] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-st-primary'
-              : 'text-st-regular hover:text-st-primary'
+              ? '!text-st-primary font-bold after:content-[\'\'] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-st-primary'
+              : '!text-st-regular hover:!text-st-primary'
           ]"
           @click="handleSubTabChange(tab.key)"
         >
@@ -19,7 +20,7 @@
           <span v-if="tab.key === 'conflictRecord' && campusConflictCount > 0" class="ml-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px]">
             {{ campusConflictCount }}
           </span>
-        </button>
+        </el-button>
       </div>
 
       <div class="text-xs text-st-muted flex items-center gap-2">
@@ -29,7 +30,7 @@
           effect="plain"
           class="font-medium font-mono"
         >
-          {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人课表)' : (authStore.user?.dataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+          {{ isDataScopeSelf ? '仅本人数据 (已锁定只看本人课表)' : (authStore.user?.dataScope === 'all' ? '全部校区数据透视' : '本校数据透视') }}
         </el-tag>
         <span>当前校区：</span>
         <el-tag size="small" type="primary">{{ currentCampus.name }}</el-tag>
@@ -72,7 +73,8 @@
 
       <div class="flex items-center space-x-2">
         <el-button type="danger" plain size="default" @click="openConflictCenter">
-          ⚡ 冲突检测中心 ({{ campusConflictCount }})
+          <template #icon><Zap class="w-3.5 h-3.5" /></template>
+          冲突检测中心 ({{ campusConflictCount }})
         </el-button>
         <el-button size="default" @click="handleExport">
           导出课表
@@ -89,7 +91,7 @@
       class="bg-rose-50 border border-rose-300 rounded-lg p-3 text-xs text-rose-800 flex items-center justify-between shadow-sm animate-pulse"
     >
       <div class="flex items-center space-x-2">
-        <span class="text-base">⚠️</span>
+        <AlertTriangle class="w-4 h-4 text-rose-600 shrink-0" />
         <span>
           三维碰撞检测引擎在当前校区 [<b>{{ currentCampus.name }}</b>] 发现
           <b class="text-rose-600 text-sm font-extrabold mx-0.5">{{ campusConflictCount }}</b> 处日程重叠冲突（讲师/物理教室时段碰撞），排课卡片已自动红框警示！
@@ -104,23 +106,25 @@
     <div class="bg-white rounded-lg px-5 py-3 shadow-sm border border-st-border flex flex-col md:flex-row md:items-center justify-between gap-3">
       <!-- 周次切换控件 -->
       <div class="flex items-center space-x-2.5">
-        <button
-          class="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-st-title font-bold text-xs"
+        <el-button
+          size="small"
+          class="!w-7 !h-7 !p-0"
           title="上一周"
           @click="prevWeek"
         >
-          &lt;
-        </button>
+          <el-icon><ArrowLeft /></el-icon>
+        </el-button>
         <span class="font-bold text-st-title text-sm min-w-[210px] text-center tracking-wide">
           {{ currentWeekDisplay }}
         </span>
-        <button
-          class="w-7 h-7 rounded border border-gray-300 flex items-center justify-center hover:bg-gray-50 text-st-title font-bold text-xs"
+        <el-button
+          size="small"
+          class="!w-7 !h-7 !p-0"
           title="下一周"
           @click="nextWeek"
         >
-          &gt;
-        </button>
+          <el-icon><ArrowRight /></el-icon>
+        </el-button>
         <el-button size="small" plain @click="resetToCurrentWeek">
           返回本周
         </el-button>
@@ -129,19 +133,19 @@
       <!-- 四色语义图例 (对标截图: 绿色已上日程 / 红色冲突日程 / 紫色我的日程 / 蓝色其他日程) -->
       <div class="flex items-center space-x-5 text-xs text-st-secondary">
         <div class="flex items-center space-x-1.5">
-          <span class="w-3 h-3 rounded-full bg-[#67C23A] inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-st-success inline-block"></span>
           <span>已上日程</span>
         </div>
         <div class="flex items-center space-x-1.5">
-          <span class="w-3 h-3 rounded-full bg-[#F56C6C] inline-block animate-ping"></span>
-          <span class="text-rose-600 font-medium">冲突日程</span>
+          <span class="w-3 h-3 rounded-full bg-st-danger inline-block animate-ping"></span>
+          <span class="text-st-danger font-medium">冲突日程</span>
         </div>
         <div class="flex items-center space-x-1.5">
-          <span class="w-3 h-3 rounded-full bg-[#722ED1] inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
           <span class="text-purple-700">我的日程</span>
         </div>
         <div class="flex items-center space-x-1.5">
-          <span class="w-3 h-3 rounded-full bg-[#409EFF] inline-block"></span>
+          <span class="w-3 h-3 rounded-full bg-st-primary inline-block"></span>
           <span>其他日程</span>
         </div>
       </div>
@@ -256,8 +260,8 @@
 
                 <!-- 底部：地点与讲师 -->
                 <div class="text-[10px] space-y-0.5 pt-0.5 border-t border-black/5 opacity-90 truncate">
-                  <div class="truncate">📍 {{ laneEvt.event.classroomName }}</div>
-                  <div class="truncate">👨‍🏫 {{ laneEvt.event.teacherName }}</div>
+                  <div class="truncate flex items-center gap-1"><MapPin class="w-3 h-3 shrink-0" /> {{ laneEvt.event.classroomName }}</div>
+                  <div class="truncate flex items-center gap-1"><User class="w-3 h-3 shrink-0" /> {{ laneEvt.event.teacherName }}</div>
                 </div>
               </div>
             </div>
@@ -279,7 +283,7 @@
           class="border border-st-border rounded-lg p-3 bg-gray-50 space-y-2.5"
         >
           <div class="flex items-center justify-between">
-            <span class="font-bold text-st-title text-sm">📍 {{ room.name }}</span>
+            <span class="font-bold text-st-title text-sm flex items-center gap-1.5"><MapPin class="w-4 h-4 text-st-primary" /> {{ room.name }}</span>
             <el-tag size="small">{{ room.typeName || '教室' }} ({{ room.capacity }}人)</el-tag>
           </div>
           <div class="space-y-1.5 max-h-56 overflow-y-auto">
@@ -295,7 +299,7 @@
               </div>
               <div class="text-[11px] text-st-muted flex justify-between">
                 <span>{{ evt.startTime }}-{{ evt.endTime }}</span>
-                <span>👨‍🏫 {{ evt.teacherName }}</span>
+                <span class="flex items-center gap-1"><User class="w-3 h-3" /> {{ evt.teacherName }}</span>
               </div>
             </div>
             <div v-if="getEventsByClassroom(room.id).length === 0" class="text-center py-6 text-st-muted text-xs">
@@ -319,7 +323,7 @@
           class="border border-st-border rounded-lg p-3 bg-gray-50 space-y-2.5"
         >
           <div class="flex items-center justify-between">
-            <span class="font-bold text-st-title text-sm">👨‍🏫 {{ t.name }}</span>
+            <span class="font-bold text-st-title text-sm flex items-center gap-1.5"><User class="w-4 h-4 text-st-primary" /> {{ t.name }}</span>
             <el-tag size="small" type="success">{{ t.roleName || '主讲讲师' }}</el-tag>
           </div>
           <div class="space-y-1.5 max-h-56 overflow-y-auto">
@@ -335,7 +339,7 @@
               </div>
               <div class="text-[11px] text-st-muted flex justify-between">
                 <span>{{ evt.startTime }}-{{ evt.endTime }}</span>
-                <span>📍 {{ evt.classroomName }}</span>
+                <span class="inline-flex items-center gap-0.5"><MapPin class="w-3 h-3 text-amber-500" />{{ evt.classroomName }}</span>
               </div>
             </div>
             <div v-if="getEventsByTeacher(t.id).length === 0" class="text-center py-6 text-st-muted text-xs">
@@ -414,6 +418,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { MapPin, Zap, AlertTriangle, User, Lock } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
@@ -612,7 +617,7 @@ function getBadgeStyle(event: ScheduleEvent) {
   const style = EducationalCollisionEngine.getSemanticChipStyle(event)
   return {
     backgroundColor: style.borderColor,
-    color: '#ffffff'
+    color: 'var(--st-color-card, #ffffff)'
   }
 }
 

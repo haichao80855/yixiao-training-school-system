@@ -78,7 +78,7 @@ function handleCurrentChange(val: number) {
 
 <style scoped>
 .app-pagination-container :deep(.el-pagination) {
-  --el-pagination-button-bg-color: #f4f4f5;
-  --el-pagination-hover-color: var(--st-color-primary, #1890ff);
+  --el-pagination-button-bg-color: var(--st-color-border-light, #f4f4f5);
+  --el-pagination-hover-color: var(--st-color-primary, #3B82F6);
 }
 </style>

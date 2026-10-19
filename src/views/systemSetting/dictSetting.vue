@@ -130,10 +130,10 @@
     <el-dialog
       v-model="showDictModal"
       :title="isEditMode ? '编辑字典项' : '新增业务字典项'"
-      width="480px"
+      :width="DIALOG_SIZE.sm"
       destroy-on-close
     >
-      <el-form :model="dictForm" label-width="95px" size="small" class="pt-2">
+      <el-form :model="dictForm" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
         <el-form-item label="字典分类" required>
           <el-select v-model="dictForm.category" class="w-full" :disabled="isEditMode">
             <el-option label="学员异动原因字典 (trans_reason)" value="trans_reason" />
@@ -182,6 +182,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { DictItem } from '@/types/system'
 import { systemApi } from '@/api'
 
@@ -366,19 +367,19 @@ onMounted(async () => {
 <style scoped>
 .st-dict-tabs :deep(.el-tabs__item) {
   font-size: 13px;
-  color: #595959;
+  color: var(--st-color-text-secondary, #64748B);
 }
 .st-dict-tabs :deep(.el-tabs__item.is-active) {
-  color: #1890FF;
+  color: var(--st-color-primary, #3B82F6);
   font-weight: bold;
 }
 .st-dict-tabs :deep(.el-tabs__active-bar) {
-  background-color: #1890FF;
+  background-color: var(--st-color-primary, #3B82F6);
 }
 
 .st-dict-table :deep(.el-table__header th) {
-  background-color: #fafafa;
-  color: #262626;
+  background-color: var(--st-color-bg, #F8FAFC);
+  color: var(--st-color-text-title, #0F172A);
   font-weight: 600;
 }
 </style>

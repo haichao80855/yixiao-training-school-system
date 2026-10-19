@@ -18,7 +18,7 @@
       <!-- 续费决策智能草案横条 -->
       <div v-if="props.renewalDraft" class="bg-amber-50 border border-amber-200 rounded p-3 text-xs flex items-center justify-between text-amber-900">
         <div class="flex items-center space-x-2">
-          <span class="text-base">📋</span>
+          <FileText class="w-4 h-4 text-amber-700 shrink-0" />
           <div>
             <div class="font-bold flex items-center space-x-1.5">
               <span>续费开单智能预填草案已就绪</span>
@@ -220,6 +220,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
+import { FileText } from 'lucide-vue-next'
 import type { Student } from '@/types/student'
 import { studentApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'

@@ -2,30 +2,20 @@
   <div class="p-4 space-y-3.5 bg-st-bg min-h-full">
     <!-- 顶部主分段 Tab (常规收费订单 | 季度扣费流水) 与校区环境 -->
     <div class="bg-white rounded-lg px-4 py-2.5 shadow-card border border-st-border flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center space-x-2">
-        <button
+      <el-button-group size="small">
+        <el-button
+          :type="(filterForm.chargeType === 'regular' || (filterForm.chargeType === 'all' && activeMainTab === 'regular')) ? 'primary' : 'default'"
           @click="handleMainTabChange('regular')"
-          :class="[
-            'px-4 py-1.5 text-xs font-bold rounded transition-all',
-            filterForm.chargeType === 'regular' || (filterForm.chargeType === 'all' && activeMainTab === 'regular')
-              ? 'bg-st-primary text-white shadow-sm'
-              : 'text-st-regular bg-gray-100 hover:bg-gray-200/80'
-          ]"
         >
           常规收费订单
-        </button>
-        <button
+        </el-button>
+        <el-button
+          :type="(filterForm.chargeType === 'quarterly' || activeMainTab === 'quarterly') ? 'primary' : 'default'"
           @click="handleMainTabChange('quarterly')"
-          :class="[
-            'px-4 py-1.5 text-xs font-bold rounded transition-all',
-            filterForm.chargeType === 'quarterly' || activeMainTab === 'quarterly'
-              ? 'bg-st-primary text-white shadow-sm'
-              : 'text-st-regular bg-gray-100 hover:bg-gray-200/80'
-          ]"
         >
           季度扣费流水
-        </button>
-      </div>
+        </el-button>
+      </el-button-group>
 
       <div class="flex items-center space-x-3 text-xs">
         <span class="text-st-muted">当前核算校区：</span>
@@ -268,27 +258,25 @@
       <!-- 底部与横向状态分段 Tab 联动 -->
       <template #footer>
         <div class="flex items-center space-x-1">
-          <button
+          <el-button
             v-for="tab in statusTabs"
             :key="tab.key"
+            size="small"
+            :type="activeStatusTab === tab.key ? 'primary' : 'default'"
+            :plain="activeStatusTab === tab.key"
+            class="!m-0"
             @click="handleStatusTabChange(tab.key)"
-            :class="[
-              'px-3 py-1 text-xs rounded transition-all flex items-center space-x-1.5',
-              activeStatusTab === tab.key
-                ? 'bg-blue-50 text-st-primary font-bold border border-blue-200'
-                : 'text-st-regular hover:bg-gray-100'
-            ]"
           >
             <span>{{ tab.name }}</span>
             <span
               :class="[
-                'text-[10px] px-1.5 py-0.2 rounded-full font-mono',
-                activeStatusTab === tab.key ? 'bg-st-primary text-white' : 'bg-gray-200 text-st-muted'
+                'text-[10px] px-1.5 py-0.2 rounded-full font-mono ml-1',
+                activeStatusTab === tab.key ? 'bg-st-primary text-white' : 'bg-gray-100 text-st-muted'
               ]"
             >
               {{ statusCounts[tab.key] || 0 }}
             </span>
-          </button>
+          </el-button>
         </div>
 
         <div class="text-xs text-st-muted">

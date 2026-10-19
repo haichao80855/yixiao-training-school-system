@@ -14,7 +14,8 @@
 
       <div class="flex items-center space-x-2">
         <el-button size="default" @click="handleFaceSync">
-          📷 刷脸考勤同步
+          <template #icon><Camera class="w-3.5 h-3.5" /></template>
+          刷脸考勤同步
         </el-button>
         <el-button type="primary" size="default" @click="handleBatchRollCall">
           批量确认消课
@@ -95,7 +96,7 @@
                   effect="plain"
                   class="font-medium font-mono"
                 >
-                  {{ isDataScopeSelf ? '🔒 仅本人数据 (已锁定只看本人点名)' : (authStore.user?.dataScope === 'all' ? '🌐 全部校区数据透视' : '🏫 本校数据透视') }}
+                  {{ isDataScopeSelf ? '仅本人数据 (已锁定只看本人点名)' : (authStore.user?.dataScope === 'all' ? '全部校区数据透视' : '本校数据透视') }}
                 </el-tag>
                 <span class="text-xs text-st-muted">
                   {{ filterDate ? "当日" : "今日" }}待上课次共 <b>{{ filteredSchedules.length }}</b> 节
@@ -116,14 +117,14 @@
                   <div class="text-[11px] text-st-muted mt-0.5">{{ row.courseName }}</div>
                 </template>
               </el-table-column>
-              <el-table-column prop="teacherName" label="授课老师" width="110">
+              <el-table-column prop="teacherName" label="授课老师" width="115">
                 <template #default="{ row }">
-                  <span class="font-medium text-st-title">👨‍🏫 {{ row.teacherName }}</span>
+                  <span class="font-medium text-st-title flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" /> {{ row.teacherName }}</span>
                 </template>
               </el-table-column>
               <el-table-column prop="classroomName" label="所在教室" width="130">
                 <template #default="{ row }">
-                  <span class="text-xs text-st-secondary">📍 {{ row.classroomName }}</span>
+                  <span class="text-xs text-st-secondary flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-st-secondary" /> {{ row.classroomName }}</span>
                 </template>
               </el-table-column>
               <el-table-column label="应到人数" width="100">
@@ -186,9 +187,9 @@
                   <div class="text-[11px] text-st-muted mt-0.5">{{ row.lessonTitle || `第${row.lessonNumber}讲` }}</div>
                 </template>
               </el-table-column>
-              <el-table-column prop="teacherName" label="授课老师" width="105">
+              <el-table-column prop="teacherName" label="授课老师" width="115">
                 <template #default="{ row }">
-                  <span>👨‍🏫 {{ row.teacherName }}</span>
+                  <span class="flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" /> {{ row.teacherName }}</span>
                 </template>
               </el-table-column>
               <el-table-column label="出勤情况" width="160">
@@ -256,6 +257,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Camera, User, MapPin } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'

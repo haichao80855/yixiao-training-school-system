@@ -1,33 +1,30 @@
 <template>
   <div class="capsule-filter-row flex items-center text-xs">
-    <span v-if="label" class="capsule-label w-20 text-[#8C8C8C] font-medium shrink-0">
+    <span v-if="label" class="capsule-label w-20 text-st-muted font-medium shrink-0">
       {{ label }}
     </span>
     <div class="flex flex-wrap items-center gap-1.5 flex-1">
-      <button
+      <el-button
         v-for="item in normalizedOptions"
         :key="String(item.value)"
-        type="button"
+        size="small"
+        round
         :disabled="item.disabled"
+        :type="isSelected(item.value) ? 'primary' : 'default'"
+        class="!m-0 !px-3 text-xs"
         @click="handleClick(item.value)"
-        :class="[
-          'px-3 py-1 rounded-full transition-all duration-150 text-xs inline-flex items-center space-x-1 select-none focus:outline-none',
-          isSelected(item.value)
-            ? 'bg-[#1890FF] text-white font-medium shadow-sm shadow-blue-200'
-            : 'text-[#595959] hover:text-[#1890FF] hover:bg-[#F5F5F5] active:bg-[#E6F7FF]'
-        ]"
       >
         <span>{{ item.label }}</span>
         <span
           v-if="item.count !== undefined"
           :class="[
-            'text-[10px] px-1 py-0.2 rounded-full ml-0.5',
-            isSelected(item.value) ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-500'
+            'text-[10px] px-1 py-0.2 rounded-full ml-1',
+            isSelected(item.value) ? 'bg-white/25 text-white' : 'bg-gray-100 text-st-muted'
           ]"
         >
           {{ item.count }}
         </span>
-      </button>
+      </el-button>
     </div>
   </div>
 </template>

@@ -6,7 +6,7 @@
     :width="DIALOG_SIZE.sm"
     destroy-on-close
   >
-    <el-form :model="form" label-width="95px" size="small" class="pt-2">
+    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
       <el-form-item label="机构全称" required>
         <el-input v-model="form.name" placeholder="请输入机构工商登记全称" />
       </el-form-item>
@@ -36,7 +36,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { CompanyInfo } from '@/types/system'
 
 const props = defineProps<{

@@ -7,7 +7,7 @@
     :close-on-click-modal="false"
     :close-on-press-escape="false"
   >
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="95px" size="default">
+    <el-form ref="formRef" :model="form" :rules="rules" :label-width="FORM_LABEL_WIDTH.md" size="default">
       <div class="grid grid-cols-2 gap-3">
         <el-form-item label="班级名称" prop="name">
           <el-input v-model="form.name" placeholder="如：Scratch创意周末班 (周六 09:00)" />
@@ -131,7 +131,7 @@
     append-to-body
     class="rounded-xl"
   >
-    <el-form ref="classroomFormRef" :model="classroomForm" label-width="85px" size="small" class="pt-2">
+    <el-form ref="classroomFormRef" :model="classroomForm" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
       <el-form-item label="教室名称" required>
         <el-input v-model="classroomForm.name" placeholder="例如：创新AI机房9号 / 创客实训室3" />
       </el-form-item>
@@ -160,7 +160,7 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { educationalApi, curriculumApi } from '@/api'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { ClassItem, ClassStatus, Classroom, Teacher } from '@/types/educational'
 import type { CourseItem } from '@/types/curriculum'
 

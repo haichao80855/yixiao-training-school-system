@@ -8,7 +8,7 @@
           <div class="text-2xl font-bold font-mono text-st-primary mt-1">{{ summary.totalStudents }} <span class="text-xs font-normal">人</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
-          📋
+          <ClipboardList class="w-5 h-5" />
         </div>
       </div>
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
@@ -17,7 +17,7 @@
           <div class="text-2xl font-bold font-mono text-emerald-600 mt-1">{{ summary.totalUnassignedLessons }} <span class="text-xs font-normal">课时</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
-          ⏳
+          <Clock class="w-5 h-5" />
         </div>
       </div>
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
@@ -26,7 +26,7 @@
           <div class="text-2xl font-bold font-mono text-indigo-600 mt-1">{{ summary.monthlyNewCount }} <span class="text-xs font-normal">人</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
-          🎒
+          <GraduationCap class="w-5 h-5" />
         </div>
       </div>
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
@@ -35,7 +35,7 @@
           <div class="text-2xl font-bold font-mono text-amber-600 mt-1">{{ summary.avgWaitDays }} <span class="text-xs font-normal">天</span></div>
         </div>
         <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
-          ⚡
+          <Zap class="w-5 h-5" />
         </div>
       </div>
     </div>
@@ -258,8 +258,9 @@
           <div class="text-[11px] text-emerald-700">
             授课老师：{{ chosenClass.teacherName }} | 归属校区：{{ chosenClass.campusName || '校区' }} | 所属课程：{{ chosenClass.courseName }}
           </div>
-          <div class="text-[11px] text-emerald-600 mt-0.5">
-            ✓ 确认分班后，该学员将自动解除待分班状态，正式编入班级花名册并排入教学考勤日历。
+          <div class="text-[11px] text-emerald-600 mt-0.5 flex items-center gap-1">
+            <Check class="w-3.5 h-3.5 shrink-0" />
+            <span>确认分班后，该学员将自动解除待分班状态，正式编入班级花名册并排入教学考勤日历。</span>
           </div>
         </div>
       </div>
@@ -274,6 +275,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ClipboardList, Clock, GraduationCap, Zap, Check } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
 import AppPagination from '@/components/AppPagination.vue'
 import { DIALOG_SIZE } from '@/constants/ui'

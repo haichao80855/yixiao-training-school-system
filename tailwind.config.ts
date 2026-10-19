@@ -19,6 +19,7 @@ export default {
           'success-light': 'var(--st-color-success-light, #F0F9EB)',
           warning: 'var(--st-color-warning, #FAAD14)',
           'warning-light': 'var(--st-color-warning-light, #FFF7E6)',
+          'warning-deep': 'var(--st-color-warning-deep, #D46B08)',
           danger: 'var(--st-color-danger, #F56C6C)',
           'danger-light': 'var(--st-color-danger-light, #FEF0F0)',
           'danger-deep': 'var(--st-color-danger-deep, #F5222D)',

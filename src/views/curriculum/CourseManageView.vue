@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 space-y-4 bg-[#F0F2F5] min-h-[calc(100vh-60px)]">
+  <div class="p-5 space-y-4 bg-st-bg min-h-[calc(100vh-60px)]">
 
     <!-- 胶囊筛选矩阵与综合检索卡片 -->
     <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 space-y-3.5">
@@ -32,7 +32,7 @@
 
       <!-- 其他选项：下拉复合筛选与搜索栏 -->
       <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 text-xs">
-        <span class="w-20 text-[#8C8C8C] font-medium shrink-0">其他选项</span>
+        <span class="w-20 text-st-secondary font-medium shrink-0">其他选项</span>
 
         <el-select
           v-model="selectedSubject"
@@ -121,10 +121,10 @@
         <span class="text-xs text-gray-400">共检索到 {{ filteredCourses.length }} 门课程</span>
       </div>
       <div class="flex items-center space-x-2.5">
-        <el-button size="small" class="!border-blue-300 !text-[#1890FF] hover:!bg-blue-50" @click="handleBatchOperation">
+        <el-button size="small" class="!border-st-primary/40 !text-st-primary hover:!bg-st-primary/10" @click="handleBatchOperation">
           批量操作
         </el-button>
-        <el-button size="small" class="!border-blue-300 !text-[#1890FF] hover:!bg-blue-50" @click="handleBatchAuthorize">
+        <el-button size="small" class="!border-st-primary/40 !text-st-primary hover:!bg-st-primary/10" @click="handleBatchAuthorize">
           授权
         </el-button>
         <el-button type="primary" size="small" class="!px-4 font-medium" @click="openCreateDialog">
@@ -174,7 +174,7 @@
           <div>
             <!-- 课程标题：2 行溢出省略号 -->
             <h4
-              class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug group-hover:text-[#1890FF] transition-colors"
+              class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug group-hover:text-st-primary transition-colors"
               :title="course.name"
             >
               {{ course.name }}
@@ -188,7 +188,7 @@
               <span
                 v-for="(tag, tIdx) in getDisplayTags(course)"
                 :key="tIdx"
-                class="px-1.5 py-0.5 text-[10px] rounded border border-blue-200 bg-blue-50/80 text-[#1890FF] font-normal truncate max-w-[170px]"
+                class="px-1.5 py-0.5 text-[10px] rounded border border-st-primary/30 bg-blue-50/80 text-st-primary font-normal truncate max-w-[170px]"
               >
                 {{ tag }}
               </span>
@@ -197,8 +197,8 @@
 
           <!-- 单价红色加粗加大显示 -->
           <div class="text-right mt-3">
-            <span class="text-xs font-bold text-[#F5222D]">¥</span>
-            <span class="text-lg font-extrabold text-[#F5222D] ml-0.5 font-mono">
+            <span class="text-xs font-bold text-st-danger">¥</span>
+            <span class="text-lg font-extrabold text-st-danger ml-0.5 font-mono">
               {{ formatPrice(course.pricePerLesson) }}
             </span>
             <span class="text-[11px] text-gray-400 ml-0.5">元/次</span>
@@ -214,19 +214,19 @@
                 :model-value="course.status === 'enabled'"
                 @change="(val: any) => handleToggleStatus(course, val)"
                 size="small"
-                style="--el-switch-on-color: #1890FF; --el-switch-off-color: #D9D9D9;"
+                style="--el-switch-on-color: var(--st-color-primary, #3B82F6); --el-switch-off-color: var(--st-color-border, #E2E8F0);"
               />
               <span
                 :class="[
                   'text-xs font-medium',
-                  course.status === 'enabled' ? 'text-[#1890FF]' : 'text-gray-400'
+                  course.status === 'enabled' ? 'text-st-primary' : 'text-gray-400'
                 ]"
               >
                 {{ course.status === 'enabled' ? '启用中' : '已禁用' }}
               </span>
             </div>
 
-            <div class="text-xs text-gray-400 group-hover:text-[#1890FF] transition-colors flex items-center space-x-1">
+            <div class="text-xs text-gray-400 group-hover:text-st-primary transition-colors flex items-center space-x-1">
               <span>编辑</span>
               <span>›</span>
             </div>
@@ -484,17 +484,17 @@ const pagedCourses = computed(() => {
 function getAttributeBadgeClass(attr: CourseAttribute) {
   switch (attr) {
     case 'extended':
-      return 'bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white shadow-amber-200'
+      return 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-amber-200'
     case 'training':
-      return 'bg-gradient-to-r from-[#10B981] to-[#059669] text-white shadow-emerald-200'
+      return 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-emerald-200'
     case 'activity':
-      return 'bg-gradient-to-r from-[#3B82F6] to-[#1D4ED8] text-white shadow-blue-200'
+      return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-blue-200'
     case 'trial':
-      return 'bg-gradient-to-r from-[#EF4444] to-[#B91C1C] text-white shadow-red-200'
+      return 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-red-200'
     case 'service_fee':
-      return 'bg-gradient-to-r from-[#06B6D4] to-[#0891B2] text-white shadow-cyan-200'
+      return 'bg-gradient-to-r from-cyan-500 to-cyan-600 text-white shadow-cyan-200'
     case 'material':
-      return 'bg-gradient-to-r from-[#8B5CF6] to-[#6D28D9] text-white shadow-purple-200'
+      return 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-purple-200'
     default:
       return 'bg-gradient-to-r from-gray-500 to-gray-700 text-white'
   }

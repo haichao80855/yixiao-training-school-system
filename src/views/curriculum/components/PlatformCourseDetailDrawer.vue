@@ -8,7 +8,7 @@
   >
     <div v-if="course" class="space-y-6 pb-8">
       <!-- 课程头部全景 Hero Card -->
-      <div class="rounded-xl overflow-hidden bg-gradient-to-r from-[#0b132b] via-[#1c2541] to-[#3a506b] text-white p-6 shadow-md flex flex-col md:flex-row gap-6 items-center">
+      <div class="rounded-xl overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 text-white p-6 shadow-md flex flex-col md:flex-row gap-6 items-center">
         <!-- 封面图 -->
         <div class="w-full md:w-72 aspect-[16/9] rounded-lg overflow-hidden border border-white/10 shrink-0 bg-black/20 shadow-inner">
           <img :src="course.courseCover" :alt="course.courseName" class="w-full h-full object-cover" />
@@ -49,7 +49,7 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-2">
             <h3 class="text-base font-bold text-gray-800">授课大纲与随堂互动课件</h3>
-            <span class="px-2 py-0.5 bg-blue-50 text-[#1890FF] text-xs rounded-full font-medium">
+            <span class="px-2 py-0.5 bg-blue-50 text-st-primary text-xs rounded-full font-medium">
               支持一键进入在线互动课件授课
             </span>
           </div>
@@ -61,7 +61,7 @@
           <div
             v-for="(lesson, idx) in lessonList"
             :key="lesson.sessionId || idx"
-            class="group relative rounded-xl p-4 transition-all duration-200 cursor-pointer border flex flex-col justify-between h-36 bg-gradient-to-br from-[#0e1630] to-[#17224d] text-white border-blue-900/50 hover:border-[#1890FF] hover:shadow-lg hover:-translate-y-0.5"
+            class="group relative rounded-xl p-4 transition-all duration-200 cursor-pointer border flex flex-col justify-between h-36 bg-gradient-to-br from-slate-900 to-indigo-950 text-white border-blue-900/50 hover:border-st-primary hover:shadow-lg hover:-translate-y-0.5"
             @click="handlePlayCourseware(lesson)"
           >
             <!-- 课次编号 -->
@@ -96,7 +96,7 @@
                 {{ lesson.pptFileName ? '含课件PPT' : '授课资料' }}
               </span>
 
-              <div class="w-8 h-8 rounded-full bg-blue-600/40 group-hover:bg-[#1890FF] flex items-center justify-center transition-colors text-white shadow-sm">
+              <div class="w-8 h-8 rounded-full bg-blue-600/40 group-hover:bg-st-primary flex items-center justify-center transition-colors text-white shadow-sm">
                 <svg class="w-4 h-4 translate-x-0.5 fill-current" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z" />
                 </svg>
@@ -199,6 +199,6 @@ defineExpose({ open })
 <style scoped>
 :deep(.el-drawer__body) {
   padding: 20px 24px !important;
-  background-color: #f8fafc;
+  background-color: var(--st-color-bg, #f8fafc);
 }
 </style>

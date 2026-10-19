@@ -25,7 +25,7 @@
 
         <el-form-item v-else label="上传视频文件">
           <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-st-primary cursor-pointer w-full" @click="handleSimulateUpload">
-            <div class="text-2xl">📹</div>
+            <Video class="w-8 h-8 mx-auto text-st-primary/70" />
             <div class="text-st-primary font-medium mt-1">点击选择本地教学实录视频</div>
             <div class="text-st-muted text-[11px] mt-0.5">支持 MP4、MOV 格式，最大不超过 500MB</div>
           </div>
@@ -35,7 +35,10 @@
       <div v-if="playbackUrl" class="border rounded-lg p-2.5 bg-blue-50/50 border-blue-200">
         <div class="font-semibold text-blue-900 flex items-center justify-between">
           <span>在线预览与流媒体校验</span>
-          <span class="text-emerald-600 font-bold">✓ 格式支持良好</span>
+          <span class="text-emerald-600 font-bold flex items-center gap-1">
+            <CheckCircle2 class="w-3.5 h-3.5" />
+            格式支持良好
+          </span>
         </div>
         <div class="text-[11px] text-blue-700 font-mono mt-1 break-all">
           {{ playbackUrl }}
@@ -55,6 +58,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Video, CheckCircle2 } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { WorkbenchLessonCard } from '@/types/educational'
 

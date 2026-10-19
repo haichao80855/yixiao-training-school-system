@@ -8,14 +8,14 @@
   >
     <div class="space-y-4">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 space-y-1">
-        <div class="font-bold flex items-center gap-1 text-blue-900">
-          <span>📅</span>
+        <div class="font-bold flex items-center gap-1.5 text-blue-900">
+          <Calendar class="w-4 h-4 text-st-primary" />
           <span>按周期自动规律排课 (例如：每周六 14:00-16:00 连续排 16 次)</span>
         </div>
         <p class="text-blue-700">系统将自动跳过节假日（或按固定周步长推进），并实时调用三维冲突检测引擎探测潜在师生与教室冲突。</p>
       </div>
 
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="95px" size="default">
+      <el-form ref="formRef" :model="form" :rules="rules" :label-width="FORM_LABEL_WIDTH.md" size="default">
         <!-- 目标班级 -->
         <el-form-item label="排课班级">
           <div v-if="classList.length <= 1">
@@ -121,15 +121,16 @@
           <div class="font-bold text-st-title flex justify-between">
             <span>预演排课结果 ({{ previewData?.totalPlannedSlots || form.repeatCount }} 讲)</span>
             <span :class="previewSummary.conflictCount > 0 ? 'text-st-danger font-bold' : 'text-st-success'">
-              {{ previewSummary.conflictCount > 0 ? `检测到 ${previewSummary.conflictCount} 处时段冲突` : '无时段冲突 ✓' }}
+              {{ previewSummary.conflictCount > 0 ? `检测到 ${previewSummary.conflictCount} 处时段冲突` : '无时段冲突' }}
             </span>
           </div>
           <div class="text-st-muted text-[11px]">
             排课跨度：{{ previewSummary.start }} 至 {{ previewSummary.end }}，每周循环一次。
           </div>
           <div v-if="previewData?.collisions?.length" class="max-h-24 overflow-y-auto space-y-1 pt-1 border-t border-gray-200">
-            <div v-for="(c, idx) in previewData.collisions.slice(0, 5)" :key="idx" class="text-[11px] text-rose-600">
-              ⚠️ [{{ c.date }}] {{ c.message }}
+            <div v-for="(c, idx) in previewData.collisions.slice(0, 5)" :key="idx" class="text-[11px] text-rose-600 flex items-center gap-1">
+              <AlertTriangle class="w-3 h-3 text-rose-500 shrink-0" />
+              <span>[{{ c.date }}] {{ c.message }}</span>
             </div>
             <div v-if="previewData.collisions.length > 5" class="text-[10px] text-stone-400">
               ...以及另外 {{ previewData.collisions.length - 5 }} 处冲突
@@ -153,8 +154,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { Calendar, AlertTriangle } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { ClassItem, Teacher, Classroom } from '@/types/educational'
 
 const props = defineProps<{

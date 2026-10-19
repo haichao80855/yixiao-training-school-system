@@ -8,7 +8,7 @@
     <div class="space-y-4">
       <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="text-base">⚡</span>
+          <AlertTriangle class="w-4 h-4 text-amber-600 shrink-0" />
           <span>
             当前校区检测到 <b>{{ conflictList.length }}</b> 处日程重叠资源争抢。教务排课冲突将导致师资撞期或教室超员，请及时调配。
           </span>
@@ -17,7 +17,7 @@
       </div>
 
       <div v-if="conflictList.length === 0" class="py-12 text-center text-st-muted text-xs">
-        <p class="text-3xl mb-2">🎉</p>
+        <CheckCircle2 class="w-12 h-12 text-emerald-500 mx-auto mb-2" />
         <p>当前校区所有排课均无资源冲突，排课系统运行良好！</p>
       </div>
 
@@ -42,10 +42,10 @@
           </div>
 
           <div class="flex items-center justify-between text-xs text-st-secondary pt-1">
-            <div class="space-x-3">
-              <span>👨‍🏫 讲师：{{ item.teacherName }}</span>
-              <span>📍 教室：{{ item.classroomName }}</span>
-              <span>👥 学员数：{{ item.studentIds?.length || 0 }}人</span>
+            <div class="space-x-3 flex items-center">
+              <span class="inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />讲师：{{ item.teacherName }}</span>
+              <span class="inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />教室：{{ item.classroomName }}</span>
+              <span class="inline-flex items-center gap-1"><Users class="w-3.5 h-3.5 text-st-primary" />学员数：{{ item.studentIds?.length || 0 }}人</span>
             </div>
             <el-button type="danger" size="small" @click="handleResolve(item)">
               调整课次解决冲突
@@ -65,6 +65,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { AlertTriangle, CheckCircle2, User, MapPin, Users } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { ScheduleEvent } from '@/types/educational'
 

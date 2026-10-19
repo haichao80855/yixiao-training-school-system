@@ -6,7 +6,7 @@
     :width="DIALOG_SIZE.sm"
     destroy-on-close
   >
-    <el-form :model="form" label-width="95px" size="small" class="pt-2">
+    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
       <el-form-item label="上级节点">
         <el-input :value="parent ? parent.name : '集团总部 (顶级)'" disabled />
       </el-form-item>
@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import { reactive, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { OrgNode, OrgNodeType } from '@/types/system'
 
 const props = defineProps<{

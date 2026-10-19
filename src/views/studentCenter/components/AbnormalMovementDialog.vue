@@ -277,13 +277,13 @@
         <!-- 服务端权威预演诊断与阻断提示 -->
         <div v-if="previewResult && previewResult.blockingIssues && previewResult.blockingIssues.length > 0" class="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded text-xs space-y-1">
           <div v-for="issue in previewResult.blockingIssues" :key="issue.code" class="flex items-center space-x-1.5 font-medium">
-            <span>⚠️</span>
+            <AlertTriangle class="w-3.5 h-3.5 text-red-600 shrink-0" />
             <span>{{ issue.message }}</span>
           </div>
         </div>
         <div v-else-if="previewResult && previewResult.warnings && previewResult.warnings.length > 0" class="bg-amber-50 border border-amber-200 text-amber-700 p-2.5 rounded text-xs space-y-1">
           <div v-for="w in previewResult.warnings" :key="w.code" class="flex items-center space-x-1.5">
-            <span>ℹ️</span>
+            <Info class="w-3.5 h-3.5 text-amber-600 shrink-0" />
             <span>{{ w.message }}</span>
           </div>
         </div>
@@ -304,6 +304,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { AlertTriangle, Info } from 'lucide-vue-next'
 import type { Student, MovementType } from '@/types/student'
 import { studentApi, educationalApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
