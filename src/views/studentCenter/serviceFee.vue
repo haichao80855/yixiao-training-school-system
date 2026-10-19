@@ -8,7 +8,7 @@
           <div class="text-2xl font-bold font-mono text-amber-600 mt-1">¥ {{ pendingTotalFee.toFixed(2) }}</div>
         </div>
         <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
-          ⏳
+          <Clock class="w-5 h-5" />
         </div>
       </div>
 
@@ -55,21 +55,6 @@
           <el-radio-button value="pending">待财务核销 ({{ pendingList.length }})</el-radio-button>
           <el-radio-button value="verified">已核销入账 ({{ verifiedList.length }})</el-radio-button>
         </el-radio-group>
-
-        <div class="space-x-2">
-          <el-button size="small" plain @click="handleExportReport">导出代报考对账单</el-button>
-          <el-button
-            size="small"
-            type="warning"
-            :disabled="selectedRows.length === 0"
-            @click="handleBatchVerify"
-          >
-            批量核销 (已选 {{ selectedRows.length }})
-          </el-button>
-          <el-button type="primary" size="small" @click="showAddDialog = true">
-            + 新增报考记录
-          </el-button>
-        </div>
       </div>
 
       <!-- 检索项 -->
@@ -88,74 +73,108 @@
       </div>
     </div>
 
+    <!-- 汇总小计统计条 (SummaryStrip 集成) -->
+    <SummaryStrip
+      :total-count="filteredRecords.length"
+      :display-amount="filteredFeeSum"
+      unit="人次"
+      currency="元"
+      :summary-text="`当前筛选条件下：共计 ${filteredRecords.length} 人次代报考，服务费总额 ¥ ${filteredFeeSum} 元 (待财务核销 ¥ ${pendingTotalFee.toFixed(2)} 元，已核销入账 ¥ ${verifiedTotalFee.toFixed(2)} 元)`"
+    >
+      <template #right>
+        <el-button size="small" plain @click="handleExportReport">导出代报考对账单</el-button>
+        <el-button
+          size="small"
+          type="warning"
+          :disabled="selectedRows.length === 0"
+          @click="handleBatchVerify"
+        >
+          批量核销 (已选 {{ selectedRows.length }})
+        </el-button>
+        <el-button type="primary" size="small" @click="showAddDialog = true">
+          + 新增报考记录
+        </el-button>
+      </template>
+    </SummaryStrip>
+
     <!-- 服务费数据表格 -->
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
-      <el-table
-        :data="filteredRecords"
-        style="width: 100%"
-        stripe
-        @selection-change="(rows: ServiceFeeRecordItem[]) => selectedRows = rows"
-      >
-        <el-table-column type="selection" width="45" align="center" />
-        <el-table-column prop="certNo" label="报考单号" width="150">
-          <template #default="{ row }">
-            <span class="font-mono text-xs font-semibold text-st-primary">{{ row.certNo }}</span>
+      <div class="overflow-x-auto w-full min-w-0">
+        <el-table
+          :data="filteredRecords"
+          style="width: 100%"
+          stripe
+          @selection-change="(rows: ServiceFeeRecordItem[]) => selectedRows = rows"
+        >
+          <template #empty>
+            <AppEmpty
+              :type="keyword || selectedCategory ? 'search' : 'data'"
+              action-text="重置筛选"
+              @action="handleReset"
+            />
           </template>
-        </el-table-column>
-        <el-table-column label="学员姓名 / 学号" min-width="140">
-          <template #default="{ row }">
-            <div class="text-xs">
-              <span class="font-bold text-st-title">{{ row.studentName }}</span>
-              <span class="text-st-muted font-mono ml-1.5">{{ row.studentNo }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="campusName" label="归属校区" width="100" />
-        <el-table-column prop="examType" label="考级与赛事项目名称" min-width="220" />
-        <el-table-column label="业务类别" width="110" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" :type="row.category === 'competition' ? 'warning' : 'primary'">
-              {{ row.category === 'competition' ? '白名单赛事' : '等级考试' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="代报服务费" width="120" align="right">
-          <template #default="{ row }">
-            <span class="text-st-danger-deep font-bold font-mono text-sm">¥ {{ row.fee.toFixed(2) }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="invoiceTitle" label="发票抬头" min-width="150" />
-        <el-table-column label="易快报凭证号" width="160">
-          <template #default="{ row }">
-            <span v-if="row.yikuaibaoVoucherNo" class="font-mono text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
-              {{ row.yikuaibaoVoucherNo }}
-            </span>
-            <span v-else class="text-st-muted text-xs">待报销生成</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="核销状态" width="110" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 'verified' ? 'success' : 'warning'" size="small">
-              {{ row.status === 'verified' ? '已核销入账' : '待财务核销' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="录入时间" width="140" />
-        <el-table-column label="操作" width="160" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleViewVoucher(row)">凭证查看</el-button>
-            <el-button
-              v-if="row.status === 'pending'"
-              link
-              type="success"
-              size="small"
-              @click="handleSingleVerify(row)"
-            >
-              核销登记
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+
+          <el-table-column type="selection" width="45" align="center" />
+          <el-table-column prop="certNo" label="报考单号" width="150">
+            <template #default="{ row }">
+              <span class="font-mono text-xs font-semibold text-st-primary">{{ row.certNo }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="学员姓名 / 学号" min-width="140">
+            <template #default="{ row }">
+              <div class="text-xs">
+                <span class="font-bold text-st-title">{{ row.studentName }}</span>
+                <span class="text-st-muted font-mono ml-1.5">{{ row.studentNo }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="campusName" label="归属校区" width="100" />
+          <el-table-column prop="examType" label="考级与赛事项目名称" min-width="220" />
+          <el-table-column label="业务类别" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.category === 'competition' ? 'warning' : 'primary'">
+                {{ row.category === 'competition' ? '白名单赛事' : '等级考试' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="代报服务费" width="120" align="right">
+            <template #default="{ row }">
+              <span class="text-st-danger-deep font-bold font-mono text-sm">¥ {{ row.fee.toFixed(2) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="invoiceTitle" label="发票抬头" min-width="150" />
+          <el-table-column label="易快报凭证号" width="160">
+            <template #default="{ row }">
+              <span v-if="row.yikuaibaoVoucherNo" class="font-mono text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
+                {{ row.yikuaibaoVoucherNo }}
+              </span>
+              <span v-else class="text-st-muted text-xs">待报销生成</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="核销状态" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'verified' ? 'success' : 'warning'" size="small">
+                {{ row.status === 'verified' ? '已核销入账' : '待财务核销' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="录入时间" width="140" />
+          <el-table-column label="操作" width="160" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="handleViewVoucher(row as any)">凭证查看</el-button>
+              <el-button
+                v-if="row.status === 'pending'"
+                link
+                type="success"
+                size="small"
+                @click="handleSingleVerify(row as any)"
+              >
+                核销登记
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
 
     <!-- 凭证查看弹窗 -->
@@ -253,8 +272,10 @@
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { CheckCircle2, Trophy, Link2 } from 'lucide-vue-next'
+import { CheckCircle2, Trophy, Link2, Clock } from 'lucide-vue-next'
 import { studentApi } from '@/api'
+import SummaryStrip from '@/components/SummaryStrip.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student } from '@/types/student'
 import type { ServiceFeeRecordItem } from '@/api/modules/student'
@@ -263,6 +284,10 @@ const activeTab = ref('all')
 const keyword = ref('')
 const selectedCategory = ref('')
 const selectedRows = ref<ServiceFeeRecordItem[]>([])
+
+const filteredFeeSum = computed(() => {
+  return filteredRecords.value.reduce((sum, item) => sum + (item.fee || 0), 0).toFixed(2)
+})
 
 const studentsList = ref<Student[]>([])
 const feeRecords = ref<ServiceFeeRecordItem[]>([])

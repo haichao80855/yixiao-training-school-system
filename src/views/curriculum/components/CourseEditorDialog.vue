@@ -237,7 +237,7 @@
 
       <div class="text-xs font-medium text-gray-500 mb-2 flex items-center justify-between">
         <span>可选实体校区列表 ({{ form.authorizedCampusIds.length }} / {{ allCampuses.length }} 已授权)</span>
-        <span class="text-gray-400">点击卡片切换授权状态</span>
+        <span class="text-st-secondary">点击卡片切换授权状态</span>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -269,7 +269,7 @@
                 </span>
               </div>
               <div class="text-xs text-gray-500 mt-1">校区编号：{{ campus.code }}</div>
-              <div class="text-xs text-gray-400 mt-0.5 truncate max-w-[260px]">{{ campus.address }}</div>
+              <div class="text-xs text-st-secondary mt-0.5 truncate max-w-[260px]">{{ campus.address }}</div>
             </div>
           </div>
           <div class="text-xs font-medium pt-0.5">
@@ -277,7 +277,7 @@
               <Check class="w-3.5 h-3.5" />
               已授权
             </span>
-            <span v-else class="text-gray-400">
+            <span v-else class="text-st-secondary">
               未授权
             </span>
           </div>
@@ -297,7 +297,7 @@
         </el-button>
       </div>
 
-      <div v-if="!form.units || form.units.length === 0" class="py-12 text-center text-gray-400 text-xs">
+      <div v-if="!form.units || form.units.length === 0" class="py-12 text-center text-st-secondary text-xs">
         <div class="mb-2">暂无编排单元目录</div>
         <el-button size="small" type="primary" plain @click="addUnit">
           创建第一个单元
@@ -349,7 +349,7 @@
         <div class="divide-y divide-gray-100 p-2 space-y-2">
           <div
             v-if="!unit.lessons || unit.lessons.length === 0"
-            class="py-4 text-center text-xs text-gray-400"
+            class="py-4 text-center text-xs text-st-secondary"
           >
             本单元暂无课次，点击上方“+ 添加课时”录入大纲
           </div>
@@ -359,7 +359,7 @@
             class="p-2.5 rounded hover:bg-blue-50/30 transition-colors flex items-center justify-between text-xs space-x-3 bg-gray-50/50 border border-gray-100"
           >
             <div class="flex items-center space-x-2 flex-1">
-              <span class="font-mono text-gray-400 font-semibold w-8 text-center shrink-0">
+              <span class="font-mono text-st-secondary font-semibold w-8 text-center shrink-0">
                 #{{ lesson.order }}
               </span>
               <el-input

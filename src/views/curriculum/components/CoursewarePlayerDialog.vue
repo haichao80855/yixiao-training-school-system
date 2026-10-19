@@ -16,7 +16,7 @@
           <span class="text-sm font-semibold truncate max-w-[450px]" :title="lessonName">
             {{ lessonName }}
           </span>
-          <span v-if="pptFileName" class="text-xs text-gray-400 hidden sm:inline truncate max-w-[260px]">
+          <span v-if="pptFileName" class="text-xs text-gray-300 hidden sm:inline truncate max-w-[260px]">
             ({{ pptFileName }})
           </span>
         </div>
@@ -56,7 +56,7 @@
         ></iframe>
 
         <!-- 兜底状态 -->
-        <div v-else class="text-center p-8 text-gray-400 space-y-4">
+        <div v-else class="text-center p-8 text-gray-300 space-y-4">
           <el-icon class="text-5xl text-gray-600"><Document /></el-icon>
           <p class="text-base">该课次暂未生成在线白板交互课件或正在转码中</p>
           <el-button v-if="downloadUrl" type="primary" size="small" @click="handleDownload">

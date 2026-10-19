@@ -28,6 +28,16 @@
       </div>
     </div>
 
+    <!-- 订单状态胶囊快捷筛选 (CapsuleFilter 集成) -->
+    <div class="bg-white rounded-lg p-3 shadow-card border border-st-border">
+      <CapsuleFilter
+        v-model="filterForm.orderStatus"
+        :options="orderStatusCapsuleOptions"
+        label="订单状态"
+        @update:model-value="handleOrderStatusCapsuleChange"
+      />
+    </div>
+
     <!-- 3x8 高密度紧凑筛选矩阵 (恰好 24 个查询参数与控件，全 32px small) -->
     <HighDensityGrid :cols="8">
       <!-- Row 1 (8 控件) -->
@@ -298,17 +308,26 @@
 
     <!-- 高密度核心订单流水表格 -->
     <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border">
-      <el-table
-        ref="orderTableRef"
-        v-loading="loading"
-        :data="remoteOrders"
-        style="width: 100%"
-        stripe
-        size="small"
-        @selection-change="handleSelectionChange"
-      >
-        <!-- 多选框 -->
-        <el-table-column type="selection" width="42" align="center" />
+      <div class="overflow-x-auto w-full min-w-0">
+        <el-table
+          ref="orderTableRef"
+          v-loading="loading"
+          :data="remoteOrders"
+          style="width: 100%"
+          stripe
+          size="small"
+          @selection-change="handleSelectionChange"
+        >
+          <template #empty>
+            <AppEmpty
+              :type="filterForm.studentKeyword || filterForm.orderStatus !== 'all' ? 'search' : 'data'"
+              action-text="重置筛选"
+              @action="handleReset"
+            />
+          </template>
+
+          <!-- 多选框 -->
+          <el-table-column type="selection" width="42" align="center" />
 
         <!-- 1. 学员姓名 (蓝色链接，点击呼出学员详情抽屉) -->
         <el-table-column
@@ -319,7 +338,7 @@
           <template #default="{ row }">
             <span
               class="text-st-primary font-semibold hover:underline cursor-pointer flex items-center space-x-1"
-              @click="openStudentDrawer(row)"
+              @click="openStudentDrawer(row as any)"
             >
               <span>{{ row.studentName }}</span>
               <el-icon class="text-[11px]"><User /></el-icon>
@@ -405,7 +424,7 @@
           align="right"
         >
           <template #default="{ row }">
-            <span :class="row.discountAmount > 0 ? 'text-gray-400 line-through text-xs font-mono' : 'font-mono text-xs'">
+            <span :class="row.discountAmount > 0 ? 'text-st-secondary line-through text-xs font-mono' : 'font-mono text-xs'">
               ¥ {{ (row.originalPrice || 0).toFixed(2) }}
             </span>
           </template>
@@ -514,8 +533,8 @@
           align="center"
         >
           <template #default="{ row }">
-            <el-tag :type="getOrderStatusTag(row.status || row.orderStatus)" size="small">
-              {{ getOrderStatusLabel(row.status || row.orderStatus) }}
+            <el-tag :type="getOrderStatusTag((row.status || row.orderStatus) as any)" size="small">
+              {{ getOrderStatusLabel((row.status || row.orderStatus) as any) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -528,7 +547,7 @@
                 link
                 type="primary"
                 size="small"
-                @click="openModifyDialog(row)"
+                @click="openModifyDialog(row as any)"
               >
                 修改
               </el-button>
@@ -537,7 +556,7 @@
                 link
                 type="primary"
                 size="small"
-                @click="openVoucherDialog(row)"
+                @click="openVoucherDialog(row as any)"
               >
                 凭证
               </el-button>
@@ -547,7 +566,7 @@
                 link
                 type="danger"
                 size="small"
-                @click="handleVoidOrder(row)"
+                @click="handleVoidOrder(row as any)"
               >
                 作废
               </el-button>
@@ -555,6 +574,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <!-- 分页控制栏 (10/20/50条/页) -->
       <div class="border-t border-gray-100 mt-3">
@@ -810,6 +830,8 @@ import { FinanceAggregator } from '@/utils/financeAggregator'
 import SummaryStrip from '@/components/SummaryStrip.vue'
 import HighDensityGrid from '@/components/HighDensityGrid.vue'
 import AppPagination from '@/components/AppPagination.vue'
+import CapsuleFilter from '@/components/CapsuleFilter.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type {
   OrderRecord,
@@ -825,6 +847,21 @@ const currentCampusName = computed(() => tenantStore.currentCampus?.name || '拓
 
 // 主分段 Tab
 const activeMainTab = ref<'regular' | 'quarterly'>('regular')
+
+// 订单状态胶囊选项
+const orderStatusCapsuleOptions = [
+  { label: '全部订单', value: 'all' },
+  { label: '已支付', value: 'paid' },
+  { label: '未支付', value: 'unpaid' },
+  { label: '已驳回', value: 'rejected' },
+  { label: '订单作废', value: 'void' }
+]
+
+function handleOrderStatusCapsuleChange(val: string) {
+  filterForm.orderStatus = val as any
+  filterForm.page = 1
+  loadOrders()
+}
 
 // 横向状态分段 Tab
 const activeStatusTab = ref<string>('all')
@@ -1234,7 +1271,7 @@ function handleSelectionChange(selection: OrderRecord[]) {
 }
 
 // 辅助标签工具方法
-function getOrderStatusTag(status?: OrderStatus): '' | 'success' | 'warning' | 'danger' | 'info' {
+function getOrderStatusTag(status?: OrderStatus): 'primary' | 'success' | 'warning' | 'danger' | 'info' {
   switch (status) {
     case 'paid': return 'success'
     case 'unpaid': return 'warning'
@@ -1254,10 +1291,10 @@ function getOrderStatusLabel(status?: OrderStatus): string {
   }
 }
 
-function getPayMethodTag(method?: PaymentMethod): '' | 'success' | 'warning' | 'danger' | 'info' {
+function getPayMethodTag(method?: PaymentMethod): 'primary' | 'success' | 'warning' | 'danger' | 'info' {
   switch (method) {
     case 'wechat': return 'success'
-    case 'alipay': return ''
+    case 'alipay': return 'primary'
     case 'bank_transfer': return 'warning'
     case 'pos': return 'info'
     case 'wallet': return 'danger'

@@ -37,9 +37,9 @@
             <span class="font-medium text-gray-700">{{ stat.title }}</span>
           </div>
           <div class="text-2xl font-bold font-mono text-gray-800">
-            {{ stat.count }} <span class="text-xs font-normal text-gray-400">个科目</span>
+            {{ stat.count }} <span class="text-xs font-normal text-st-secondary">个科目</span>
           </div>
-          <div class="text-[11px] text-gray-400">涵盖 {{ stat.courseTotal }} 门标准化课系</div>
+          <div class="text-[11px] text-st-secondary">涵盖 {{ stat.courseTotal }} 门标准化课系</div>
         </div>
         <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 text-st-primary">
           <component :is="stat.icon" class="w-5 h-5" />
@@ -94,7 +94,7 @@
             <div class="font-bold text-gray-800 text-sm hover:text-st-primary transition-colors">
               {{ row.name }}
             </div>
-            <div class="text-[11px] text-gray-400 mt-0.5">{{ row.description }}</div>
+            <div class="text-[11px] text-st-secondary mt-0.5">{{ row.description }}</div>
           </template>
         </el-table-column>
 
@@ -127,7 +127,7 @@
         <el-table-column prop="courseCount" label="关联课程数" width="120" align="center">
           <template #default="{ row }">
             <span class="font-mono font-bold text-gray-700">{{ row.courseCount }}</span>
-            <span class="text-[11px] text-gray-400 ml-0.5">门</span>
+            <span class="text-[11px] text-st-secondary ml-0.5">门</span>
           </template>
         </el-table-column>
 
@@ -147,17 +147,17 @@
 
         <el-table-column label="管理操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openEditSubjectDialog(row)">
+            <el-button link type="primary" size="small" @click="openEditSubjectDialog(row as any)">
               编辑
             </el-button>
-            <el-button link type="primary" size="small" @click="handleViewSyllabus(row)">
+            <el-button link type="primary" size="small" @click="handleViewSyllabus(row as any)">
               课标大纲
             </el-button>
             <el-button
               link
               :type="row.status === 'active' ? 'danger' : 'success'"
               size="small"
-              @click="toggleSubjectStatus(row)"
+              @click="toggleSubjectStatus(row as any)"
             >
               {{ row.status === 'active' ? '归档' : '启用' }}
             </el-button>

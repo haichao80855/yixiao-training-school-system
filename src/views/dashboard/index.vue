@@ -73,10 +73,17 @@
             <CircleDollarSign class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3">
+        <div class="my-3 flex items-end justify-between">
           <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
             ¥ {{ stats.totalRevenue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
           </div>
+          <ThemeSparkline
+            :data="revenueTrend"
+            type="line"
+            color-theme="primary"
+            :width="88"
+            :height="28"
+          />
         </div>
         <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
           <span>已支付订单: <strong class="text-st-regular font-semibold font-mono">{{ stats.paidOrderCount }}</strong> 笔</span>
@@ -92,11 +99,20 @@
             <GraduationCap class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3 flex items-baseline gap-1.5">
-          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
-            {{ stats.studentCount }}
+        <div class="my-3 flex items-end justify-between">
+          <div class="flex items-baseline gap-1.5">
+            <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
+              {{ stats.studentCount }}
+            </div>
+            <span class="text-xs text-st-muted font-medium">人</span>
           </div>
-          <span class="text-xs text-st-muted font-medium">人</span>
+          <ThemeSparkline
+            :data="studentTrend"
+            type="bar"
+            color-theme="success"
+            :width="80"
+            :height="26"
+          />
         </div>
         <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
           <span>归属校区生源池</span>
@@ -114,11 +130,20 @@
             <Calendar class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3 flex items-baseline gap-1.5">
-          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
-            {{ stats.scheduleCount }}
+        <div class="my-3 flex items-end justify-between">
+          <div class="flex items-baseline gap-1.5">
+            <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
+              {{ stats.scheduleCount }}
+            </div>
+            <span class="text-xs text-st-muted font-medium">节课次</span>
           </div>
-          <span class="text-xs text-st-muted font-medium">节课次</span>
+          <ThemeSparkline
+            :data="scheduleTrend"
+            type="line"
+            color-theme="warning"
+            :width="88"
+            :height="28"
+          />
         </div>
         <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
           <span>冲突监测:</span>
@@ -141,11 +166,20 @@
             <BookOpen class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3 flex items-baseline gap-1.5">
-          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
-            {{ stats.courseCount }}
+        <div class="my-3 flex items-end justify-between">
+          <div class="flex items-baseline gap-1.5">
+            <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
+              {{ stats.courseCount }}
+            </div>
+            <span class="text-xs text-st-muted font-medium">门标准课</span>
           </div>
-          <span class="text-xs text-st-muted font-medium">门标准课</span>
+          <ThemeSparkline
+            :data="courseTrend"
+            type="bar"
+            color-theme="info"
+            :width="80"
+            :height="26"
+          />
         </div>
         <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
           <span>教研中心统一质控</span>
@@ -354,6 +388,37 @@
           </div>
         </div>
 
+        <!-- 校区运营履约健康指数卡片 (ThemeProgress 集成) -->
+        <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-st-border">
+            <div class="flex items-center space-x-2">
+              <span class="w-1.5 h-4 bg-st-primary rounded-full"></span>
+              <h2 class="text-sm font-bold text-st-title">校区运营健康指数</h2>
+            </div>
+            <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-st-primary font-semibold font-mono">
+              本周综评 A+
+            </span>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-center py-1">
+            <div class="flex flex-col items-center">
+              <ThemeProgress :percentage="88" color-theme="primary" :size="58" :stroke-width="5" />
+              <span class="text-xs font-semibold text-st-regular mt-2">出勤履约率</span>
+              <span class="text-[10px] text-st-muted mt-0.5">正常到课消课</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <ThemeProgress :percentage="92" color-theme="success" :size="58" :stroke-width="5" />
+              <span class="text-xs font-semibold text-st-regular mt-2">教室满班率</span>
+              <span class="text-[10px] text-st-muted mt-0.5">资源高效利用</span>
+            </div>
+            <div class="flex flex-col items-center">
+              <ThemeProgress :percentage="76" color-theme="warning" :size="58" :stroke-width="5" />
+              <span class="text-xs font-semibold text-st-regular mt-2">课消达成率</span>
+              <span class="text-[10px] text-st-muted mt-0.5">阶段教务目标</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 运营合规背书与租户环境卡片 -->
         <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 text-white shadow-sm">
           <div class="flex items-center space-x-2 mb-2">
@@ -363,7 +428,7 @@
           <p class="text-[11px] text-gray-300 leading-relaxed">
             当前系统直连上市公司标准化教育数据库，多校区学员学籍、签约订单、消课流水均已实现硬隔离合规存证。
           </p>
-          <div class="mt-3 pt-3 border-t border-gray-700/60 flex items-center justify-between text-[11px] text-gray-400 font-mono">
+          <div class="mt-3 pt-3 border-t border-gray-700/60 flex items-center justify-between text-[11px] text-gray-300 font-mono">
             <span>作用域: {{ currentCampus.code }}</span>
             <span class="text-emerald-400 font-semibold">● 存证已同步</span>
           </div>
@@ -377,6 +442,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import ThemeSparkline from '@/components/ThemeSparkline.vue'
+import ThemeProgress from '@/components/ThemeProgress.vue'
 import {
   GraduationCap,
   Users,
@@ -414,6 +481,12 @@ const greetingText = computed(() => {
 })
 
 const refreshing = ref(false)
+
+// 核心指标平滑走势与柱状微走势数据 (最近 7 周期)
+const revenueTrend = ref([22, 28, 26, 38, 45, 42, 58])
+const studentTrend = ref([35, 42, 48, 46, 58, 66, 75])
+const scheduleTrend = ref([14, 18, 16, 25, 22, 30, 36])
+const courseTrend = ref([10, 12, 14, 15, 16, 18, 22])
 
 const defaultStats = {
   studentCount: 0,

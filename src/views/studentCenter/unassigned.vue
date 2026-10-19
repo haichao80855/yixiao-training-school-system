@@ -40,6 +40,16 @@
       </div>
     </div>
 
+    <!-- 快速分班状态胶囊筛选 (CapsuleFilter 集成) -->
+    <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border">
+      <CapsuleFilter
+        v-model="activeCapsule"
+        :options="capsuleOptions"
+        label="分班状态"
+        @update:model-value="handleCapsuleChange"
+      />
+    </div>
+
     <!-- 筛选面板与工具栏 -->
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
       <div class="flex flex-wrap items-center justify-between gap-4">
@@ -85,53 +95,63 @@
 
     <!-- 待分班学员数据表格 -->
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
-      <el-table
-        v-loading="loading"
-        :data="unassignedList"
-        style="width: 100%"
-        stripe
-        @selection-change="(rows: UnassignedStudentItemView[]) => selectedRows = rows"
-      >
-        <el-table-column type="selection" width="45" align="center" />
-        <el-table-column label="学员姓名" min-width="150">
-          <template #default="{ row }">
-            <div class="flex items-center space-x-2">
-              <img :src="row.avatar || 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=60'" class="w-8 h-8 rounded-full object-cover border" />
-              <div>
-                <div class="font-semibold text-st-primary text-xs">{{ row.name }}</div>
-                <div class="text-[11px] text-st-muted font-mono">{{ row.studentNo }}</div>
+      <div class="overflow-x-auto w-full min-w-0">
+        <el-table
+          v-loading="loading"
+          :data="unassignedList"
+          style="width: 100%"
+          stripe
+          @selection-change="(rows: UnassignedStudentItemView[]) => selectedRows = rows"
+        >
+          <template #empty>
+            <AppEmpty
+              :type="keyword || selectedTimeFilter ? 'search' : 'data'"
+              action-text="重置筛选"
+              @action="handleReset"
+            />
+          </template>
+
+          <el-table-column type="selection" width="45" align="center" />
+          <el-table-column label="学员姓名" min-width="150">
+            <template #default="{ row }">
+              <div class="flex items-center space-x-2">
+                <img :src="row.avatar || 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=60'" class="w-8 h-8 rounded-full object-cover border" />
+                <div>
+                  <div class="font-semibold text-st-primary text-xs">{{ row.name }}</div>
+                  <div class="text-[11px] text-st-muted font-mono">{{ row.studentNo }}</div>
+                </div>
               </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="campusName" label="归属校区" width="110" />
-        <el-table-column prop="courseName" label="报读课包名称" min-width="200" />
-        <el-table-column label="待分配课时" width="120" align="center">
-          <template #default="{ row }">
-            <el-tag size="small" type="success" class="font-bold font-mono">
-              {{ row.unassignedLessons }} 课时
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="preferredTime" label="意向上课时段" min-width="170" />
-        <el-table-column label="测评报告得分" width="120" align="center">
-          <template #default="{ row }">
-            <span class="font-mono font-bold text-indigo-600">{{ row.assessmentScore || 90 }} 分</span>
-          </template>
-        </el-table-column>
-        <el-table-column prop="counselor" label="签约学管" width="100" />
-        <el-table-column prop="signupDate" label="签约报读时间" width="120" />
-        <el-table-column label="操作" width="180" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleOpenReport(row)">
-              测评报告
-            </el-button>
-            <el-button link type="success" size="small" @click="handleOpenAssign(row)">
-              加入班级
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+            </template>
+          </el-table-column>
+          <el-table-column prop="campusName" label="归属校区" width="110" />
+          <el-table-column prop="courseName" label="报读课包名称" min-width="200" />
+          <el-table-column label="待分配课时" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" type="success" class="font-bold font-mono">
+                {{ row.unassignedLessons }} 课时
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="preferredTime" label="意向上课时段" min-width="170" />
+          <el-table-column label="测评报告得分" width="120" align="center">
+            <template #default="{ row }">
+              <span class="font-mono font-bold text-indigo-600">{{ row.assessmentScore || 90 }} 分</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="counselor" label="签约学管" width="100" />
+          <el-table-column prop="signupDate" label="签约报读时间" width="120" />
+          <el-table-column label="操作" width="180" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="handleOpenReport(row as any)">
+                测评报告
+              </el-button>
+              <el-button link type="success" size="small" @click="handleOpenAssign(row as any)">
+                加入班级
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <!-- 服务端分页组件 -->
       <AppPagination
@@ -278,6 +298,8 @@ import { ElMessage } from 'element-plus'
 import { ClipboardList, Clock, GraduationCap, Zap, Check } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
 import AppPagination from '@/components/AppPagination.vue'
+import CapsuleFilter from '@/components/CapsuleFilter.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { UnassignedStudentItemView, UnassignedRosterSummary } from '@/types/educational'
 
@@ -292,6 +314,27 @@ export interface AvailableClassOption {
   capacity: number
   currentCount: number
   campusName?: string
+}
+
+const activeCapsule = ref('all')
+const capsuleOptions = [
+  { label: '全量待分班', value: 'all' },
+  { label: '本月新签', value: 'monthly_new' },
+  { label: '周六时段', value: 'saturday' },
+  { label: '周日时段', value: 'sunday' },
+  { label: '高分学员 (>=90分)', value: 'high_score' }
+]
+
+function handleCapsuleChange(val: string) {
+  if (val === 'saturday') {
+    selectedTimeFilter.value = '周六上午'
+  } else if (val === 'sunday') {
+    selectedTimeFilter.value = '周日上午'
+  } else {
+    selectedTimeFilter.value = ''
+  }
+  currentPage.value = 1
+  loadData()
 }
 
 const loading = ref(false)

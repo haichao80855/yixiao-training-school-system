@@ -32,7 +32,7 @@
             :value="course.id"
           />
         </el-select>
-        <span class="text-gray-400">|</span>
+        <span class="text-st-secondary">|</span>
         <span class="text-gray-500">课件类型：</span>
         <el-radio-group v-model="selectedCodeType" size="small">
           <el-radio-button label="all">全部</el-radio-button>
@@ -109,7 +109,7 @@
 
             <!-- 右侧课件版本与操作 -->
             <div class="flex items-center space-x-4 shrink-0">
-              <div class="text-right space-y-0.5 text-[11px] text-gray-400">
+              <div class="text-right space-y-0.5 text-[11px] text-st-secondary">
                 <div class="font-mono text-gray-600">课件版本：<span class="text-st-primary font-semibold">v2.4</span></div>
                 <div>随堂互动题：{{ lesson.quizCount || 5 }} 道</div>
               </div>
@@ -136,7 +136,7 @@
       <div class="flex items-center justify-between pb-2 border-b border-gray-100">
         <div>
           <h3 class="text-sm font-bold text-gray-800">标准化课件资源仓库与下载统计</h3>
-          <p class="text-xs text-gray-400">全校区教师授课课件下载追踪与版本审计</p>
+          <p class="text-xs text-st-secondary">全校区教师授课课件下载追踪与版本审计</p>
         </div>
         <span class="text-xs text-gray-500">累计收录 {{ lessonPlans.length }} 份数字化课件</span>
       </div>

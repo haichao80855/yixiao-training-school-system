@@ -149,7 +149,7 @@
             <!-- 扣减课时显示 -->
             <div class="flex items-center gap-1 min-w-[70px]">
               <span class="text-st-muted text-[11px]">扣除:</span>
-              <span class="font-mono font-bold text-st-title" :class="[st.deductLessons > 0 ? 'text-indigo-600' : 'text-gray-400']">
+              <span class="font-mono font-bold text-st-title" :class="[st.deductLessons > 0 ? 'text-indigo-600' : 'text-st-secondary']">
                 {{ st.deductLessons }} 课时
               </span>
             </div>

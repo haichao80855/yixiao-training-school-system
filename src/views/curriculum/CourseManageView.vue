@@ -30,95 +30,111 @@
         @change="handleFilterChange"
       />
 
-      <!-- 其他选项：下拉复合筛选与搜索栏 -->
-      <div class="flex flex-wrap items-center gap-3 pt-3 border-t border-gray-100 text-xs">
-        <span class="w-20 text-st-secondary font-medium shrink-0">其他选项</span>
+      <!-- 其他选项：使用 HighDensityGrid 密集栅格排布 -->
+      <HighDensityGrid :cols="8">
+        <div>
+          <label class="block text-xs text-st-secondary mb-1">科目分类</label>
+          <el-select
+            v-model="selectedSubject"
+            placeholder="科目"
+            clearable
+            size="small"
+            class="w-full"
+            @change="handleFilterChange"
+          >
+            <el-option label="全部科目" value="全部" />
+            <el-option label="软件编程" value="软件编程" />
+            <el-option label="信息学竞赛" value="信息学竞赛" />
+            <el-option label="硬件机器人" value="硬件机器人" />
+            <el-option label="科技启蒙" value="科技启蒙" />
+            <el-option label="教师培训" value="教师培训" />
+            <el-option label="考级竞赛" value="考级竞赛" />
+          </el-select>
+        </div>
 
-        <el-select
-          v-model="selectedSubject"
-          placeholder="科目"
-          clearable
-          size="small"
-          class="!w-36"
-          @change="handleFilterChange"
-        >
-          <el-option label="全部科目" value="全部" />
-          <el-option label="软件编程" value="软件编程" />
-          <el-option label="信息学竞赛" value="信息学竞赛" />
-          <el-option label="硬件机器人" value="硬件机器人" />
-          <el-option label="科技启蒙" value="科技启蒙" />
-          <el-option label="教师培训" value="教师培训" />
-          <el-option label="考级竞赛" value="考级竞赛" />
-        </el-select>
+        <div>
+          <label class="block text-xs text-st-secondary mb-1">课程类型</label>
+          <el-select
+            v-model="selectedCourseType"
+            placeholder="课程类型"
+            clearable
+            size="small"
+            class="w-full"
+            @change="handleFilterChange"
+          >
+            <el-option label="全部类型" value="全部" />
+            <el-option label="常规课程" value="常规" />
+            <el-option label="拓展集训" value="集训" />
+            <el-option label="考级专训" value="考级" />
+            <el-option label="城市挑赛" value="城市赛" />
+          </el-select>
+        </div>
 
-        <el-select
-          v-model="selectedCourseType"
-          placeholder="课程类型"
-          clearable
-          size="small"
-          class="!w-32"
-          @change="handleFilterChange"
-        >
-          <el-option label="全部类型" value="全部" />
-          <el-option label="常规课程" value="常规" />
-          <el-option label="拓展集训" value="集训" />
-          <el-option label="考级专训" value="考级" />
-          <el-option label="城市挑赛" value="城市赛" />
-        </el-select>
+        <div>
+          <label class="block text-xs text-st-secondary mb-1">授课年份</label>
+          <el-select
+            v-model="selectedYear"
+            placeholder="年份"
+            clearable
+            size="small"
+            class="w-full"
+            @change="handleFilterChange"
+          >
+            <el-option label="全部年份" value="全部" />
+            <el-option label="2027" value="2027" />
+            <el-option label="2026" value="2026" />
+            <el-option label="2025" value="2025" />
+          </el-select>
+        </div>
 
-        <el-select
-          v-model="selectedYear"
-          placeholder="年份"
-          clearable
-          size="small"
-          class="!w-28"
-          @change="handleFilterChange"
-        >
-          <el-option label="全部年份" value="全部" />
-          <el-option label="2027" value="2027" />
-          <el-option label="2026" value="2026" />
-          <el-option label="2025" value="2025" />
-        </el-select>
+        <div>
+          <label class="block text-xs text-st-secondary mb-1">招生期段</label>
+          <el-select
+            v-model="selectedPeriod"
+            placeholder="期段"
+            clearable
+            size="small"
+            class="w-full"
+            @change="handleFilterChange"
+          >
+            <el-option label="全部期段" value="全部" />
+            <el-option label="春季班" value="春季班" />
+            <el-option label="秋季班" value="秋季班" />
+            <el-option label="暑期班" value="暑期班" />
+            <el-option label="寒假班" value="寒假班" />
+            <el-option label="常规班" value="常规班" />
+          </el-select>
+        </div>
 
-        <el-select
-          v-model="selectedPeriod"
-          placeholder="期段"
-          clearable
-          size="small"
-          class="!w-28"
-          @change="handleFilterChange"
-        >
-          <el-option label="全部期段" value="全部" />
-          <el-option label="春季班" value="春季班" />
-          <el-option label="秋季班" value="秋季班" />
-          <el-option label="暑期班" value="暑期班" />
-          <el-option label="寒假班" value="寒假班" />
-          <el-option label="常规班" value="常规班" />
-        </el-select>
+        <div class="sm:col-span-4">
+          <label class="block text-xs text-st-secondary mb-1">课程名称 / 编码关键词</label>
+          <el-input
+            v-model="searchKeyword"
+            placeholder="请输入课程名称或编码搜索..."
+            clearable
+            size="small"
+            class="w-full"
+            @keyup.enter="handleSearch"
+          />
+        </div>
 
-        <el-input
-          v-model="searchKeyword"
-          placeholder="请输入课程名称或编码"
-          clearable
-          size="small"
-          class="!w-56"
-          @keyup.enter="handleSearch"
-        />
-
-        <el-button type="primary" size="small" class="!px-4 font-medium" @click="handleSearch">
-          搜索
-        </el-button>
-        <el-button size="small" class="!px-3 text-gray-600" @click="handleReset">
-          重置
-        </el-button>
-      </div>
+        <template #footer>
+          <div class="text-xs text-st-muted">
+            检索结果：当前匹配到 <b class="text-st-primary">{{ filteredCourses.length }}</b> 门标准化课系
+          </div>
+          <div class="space-x-2">
+            <el-button size="small" @click="handleReset">重置</el-button>
+            <el-button type="primary" size="small" @click="handleSearch">搜索</el-button>
+          </div>
+        </template>
+      </HighDensityGrid>
     </div>
 
     <!-- 列表顶部操作栏 -->
     <div class="flex items-center justify-between pt-1">
       <div class="flex items-center space-x-3">
         <h3 class="text-base font-bold text-gray-800">课程列表</h3>
-        <span class="text-xs text-gray-400">共检索到 {{ filteredCourses.length }} 门课程</span>
+        <span class="text-xs text-st-secondary">共检索到 {{ filteredCourses.length }} 门课程</span>
       </div>
       <div class="flex items-center space-x-2.5">
         <el-button size="small" class="!border-st-primary/40 !text-st-primary hover:!bg-st-primary/10" @click="handleBatchOperation">
@@ -201,7 +217,7 @@
             <span class="text-lg font-extrabold text-st-danger ml-0.5 font-mono">
               {{ formatPrice(course.pricePerLesson) }}
             </span>
-            <span class="text-[11px] text-gray-400 ml-0.5">元/次</span>
+            <span class="text-[11px] text-st-secondary ml-0.5">元/次</span>
           </div>
 
           <!-- 底部 Switch 开关状态条 -->
@@ -219,14 +235,14 @@
               <span
                 :class="[
                   'text-xs font-medium',
-                  course.status === 'enabled' ? 'text-st-primary' : 'text-gray-400'
+                  course.status === 'enabled' ? 'text-st-primary' : 'text-st-secondary'
                 ]"
               >
                 {{ course.status === 'enabled' ? '启用中' : '已禁用' }}
               </span>
             </div>
 
-            <div class="text-xs text-gray-400 group-hover:text-st-primary transition-colors flex items-center space-x-1">
+            <div class="text-xs text-st-secondary group-hover:text-st-primary transition-colors flex items-center space-x-1">
               <span>编辑</span>
               <span>›</span>
             </div>
@@ -235,14 +251,17 @@
       </div>
     </div>
 
-    <!-- 空数据状态 -->
+    <!-- 空数据状态 (AppEmpty 集成) -->
     <div
       v-else
-      class="bg-white rounded-lg p-16 text-center border border-gray-200 shadow-sm"
+      class="bg-white rounded-lg p-10 text-center border border-gray-200 shadow-sm"
     >
-      <el-empty description="未找到符合筛选条件的课程">
-        <el-button type="primary" size="small" @click="handleReset">清空筛选条件</el-button>
-      </el-empty>
+      <AppEmpty
+        type="search"
+        title="未找到符合筛选条件的课程"
+        action-text="清空筛选条件"
+        @action="handleReset"
+      />
     </div>
 
     <!-- 分页器组件 -->
@@ -301,6 +320,8 @@ import { ElMessage } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { curriculumApi } from '@/api'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
+import HighDensityGrid from '@/components/HighDensityGrid.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import AppPagination from '@/components/AppPagination.vue'
 import { DIALOG_SIZE } from '@/constants/ui'
 import CourseEditorDialog from './components/CourseEditorDialog.vue'

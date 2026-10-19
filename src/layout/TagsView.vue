@@ -22,7 +22,7 @@
         <span
           v-if="!tag.affix"
           @click.stop="handleCloseTag(tag)"
-          class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] text-gray-400 group-hover:text-gray-600 hover:!bg-red-100 hover:!text-red-600 transition-colors ml-0.5"
+          class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[10px] text-st-secondary group-hover:text-gray-600 hover:!bg-red-100 hover:!text-red-600 transition-colors ml-0.5"
         >
           ×
         </span>

@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AppEmpty: typeof import('./components/AppEmpty.vue')['default']
     AppPagination: typeof import('./components/AppPagination.vue')['default']
     CapsuleFilter: typeof import('./components/CapsuleFilter.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
@@ -68,6 +69,8 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SummaryStrip: typeof import('./components/SummaryStrip.vue')['default']
+    ThemeProgress: typeof import('./components/ThemeProgress.vue')['default']
+    ThemeSparkline: typeof import('./components/ThemeSparkline.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

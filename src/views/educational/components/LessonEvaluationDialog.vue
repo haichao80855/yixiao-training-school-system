@@ -181,9 +181,9 @@
                 <div class="flex items-center gap-1.5">
                   <span
                     v-if="st.isExempt"
-                    class="text-gray-400 text-[11px] font-medium flex items-center gap-1"
+                    class="text-st-secondary text-[11px] font-medium flex items-center gap-1"
                   >
-                    <span class="w-1.5 h-1.5 rounded-full bg-gray-400 inline-block"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-st-secondary inline-block"></span>
                     <span>请假免评</span>
                   </span>
                   <span
@@ -343,7 +343,7 @@
                 <!-- 添加照片小方块 -->
                 <div
                   v-if="activeStudent.photos.length < 9"
-                  class="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/30 transition-all text-gray-400 hover:text-indigo-600"
+                  class="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500 hover:bg-indigo-50/30 transition-all text-st-secondary hover:text-indigo-600"
                   :class="{ 'opacity-60 pointer-events-none': uploadingPhotos }"
                   @click="handleAddStudentPhotos"
                 >
@@ -386,7 +386,7 @@
                     <Sparkles class="w-3.5 h-3.5" />
                     <span>AI 帮我重写</span>
                   </el-button>
-                  <span class="text-[11px] text-gray-400 font-mono">已输入 {{ (activeStudent.comment || '').length }} 字</span>
+                  <span class="text-[11px] text-st-secondary font-mono">已输入 {{ (activeStudent.comment || '').length }} 字</span>
                 </div>
               </div>
 
@@ -482,7 +482,7 @@
           <span>共 {{ rosterList.length }} 人</span>
           <span class="text-emerald-600 font-semibold">已评定: {{ evaluatedStudentsCount }} 人</span>
           <span class="text-amber-600 font-semibold">待评价: {{ pendingStudentsCount }} 人</span>
-          <span v-if="exemptStudentsCount > 0" class="text-gray-400">请假免评: {{ exemptStudentsCount }} 人</span>
+          <span v-if="exemptStudentsCount > 0" class="text-st-secondary">请假免评: {{ exemptStudentsCount }} 人</span>
         </div>
 
         <div class="flex items-center gap-2.5">

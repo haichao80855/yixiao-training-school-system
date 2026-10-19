@@ -133,99 +133,124 @@
       </div>
     </div>
 
+    <!-- 汇总统计小计条 (SummaryStrip 集成) -->
+    <SummaryStrip
+      :total-count="displayLedgers.length"
+      :display-amount="filteredTotalAmount"
+      unit="笔流水"
+      currency="元"
+    >
+      <template #right>
+        <el-button size="small" type="primary" plain @click="handleExportLedger">
+          <el-icon class="mr-1"><Download /></el-icon>
+          导出对账单
+        </el-button>
+      </template>
+    </SummaryStrip>
+
     <!-- 流水账本核心表格 -->
     <div class="bg-white rounded-lg p-4 shadow-card border border-st-border">
-      <el-table
-        :data="displayLedgers"
-        style="width: 100%"
-        stripe
-        size="small"
-      >
-        <el-table-column prop="transNo" label="流水单号" width="165">
-          <template #default="{ row }">
-            <span
-              class="font-mono text-xs text-st-secondary hover:text-st-primary cursor-pointer flex items-center space-x-1"
-              @click="copyText(row.transNo, '流水单号')"
-              title="点击复制单号"
-            >
-              <span>{{ row.transNo }}</span>
-              <el-icon class="text-[11px]"><DocumentCopy /></el-icon>
-            </span>
+      <div class="overflow-x-auto w-full min-w-0">
+        <el-table
+          :data="displayLedgers"
+          style="width: 100%"
+          stripe
+          size="small"
+        >
+          <template #empty>
+            <AppEmpty
+              :type="filterKeyword || filterMethod !== 'all' || filterType !== 'all' ? 'search' : 'data'"
+              action-text="重置筛选"
+              @action="resetFilter"
+            />
           </template>
-        </el-table-column>
 
-        <el-table-column prop="orderNo" label="关联订单号" min-width="160" show-overflow-tooltip>
-          <template #default="{ row }">
-            <span class="font-mono text-xs">{{ row.orderNo || '--' }}</span>
-          </template>
-        </el-table-column>
+          <el-table-column prop="transNo" label="流水单号" width="165">
+            <template #default="{ row }">
+              <span
+                class="font-mono text-xs text-st-secondary hover:text-st-primary cursor-pointer flex items-center space-x-1"
+                @click="copyText(row.transNo, '流水单号')"
+                title="点击复制单号"
+              >
+                <span>{{ row.transNo }}</span>
+                <el-icon class="text-[11px]"><DocumentCopy /></el-icon>
+              </span>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="date" label="交易时间" width="155" sortable />
+          <el-table-column prop="orderNo" label="关联订单号" min-width="160" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span class="font-mono text-xs">{{ row.orderNo || '--' }}</span>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="campusName" label="归属校区" width="110" />
+          <el-table-column prop="date" label="交易时间" width="155" sortable />
 
-        <el-table-column label="缴费学员" width="130">
-          <template #default="{ row }">
-            <div>
-              <span class="font-semibold text-st-title">{{ row.student }}</span>
-              <span v-if="row.studentNo" class="text-st-muted font-mono text-[11px] ml-1">({{ row.studentNo }})</span>
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column prop="campusName" label="归属校区" width="110" />
 
-        <el-table-column prop="type" label="收费类型" width="120">
-          <template #default="{ row }">
-            <el-tag
-              :type="row.type === '退费返还' ? 'danger' : row.type === '续费培优' ? 'warning' : 'primary'"
-              size="small"
-            >
-              {{ row.type }}
-            </el-tag>
-          </template>
-        </el-table-column>
+          <el-table-column label="缴费学员" width="130">
+            <template #default="{ row }">
+              <div>
+                <span class="font-semibold text-st-title">{{ row.student }}</span>
+                <span v-if="row.studentNo" class="text-st-muted font-mono text-[11px] ml-1">({{ row.studentNo }})</span>
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="amount" label="实收金额" width="130" align="right" sortable>
-          <template #default="{ row }">
-            <span
-              :class="[
-                'font-bold font-mono text-sm',
-                row.amount < 0 ? 'text-blue-600' : 'text-st-danger'
-              ]"
-            >
-              ¥ {{ row.amount.toFixed(2) }}
-            </span>
-          </template>
-        </el-table-column>
+          <el-table-column prop="type" label="收费类型" width="120">
+            <template #default="{ row }">
+              <el-tag
+                :type="row.type === '退费返还' ? 'danger' : row.type === '续费培优' ? 'warning' : 'primary'"
+                size="small"
+              >
+                {{ row.type }}
+              </el-tag>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="method" label="结算通道" width="130">
-          <template #default="{ row }">
-            <el-tag
-              :type="row.method === '微信商户号' ? 'success' : row.method === '支付宝生活号' ? '' : row.method === '招商银行对公' ? 'warning' : 'info'"
-              size="small"
-            >
-              {{ row.method }}
-            </el-tag>
-          </template>
-        </el-table-column>
+          <el-table-column prop="amount" label="实收金额" width="130" align="right" sortable>
+            <template #default="{ row }">
+              <span
+                :class="[
+                  'font-bold font-mono text-sm',
+                  row.amount < 0 ? 'text-blue-600' : 'text-st-danger'
+                ]"
+              >
+                ¥ {{ row.amount.toFixed(2) }}
+              </span>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="verifier" label="对账人" width="100" />
+          <el-table-column prop="method" label="结算通道" width="130">
+            <template #default="{ row }">
+              <el-tag
+                :type="row.method === '微信商户号' ? 'success' : row.method === '支付宝生活号' ? 'primary' : row.method === '招商银行对公' ? 'warning' : 'info'"
+                size="small"
+              >
+                {{ row.method }}
+              </el-tag>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="status" label="对账状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === '已退款' ? 'info' : 'success'" size="small">
-              {{ row.status || '已核销' }}
-            </el-tag>
-          </template>
-        </el-table-column>
+          <el-table-column prop="verifier" label="对账人" width="100" />
 
-        <el-table-column label="操作" width="110" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openLedgerDetail(row)">
-              明细对账
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column prop="status" label="对账状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="row.status === '已退款' ? 'info' : 'success'" size="small">
+                {{ row.status || '已核销' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="操作" width="110" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" size="small" @click="openLedgerDetail(row as any)">
+                明细对账
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
 
     <!-- 弹窗: 明细账单详情 -->
@@ -266,6 +291,8 @@ import { Refresh, Download, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi } from '@/api'
 import { isCampusMatch } from '@/utils/financeAggregator'
+import SummaryStrip from '@/components/SummaryStrip.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import type { LedgerRecord } from '@/types/financial'
 
 const tenantStore = useTenantStore()
@@ -296,6 +323,10 @@ async function loadLedgers() {
 
 const allLedgers = computed(() => {
   return remoteLedgers.value
+})
+
+const filteredTotalAmount = computed(() => {
+  return displayLedgers.value.reduce((sum, item) => sum + (item.amount || 0), 0).toFixed(2)
 })
 
 const displayLedgers = computed(() => {

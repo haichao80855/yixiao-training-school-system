@@ -187,7 +187,7 @@
           </div>
         </div>
 
-        <div class="text-[11px] text-gray-400">
+        <div class="text-[11px] text-st-secondary">
           提示：点击“一键清空全部业务数据”可将学员、班级、课表与订单全部重置为 0；需要恢复官方演示数据时可随时点击“恢复初始演示Mock数据”。
         </div>
       </div>

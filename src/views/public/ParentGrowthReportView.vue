@@ -3,7 +3,7 @@
     <!-- 状态 1: 加载中 -->
     <div v-if="loading" class="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
       <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      <p class="text-xs text-slate-400">正在开启学员专属学情档案...</p>
+      <p class="text-xs text-slate-600">正在开启学员专属学情档案...</p>
     </div>
 
     <!-- 状态 2: 错误状态 (令牌过期或签名不合法) -->
@@ -16,7 +16,7 @@
         {{ errorMessage }}
       </p>
       <div class="pt-4">
-        <span class="text-[11px] text-slate-400">如需查看最新随堂成长档案，请联系校区授课老师或教务班主任重新获取分享链接。</span>
+        <span class="text-[11px] text-slate-600">如需查看最新随堂成长档案，请联系校区授课老师或教务班主任重新获取分享链接。</span>
       </div>
     </div>
 
@@ -61,8 +61,8 @@
               </h3>
             </div>
             <div class="text-right">
-              <div class="text-xs font-mono text-slate-400">{{ lesson.dateFormatted }}</div>
-              <div class="text-[11px] text-slate-400 mt-0.5">{{ lesson.timeSlot }}</div>
+              <div class="text-xs font-mono text-slate-500">{{ lesson.dateFormatted }}</div>
+              <div class="text-[11px] text-slate-500 mt-0.5">{{ lesson.timeSlot }}</div>
             </div>
           </div>
 
@@ -129,7 +129,7 @@
               <Video class="w-5 h-5 text-slate-700" />
               <div>
                 <div class="text-xs font-bold text-slate-800">课堂实操编程视频作品</div>
-                <div class="text-[10px] text-slate-400">见证孩子亲手实现的编程奇迹</div>
+                <div class="text-[10px] text-slate-500">见证孩子亲手实现的编程奇迹</div>
               </div>
             </div>
             <a
@@ -165,7 +165,7 @@
       </main>
 
       <!-- 底部校区安全标识 -->
-      <footer class="text-center py-6 text-[11px] text-slate-400 space-y-1">
+      <footer class="text-center py-6 text-[11px] text-slate-500 space-y-1">
         <p>一校教培系统 · 家校共育数字化平台</p>
         <p>教学资产由校区不可变存证链安全护航</p>
       </footer>

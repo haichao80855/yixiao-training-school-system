@@ -407,7 +407,7 @@
 
         <el-table-column label="到课签到" width="120" align="center">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleOpenSignIn(row)">
+            <el-button link type="primary" size="small" @click="handleOpenSignIn(row as any)">
               {{ row.signedCount }} / {{ row.totalStudents }} 人 ({{ Math.round((row.signedCount / row.totalStudents) * 100) }}%)
             </el-button>
           </template>
@@ -424,10 +424,10 @@
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <div class="space-x-1 text-xs">
-              <el-button link type="primary" size="small" @click="handleOpenEvaluation(row)">⭐ 课评</el-button>
-              <el-button link type="primary" size="small" @click="handleOpenSignIn(row)">签到</el-button>
-              <el-button link type="primary" size="small" @click="handleOpenLessonPlan(row)">备课</el-button>
-              <el-button link :type="row.status === 'completed' ? 'info' : 'success'" size="small" @click="handleFinishLesson(row)">
+              <el-button link type="primary" size="small" @click="handleOpenEvaluation(row as any)">⭐ 课评</el-button>
+              <el-button link type="primary" size="small" @click="handleOpenSignIn(row as any)">签到</el-button>
+              <el-button link type="primary" size="small" @click="handleOpenLessonPlan(row as any)">备课</el-button>
+              <el-button link :type="row.status === 'completed' ? 'info' : 'success'" size="small" @click="handleFinishLesson(row as any)">
                 {{ row.status === 'completed' ? '已结课' : '结课' }}
               </el-button>
             </div>
@@ -491,7 +491,7 @@
           </el-table-column>
           <el-table-column label="扣减课时" width="90" align="center">
             <template #default="{ row }">
-              <span :class="row.status === 'leave' ? 'text-gray-400' : 'font-bold text-emerald-600'">
+              <span :class="row.status === 'leave' ? 'text-st-secondary' : 'font-bold text-emerald-600'">
                 {{ row.status === 'leave' ? '0' : '-1.0' }}
               </span>
             </template>

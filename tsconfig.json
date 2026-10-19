@@ -20,5 +20,8 @@
       "@/*": ["src/*"]
     }
   },
+  "vueCompilerOptions": {
+    "strictTemplates": false
+  },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue", "vite.config.ts", "tailwind.config.ts", "postcss.config.js"]
 }

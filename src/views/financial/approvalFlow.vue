@@ -119,7 +119,7 @@
               :type="row.businessType === 'refund' ? 'danger' : row.businessType === 'quarterly' ? 'warning' : 'primary'"
               size="small"
             >
-              {{ getBusinessLabel(row.businessType) }}
+              {{ getBusinessLabel(row.businessType as any) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -163,7 +163,7 @@
                 {{ row.status === 'approved' ? '已办结' : row.status === 'rejected' ? '已驳回' : `${row.currentStep}/3` }}
               </el-tag>
               <span class="text-xs font-medium text-st-title">
-                {{ getStepName(row) }}
+                {{ getStepName(row as any) }}
               </span>
             </div>
           </template>
@@ -191,7 +191,7 @@
                   link
                   type="primary"
                   size="small"
-                  @click="openPassDialog(row)"
+                  @click="openPassDialog(row as any)"
                 >
                   同意
                 </el-button>
@@ -199,7 +199,7 @@
                   link
                   type="danger"
                   size="small"
-                  @click="openRejectDialog(row)"
+                  @click="openRejectDialog(row as any)"
                 >
                   驳回
                 </el-button>
@@ -208,7 +208,7 @@
                 link
                 type="primary"
                 size="small"
-                @click="openTimelineDialog(row)"
+                @click="openTimelineDialog(row as any)"
               >
                 流转轨迹
               </el-button>
@@ -313,11 +313,11 @@
               timestamp="发起申请"
               placement="top"
               type="primary"
-              size="small"
+              size="normal"
             >
               <div class="font-medium text-st-title">{{ currentActiveRecord.applicantName }} 发起审批</div>
               <div class="text-[11px] text-st-muted mt-0.5">{{ currentActiveRecord.reason }}</div>
-              <div class="text-[10px] text-gray-400 font-mono mt-0.5">{{ currentActiveRecord.createdAt }}</div>
+              <div class="text-[10px] text-st-secondary font-mono mt-0.5">{{ currentActiveRecord.createdAt }}</div>
             </el-timeline-item>
 
             <el-timeline-item
@@ -326,7 +326,7 @@
               :timestamp="node.time"
               placement="top"
               :type="node.status === 'passed' ? 'success' : 'danger'"
-              size="small"
+              size="normal"
             >
               <div class="flex items-center space-x-2">
                 <span class="font-bold text-st-title">{{ node.step }}</span>

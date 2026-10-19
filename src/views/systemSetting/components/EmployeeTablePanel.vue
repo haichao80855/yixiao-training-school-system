@@ -108,24 +108,24 @@
         </el-table-column>
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="success" size="small" @click="$emit('quickSwitch', row)" title="以该员工身份快速登录体验">
+            <el-button link type="success" size="small" @click="$emit('quickSwitch', row as any)" title="以该员工身份快速登录体验">
               体验
             </el-button>
-            <el-button link type="primary" size="small" @click="$emit('resetPassword', row)">
+            <el-button link type="primary" size="small" @click="$emit('resetPassword', row as any)">
               改密
             </el-button>
-            <el-button link type="primary" size="small" @click="$emit('openAuth', row)">
+            <el-button link type="primary" size="small" @click="$emit('openAuth', row as any)">
               权限
             </el-button>
             <el-button
               link
               :type="row.status === 'active' ? 'warning' : 'success'"
               size="small"
-              @click="$emit('toggleStatus', row)"
+              @click="$emit('toggleStatus', row as any)"
             >
               {{ row.status === 'active' ? '锁定' : '启用' }}
             </el-button>
-            <el-button link type="danger" size="small" @click="$emit('deleteUser', row)">
+            <el-button link type="danger" size="small" @click="$emit('deleteUser', row as any)">
               删除
             </el-button>
           </template>
@@ -147,13 +147,13 @@ const props = defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'resetNodeSelection'): void
-  (e: 'openAddUser'): void
-  (e: 'quickSwitch', user: SystemUser): void
-  (e: 'resetPassword', user: SystemUser): void
-  (e: 'openAuth', user: SystemUser): void
-  (e: 'toggleStatus', user: SystemUser): void
-  (e: 'deleteUser', user: SystemUser): void
+  resetNodeSelection: []
+  openAddUser: []
+  quickSwitch: [user: SystemUser]
+  resetPassword: [user: SystemUser]
+  openAuth: [user: SystemUser]
+  toggleStatus: [user: SystemUser]
+  deleteUser: [user: SystemUser]
 }>()
 
 const searchKeyword = ref('')

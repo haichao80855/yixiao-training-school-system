@@ -1,121 +1,109 @@
 <template>
   <div class="p-5 space-y-4">
-    <!-- 1. 顶部复合搜索栏 -->
-    <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
-        <!-- 搜索词 -->
-        <div class="lg:col-span-2">
-          <label class="block text-xs text-st-secondary mb-1">学员姓名 / 学号 / 联系手机号</label>
-          <el-input
-            v-model="keyword"
-            placeholder="输入姓名、S948918 或手机号搜索..."
-            size="small"
-            clearable
-            @keyup.enter="handleSearch"
-          />
-        </div>
+    <!-- 1. 顶部胶囊状态快捷筛选 (CapsuleFilter 集成) -->
+    <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border">
+      <CapsuleFilter
+        v-model="selectedStatus"
+        :options="statusCapsuleOptions"
+        label="学员状态"
+        @update:model-value="handleStatusCapsuleChange"
+      />
+    </div>
 
-        <!-- 所属校区 -->
-        <div>
-          <label class="block text-xs text-st-secondary mb-1">所属校区</label>
-          <el-select v-model="selectedCampus" size="small" placeholder="全部校区" class="w-full">
-            <el-option label="全部校区 (全集团)" value="all" />
-            <el-option
-              v-for="c in tenantStore.campuses"
-              :key="c.id"
-              :label="c.name"
-              :value="c.id"
-            />
-          </el-select>
-        </div>
-
-        <!-- 年级筛选 -->
-        <div>
-          <label class="block text-xs text-st-secondary mb-1">在读公立年级</label>
-          <el-select v-model="selectedGrade" size="small" placeholder="全部年级" class="w-full" clearable>
-            <el-option label="全部年级" value="" />
-            <el-option label="幼儿园大班" value="幼儿园大班" />
-            <el-option label="小学一年级" value="小学一年级" />
-            <el-option label="小学二年级" value="小学二年级" />
-            <el-option label="小学三年级" value="小学三年级" />
-            <el-option label="小学四年级" value="小学四年级" />
-            <el-option label="小学五年级" value="小学五年级" />
-            <el-option label="小学六年级" value="小学六年级" />
-            <el-option label="初中一年级" value="初中一年级" />
-            <el-option label="初中二年级" value="初中二年级" />
-          </el-select>
-        </div>
-
-        <!-- 学员状态 -->
-        <div>
-          <label class="block text-xs text-st-secondary mb-1">学员在读状态</label>
-          <el-select v-model="selectedStatus" size="small" placeholder="全部状态" class="w-full">
-            <el-option label="全部状态" value="all" />
-            <el-option label="正常在读" value="normal" />
-            <el-option label="停课休学" value="suspended" />
-            <el-option label="已转校" value="transferred" />
-            <el-option label="已结课流失" value="dropped_out" />
-          </el-select>
-        </div>
-
-        <!-- 课消风控与续费决策 -->
-        <div>
-          <label class="block text-xs text-st-secondary mb-1">课消风控与续费决策</label>
-          <el-select v-model="selectedWarningLevel" size="small" placeholder="全部风控" class="w-full" clearable>
-            <el-option label="全部风控状态" value="all" />
-            <el-option label="紧急续约 (<=4课时)" value="critical" />
-            <el-option label="预警跟进 (<=8课时)" value="warning" />
-            <el-option label="停消休眠 (>=14天)" value="dormant" />
-            <el-option label="课消充沛正常" value="normal" />
-          </el-select>
-        </div>
-
-        <!-- 录入时间 -->
-        <div>
-          <label class="block text-xs text-st-secondary mb-1">建档录入时间</label>
-          <el-date-picker
-            v-model="dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始"
-            end-placeholder="结束"
-            size="small"
-            class="!w-full"
-            value-format="YYYY-MM-DD"
-          />
-        </div>
+    <!-- 2. 复合搜索栏 (HighDensityGrid 集成) -->
+    <HighDensityGrid :cols="8">
+      <!-- 搜索词 -->
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">学员姓名 / 学号 / 手机</label>
+        <el-input
+          v-model="keyword"
+          placeholder="输入姓名、S948918 或手机号..."
+          size="small"
+          clearable
+          @keyup.enter="handleSearch"
+        />
       </div>
 
-      <div class="flex justify-between items-center mt-3 pt-3 border-t border-slate-100">
+      <!-- 所属校区 -->
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">所属校区</label>
+        <el-select v-model="selectedCampus" size="small" placeholder="全部校区" class="w-full">
+          <el-option label="全部校区 (全集团)" value="all" />
+          <el-option
+            v-for="c in tenantStore.campuses"
+            :key="c.id"
+            :label="c.name"
+            :value="c.id"
+          />
+        </el-select>
+      </div>
+
+      <!-- 年级筛选 -->
+      <div>
+        <label class="block text-xs text-st-secondary mb-1">在读公立年级</label>
+        <el-select v-model="selectedGrade" size="small" placeholder="全部年级" class="w-full" clearable>
+          <el-option label="全部年级" value="" />
+          <el-option label="幼儿园大班" value="幼儿园大班" />
+          <el-option label="小学一年级" value="小学一年级" />
+          <el-option label="小学二年级" value="小学二年级" />
+          <el-option label="小学三年级" value="小学三年级" />
+          <el-option label="小学四年级" value="小学四年级" />
+          <el-option label="小学五年级" value="小学五年级" />
+          <el-option label="小学六年级" value="小学六年级" />
+          <el-option label="初中一年级" value="初中一年级" />
+          <el-option label="初中二年级" value="初中二年级" />
+        </el-select>
+      </div>
+
+      <!-- 课消风控与续费决策 -->
+      <div>
+        <label class="block text-xs text-st-secondary mb-1">课消风控与续约</label>
+        <el-select v-model="selectedWarningLevel" size="small" placeholder="全部风控" class="w-full" clearable>
+          <el-option label="全部风控状态" value="all" />
+          <el-option label="紧急续约 (<=4课时)" value="critical" />
+          <el-option label="预警跟进 (<=8课时)" value="warning" />
+          <el-option label="停消休眠 (>=14天)" value="dormant" />
+          <el-option label="课消充沛正常" value="normal" />
+        </el-select>
+      </div>
+
+      <!-- 录入时间 -->
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">建档录入时间</label>
+        <el-date-picker
+          v-model="dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始"
+          end-placeholder="结束"
+          size="small"
+          class="!w-full"
+          value-format="YYYY-MM-DD"
+        />
+      </div>
+
+      <!-- 底部操作与统计联动 -->
+      <template #footer>
         <div class="text-xs text-st-muted flex items-center space-x-2">
           <span>匹配结果：共 <b class="text-st-primary font-bold">{{ filteredStudents.length }}</b> 位学员档案</span>
           <span v-if="selectedRows.length > 0" class="text-indigo-600 font-semibold">
-            (已选择 {{ selectedRows.length }} 项)
+            (已勾选 {{ selectedRows.length }} 项)
           </span>
         </div>
         <div class="space-x-2">
           <el-button size="small" @click="handleReset">重置筛选</el-button>
           <el-button type="primary" size="small" @click="handleSearch">查询</el-button>
         </div>
-      </div>
-    </div>
+      </template>
+    </HighDensityGrid>
 
-    <!-- 2. 统计提示与快捷工具栏横条 -->
-    <div class="bg-gradient-to-r from-blue-50 to-indigo-50/40 border border-blue-100 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs shadow-2xs">
-      <div class="flex items-center space-x-3 text-st-title">
-        <div class="flex items-center space-x-1.5">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="font-bold text-st-primary">[{{ currentCampusDisplayName }}]</span>
-        </div>
-        <div class="flex items-center space-x-3 text-st-secondary">
-          <span>校区学员: <b class="text-st-title">{{ campusStats.total }}</b> 名</span>
-          <span>正常在读: <b class="text-emerald-600">{{ campusStats.normal }}</b> 名</span>
-          <span>停课休学: <b class="text-amber-600">{{ campusStats.suspended }}</b> 名</span>
-          <span>待分班池: <b class="text-indigo-600">{{ campusStats.unassigned }}</b> 名</span>
-        </div>
-      </div>
-
-      <div class="flex items-center space-x-2">
+    <!-- 3. 数据小计与操作栏 (SummaryStrip 集成) -->
+    <SummaryStrip
+      :total-count="filteredStudents.length"
+      unit="名学员"
+      :summary-text="`当前校区学员：共计 ${campusStats.total} 名，其中正常在读 ${campusStats.normal} 名，停课休学 ${campusStats.suspended} 名，待分班 ${campusStats.unassigned} 名`"
+    >
+      <template #right>
         <el-button type="primary" size="small" @click="handleAddStudent">
           + 新增学员建档
         </el-button>
@@ -125,70 +113,77 @@
         <el-button size="small" plain @click="handleBatchImport">
           批量导入
         </el-button>
-        <el-button size="small" plain @click="handleFaceLibrary">
-          人脸识别底库录入
-        </el-button>
         <el-button size="small" plain @click="handleFinanceExport">
           缴费导出
         </el-button>
-      </div>
-    </div>
+      </template>
+    </SummaryStrip>
 
     <!-- 3. 高保真学员数据表格 -->
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
-      <el-table
-        :data="paginatedStudents"
-        style="width: 100%"
-        stripe
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="45" align="center" />
+      <div class="overflow-x-auto w-full min-w-0">
+        <el-table
+          v-loading="loading"
+          :data="paginatedStudents"
+          style="width: 100%"
+          stripe
+          @selection-change="handleSelectionChange"
+        >
+          <template #empty>
+            <AppEmpty
+              :type="keyword || selectedStatus !== 'all' ? 'search' : 'data'"
+              :action-text="keyword || selectedStatus !== 'all' ? '重置筛选条件' : '新增学员建档'"
+              @action="keyword || selectedStatus !== 'all' ? handleReset() : handleAddStudent()"
+            />
+          </template>
 
-        <!-- 学员姓名与学号 -->
-        <el-table-column label="学员姓名 / 学号" min-width="160">
-          <template #default="{ row }">
-            <div class="flex items-center space-x-2.5 cursor-pointer py-1" @click="handleOpenDrawer(row)">
-              <div class="relative flex-shrink-0">
-                <img
-                  :src="row.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60'"
-                  class="w-9 h-9 rounded-full object-cover border border-gray-200"
-                />
-                <span
-                  v-if="row.faceEntered"
-                  class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[8px]"
-                  title="已录入人脸"
-                >
-                  <Check class="w-2.5 h-2.5" />
-                </span>
-              </div>
-              <div>
-                <div class="font-bold text-st-primary hover:underline text-xs flex items-center space-x-1">
-                  <span>{{ row.name }}</span>
-                  <span class="text-[10px] text-gray-400 font-normal">({{ row.gender === 'male' ? '男' : '女' }}/{{ row.age || 9 }}岁)</span>
+          <el-table-column type="selection" width="45" align="center" />
+
+          <!-- 学员姓名与学号 -->
+          <el-table-column label="学员姓名 / 学号" min-width="160">
+            <template #default="{ row }">
+              <div class="flex items-center space-x-2.5 cursor-pointer py-1" @click="handleOpenDrawer(row as any)">
+                <div class="relative flex-shrink-0">
+                  <img
+                    :src="row.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60'"
+                    class="w-9 h-9 rounded-full object-cover border border-gray-200"
+                  />
+                  <span
+                    v-if="row.faceEntered"
+                    class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[8px]"
+                    title="已录入人脸"
+                  >
+                    <Check class="w-2.5 h-2.5" />
+                  </span>
                 </div>
-                <div class="text-[11px] text-st-muted font-mono font-semibold">{{ row.studentNo }}</div>
+                <div>
+                  <div class="font-bold text-st-primary hover:underline text-xs flex items-center space-x-1">
+                    <span>{{ row.name }}</span>
+                    <span class="text-[10px] text-st-secondary font-normal">({{ row.gender === 'male' ? '男' : '女' }}/{{ row.age || 9 }}岁)</span>
+                  </div>
+                  <div class="text-[11px] text-st-muted font-mono font-semibold">{{ row.studentNo }}</div>
+                </div>
               </div>
-            </div>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
 
-        <!-- 联系电话与微信号 -->
-        <el-table-column label="联系电话 / 微信" min-width="140">
-          <template #default="{ row }">
-            <div class="text-xs">
-              <div class="font-mono flex items-center space-x-1">
-                <span>{{ row.phone }}</span>
-                <el-button link type="primary" size="small" class="!p-0 text-[11px]" @click="quickCall(row)">
-                  <Phone class="w-3 h-3 ml-0.5" />
-                </el-button>
+          <!-- 联系电话与微信号 -->
+          <el-table-column label="联系电话 / 微信" min-width="140">
+            <template #default="{ row }">
+              <div class="text-xs">
+                <div class="font-mono flex items-center space-x-1">
+                  <span>{{ row.phone }}</span>
+                  <el-button link type="primary" size="small" class="!p-0 text-[11px]" @click="quickCall(row as any)">
+                    <Phone class="w-3 h-3 ml-0.5" />
+                  </el-button>
+                </div>
+                <div class="text-[11px] text-st-secondary mt-0.5 flex items-center space-x-1">
+                  <span v-if="row.wechatBound" class="text-emerald-600">● 微信已绑</span>
+                  <span v-else class="text-st-secondary">○ 微信未绑</span>
+                </div>
               </div>
-              <div class="text-[11px] text-st-secondary mt-0.5 flex items-center space-x-1">
-                <span v-if="row.wechatBound" class="text-emerald-600">● 微信已绑</span>
-                <span v-else class="text-gray-400">○ 微信未绑</span>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
 
         <!-- 家长联系人 -->
         <el-table-column label="家长联系人" min-width="120">
@@ -327,7 +322,7 @@
         <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
             <div class="flex items-center space-x-1.5">
-              <el-button link type="primary" size="small" @click="handleOpenDrawer(row)">
+              <el-button link type="primary" size="small" @click="handleOpenDrawer(row as any)">
                 360°画像
               </el-button>
               <el-button
@@ -335,22 +330,22 @@
                 link
                 type="warning"
                 size="small"
-                @click="handleQuickRenewal(row)"
+                @click="handleQuickRenewal(row as any)"
               >
                 一键续费
               </el-button>
-              <el-button link type="success" size="small" @click="handleEnroll(row)">
+              <el-button link type="success" size="small" @click="handleEnroll(row as any)">
                 报读
               </el-button>
-              <el-button link type="warning" size="small" @click="handleMovement(row)">
+              <el-button link type="warning" size="small" @click="handleMovement(row as any)">
                 异动
               </el-button>
-              <el-button link type="primary" size="small" @click="handleEdit(row)">
+              <el-button link type="primary" size="small" @click="handleEdit(row as any)">
                 编辑
               </el-button>
 
               <!-- 更多下拉操作 -->
-              <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row)">
+              <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd, row as any)">
                 <el-button link type="info" size="small">
                   更多▼
                 </el-button>
@@ -367,6 +362,7 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
 
       <!-- 表格底部批量与分页 -->
       <div class="mt-4 pt-4 border-t border-slate-100">
@@ -437,6 +433,10 @@ import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'
 import AppPagination from '@/components/AppPagination.vue'
+import CapsuleFilter from '@/components/CapsuleFilter.vue'
+import SummaryStrip from '@/components/SummaryStrip.vue'
+import HighDensityGrid from '@/components/HighDensityGrid.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import type { Student } from '@/types/student'
 
 import StudentProfileDrawer from './components/StudentProfileDrawer.vue'
@@ -447,6 +447,22 @@ import FaceEntryDialog from './components/FaceEntryDialog.vue'
 
 const tenantStore = useTenantStore()
 const authStore = useAuthStore()
+
+// 胶囊快捷状态筛选选项
+const statusCapsuleOptions = [
+  { label: '全部状态', value: 'all' },
+  { label: '正常在读', value: 'normal' },
+  { label: '停课休学', value: 'suspended' },
+  { label: '已转校', value: 'transferred' },
+  { label: '已结课流失', value: 'dropped_out' }
+]
+
+function handleStatusCapsuleChange(val: string) {
+  selectedStatus.value = val
+  currentPage.value = 1
+}
+
+const loading = ref(false)
 
 // 搜索条件
 const keyword = ref('')
@@ -485,6 +501,7 @@ const refreshTrigger = ref(0)
 const studentList = ref<Student[]>([])
 
 async function loadStudents() {
+  loading.value = true
   try {
     const res = await studentApi.getStudents({
       campusId: selectedCampus.value === 'all' ? undefined : selectedCampus.value,
@@ -500,10 +517,13 @@ async function loadStudents() {
         return
       }
     }
+    studentList.value = []
   } catch (err: any) {
     ElMessage.error(err.message || '获取学员列表失败')
+    studentList.value = []
+  } finally {
+    loading.value = false
   }
-  studentList.value = []
 }
 
 onMounted(() => {

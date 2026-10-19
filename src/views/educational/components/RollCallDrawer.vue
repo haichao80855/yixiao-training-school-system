@@ -66,7 +66,7 @@
 
           <el-table-column label="出勤考勤状态" width="220">
             <template #default="{ row }">
-              <el-radio-group v-model="row.status" size="small" @change="() => handleStatusChange(row)">
+              <el-radio-group v-model="row.status" size="small" @change="() => handleStatusChange(row as any)">
                 <el-radio-button label="present">到课</el-radio-button>
                 <el-radio-button label="leave">请假</el-radio-button>
                 <el-radio-button label="absent">旷课</el-radio-button>

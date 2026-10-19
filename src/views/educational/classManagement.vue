@@ -73,70 +73,117 @@
       </div>
     </div>
 
-    <!-- 搜索与筛选控制栏 -->
-    <div class="bg-white rounded-lg p-4 shadow-sm border border-st-border flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-3">
+    <!-- 搜索与筛选控制栏 (HighDensityGrid 集成) -->
+    <HighDensityGrid :cols="8">
+      <div class="sm:col-span-3">
+        <label class="block text-xs text-st-secondary mb-1">班级名称 / 编号</label>
         <el-input
           v-model="searchQuery"
           placeholder="搜索班级名称 / 编号"
           clearable
-          class="!w-64"
+          size="small"
           @clear="loadData"
           @keyup.enter="loadData"
         >
-          <template #prefix><Search class="w-3.5 h-3.5 text-gray-400" /></template>
+          <template #prefix><Search class="w-3.5 h-3.5 text-st-secondary" /></template>
         </el-input>
+      </div>
 
-        <el-select v-model="statusFilter" placeholder="班级状态" clearable class="!w-36" @change="loadData">
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">班级状态</label>
+        <el-select v-model="statusFilter" placeholder="班级状态" clearable size="small" class="w-full" @change="loadData">
           <el-option label="全部状态" value="" />
           <el-option label="招生中" value="recruiting" />
           <el-option label="开班中" value="in_progress" />
           <el-option label="已结业" value="completed" />
         </el-select>
+      </div>
 
+      <div class="sm:col-span-3">
+        <label class="block text-xs text-st-secondary mb-1">授课讲师</label>
         <el-select
           v-model="teacherFilter"
           :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '授课讲师'"
           :disabled="isDataScopeSelf"
           clearable
-          class="!w-36"
+          size="small"
+          class="w-full"
           @change="loadData"
         >
           <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
           <el-option v-for="t in teachers" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
-
-        <el-button type="primary" @click="loadData">筛选</el-button>
-        <el-button @click="handleResetFilters">重置</el-button>
       </div>
 
-      <div class="text-xs text-st-muted flex items-center gap-2">
-        <el-tag
+      <template #footer>
+        <div class="text-xs text-st-muted flex items-center gap-2">
+          <el-tag
+            size="small"
+            :type="isDataScopeSelf ? 'warning' : 'primary'"
+            effect="plain"
+            class="font-medium font-mono"
+          >
+            {{ isDataScopeSelf ? '仅本人数据 (已锁定只看本人班级)' : (authStore.user?.dataScope === 'all' ? '全部校区数据透视' : '本校数据透视') }}
+          </el-tag>
+          <span v-if="selectedRows.length > 0" class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+            已勾选 {{ selectedRows.length }} 个教学班级
+          </span>
+          <span>匹配结果：共 <b>{{ classList.length }}</b> 个教学班级</span>
+        </div>
+        <div class="space-x-2">
+          <el-button size="small" @click="handleResetFilters">重置</el-button>
+          <el-button type="primary" size="small" @click="loadData">查询</el-button>
+        </div>
+      </template>
+    </HighDensityGrid>
+
+    <!-- 班级摘要小计栏 (SummaryStrip 集成) -->
+    <SummaryStrip
+      :total-count="classList.length"
+      unit="个班级"
+      :summary-text="`当前校区班级：共计 ${classStats.totalClasses} 个班级，在读学员 ${classStats.totalStudents} 人，综合满班率 ${classStats.avgFillRate}%，秋季在招 ${classStats.recruitingClasses} 个`"
+    >
+      <template #right>
+        <el-button size="small" @click="showClassroomManageModal = true">
+          <template #icon><Building2 class="w-3.5 h-3.5" /></template>
+          教室管理
+        </el-button>
+        <el-button
+          type="success"
           size="small"
-          :type="isDataScopeSelf ? 'warning' : 'primary'"
-          effect="plain"
-          class="font-medium font-mono"
+          plain
+          :disabled="selectedRows.length === 0"
+          @click="handleBatchScheduleSelected"
         >
-          {{ isDataScopeSelf ? '仅本人数据 (已锁定只看本人班级)' : (authStore.user?.dataScope === 'all' ? '全部校区数据透视' : '本校数据透视') }}
-        </el-tag>
-        <span v-if="selectedRows.length > 0" class="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-          已勾选 {{ selectedRows.length }} 个教学班级
-        </span>
-        <span>共计 <b>{{ classList.length }}</b> 个教学班级</span>
-      </div>
-    </div>
+          <template #icon><Calendar class="w-3.5 h-3.5" /></template>
+          批量排课 {{ selectedRows.length > 0 ? `(已选 ${selectedRows.length} 班)` : '' }}
+        </el-button>
+        <el-button type="primary" size="small" @click="handleCreateClass">
+          + 新设教学班级
+        </el-button>
+      </template>
+    </SummaryStrip>
 
     <!-- 班级列表高密度表格 -->
     <div class="bg-white rounded-lg shadow-sm border border-st-border overflow-hidden">
-      <el-table
-        :data="classList"
-        stripe
-        border
-        size="default"
-        style="width: 100%"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="45" align="center" />
+      <div class="overflow-x-auto w-full min-w-0">
+        <el-table
+          :data="classList"
+          stripe
+          border
+          size="default"
+          style="width: 100%"
+          @selection-change="handleSelectionChange"
+        >
+          <template #empty>
+            <AppEmpty
+              :type="searchQuery || statusFilter || teacherFilter ? 'search' : 'data'"
+              action-text="重置筛选"
+              @action="handleResetFilters"
+            />
+          </template>
+
+          <el-table-column type="selection" width="45" align="center" />
         <el-table-column prop="code" label="班级编号" width="130">
           <template #default="{ row }">
             <span class="font-mono text-xs text-st-secondary font-semibold">{{ row.code }}</span>
@@ -145,7 +192,7 @@
 
         <el-table-column prop="name" label="班级名称" min-width="190">
           <template #default="{ row }">
-            <div class="cursor-pointer hover:text-st-primary font-bold text-st-title" @click="handleViewDetail(row)">
+            <div class="cursor-pointer hover:text-st-primary font-bold text-st-title" @click="handleViewDetail(row as any)">
               {{ row.name }}
             </div>
             <div class="text-[11px] text-st-muted mt-0.5">
@@ -220,7 +267,7 @@
                 link
                 type="success"
                 size="small"
-                @click="handleStartClass(row)"
+                @click="handleStartClass(row as any)"
               >
                 开班
               </el-button>
@@ -229,18 +276,19 @@
                 link
                 type="warning"
                 size="small"
-                @click="handleOpenCompleteModal(row)"
+                @click="handleOpenCompleteModal(row as any)"
               >
                 结课
               </el-button>
-              <el-button link type="primary" size="small" @click="handleViewDetail(row)">花名册</el-button>
-              <el-button link type="primary" size="small" @click="handleBatchSchedule(row)">排课</el-button>
-              <el-button link type="primary" size="small" @click="handleEditClass(row)">编辑</el-button>
-              <el-button link type="danger" size="small" @click="handleDeleteClass(row)">删除</el-button>
+              <el-button link type="primary" size="small" @click="handleViewDetail(row as any)">花名册</el-button>
+              <el-button link type="primary" size="small" @click="handleBatchSchedule(row as any)">排课</el-button>
+              <el-button link type="primary" size="small" @click="handleEditClass(row as any)">编辑</el-button>
+              <el-button link type="danger" size="small" @click="handleDeleteClass(row as any)">删除</el-button>
             </div>
           </template>
         </el-table-column>
       </el-table>
+      </div>
     </div>
 
     <!-- 弹窗体系 -->
@@ -402,6 +450,9 @@ import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
 import type { ClassItem, Classroom } from '@/types/educational'
+import SummaryStrip from '@/components/SummaryStrip.vue'
+import HighDensityGrid from '@/components/HighDensityGrid.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import ClassDetailDrawer from './components/ClassDetailDrawer.vue'
 import BatchScheduleDialog from './components/BatchScheduleDialog.vue'
 import ClassFormDialog from './components/ClassFormDialog.vue'

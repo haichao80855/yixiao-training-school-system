@@ -41,7 +41,7 @@
 
     <!-- 导航 Tabs -->
     <div class="mt-4 border-t border-st-border pt-2">
-      <el-tabs :model-value="activeTab" @update:model-value="$emit('update:activeTab', $event)" class="st-tabs">
+      <el-tabs :model-value="activeTab" @update:model-value="$emit('update:activeTab', $event as any)" class="st-tabs">
         <el-tab-pane label="机构信息与组织架构" name="org" />
         <el-tab-pane label="LOGO设置与品牌" name="logo" />
         <el-tab-pane label="授权产品与微服务" name="product" />

@@ -35,11 +35,11 @@
             别名: {{ course.courseNameAlias }}
           </p>
 
-          <div class="flex flex-wrap gap-4 text-xs text-gray-300 pt-2 border-t border-white/10">
-            <div><span class="text-gray-400">学科分类:</span> {{ course.configCourseSubjectName || '综合素养' }}</div>
-            <div><span class="text-gray-400">适用学段:</span> {{ course.configCourseGradeName || '少儿/青少年' }}</div>
-            <div><span class="text-gray-400">标准课时:</span> {{ course.planLessonTotal || lessonList.length }} 课时</div>
-            <div><span class="text-gray-400">主创作者:</span> {{ course.createUserName || '盛通教研总院' }}</div>
+          <div class="flex flex-wrap gap-4 text-xs text-gray-200 pt-2 border-t border-white/10">
+            <div><span class="text-gray-300">学科分类:</span> {{ course.configCourseSubjectName || '综合素养' }}</div>
+            <div><span class="text-gray-300">适用学段:</span> {{ course.configCourseGradeName || '少儿/青少年' }}</div>
+            <div><span class="text-gray-300">标准课时:</span> {{ course.planLessonTotal || lessonList.length }} 课时</div>
+            <div><span class="text-gray-300">主创作者:</span> {{ course.createUserName || '盛通教研总院' }}</div>
           </div>
         </div>
       </div>
@@ -53,7 +53,7 @@
               支持一键进入在线互动课件授课
             </span>
           </div>
-          <span class="text-xs text-gray-400">点击课次卡片或播放按钮即可启动随堂课件白板</span>
+          <span class="text-xs text-st-secondary">点击课次卡片或播放按钮即可启动随堂课件白板</span>
         </div>
 
         <!-- 课件卡片网格 (高保真还原盛通原系统暗黑/科技蓝卡片流) -->
@@ -92,7 +92,7 @@
 
             <!-- 底部播放按钮与状态 -->
             <div class="flex items-center justify-between pt-2 border-t border-white/5">
-              <span class="text-[11px] text-gray-400 truncate max-w-[130px]">
+              <span class="text-[11px] text-gray-300 truncate max-w-[130px]">
                 {{ lesson.pptFileName ? '含课件PPT' : '授课资料' }}
               </span>
 
@@ -106,7 +106,7 @@
         </div>
 
         <!-- 空课件状态 -->
-        <div v-if="lessonList.length === 0" class="p-8 text-center bg-gray-50 rounded-lg text-gray-400 text-sm">
+        <div v-if="lessonList.length === 0" class="p-8 text-center bg-gray-50 rounded-lg text-st-secondary text-sm">
           暂无关联课次与课件数据
         </div>
       </div>

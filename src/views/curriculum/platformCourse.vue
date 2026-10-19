@@ -20,17 +20,17 @@
 
       <div class="flex items-center space-x-6 text-sm text-gray-600 bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-100">
         <div>
-          <span class="text-gray-400 text-xs block">总课程数</span>
+          <span class="text-st-secondary text-xs block">总课程数</span>
           <span class="text-lg font-bold text-st-primary">{{ totalCourses }}</span> 门
         </div>
         <div class="h-6 w-px bg-gray-200"></div>
         <div>
-          <span class="text-gray-400 text-xs block">在线互动课件课次</span>
+          <span class="text-st-secondary text-xs block">在线互动课件课次</span>
           <span class="text-lg font-bold text-emerald-600">2,029</span> 节
         </div>
         <div class="h-6 w-px bg-gray-200"></div>
         <div>
-          <span class="text-gray-400 text-xs block">涵盖学科科目</span>
+          <span class="text-st-secondary text-xs block">涵盖学科科目</span>
           <span class="text-lg font-bold text-gray-800">{{ uniqueSubjects.length }}</span> 个
         </div>
       </div>
@@ -38,30 +38,13 @@
 
     <!-- 筛选面板 -->
     <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-100 space-y-3">
-      <!-- 快捷科目/类别筛选 -->
-      <div class="flex flex-wrap items-center gap-2 pt-1">
-        <span class="text-xs font-semibold text-gray-500 w-16">所属学科:</span>
-        <el-button
-          size="small"
-          round
-          :type="selectedSubject === '' ? 'primary' : 'default'"
-          class="!m-0"
-          @click="selectedSubject = ''"
-        >
-          全部 ({{ totalCourses }})
-        </el-button>
-        <el-button
-          v-for="sub in topSubjects"
-          :key="sub.name"
-          size="small"
-          round
-          :type="selectedSubject === sub.name ? 'primary' : 'default'"
-          class="!m-0"
-          @click="selectedSubject = sub.name"
-        >
-          {{ sub.name }} ({{ sub.count }})
-        </el-button>
-      </div>
+      <!-- 快捷科目/类别筛选 (CapsuleFilter 集成) -->
+      <CapsuleFilter
+        v-model="selectedSubject"
+        :options="subjectCapsuleOptions"
+        label="所属学科"
+        all-value=""
+      />
 
       <!-- 输入框与下拉选择搜索 -->
       <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
@@ -160,7 +143,7 @@
                 {{ course.courseName }}
               </h3>
             </div>
-            <p v-if="course.courseNameAlias && course.courseNameAlias !== course.courseName" class="text-xs text-gray-400 mb-2 line-clamp-1">
+            <p v-if="course.courseNameAlias && course.courseNameAlias !== course.courseName" class="text-xs text-st-secondary mb-2 line-clamp-1">
               别名: {{ course.courseNameAlias }}
             </p>
 
@@ -189,12 +172,17 @@
       </div>
     </div>
 
-    <!-- 空状态 -->
+    <!-- 空状态 (AppEmpty 集成) -->
     <div
       v-if="filteredCourses.length === 0"
-      class="bg-white rounded-lg p-12 text-center border border-gray-100 shadow-sm"
+      class="bg-white rounded-lg p-6 text-center border border-gray-100 shadow-sm"
     >
-      <el-empty description="未找到符合筛选条件的资源课程" />
+      <AppEmpty
+        type="search"
+        title="未找到符合筛选条件的资源课程"
+        action-text="清空筛选"
+        @action="handleReset"
+      />
     </div>
 
     <!-- 分页器 -->
@@ -217,6 +205,8 @@
 import { ref, computed } from 'vue'
 import { platformData } from '@/constants/platformCourse'
 import AppPagination from '@/components/AppPagination.vue'
+import CapsuleFilter from '@/components/CapsuleFilter.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import PlatformCourseDetailDrawer from './components/PlatformCourseDetailDrawer.vue'
 
 interface PlatformCourse {
@@ -268,6 +258,11 @@ const topSubjects = computed(() => {
     .slice(0, 8)
     .map(([name, count]) => ({ name, count }))
 })
+
+const subjectCapsuleOptions = computed(() => [
+  { label: '全部学科', value: '', count: totalCourses.value },
+  ...topSubjects.value.map(s => ({ label: s.name, value: s.name, count: s.count }))
+])
 
 const uniqueTypes = computed(() => {
   const set = new Set<string>()

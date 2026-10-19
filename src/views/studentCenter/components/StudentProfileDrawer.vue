@@ -355,7 +355,7 @@
                 />
                 <div class="p-2 space-y-0.5">
                   <div class="font-semibold text-xs text-slate-800 truncate">{{ photo.lessonTitle }}</div>
-                  <div class="flex justify-between text-[10px] text-slate-400">
+                  <div class="flex justify-between text-[10px] text-st-secondary">
                     <span>{{ photo.date }}</span>
                     <span>{{ photo.teacherName }}</span>
                   </div>

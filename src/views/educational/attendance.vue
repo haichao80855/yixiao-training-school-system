@@ -67,6 +67,13 @@
         <!-- Tab 1: 待上课次点名工作台 -->
         <el-tab-pane label="待上课次与点名消课" name="workbench">
           <div class="space-y-4">
+            <!-- 快捷课次状态胶囊 (CapsuleFilter 集成) -->
+            <CapsuleFilter
+              v-model="filterScheduleStatus"
+              :options="scheduleCapsuleOptions"
+              label="课次状态"
+            />
+
             <!-- 筛选条 -->
             <div class="flex flex-wrap items-center justify-between gap-3">
               <div class="flex items-center space-x-3">
@@ -103,55 +110,65 @@
                 </span>
               </div>
             </div>
+
             <!-- 待上课次表格 -->
-            <el-table :data="filteredSchedules" stripe border size="default" style="width: 100%">
-              <el-table-column prop="date" label="上课日期" width="115" />
-              <el-table-column label="上课时段" width="130">
-                <template #default="{ row }">
-                  <span class="font-mono text-xs">{{ row.startTime }} - {{ row.endTime }}</span>
+            <div class="overflow-x-auto w-full min-w-0">
+              <el-table :data="filteredSchedules" stripe border size="default" style="width: 100%">
+                <template #empty>
+                  <AppEmpty
+                    :type="filterTeacher || filterDate ? 'search' : 'data'"
+                    action-text="重置日期"
+                    @action="() => { filterDate = getTodayDateStr(); filterScheduleStatus = 'all'; }"
+                  />
                 </template>
-              </el-table-column>
-              <el-table-column prop="className" label="班级名称" min-width="190">
-                <template #default="{ row }">
-                  <span class="font-bold text-st-title">{{ row.className }}</span>
-                  <div class="text-[11px] text-st-muted mt-0.5">{{ row.courseName }}</div>
-                </template>
-              </el-table-column>
-              <el-table-column prop="teacherName" label="授课老师" width="115">
-                <template #default="{ row }">
-                  <span class="font-medium text-st-title flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" /> {{ row.teacherName }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="classroomName" label="所在教室" width="130">
-                <template #default="{ row }">
-                  <span class="text-xs text-st-secondary flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-st-secondary" /> {{ row.classroomName }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="应到人数" width="100">
-                <template #default="{ row }">
-                  <span>{{ row.studentIds?.length || 0 }} 人</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="状态" width="105">
-                <template #default="{ row }">
-                  <el-tag :type="row.status === 'completed' ? 'success' : 'warning'" size="small">
-                    {{ row.status === 'completed' ? '已消课' : '待点名' }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="140" fixed="right">
-                <template #default="{ row }">
-                  <el-button
-                    type="primary"
-                    size="small"
-                    :disabled="row.status === 'completed'"
-                    @click="handleOpenRollCall(row)"
-                  >
-                    {{ row.status === 'completed' ? '已结课' : '进入点名' }}
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
+                <el-table-column prop="date" label="上课日期" width="115" />
+                <el-table-column label="上课时段" width="130">
+                  <template #default="{ row }">
+                    <span class="font-mono text-xs">{{ row.startTime }} - {{ row.endTime }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="className" label="班级名称" min-width="190">
+                  <template #default="{ row }">
+                    <span class="font-bold text-st-title">{{ row.className }}</span>
+                    <div class="text-[11px] text-st-muted mt-0.5">{{ row.courseName }}</div>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="teacherName" label="授课老师" width="115">
+                  <template #default="{ row }">
+                    <span class="font-medium text-st-title flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" /> {{ row.teacherName }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="classroomName" label="所在教室" width="130">
+                  <template #default="{ row }">
+                    <span class="text-xs text-st-secondary flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-st-secondary" /> {{ row.classroomName }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="应到人数" width="100">
+                  <template #default="{ row }">
+                    <span>{{ row.studentIds?.length || 0 }} 人</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" width="105">
+                  <template #default="{ row }">
+                    <el-tag :type="row.status === 'completed' ? 'success' : 'warning'" size="small">
+                      {{ row.status === 'completed' ? '已消课' : '待点名' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="140" fixed="right">
+                  <template #default="{ row }">
+                    <el-button
+                      type="primary"
+                      size="small"
+                      :disabled="row.status === 'completed'"
+                      @click="handleOpenRollCall(row as any)"
+                    >
+                      {{ row.status === 'completed' ? '已结课' : '进入点名' }}
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
           </div>
         </el-tab-pane>
 
@@ -216,7 +233,7 @@
               <el-table-column label="操作" width="170" fixed="right">
                 <template #default="{ row }">
                   <div class="space-x-1">
-                    <el-button link type="primary" size="small" @click="handleViewRecord(row)">
+                    <el-button link type="primary" size="small" @click="handleViewRecord(row as any)">
                       明细
                     </el-button>
                     <el-button
@@ -224,7 +241,7 @@
                       link
                       type="danger"
                       size="small"
-                      @click="handleRevertAttendance(row)"
+                      @click="handleRevertAttendance(row as any)"
                     >
                       反结课冲正
                     </el-button>
@@ -264,6 +281,8 @@ import { educationalApi } from '@/api'
 import type { ScheduleEvent, AttendanceRecord, Teacher } from '@/types/educational'
 import RollCallDrawer from './components/RollCallDrawer.vue'
 import AttendanceDetailDialog from './components/AttendanceDetailDialog.vue'
+import CapsuleFilter from '@/components/CapsuleFilter.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 
 const route = useRoute()
 const tenantStore = useTenantStore()
@@ -284,6 +303,13 @@ function getTodayDateStr(): string {
 const activeTab = ref('workbench')
 const filterTeacher = ref('')
 const filterDate = ref(getTodayDateStr())
+
+const filterScheduleStatus = ref('all')
+const scheduleCapsuleOptions = [
+  { label: '全部课次', value: 'all' },
+  { label: '待点名消课', value: 'scheduled' },
+  { label: '已消课结课', value: 'completed' }
+]
 
 const schedules = ref<ScheduleEvent[]>([])
 const attendanceRecords = ref<AttendanceRecord[]>([])
@@ -352,6 +378,9 @@ watch(() => [authStore.user, isDataScopeSelf.value], () => {
 
 const filteredSchedules = computed(() => {
   let list = schedules.value
+  if (filterScheduleStatus.value !== 'all') {
+    list = list.filter(s => s.status === filterScheduleStatus.value)
+  }
   if (isDataScopeSelf.value) {
     const tId = currentTeacherId.value
     const tName = currentTeacherName.value

@@ -67,19 +67,19 @@
           <span>90分钟教学时间流规划</span>
         </div>
         <el-timeline class="!pl-1 pt-1">
-          <el-timeline-item timestamp="前 10 分钟" type="primary" size="small">
+          <el-timeline-item timestamp="前 10 分钟" type="primary" size="normal">
             <div class="font-semibold text-st-title">情境导入与任务发布</div>
             <div class="text-st-muted text-[11px]">播放自动驾驶避障小车实测视频，引出红外测距核心命题。</div>
           </el-timeline-item>
-          <el-timeline-item timestamp="第 10-35 分钟" type="primary" size="small">
+          <el-timeline-item timestamp="第 10-35 分钟" type="primary" size="normal">
             <div class="font-semibold text-st-title">硬件连线与原理探究</div>
             <div class="text-st-muted text-[11px]">分步指导学员插接 VCC、GND 及数字信号输出 Pin 端口。</div>
           </el-timeline-item>
-          <el-timeline-item timestamp="第 35-70 分钟" type="warning" size="small">
+          <el-timeline-item timestamp="第 35-70 分钟" type="warning" size="normal">
             <div class="font-semibold text-st-title">算法编写与现场实车跑测</div>
             <div class="text-st-muted text-[11px]">编写条件判断：当检测到前方障碍物时，左轮正转右轮反转实现原地掉头。</div>
           </el-timeline-item>
-          <el-timeline-item timestamp="最后 20 分钟" type="success" size="small">
+          <el-timeline-item timestamp="最后 20 分钟" type="success" size="normal">
             <div class="font-semibold text-st-title">随堂点评、课评相册拍摄与下课收纳</div>
             <div class="text-st-muted text-[11px]">拍照记录学员现场成果，呼出课评工作台填写点评。</div>
           </el-timeline-item>

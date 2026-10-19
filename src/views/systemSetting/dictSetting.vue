@@ -108,17 +108,17 @@
               inline-prompt
               active-text="开"
               inactive-text="关"
-              @change="handleToggleStatus(row)"
+              @change="handleToggleStatus(row as any)"
             />
           </template>
         </el-table-column>
 
         <el-table-column label="操作" width="130" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openEditModal(row)">
+            <el-button link type="primary" size="small" @click="openEditModal(row as any)">
               编辑
             </el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">
+            <el-button link type="danger" size="small" @click="handleDelete(row as any)">
               删除
             </el-button>
           </template>

@@ -37,53 +37,67 @@
       </div>
     </div>
 
-    <!-- 筛选搜索栏 (讲师 / 教务 / 全部课程 / 教室 / 搜索 / 重置) -->
-    <div class="bg-white rounded-lg p-4 shadow-sm border border-st-border flex flex-wrap items-center justify-between gap-3">
-      <div class="flex flex-wrap items-center gap-3">
-        <!-- 讲师 -->
+    <!-- 筛选搜索栏 (HighDensityGrid 集成) -->
+    <HighDensityGrid :cols="8">
+      <!-- 讲师 -->
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">主讲讲师</label>
         <el-select
           v-model="filterTeacher"
-          :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '讲师'"
+          :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '全部讲师'"
           :disabled="isDataScopeSelf"
           clearable
-          class="!w-36"
-          size="default"
+          size="small"
+          class="w-full"
         >
           <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
           <el-option v-for="t in teachers" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
-        <!-- 教务/班主任 -->
-        <el-select v-model="filterAdvisor" placeholder="教务" clearable class="!w-36" size="default">
+      </div>
+
+      <!-- 教务/班主任 -->
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">教务班主任</label>
+        <el-select v-model="filterAdvisor" placeholder="全部教务" clearable size="small" class="w-full">
           <el-option v-for="a in advisors" :key="a.id" :label="a.name" :value="a.id" />
         </el-select>
+      </div>
 
-        <!-- 全部课程 -->
-        <el-select v-model="filterCourse" placeholder="全部课程" clearable class="!w-48" size="default">
+      <!-- 全部课程 -->
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">报读课程</label>
+        <el-select v-model="filterCourse" placeholder="全部课程" clearable size="small" class="w-full">
           <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
+      </div>
 
-        <!-- 教室 -->
-        <el-select v-model="filterClassroom" placeholder="教室" clearable class="!w-44" size="default">
+      <!-- 教室 -->
+      <div class="sm:col-span-2">
+        <label class="block text-xs text-st-secondary mb-1">物理教室</label>
+        <el-select v-model="filterClassroom" placeholder="全部教室" clearable size="small" class="w-full">
           <el-option v-for="r in classrooms" :key="r.id" :label="r.name" :value="r.id" />
         </el-select>
-
-        <el-button type="primary" @click="handleSearch">搜索</el-button>
-        <el-button @click="handleReset">重置</el-button>
       </div>
 
-      <div class="flex items-center space-x-2">
-        <el-button type="danger" plain size="default" @click="openConflictCenter">
-          <template #icon><Zap class="w-3.5 h-3.5" /></template>
-          冲突检测中心 ({{ campusConflictCount }})
-        </el-button>
-        <el-button size="default" @click="handleExport">
-          导出课表
-        </el-button>
-        <el-button type="primary" size="default" @click="openQuickSchedule()">
-          + 快速排课
-        </el-button>
-      </div>
-    </div>
+      <template #footer>
+        <div class="space-x-2">
+          <el-button size="small" @click="handleReset">重置</el-button>
+          <el-button type="primary" size="small" @click="handleSearch">搜索</el-button>
+        </div>
+        <div class="flex items-center space-x-2">
+          <el-button type="danger" plain size="small" @click="openConflictCenter">
+            <template #icon><Zap class="w-3.5 h-3.5" /></template>
+            冲突检测中心 ({{ campusConflictCount }})
+          </el-button>
+          <el-button size="small" @click="handleExport">
+            导出课表
+          </el-button>
+          <el-button type="primary" size="small" @click="openQuickSchedule()">
+            + 快速排课
+          </el-button>
+        </div>
+      </template>
+    </HighDensityGrid>
 
     <!-- 冲突预警提示横条（当有冲突课次时展现） -->
     <div
@@ -153,11 +167,13 @@
 
     <!-- 视图模式 1: 7x15 动态时间排课网格 (默认主视图) -->
     <div v-if="currentSubTab === 'timeClassSchedule' || currentSubTab === 'attendClassCalendar'" class="bg-white rounded-lg shadow-sm border border-st-border overflow-hidden">
-      <!-- 星期表头 (7 天) -->
-      <div class="grid grid-cols-[80px_repeat(7,1fr)] bg-gray-50 border-b border-st-border text-xs font-semibold text-st-title text-center select-none sticky top-0 z-20">
-        <div class="py-2.5 border-r border-st-border bg-gray-100/70 text-st-muted flex items-center justify-center">
-          时间 / 星期
-        </div>
+      <div class="overflow-x-auto w-full min-w-0">
+        <div class="min-w-[840px]">
+          <!-- 星期表头 (7 天) -->
+          <div class="grid grid-cols-[80px_repeat(7,1fr)] bg-gray-50 border-b border-st-border text-xs font-semibold text-st-title text-center select-none sticky top-0 z-20">
+            <div class="py-2.5 border-r border-st-border bg-gray-100/70 text-st-muted flex items-center justify-center">
+              时间 / 星期
+            </div>
         <div
           v-for="day in currentWeekDays"
           :key="day.date"
@@ -269,6 +285,8 @@
         </div>
       </div>
     </div>
+    </div>
+    </div>
 
     <!-- 视图模式 2: 教室课表 (按教室分列展示) -->
     <div v-else-if="currentSubTab === 'classroomCalendar'" class="bg-white rounded-lg p-5 shadow-sm border border-st-border space-y-4">
@@ -362,6 +380,13 @@
       </div>
 
       <el-table :data="tableEvents" stripe border size="small" style="width: 100%">
+        <template #empty>
+          <AppEmpty
+            :type="filterTeacher || filterCourse || filterClassroom ? 'search' : 'data'"
+            action-text="重置筛选"
+            @action="handleReset"
+          />
+        </template>
         <el-table-column prop="date" label="上课日期" width="110" />
         <el-table-column label="上课时段" width="130">
           <template #default="{ row }">
@@ -385,8 +410,8 @@
         </el-table-column>
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="handleCardClick(row)">详情</el-button>
-            <el-button link type="primary" size="small" @click="openQuickSchedule(row)">编辑</el-button>
+            <el-button link type="primary" size="small" @click="handleCardClick(row as any)">详情</el-button>
+            <el-button link type="primary" size="small" @click="openQuickSchedule(row as any)">编辑</el-button>
             <el-button link type="danger" size="small" @click="handleDelete(row.id)">取消</el-button>
           </template>
         </el-table-column>
@@ -426,6 +451,8 @@ import { EducationalCollisionEngine } from '@/utils/collisionEngine'
 import { curriculumApi } from '@/api'
 import type { ScheduleEvent, LaneEvent, Teacher, Classroom } from '@/types/educational'
 import type { CourseItem } from '@/types/curriculum'
+import HighDensityGrid from '@/components/HighDensityGrid.vue'
+import AppEmpty from '@/components/AppEmpty.vue'
 import QuickScheduleDialog from './components/QuickScheduleDialog.vue'
 import ScheduleDetailDrawer from './components/ScheduleDetailDrawer.vue'
 import ConflictCenterDialog from './components/ConflictCenterDialog.vue'
