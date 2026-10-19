@@ -928,7 +928,7 @@ onMounted(() => {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background-color: #8B5CF6; /* 全部结课: 优雅紫 */
+  background-color: var(--st-color-purple, #8B5CF6); /* 全部结课: 优雅紫 */
 }
 
 /* 单元格被选中高亮时，小圆点反白为白色以保证辨识度 */

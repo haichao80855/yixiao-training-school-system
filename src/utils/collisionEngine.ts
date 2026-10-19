@@ -268,35 +268,35 @@ export class EducationalCollisionEngine {
       return {
         type: 'conflict',
         badge: '冲突',
-        background: '#FEF0F0',
-        borderColor: '#F56C6C',
-        color: '#F56C6C'
+        background: 'var(--st-color-danger-light, #FEF0F0)',
+        borderColor: 'var(--st-color-danger, #F56C6C)',
+        color: 'var(--st-color-danger, #F56C6C)'
       };
     }
     if (event.status === 'completed' || event.isFinished || event.semanticType === 'completed') {
       return {
         type: 'completed',
         badge: '已上',
-        background: '#F0F9EB',
-        borderColor: '#67C23A',
-        color: '#67C23A'
+        background: 'var(--st-color-success-light, #F0F9EB)',
+        borderColor: 'var(--st-color-success, #67C23A)',
+        color: 'var(--st-color-success, #67C23A)'
       };
     }
     if (event.isPersonal || event.type === 'personal' || event.semanticType === 'personal') {
       return {
         type: 'personal',
         badge: '个人',
-        background: '#F9F0FF',
-        borderColor: '#722ED1',
-        color: '#722ED1'
+        background: 'var(--st-color-purple-light, #F9F0FF)',
+        borderColor: 'var(--st-color-purple, #722ED1)',
+        color: 'var(--st-color-purple, #722ED1)'
       };
     }
     return {
       type: 'regular',
       badge: '正',
-      background: '#ECF5FF',
-      borderColor: '#409EFF',
-      color: '#409EFF'
+      background: 'var(--st-color-primary-light, #ECF5FF)',
+      borderColor: 'var(--st-color-primary, #409EFF)',
+      color: 'var(--st-color-primary, #409EFF)'
     };
   }
 }
