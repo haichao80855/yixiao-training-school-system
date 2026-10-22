@@ -1,59 +1,75 @@
 <template>
   <ParentPage title="我的" tab="me" :show-child-switcher="false">
-    <view class="account-card">
-      <view class="avatar">
-        <AppIcon name="user" size="48rpx" color="#2F54EB" />
+    <view class="profile">
+      <view class="profile-glow" />
+      <view class="avatars">
+        <view v-for="(child, idx) in parentStore.children.slice(0, 3)" :key="child.studentId" class="stack-avatar">
+          <ChildAvatar :name="child.name" :index="idx" size="88rpx" :ring="true" />
+        </view>
       </view>
-      <view>
+      <view class="profile-text">
         <text class="phone">{{ parentStore.phoneMasked || '家长' }}</text>
-        <text class="sub">家长账号</text>
+        <text class="sub">家长账号 · {{ parentStore.children.length }} 个孩子</text>
       </view>
     </view>
 
     <text class="group-title">我的孩子</text>
     <view class="group">
       <view
-        v-for="child in parentStore.children"
+        v-for="(child, idx) in parentStore.children"
         :key="child.studentId"
-        class="row"
+        class="row pressable"
         @click="selectChild(child.studentId)"
       >
-        <view class="child-avatar">{{ child.name.slice(-1) }}</view>
+        <ChildAvatar :name="child.name" :index="idx" size="72rpx" />
         <view class="row-main">
           <text class="row-title">{{ child.name }}</text>
           <text class="row-sub">
-            {{ child.campusName }}<text v-if="child.access === 'read_only'"> · 已离校，只读至 {{ dateText(child.readOnlyUntil) }}</text>
+            {{ child.campusName }}<text v-if="child.access === 'read_only'"> · 已离校，可查看至 {{ dateText(child.readOnlyUntil) }}</text>
           </text>
         </view>
-        <AppIcon v-if="child.studentId === parentStore.currentStudentId" name="check" size="32rpx" color="#2F54EB" />
+        <view v-if="child.studentId === parentStore.currentStudentId" class="current">
+          <AppIcon name="check" size="26rpx" color="#FFFFFF" :stroke-width="3" />
+        </view>
       </view>
     </view>
 
     <text class="group-title">登录设备</text>
     <view class="group">
       <view v-for="s in sessions" :key="s.id" class="row">
+        <view class="device-icon">
+          <AppIcon name="smartphone" size="32rpx" color="#5C5751" />
+        </view>
         <view class="row-main">
-          <text class="row-title">{{ s.deviceLabel }}<text v-if="s.isCurrent" class="current-tag">本机</text></text>
+          <view class="row-title-line">
+            <text class="row-title">{{ s.deviceLabel }}</text>
+            <text v-if="s.isCurrent" class="this-device">本机</text>
+          </view>
           <text class="row-sub">最近使用 {{ dateTimeText(s.lastSeenAt) }}</text>
         </view>
         <text v-if="!s.isCurrent" class="row-action" @click="revoke(s.id)">退出</text>
       </view>
-      <view v-if="sessions.length === 0" class="row">
+      <view v-if="sessionsLoading" class="row">
         <text class="row-sub">加载中…</text>
       </view>
     </view>
-    <text class="group-note">同一手机号可供多位家长同时登录，在这里可以让其他设备退出登录。</text>
+    <text class="group-note">同一手机号可以供多位家长同时登录。不认识的设备可以在这里让它退出。</text>
 
-    <view class="group">
-      <view class="row" @click="showHelp">
-        <view class="row-main">
-          <text class="row-title">登录与账号帮助</text>
+    <view class="group spaced">
+      <view class="row pressable" @click="showHelp">
+        <view class="device-icon">
+          <AppIcon name="help-circle" size="32rpx" color="#5C5751" />
         </view>
-        <AppIcon name="chevron-right" size="28rpx" color="#94A3B8" />
+        <view class="row-main">
+          <text class="row-title">账号与登录帮助</text>
+        </view>
+        <AppIcon name="chevron-right" size="26rpx" color="#958F88" />
       </view>
     </view>
 
-    <button class="logout-btn" @click="logout">退出登录</button>
+    <view class="logout pressable" @click="logout">
+      <text>退出登录</text>
+    </view>
   </ParentPage>
 </template>
 
@@ -61,6 +77,7 @@
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
+import ChildAvatar from '../components/ChildAvatar.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, type ParentSessionItem } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
@@ -69,12 +86,16 @@ import { useAuthStore } from '../../stores/authStore';
 const parentStore = useParentStore();
 const authStore = useAuthStore();
 const sessions = ref<ParentSessionItem[]>([]);
+const sessionsLoading = ref(false);
 
 async function loadSessions() {
+  sessionsLoading.value = sessions.value.length === 0;
   try {
     sessions.value = await parentApi.sessions();
   } catch {
     sessions.value = [];
+  } finally {
+    sessionsLoading.value = false;
   }
 }
 
@@ -84,15 +105,17 @@ onShow(() => {
 });
 
 function selectChild(studentId: string) {
+  if (studentId === parentStore.currentStudentId) return;
   parentStore.switchChild(studentId);
   uni.showToast({ title: '已切换', icon: 'none' });
 }
 
 function revoke(id: string) {
   uni.showModal({
-    title: '退出该设备',
+    title: '让该设备退出登录？',
     content: '该设备上的家长需要重新登录才能继续查看。',
     confirmText: '退出',
+    confirmColor: '#D9424A',
     success: async (res) => {
       if (!res.confirm) return;
       try {
@@ -105,8 +128,8 @@ function revoke(id: string) {
 
 function showHelp() {
   uni.showModal({
-    title: '账号帮助',
-    content: '账号为孩子报名时登记的家长手机号，密码为该手机号后 6 位。手机号变更或无法登录，请联系校区前台。',
+    title: '账号与登录',
+    content: '账号是孩子报名时登记的家长手机号，密码是这个手机号的后 6 位。手机号变更或无法登录时，请联系校区前台。',
     showCancel: false,
   });
 }
@@ -115,6 +138,7 @@ function logout() {
   uni.showModal({
     title: '退出登录',
     content: '确定退出当前账号吗？',
+    confirmColor: '#D9424A',
     success: (res) => {
       if (res.confirm) authStore.logout();
     },
@@ -135,136 +159,184 @@ function dateTimeText(iso: string) {
 </script>
 
 <style lang="scss" scoped>
-.account-card {
+@import '../styles/tokens.scss';
+
+.pressable {
+  @include p-pressable;
+}
+
+.profile {
+  @include p-card;
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  gap: 24rpx;
-  padding: 32rpx 28rpx;
-  background: #FFFFFF;
-  border-radius: 24rpx;
+  gap: 28rpx;
+  padding: 36rpx 32rpx;
+  animation: p-fade-up 0.4s $p-ease-out both;
+}
 
-  .avatar {
-    width: 96rpx;
-    height: 96rpx;
-    border-radius: 50%;
-    background: #EEF2FF;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+.profile-glow {
+  position: absolute;
+  right: -120rpx;
+  top: -140rpx;
+  width: 360rpx;
+  height: 360rpx;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 196, 140, 0.35) 0%, rgba(255, 196, 140, 0) 70%);
+}
 
-  .phone {
-    display: block;
-    font-size: 36rpx;
-    font-weight: 700;
-    color: #0F172A;
-    font-variant-numeric: tabular-nums;
-  }
+.avatars {
+  display: flex;
+  position: relative;
+}
 
-  .sub {
-    display: block;
-    margin-top: 4rpx;
-    font-size: 24rpx;
-    color: #64748B;
-  }
+.stack-avatar + .stack-avatar {
+  margin-left: -28rpx;
+}
+
+.profile-text {
+  position: relative;
+}
+
+.phone {
+  @include p-num;
+  display: block;
+  font-size: 40rpx;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: $p-ink-3;
 }
 
 .group-title {
   display: block;
-  margin: 40rpx 8rpx 16rpx;
-  font-size: 26rpx;
-  font-weight: 600;
-  color: #64748B;
+  margin: 44rpx 8rpx 16rpx;
+  font-size: 24rpx;
+  font-weight: 650;
+  color: $p-ink-3;
+  letter-spacing: 0.04em;
 }
 
 .group {
-  margin-top: 24rpx;
-  background: #FFFFFF;
-  border-radius: 24rpx;
+  @include p-card;
   padding: 0 28rpx;
-}
 
-.group-title + .group {
-  margin-top: 0;
+  &.spaced {
+    margin-top: 40rpx;
+  }
 }
 
 .group-note {
   display: block;
-  margin: 12rpx 8rpx 0;
+  margin: 14rpx 8rpx 0;
   font-size: 22rpx;
   line-height: 1.6;
-  color: #94A3B8;
+  color: $p-ink-3;
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 20rpx;
-  min-height: 112rpx;
-  border-bottom: 1rpx solid rgba(15, 23, 42, 0.06);
+  gap: 22rpx;
+  min-height: 116rpx;
+  border-bottom: 2rpx solid $p-line;
 
   &:last-child {
     border-bottom: none;
   }
 }
 
-.child-avatar {
-  width: 64rpx;
-  height: 64rpx;
-  border-radius: 50%;
-  background: #EEF2FF;
-  color: #2F54EB;
-  font-size: 28rpx;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .row-main {
   flex: 1;
   min-width: 0;
-  padding: 20rpx 0;
+  padding: 22rpx 0;
+}
 
-  .row-title {
-    display: block;
-    font-size: 30rpx;
-    color: #0F172A;
+.row-title-line {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.row-title {
+  display: block;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.row-sub {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: $p-ink-3;
+}
+
+.this-device {
+  @include p-chip;
+  height: 34rpx;
+  padding: 0 12rpx;
+  font-size: 19rpx;
+  background: $p-brand-50;
+  color: $p-brand;
+}
+
+.current {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  background: $p-brand;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pop 0.3s $p-ease-spring both;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.6);
   }
-
-  .row-sub {
-    display: block;
-    margin-top: 4rpx;
-    font-size: 24rpx;
-    color: #64748B;
+  to {
+    transform: scale(1);
   }
 }
 
-.current-tag {
-  margin-left: 12rpx;
-  padding: 2rpx 10rpx;
-  border-radius: 8rpx;
-  background: #EEF2FF;
-  color: #2F54EB;
-  font-size: 20rpx;
+.device-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 22rpx;
+  background: $p-canvas;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .row-action {
-  font-size: 26rpx;
-  color: #DC2626;
+  padding: 10rpx 20rpx;
+  border-radius: 9999rpx;
+  background: $p-rose-50;
+  font-size: 24rpx;
+  font-weight: 600;
+  color: $p-rose;
 }
 
-.logout-btn {
+.logout {
   margin-top: 48rpx;
-  height: 92rpx;
-  line-height: 92rpx;
-  border-radius: 24rpx;
-  background: #FFFFFF;
-  color: #DC2626;
+  height: 100rpx;
+  border-radius: $p-r-card;
+  background: $p-surface;
+  box-shadow: $p-shadow;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 30rpx;
-
-  &::after {
-    border: none;
-  }
+  font-weight: 600;
+  color: $p-rose;
 }
 </style>

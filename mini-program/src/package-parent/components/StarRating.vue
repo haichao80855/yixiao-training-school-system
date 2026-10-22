@@ -5,8 +5,8 @@
       :key="i"
       name="star"
       :size="size"
-      :filled="i <= Math.round(value)"
-      :color="i <= Math.round(value) ? '#F59E0B' : '#CBD5E1'"
+      :filled="true"
+      :color="i <= Math.round(value) ? '#F0A33A' : '#E7E1D8'"
     />
     <text v-if="showValue" class="value">{{ value.toFixed(1) }}</text>
   </view>
@@ -16,22 +16,25 @@
 import AppIcon from '../../components/AppIcon.vue';
 
 withDefaults(defineProps<{ value: number; size?: string; showValue?: boolean }>(), {
-  size: '28rpx',
+  size: '26rpx',
   showValue: false,
 });
 </script>
 
 <style lang="scss" scoped>
+@import '../styles/tokens.scss';
+
 .stars {
   display: inline-flex;
   align-items: center;
   gap: 4rpx;
 
   .value {
+    @include p-num;
     margin-left: 8rpx;
-    font-size: 24rpx;
-    font-weight: 600;
-    color: #B45309;
+    font-size: 26rpx;
+    font-weight: 700;
+    color: $p-amber-ink;
   }
 }
 </style>

@@ -1,17 +1,24 @@
 <template>
-  <view class="parent-tab-bar">
-    <view
-      v-for="tab in tabs"
-      :key="tab.key"
-      class="tab-item"
-      :class="{ active: tab.key === current }"
-      @click="go(tab)"
-    >
-      <view class="icon-wrap">
-        <AppIcon :name="tab.icon" size="44rpx" :color="tab.key === current ? '#2F54EB' : '#64748B'" />
-        <view v-if="tab.key === 'evaluations' && unread > 0" class="badge">{{ unread > 99 ? '99+' : unread }}</view>
+  <view class="tab-dock">
+    <view class="tab-bar">
+      <view
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="tab-item"
+        :class="{ active: tab.key === current }"
+        @click="go(tab)"
+      >
+        <view class="icon-pill">
+          <AppIcon
+            :name="tab.icon"
+            size="40rpx"
+            :stroke-width="tab.key === current ? 2.2 : 1.8"
+            :color="tab.key === current ? '#2F54EB' : '#958F88'"
+          />
+          <view v-if="tab.key === 'evaluations' && unread > 0" class="badge">{{ unread > 9 ? '9+' : unread }}</view>
+        </view>
+        <text class="tab-label">{{ tab.label }}</text>
       </view>
-      <text class="tab-label">{{ tab.label }}</text>
     </view>
   </view>
 </template>
@@ -31,7 +38,7 @@ const tabs: Array<{ key: ParentTabKey; label: string; icon: string; url: string 
   { key: 'me', label: '我的', icon: 'user', url: '/package-parent/me/index' },
 ];
 
-// 家长端标签页不是原生 tabBar 页面 (位于分包)，用 redirectTo 切换以免页面栈增长
+// 家长端标签页位于分包 (非原生 tabBar 页面)，用 redirectTo 切换以免页面栈增长
 const go = (tab: (typeof tabs)[number]) => {
   if (tab.key === props.current) return;
   uni.redirectTo({ url: tab.url });
@@ -39,57 +46,90 @@ const go = (tab: (typeof tabs)[number]) => {
 </script>
 
 <style lang="scss" scoped>
-.parent-tab-bar {
+@import '../styles/tokens.scss';
+
+.tab-dock {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: calc(16rpx + env(safe-area-inset-bottom));
   z-index: 900;
+}
+
+.tab-bar {
+  height: 124rpx;
+  border-radius: 62rpx;
   display: flex;
-  background: rgba(255, 255, 255, 0.98);
-  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
-  padding-bottom: env(safe-area-inset-bottom);
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 12rpx;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: $p-shadow-float;
 }
 
 .tab-item {
-  flex: 1;
-  height: 104rpx;
+  width: 124rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 6rpx;
 
   .tab-label {
-    font-size: 22rpx;
-    color: #64748B;
+    font-size: 21rpx;
+    color: $p-ink-3;
+    transition: color 0.2s ease;
   }
 
-  &.active .tab-label {
-    color: #2F54EB;
-    font-weight: 600;
+  &.active {
+    .tab-label {
+      color: $p-brand;
+      font-weight: 600;
+    }
+
+    .icon-pill {
+      background: $p-brand-50;
+      animation: tab-pop 0.36s $p-ease-spring both;
+    }
   }
 }
 
-.icon-wrap {
+.icon-pill {
   position: relative;
-  height: 44rpx;
+  width: 80rpx;
+  height: 56rpx;
+  border-radius: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
 
-  .badge {
-    position: absolute;
-    top: -8rpx;
-    left: 30rpx;
-    min-width: 32rpx;
-    height: 32rpx;
-    padding: 0 8rpx;
-    box-sizing: border-box;
-    border-radius: 9999rpx;
-    background: #DC2626;
-    color: #FFFFFF;
-    font-size: 20rpx;
-    line-height: 32rpx;
-    text-align: center;
-    border: 2rpx solid #FFFFFF;
+.badge {
+  position: absolute;
+  top: -6rpx;
+  right: 2rpx;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
+  box-sizing: border-box;
+  border-radius: 16rpx;
+  background: $p-rose;
+  color: #FFFFFF;
+  font-size: 19rpx;
+  font-weight: 700;
+  line-height: 28rpx;
+  text-align: center;
+  border: 2rpx solid #FFFFFF;
+}
+
+@keyframes tab-pop {
+  0% {
+    transform: scale(0.86);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 </style>

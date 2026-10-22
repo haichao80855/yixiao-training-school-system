@@ -192,35 +192,49 @@
             "navigationBarTitleText": "课评",
             "navigationStyle": "custom",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F6F8FC"
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
           }
         },
         {
           "path": "evaluations/detail",
           "style": {
             "navigationBarTitleText": "课评详情",
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
           }
         },
         {
           "path": "schedule/index",
           "style": {
             "navigationBarTitleText": "课表",
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
           }
         },
         {
           "path": "courses/index",
           "style": {
             "navigationBarTitleText": "课程",
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
           }
         },
         {
           "path": "courses/usage",
           "style": {
             "navigationBarTitleText": "课时明细",
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
           }
         },
         {
@@ -229,14 +243,19 @@
             "navigationBarTitleText": "成长",
             "navigationStyle": "custom",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F6F8FC"
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
           }
         },
         {
           "path": "me/index",
           "style": {
             "navigationBarTitleText": "我的",
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
           }
         }
       ]

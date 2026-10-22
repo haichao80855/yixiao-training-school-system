@@ -1,0 +1,113 @@
+/* ==========================================================================
+ * 家长端设计令牌 (Parent Design Tokens)
+ * 方向：温暖纸感底色 + 墨色文字 + 品牌蓝点缀；照片优先、留白充足、动效克制。
+ * 1px 设计稿 = 2rpx (750rpx 宽)。
+ * ========================================================================== */
+
+// 色彩
+$p-canvas: #F5F3EF;
+$p-surface: #FFFFFF;
+$p-ink: #1D1B18;
+$p-ink-2: #5C5751;
+$p-ink-3: #958F88;
+$p-line: rgba(29, 27, 24, 0.08);
+$p-fill: rgba(29, 27, 24, 0.05);
+
+$p-brand: #2F54EB;
+$p-brand-50: #EEF1FE;
+$p-brand-100: #DCE3FD;
+$p-amber: #F0A33A;
+$p-amber-50: #FFF4E2;
+$p-amber-ink: #8A4B0F;
+$p-mint: #22935F;
+$p-mint-50: #E7F5EC;
+$p-rose: #D9424A;
+$p-rose-50: #FCEBEC;
+$p-lilac: #7457E0;
+$p-lilac-50: #F1EDFD;
+$p-peach: #E0703A;
+$p-peach-50: #FFF0E6;
+
+// 形状与阴影
+$p-r-card: 40rpx;
+$p-r-inner: 28rpx;
+$p-r-sm: 20rpx;
+$p-shadow: 0 2rpx 4rpx rgba(29, 27, 24, 0.04), 0 20rpx 48rpx -28rpx rgba(29, 27, 24, 0.2);
+$p-shadow-float: 0 24rpx 60rpx -24rpx rgba(29, 27, 24, 0.3), 0 0 0 1rpx rgba(29, 27, 24, 0.06);
+
+// 动效
+$p-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+$p-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+// 字体
+$p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
+
+@mixin p-card {
+  background: $p-surface;
+  border-radius: $p-r-card;
+  box-shadow: $p-shadow;
+}
+
+/** 按压反馈：轻微缩放 */
+@mixin p-pressable {
+  transition: transform 0.16s $p-ease-out, background-color 0.16s ease;
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@mixin p-num {
+  font-family: $p-font-num;
+  font-variant-numeric: tabular-nums;
+}
+
+/** 进入动画：配合 :style="enterDelay(index)" 实现逐项错峰 */
+@mixin p-enter {
+  animation: p-fade-up 0.42s $p-ease-out both;
+}
+
+@keyframes p-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes p-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes p-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+@mixin p-skeleton {
+  background: linear-gradient(90deg, #ECE8E2 25%, #F5F2ED 50%, #ECE8E2 75%);
+  background-size: 400% 100%;
+  animation: p-shimmer 1.4s ease infinite;
+}
+
+@mixin p-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 44rpx;
+  padding: 0 16rpx;
+  border-radius: 9999rpx;
+  font-size: 23rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}

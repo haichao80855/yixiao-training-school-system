@@ -1,7 +1,10 @@
 <template>
   <view class="empty-state">
-    <view class="icon-circle">
-      <AppIcon :name="icon" size="56rpx" color="#94A3B8" />
+    <view class="art">
+      <view class="blob" />
+      <view class="icon-wrap">
+        <AppIcon :name="icon" size="52rpx" color="#958F88" />
+      </view>
     </view>
     <text class="title">{{ title }}</text>
     <text v-if="description" class="desc">{{ description }}</text>
@@ -15,35 +18,58 @@ withDefaults(defineProps<{ icon?: string; title: string; description?: string }>
 </script>
 
 <style lang="scss" scoped>
+@import '../styles/tokens.scss';
+
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 120rpx 48rpx;
+  padding: 100rpx 56rpx 120rpx;
   text-align: center;
+  animation: p-fade-in 0.4s $p-ease-out both;
 }
 
-.icon-circle {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  background: #EFF2F8;
+.art {
+  position: relative;
+  width: 168rpx;
+  height: 168rpx;
+  margin-bottom: 32rpx;
+}
+
+.blob {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 168rpx;
+  height: 168rpx;
+  border-radius: 46% 54% 52% 48% / 52% 44% 56% 48%;
+  background: linear-gradient(135deg, #EDE8E1, #F7F4EF);
+}
+
+.icon-wrap {
+  position: absolute;
+  left: 44rpx;
+  top: 44rpx;
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 24rpx;
+  background: $p-surface;
+  box-shadow: $p-shadow;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24rpx;
 }
 
 .title {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
-  color: #334155;
+  color: $p-ink;
 }
 
 .desc {
   margin-top: 12rpx;
   font-size: 26rpx;
-  line-height: 1.6;
-  color: #64748B;
+  line-height: 1.65;
+  color: $p-ink-3;
 }
 </style>

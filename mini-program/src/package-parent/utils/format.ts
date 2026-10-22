@@ -42,3 +42,19 @@ export const ATTENDANCE_LABEL: Record<string, string> = {
   cancelled: '已取消',
   not_recorded: '待点名',
 };
+
+/** 2026-10-22 → 10月22日 星期四 */
+export function formatLongDate(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const wd = ['日', '一', '二', '三', '四', '五', '六'][new Date(y, m - 1, d).getDay()];
+  return `${m}月${d}日 星期${wd}`;
+}
+
+/** 与今天相差的天数 (正数为将来) */
+export function daysFromToday(date: string): number {
+  const [y, m, d] = date.split('-').map(Number);
+  const target = new Date(y, m - 1, d).getTime();
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.round((target - today) / 86400000);
+}

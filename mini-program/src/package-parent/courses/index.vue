@@ -1,48 +1,69 @@
 <template>
-  <ParentPage title="课程" tab="courses">
+  <ParentPage title="课程" :overline="overline" tab="courses">
     <EmptyState
       v-if="parentStore.isReadOnly"
       icon="book-open"
       title="课程信息已停止更新"
-      description="孩子已离校，可在「课评」和「成长」中查看历史记录"
+      description="孩子已离校，可以在「课评」和「成长」里回看历史记录"
     />
-    <view v-else-if="loading && courses.length === 0" class="hint">加载中…</view>
+    <view v-else-if="loading && courses.length === 0" class="sk-list">
+      <view v-for="i in 2" :key="i" class="sk-card" />
+    </view>
     <EmptyState v-else-if="courses.length === 0" icon="book-open" title="还没有课程" description="报名后，课程与课时会显示在这里" />
 
     <view v-else class="course-list">
-      <view v-for="c in courses" :key="c.packageId" class="course-card" @click="openUsage(c)">
-        <view class="card-head">
+      <view
+        v-for="(c, idx) in courses"
+        :key="c.packageId"
+        class="course-card"
+        :class="{ inactive: c.status !== 'active' }"
+        :style="enterDelay(idx)"
+        @click="openUsage(c)"
+      >
+        <view class="top">
+          <view class="ring">
+            <image class="ring-img" :src="ringFor(c)" />
+            <view class="ring-center">
+              <text class="ring-num">{{ c.remainingLessons }}</text>
+              <text class="ring-label">剩余课时</text>
+            </view>
+          </view>
           <view class="names">
             <text class="course-name">{{ c.courseName || '课程' }}</text>
             <text v-if="c.className" class="class-name">{{ c.className }}</text>
+            <text class="status" :class="'st-' + c.status">{{ statusLabel[c.status] || c.status }}</text>
           </view>
-          <text class="status" :class="'st-' + c.status">{{ statusLabel[c.status] || c.status }}</text>
         </view>
 
-        <view class="hours">
-          <text class="remaining">{{ c.remainingLessons }}</text>
-          <text class="unit">课时剩余</text>
-          <text class="total">共 {{ c.totalLessons }} 课时<text v-if="c.bonusLessons">（含赠送 {{ c.bonusLessons }}）</text></text>
+        <view class="kv">
+          <view class="kv-item">
+            <text class="kv-num">{{ c.totalLessons }}</text>
+            <text class="kv-label">总课时</text>
+          </view>
+          <view class="kv-item">
+            <text class="kv-num">{{ c.consumedLessons }}</text>
+            <text class="kv-label">已上</text>
+          </view>
+          <view class="kv-item">
+            <text class="kv-num">{{ c.bonusLessons }}</text>
+            <text class="kv-label">赠送</text>
+          </view>
+          <view class="kv-item">
+            <text class="kv-num small">{{ c.expiryDate ? c.expiryDate.slice(0, 7).replace('-', '.') : '—' }}</text>
+            <text class="kv-label">有效期至</text>
+          </view>
         </view>
 
-        <view class="bar">
-          <view class="bar-fill" :style="{ width: usedPercent(c) + '%' }" />
-        </view>
-        <view class="bar-legend">
-          <text>已上 {{ c.consumedLessons }} 课时</text>
-          <text v-if="c.expiryDate">有效期至 {{ c.expiryDate }}</text>
-        </view>
-
-        <view v-if="c.lowHours" class="low-hours">
-          <AppIcon name="alert-triangle" size="28rpx" color="#B45309" />
+        <view v-if="c.lowHours" class="warn">
+          <AppIcon name="alert-triangle" size="28rpx" color="#8A4B0F" />
           <text>
-            课时即将用完<text v-if="c.estimatedWeeksLeft">，按近期上课频率约还能上 {{ c.estimatedWeeksLeft }} 周</text>
+            课时即将用完<text v-if="c.estimatedWeeksLeft">，按最近的上课频率约还能上 {{ c.estimatedWeeksLeft }} 周</text>。如需续课请联系校区。
           </text>
         </view>
 
         <view class="usage-link">
           <text>课时明细</text>
-          <AppIcon name="chevron-right" size="28rpx" color="#94A3B8" />
+          <AppIcon name="chevron-right" size="26rpx" color="#958F88" />
         </view>
       </view>
     </view>
@@ -50,13 +71,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, type CoursePackage } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
+import { enterDelay, ringSvg } from '../utils/visual';
 
 const statusLabel: Record<string, string> = {
   active: '上课中',
@@ -68,6 +90,17 @@ const statusLabel: Record<string, string> = {
 const parentStore = useParentStore();
 const courses = ref<CoursePackage[]>([]);
 const loading = ref(false);
+
+const overline = computed(() => {
+  const active = courses.value.filter((c) => c.status === 'active').length;
+  return courses.value.length ? `${active} 门课程上课中` : '';
+});
+
+function ringFor(c: CoursePackage) {
+  const percent = c.totalLessons > 0 ? c.remainingLessons / c.totalLessons : 0;
+  const color = c.status !== 'active' ? '#B9B2A8' : c.lowHours ? '#F0A33A' : '#2F54EB';
+  return ringSvg(percent, color);
+}
 
 async function load() {
   const sid = parentStore.currentStudentId;
@@ -83,10 +116,6 @@ async function load() {
   }
 }
 
-function usedPercent(c: CoursePackage) {
-  return c.totalLessons > 0 ? Math.min(100, Math.round((c.consumedLessons / c.totalLessons) * 100)) : 0;
-}
-
 function openUsage(c: CoursePackage) {
   uni.navigateTo({
     url: `/package-parent/courses/usage?sid=${encodeURIComponent(parentStore.currentStudentId)}&pid=${encodeURIComponent(c.packageId)}`,
@@ -98,130 +127,147 @@ watch(() => parentStore.currentStudentId, load);
 </script>
 
 <style lang="scss" scoped>
-.hint {
-  padding: 80rpx 0;
-  text-align: center;
-  font-size: 26rpx;
-  color: #94A3B8;
-}
+@import '../styles/tokens.scss';
 
 .course-list {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 28rpx;
 }
 
 .course-card {
-  padding: 32rpx 28rpx 20rpx;
-  background: #FFFFFF;
-  border-radius: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.04);
+  @include p-card;
+  @include p-pressable;
+  @include p-enter;
+  padding: 32rpx;
+
+  &.inactive {
+    opacity: 0.75;
+  }
 }
 
-.card-head {
+.top {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16rpx;
+  align-items: center;
+  gap: 28rpx;
+}
+
+.ring {
+  position: relative;
+  width: 168rpx;
+  height: 168rpx;
+  flex-shrink: 0;
+}
+
+.ring-img {
+  width: 168rpx;
+  height: 168rpx;
+}
+
+.ring-center {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.ring-num {
+  @include p-num;
+  font-size: 48rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ring-label {
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  color: $p-ink-3;
 }
 
 .names {
   min-width: 0;
+  flex: 1;
+}
 
-  .course-name {
-    display: block;
-    font-size: 32rpx;
-    font-weight: 600;
-    color: #0F172A;
-    line-height: 1.4;
-  }
+.course-name {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 650;
+  line-height: 1.38;
+}
 
-  .class-name {
-    display: block;
-    margin-top: 4rpx;
-    font-size: 24rpx;
-    color: #64748B;
-  }
+.class-name {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: $p-ink-3;
 }
 
 .status {
-  flex-shrink: 0;
-  padding: 4rpx 14rpx;
-  border-radius: 8rpx;
-  font-size: 22rpx;
-  background: #F1F5F9;
-  color: #475569;
+  @include p-chip;
+  margin-top: 16rpx;
+  height: 40rpx;
+  font-size: 21rpx;
+  background: $p-fill;
+  color: $p-ink-2;
 
   &.st-active {
-    background: #ECFDF3;
-    color: #15803D;
+    background: $p-mint-50;
+    color: $p-mint;
   }
 
   &.st-frozen {
-    background: #EEF2FF;
-    color: #3730A3;
+    background: $p-brand-50;
+    color: $p-brand;
   }
 }
 
-.hours {
+.kv {
   display: flex;
-  align-items: baseline;
-  gap: 10rpx;
   margin-top: 28rpx;
-
-  .remaining {
-    font-size: 64rpx;
-    font-weight: 700;
-    color: #0F172A;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .unit {
-    font-size: 26rpx;
-    color: #334155;
-  }
-
-  .total {
-    margin-left: auto;
-    font-size: 24rpx;
-    color: #64748B;
-  }
+  padding-top: 24rpx;
+  border-top: 2rpx solid $p-line;
 }
 
-.bar {
-  height: 12rpx;
-  margin-top: 20rpx;
-  border-radius: 9999rpx;
-  background: #EFF2F8;
-  overflow: hidden;
-
-  .bar-fill {
-    height: 100%;
-    border-radius: 9999rpx;
-    background: #2F54EB;
-  }
-}
-
-.bar-legend {
+.kv-item {
+  flex: 1;
   display: flex;
-  justify-content: space-between;
-  margin-top: 12rpx;
-  font-size: 22rpx;
-  color: #64748B;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
 }
 
-.low-hours {
+.kv-num {
+  @include p-num;
+  font-size: 32rpx;
+  font-weight: 700;
+
+  &.small {
+    font-size: 28rpx;
+  }
+}
+
+.kv-label {
+  font-size: 21rpx;
+  color: $p-ink-3;
+}
+
+.warn {
   display: flex;
   align-items: flex-start;
-  gap: 10rpx;
-  margin-top: 20rpx;
-  padding: 16rpx 20rpx;
-  border-radius: 12rpx;
-  background: #FFF7E8;
-  font-size: 24rpx;
+  gap: 12rpx;
+  margin-top: 24rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  background: $p-amber-50;
+  font-size: 25rpx;
   line-height: 1.6;
-  color: #92400E;
+  color: $p-amber-ink;
 }
 
 .usage-link {
@@ -229,10 +275,20 @@ watch(() => parentStore.currentStudentId, load);
   align-items: center;
   justify-content: flex-end;
   gap: 4rpx;
-  margin-top: 16rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
+  margin-top: 20rpx;
   font-size: 24rpx;
-  color: #64748B;
+  color: $p-ink-3;
+}
+
+.sk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 28rpx;
+}
+
+.sk-card {
+  @include p-skeleton;
+  height: 360rpx;
+  border-radius: $p-r-card;
 }
 </style>
