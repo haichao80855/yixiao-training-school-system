@@ -188,7 +188,7 @@ router.beforeEach((to, _from, next) => {
 
 router.afterEach((to) => {
   const title = (to.meta?.title as string) || '拓视未来教育'
-  document.title = `${title} - 拓视未来教育「一校教培系统」(002599)`
+  document.title = `${title} - 一校教培系统`
 })
 
 export default router

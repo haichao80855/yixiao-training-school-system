@@ -1,24 +1,25 @@
 <template>
   <div>
     <!-- 顶部或侧边栏触发按钮 -->
-    <div
+    <button
+      type="button"
       @click="dialogVisible = true"
-      class="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer transition-all bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-sm select-none"
+      class="inline-flex items-center gap-2 h-9 pl-2.5 pr-2 rounded-lg border border-st-border bg-white hover:border-st-border-dark hover:bg-slate-50 text-[13px] text-st-regular cursor-pointer transition-colors select-none max-w-[280px]"
       :class="customClass"
+      title="切换工作校区"
     >
-      <MapPin class="w-3.5 h-3.5 text-amber-300" />
-      <span>当前所在</span>
-      <span class="text-blue-200 underline underline-offset-2">[切换]</span>
-      <span class="font-bold text-white">{{ currentCampus.name }}</span>
-      <span v-if="currentCampus.isHeadquarter" class="text-[10px] bg-amber-400 text-slate-900 px-1 rounded font-semibold ml-1">
+      <MapPin class="w-4 h-4 text-st-primary shrink-0" />
+      <span class="font-medium truncate">{{ currentCampus.name }}</span>
+      <span v-if="currentCampus.isHeadquarter" class="text-[11px] leading-[18px] px-1.5 rounded bg-amber-50 text-amber-700 font-medium shrink-0">
         总部
       </span>
-    </div>
+      <ChevronsUpDown class="w-3.5 h-3.5 text-st-placeholder shrink-0" />
+    </button>
 
     <!-- 校区切换弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      title="选择当前工作校区 (多校区数据隔离)"
+      title="切换工作校区"
       width="460px"
       append-to-body
       destroy-on-close
@@ -77,7 +78,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { MapPin, Check } from 'lucide-vue-next'
+import { MapPin, Check, ChevronsUpDown } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 
 defineProps<{

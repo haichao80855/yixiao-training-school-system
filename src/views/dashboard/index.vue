@@ -1,81 +1,44 @@
 <template>
-  <div class="space-y-5 p-5 max-w-[1680px] mx-auto">
-    <!-- 顶部科技态势横幅 (Hero Welcome Banner) -->
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-700 via-indigo-600 to-sky-600 text-white p-6 shadow-lg">
-      <!-- 背景科技微光装饰圆 -->
-      <div class="absolute -right-16 -top-20 w-80 h-80 rounded-full bg-white/10 blur-2xl pointer-events-none"></div>
-      <div class="absolute right-40 -bottom-16 w-60 h-60 rounded-full bg-cyan-400/15 blur-xl pointer-events-none"></div>
+  <div class="space-y-5 p-6 max-w-[1680px] mx-auto">
+    <!-- 欢迎区 -->
+    <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pt-1">
+      <div>
+        <h1 class="text-[22px] font-semibold text-st-title tracking-tight">
+          {{ greetingText }}，{{ currentUserName }}
+        </h1>
+        <p class="mt-1.5 text-[13px] text-st-muted flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span class="px-2 py-0.5 rounded-md bg-st-primary-light text-st-primary font-medium text-xs">{{ currentUserRole }}</span>
+          <span>当前校区 <span class="text-st-regular font-medium">{{ currentCampus.name }}</span></span>
+          <span class="text-st-border-dark">·</span>
+          <span>{{ currentCampus.code }}</span>
+        </p>
+      </div>
 
-      <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div class="flex items-start sm:items-center space-x-4">
-          <div class="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shrink-0 shadow-inner">
-            <svg class="w-8 h-8 text-white fill-current" viewBox="0 0 24 24">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-            </svg>
-          </div>
-          <div>
-            <div class="flex flex-wrap items-center gap-2.5">
-              <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight">
-                {{ greetingText }}，{{ currentUserName }}
-              </h1>
-              <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white shadow-sm">
-                {{ currentUserRole }}
-              </span>
-              <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-sky-400/25 border border-sky-300/40 text-sky-100 font-mono">
-                证券代码 002599
-              </span>
-            </div>
-            <p class="text-sm text-blue-100/90 mt-1.5 flex flex-wrap items-center gap-2">
-              <span>当前校区：</span>
-              <span class="font-semibold text-white bg-white/20 px-2 py-0.5 rounded text-xs">{{ currentCampus.name }}</span>
-              <span class="text-blue-200 text-xs">（编码: {{ currentCampus.code }}）</span>
-              <span class="text-white/40">|</span>
-              <span class="inline-flex items-center gap-1.5 text-emerald-300 text-xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                校区租户数据隔离运行正常
-              </span>
-            </p>
-          </div>
-        </div>
-
-        <!-- 横幅右侧：快捷主控与实时刷新 -->
-        <div class="flex items-center space-x-3 shrink-0">
-          <el-button
-            size="small"
-            :loading="refreshing"
-            class="!bg-white/15 !border-white/25 !text-white hover:!bg-white/25 !rounded-xl !px-3.5 !py-2"
-            title="重新拉取并更新数据统计"
-            @click="handleManualRefresh"
-          >
-            {{ refreshing ? '正在同步...' : '刷新数据' }}
-          </el-button>
-
-          <el-button
-            size="small"
-            type="primary"
-            class="!bg-white !text-blue-700 hover:!bg-blue-50 font-bold !border-none !rounded-xl !px-4 !py-2 shadow-md hover:shadow-lg"
-            @click="$router.push('/educational/workbench')"
-          >
-            <Monitor class="w-4 h-4 mr-1.5" />
-            <span>进入教学讲台</span>
-          </el-button>
-        </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <el-button :loading="refreshing" @click="handleManualRefresh">
+          <RefreshCw v-if="!refreshing" class="w-4 h-4 mr-1.5" />
+          {{ refreshing ? '正在同步…' : '刷新数据' }}
+        </el-button>
+        <el-button type="primary" @click="$router.push('/educational/workbench')">
+          <Monitor class="w-4 h-4 mr-1.5" />
+          进入教学讲台
+        </el-button>
       </div>
     </div>
 
     <!-- 4大核心业务 KPI 指标看板 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- 营收总额 -->
-      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="kpi-card group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-st-secondary">实收营收流水 (本月)</span>
-          <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
+          <span class="text-[13px] text-st-secondary">实收营收流水 (本月)</span>
+          <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
             <CircleDollarSign class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3 flex items-end justify-between">
-          <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
-            ¥ {{ stats.totalRevenue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+        <div class="my-4 flex items-end justify-between">
+          <div class="text-[26px] leading-none font-semibold text-st-title font-mono tracking-tight whitespace-nowrap">
+            <span class="text-lg text-st-muted font-medium mr-0.5">¥</span>{{ stats.totalRevenue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
           </div>
           <ThemeSparkline
             :data="revenueTrend"
@@ -85,23 +48,23 @@
             :height="28"
           />
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
+        <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>已支付订单: <strong class="text-st-regular font-semibold font-mono">{{ stats.paidOrderCount }}</strong> 笔</span>
-          <span class="text-emerald-600 font-medium bg-emerald-50 px-1.5 py-0.5 rounded text-[11px]">环比 +12.8% ↑</span>
+          <span class="text-st-muted">本月</span>
         </div>
       </div>
 
       <!-- 在读学员 -->
-      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="kpi-card group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-st-secondary">在籍在读学员总量</span>
-          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
+          <span class="text-[13px] text-st-secondary">在籍在读学员总量</span>
+          <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <GraduationCap class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3 flex items-end justify-between">
+        <div class="my-4 flex items-end justify-between">
           <div class="flex items-baseline gap-1.5">
-            <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
+            <div class="text-[26px] leading-none font-semibold text-st-title font-mono tracking-tight">
               {{ stats.studentCount }}
             </div>
             <span class="text-xs text-st-muted font-medium">人</span>
@@ -114,25 +77,25 @@
             :height="26"
           />
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
+        <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>归属校区生源池</span>
-          <span class="text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded text-[11px]">
+          <span class="text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded-md text-xs">
             待分班 {{ stats.unassignedCount }} 人
           </span>
         </div>
       </div>
 
       <!-- 本周排课 -->
-      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="kpi-card group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-st-secondary">本周排课日程</span>
-          <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
+          <span class="text-[13px] text-st-secondary">本周排课日程</span>
+          <div class="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
             <Calendar class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3 flex items-end justify-between">
+        <div class="my-4 flex items-end justify-between">
           <div class="flex items-baseline gap-1.5">
-            <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
+            <div class="text-[26px] leading-none font-semibold text-st-title font-mono tracking-tight">
               {{ stats.scheduleCount }}
             </div>
             <span class="text-xs text-st-muted font-medium">节课次</span>
@@ -145,11 +108,11 @@
             :height="28"
           />
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
+        <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>冲突监测:</span>
           <span
             :class="[
-              'px-1.5 py-0.5 rounded text-[11px] font-medium',
+              'px-1.5 py-0.5 rounded-md text-xs font-medium',
               stats.conflictCount > 0 ? 'bg-red-50 text-red-600 font-bold' : 'bg-emerald-50 text-emerald-600'
             ]"
           >
@@ -159,16 +122,16 @@
       </div>
 
       <!-- 授权课程体系 -->
-      <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group">
+      <div class="kpi-card group">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-st-secondary">已授权标准化课程体系</span>
-          <div class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-base group-hover:scale-110 transition-transform">
+          <span class="text-[13px] text-st-secondary">已授权标准化课程体系</span>
+          <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
             <BookOpen class="w-5 h-5" />
           </div>
         </div>
-        <div class="my-3 flex items-end justify-between">
+        <div class="my-4 flex items-end justify-between">
           <div class="flex items-baseline gap-1.5">
-            <div class="text-2xl font-extrabold text-st-title font-mono tracking-tight">
+            <div class="text-[26px] leading-none font-semibold text-st-title font-mono tracking-tight">
               {{ stats.courseCount }}
             </div>
             <span class="text-xs text-st-muted font-medium">门标准课</span>
@@ -181,38 +144,36 @@
             :height="26"
           />
         </div>
-        <div class="flex items-center justify-between text-xs pt-2 border-t border-st-border text-st-muted">
+        <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>教研中心统一质控</span>
-          <span class="text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded text-[11px]">标准化课件就绪</span>
+          <span class="text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded-md text-xs">标准化课件就绪</span>
         </div>
       </div>
     </div>
 
     <!-- 核心业务高频入口网格 (经过精炼的9大真实业务枢纽) -->
-    <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm">
-      <div class="flex items-center justify-between mb-4 pb-2 border-b border-st-border">
+    <div class="panel-card">
+      <div class="flex items-center justify-between mb-4">
         <div class="flex items-center space-x-2">
-          <span class="w-1.5 h-4 bg-st-primary rounded-full"></span>
-          <h2 class="text-sm font-bold text-st-title">高频业务直通车</h2>
-          <span class="text-xs text-st-muted font-normal">一键快速直达核心业务操作页面</span>
+                    <h2 class="panel-title">常用功能</h2>
+          
         </div>
-        <span class="text-xs text-st-primary font-medium">9大核心业务中枢</span>
-      </div>
+              </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
         <div
           v-for="item in quickAccessList"
           :key="item.name"
           @click="$router.push(item.path)"
-          class="flex flex-col items-center p-3 rounded-xl border border-st-border hover:border-blue-200 hover:bg-blue-50/40 hover:-translate-y-0.5 transition-all cursor-pointer group text-center"
+          class="flex flex-col items-center px-2 py-3.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group text-center"
         >
-          <div :class="['w-11 h-11 rounded-xl flex items-center justify-center mb-2 shadow-sm transition-transform group-hover:scale-110', item.bgClass]">
+          <div :class="['w-10 h-10 rounded-lg flex items-center justify-center mb-2', item.bgClass]">
             <component :is="item.icon" class="w-5 h-5" />
           </div>
-          <span class="text-xs font-semibold text-st-regular group-hover:text-st-primary transition-colors">
+          <span class="text-[13px] font-medium text-st-regular group-hover:text-st-primary transition-colors">
             {{ item.name }}
           </span>
-          <span class="text-[10px] text-st-muted mt-0.5 line-clamp-1">
+          <span class="text-xs text-st-muted mt-0.5 line-clamp-1">
             {{ item.desc }}
           </span>
         </div>
@@ -222,13 +183,12 @@
     <!-- 下半区：双栏排版（左侧：近期排课与消课日程；右侧：教务待办与运行预警） -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
       <!-- 左侧：近期待授排课日程监控 (7×15 调度动态) -->
-      <div class="lg:col-span-8 bg-st-card rounded-xl p-5 border border-st-border shadow-sm flex flex-col justify-between">
+      <div class="lg:col-span-8 panel-card flex flex-col justify-between">
         <div>
-          <div class="flex items-center justify-between pb-3 mb-4 border-b border-st-border">
+          <div class="flex items-center justify-between mb-4">
             <div class="flex items-center space-x-2">
-              <span class="w-1.5 h-4 bg-indigo-500 rounded-full"></span>
-              <h2 class="text-sm font-bold text-st-title">近期排课日程监控</h2>
-              <span class="text-xs text-st-muted">实时展示当前校区即将开展的教学日程</span>
+                            <h2 class="panel-title">近期课次</h2>
+              
             </div>
             <el-button
               link
@@ -237,7 +197,7 @@
               class="flex items-center gap-1"
               @click="$router.push('/educational/timeSchedule')"
             >
-              <span>查看完整课表看板</span>
+              <span>查看课表</span>
               <ArrowRight class="w-3.5 h-3.5 ml-0.5 inline" />
             </el-button>
           </div>
@@ -247,28 +207,28 @@
             <div
               v-for="item in recentSchedules"
               :key="item.id"
-              class="p-3.5 rounded-xl border border-st-border hover:border-blue-200 hover:bg-st-bg transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              class="p-3 rounded-lg border border-st-border hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
             >
               <div class="flex items-center space-x-3.5">
-                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                <div class="w-12 h-10 rounded-lg bg-st-primary-light text-st-primary flex items-center justify-center font-semibold text-[13px] shrink-0 font-mono">
                   {{ item.timeSlot ? item.timeSlot.split('-')[0] : '课程' }}
                 </div>
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-bold text-xs text-st-title">{{ item.lessonTitle || item.courseName || '标准课程' }}</span>
-                    <span class="text-[11px] px-1.5 py-0.2 rounded bg-blue-50 text-st-primary font-medium">
+                    <span class="font-medium text-sm text-st-title">{{ item.lessonTitle || item.courseName || '标准课程' }}</span>
+                    <span class="text-xs px-1.5 py-0.5 rounded-md bg-slate-100 text-st-secondary">
                       {{ item.className || '标准班级' }}
                     </span>
                     <span
                       v-if="item.isConflict"
-                      class="text-[10px] px-1.5 py-0.2 rounded bg-red-100 text-red-700 font-bold"
+                      class="text-xs px-1.5 py-0.5 rounded-md bg-red-50 text-red-700 font-medium"
                     >
                       时段冲突
                     </span>
                   </div>
-                  <div class="text-[11px] text-st-muted mt-1 flex items-center gap-3 flex-wrap">
-                    <span>授课讲师: <strong class="text-st-secondary">{{ item.teacherName || '未指定' }}</strong></span>
-                    <span>教室: <strong class="text-st-secondary">{{ item.classroomName || '默认教室' }}</strong></span>
+                  <div class="text-xs text-st-muted mt-1 flex items-center gap-3 flex-wrap">
+                    <span>授课讲师: <span class="text-st-secondary">{{ item.teacherName || '未指定' }}</span></span>
+                    <span>教室: <span class="text-st-secondary">{{ item.classroomName || '默认教室' }}</span></span>
                     <span v-if="item.timeSlot">时段: {{ item.timeSlot }}</span>
                   </div>
                 </div>
@@ -295,8 +255,8 @@
 
           <!-- 空日程状态 -->
           <div v-else class="py-12 flex flex-col items-center justify-center text-center text-st-muted space-y-2">
-            <CalendarDays class="w-10 h-10 text-st-muted mx-auto" />
-            <p class="text-xs">当前校区暂无临近待上课排期</p>
+            <CalendarDays class="w-9 h-9 text-st-placeholder mx-auto" />
+            <p class="text-[13px]">当前校区暂无临近课次</p>
             <el-button size="small" type="primary" plain @click="$router.push('/educational/timeSchedule')">
               前往排课日历添加课次
             </el-button>
@@ -304,41 +264,37 @@
         </div>
 
         <div class="pt-3 mt-4 border-t border-st-border flex items-center justify-between text-xs text-st-muted">
-          <span>数据依据当前校区作用域实时过滤</span>
-          <span>共监控到 {{ recentSchedules.length }} 场重要教学课次</span>
+          <span>仅显示当前校区</span>
+          <span>共 {{ recentSchedules.length }} 节</span>
         </div>
       </div>
 
       <!-- 右侧：教务待办事项与运行预警 -->
       <div class="lg:col-span-4 space-y-4">
         <!-- 待办处理卡片 -->
-        <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm">
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-st-border">
+        <div class="panel-card">
+          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center space-x-2">
-              <span class="w-1.5 h-4 bg-amber-500 rounded-full"></span>
-              <h2 class="text-sm font-bold text-st-title">校区待办与提醒</h2>
+                            <h2 class="panel-title">待办提醒</h2>
             </div>
-            <span class="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold font-mono">
-              实时监控
-            </span>
           </div>
 
-          <div class="space-y-2.5 text-xs">
+          <div class="space-y-1 text-[13px]">
             <!-- 待审批工单 -->
             <div
               @click="$router.push('/financial/approvalFlow')"
-              class="p-3 rounded-xl bg-st-bg hover:bg-blue-50/60 border border-st-border hover:border-blue-200 transition-all cursor-pointer flex items-center justify-between group"
+              class="todo-row group"
             >
-              <div class="flex items-center space-x-2.5">
+              <div class="flex items-center gap-3">
                 <ClipboardCheck class="w-4 h-4 text-blue-600 shrink-0" />
                 <div>
-                  <div class="font-semibold text-st-regular group-hover:text-st-primary transition-colors">
-                    业务退费审批工单
+                  <div class="font-medium text-st-title">
+                    退费审批
                   </div>
-                  <div class="text-[11px] text-st-muted">财务中心待复核审批单据</div>
+                  <div class="text-xs text-st-muted">财务中心待复核审批单据</div>
                 </div>
               </div>
-              <span class="font-mono font-bold text-xs text-blue-600 bg-white px-2 py-0.5 rounded-full border border-st-border">
+              <span class="font-mono font-medium text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
                 {{ stats.pendingApprovalCount }} 笔待办
               </span>
             </div>
@@ -346,18 +302,18 @@
             <!-- 待分班学员池 -->
             <div
               @click="$router.push('/studentCenter/unassigned')"
-              class="p-3 rounded-xl bg-st-bg hover:bg-amber-50/60 border border-st-border hover:border-amber-200 transition-all cursor-pointer flex items-center justify-between group"
+              class="todo-row group"
             >
-              <div class="flex items-center space-x-2.5">
+              <div class="flex items-center gap-3">
                 <Users class="w-4 h-4 text-amber-600 shrink-0" />
                 <div>
-                  <div class="font-semibold text-st-regular group-hover:text-amber-700 transition-colors">
-                    待分班学员履约池
+                  <div class="font-medium text-st-title">
+                    待分班学员
                   </div>
-                  <div class="text-[11px] text-st-muted">已购课但尚未安排班级的学员</div>
+                  <div class="text-xs text-st-muted">已购课但尚未安排班级的学员</div>
                 </div>
               </div>
-              <span class="font-mono font-bold text-xs text-amber-600 bg-white px-2 py-0.5 rounded-full border border-st-border">
+              <span class="font-mono font-medium text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
                 {{ stats.unassignedCount }} 人待排
               </span>
             </div>
@@ -365,21 +321,21 @@
             <!-- 冲突排课预警 -->
             <div
               @click="$router.push('/educational/timeSchedule')"
-              class="p-3 rounded-xl bg-st-bg hover:bg-purple-50/60 border border-st-border hover:border-purple-200 transition-all cursor-pointer flex items-center justify-between group"
+              class="todo-row group"
             >
-              <div class="flex items-center space-x-2.5">
+              <div class="flex items-center gap-3">
                 <Zap class="w-4 h-4 text-purple-600 shrink-0" />
                 <div>
-                  <div class="font-semibold text-st-regular group-hover:text-purple-700 transition-colors">
-                    排课冲突智能预警
+                  <div class="font-medium text-st-title">
+                    排课冲突
                   </div>
-                  <div class="text-[11px] text-st-muted">教师或教室在此时段是否重叠</div>
+                  <div class="text-xs text-st-muted">教师或教室在此时段是否重叠</div>
                 </div>
               </div>
               <span
                 :class="[
-                  'font-mono font-bold text-xs px-2 py-0.5 rounded-full border',
-                  stats.conflictCount > 0 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                  'font-mono font-medium text-xs px-2 py-0.5 rounded-md',
+                  stats.conflictCount > 0 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
                 ]"
               >
                 {{ stats.conflictCount > 0 ? `${stats.conflictCount} 处冲突` : '正常' }}
@@ -389,50 +345,35 @@
         </div>
 
         <!-- 校区运营履约健康指数卡片 (ThemeProgress 集成) -->
-        <div class="bg-st-card rounded-xl p-5 border border-st-border shadow-sm">
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-st-border">
+        <div class="panel-card">
+          <div class="flex items-center justify-between mb-3">
             <div class="flex items-center space-x-2">
-              <span class="w-1.5 h-4 bg-st-primary rounded-full"></span>
-              <h2 class="text-sm font-bold text-st-title">校区运营健康指数</h2>
+                            <h2 class="panel-title">运营指标</h2>
             </div>
-            <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-st-primary font-semibold font-mono">
-              本周综评 A+
+            <span class="text-xs px-1.5 py-0.5 rounded-md bg-slate-100 text-st-muted" title="该卡片数值为前端固定示例，尚未接入真实统计接口">
+              示例数据
             </span>
           </div>
 
           <div class="grid grid-cols-3 gap-2 text-center py-1">
             <div class="flex flex-col items-center">
               <ThemeProgress :percentage="88" color-theme="primary" :size="58" :stroke-width="5" />
-              <span class="text-xs font-semibold text-st-regular mt-2">出勤履约率</span>
-              <span class="text-[10px] text-st-muted mt-0.5">正常到课消课</span>
+              <span class="text-[13px] font-medium text-st-regular mt-2">出勤履约率</span>
+              <span class="text-xs text-st-muted mt-0.5">正常到课消课</span>
             </div>
             <div class="flex flex-col items-center">
               <ThemeProgress :percentage="92" color-theme="success" :size="58" :stroke-width="5" />
-              <span class="text-xs font-semibold text-st-regular mt-2">教室满班率</span>
-              <span class="text-[10px] text-st-muted mt-0.5">资源高效利用</span>
+              <span class="text-[13px] font-medium text-st-regular mt-2">教室满班率</span>
+              <span class="text-xs text-st-muted mt-0.5">资源高效利用</span>
             </div>
             <div class="flex flex-col items-center">
               <ThemeProgress :percentage="76" color-theme="warning" :size="58" :stroke-width="5" />
-              <span class="text-xs font-semibold text-st-regular mt-2">课消达成率</span>
-              <span class="text-[10px] text-st-muted mt-0.5">阶段教务目标</span>
+              <span class="text-[13px] font-medium text-st-regular mt-2">课消达成率</span>
+              <span class="text-xs text-st-muted mt-0.5">阶段教务目标</span>
             </div>
           </div>
         </div>
 
-        <!-- 运营合规背书与租户环境卡片 -->
-        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-5 text-white shadow-sm">
-          <div class="flex items-center space-x-2 mb-2">
-            <ShieldCheck class="w-4 h-4 text-emerald-400 shrink-0" />
-            <span class="font-bold text-xs tracking-wide">上市公司合规数据保护</span>
-          </div>
-          <p class="text-[11px] text-gray-300 leading-relaxed">
-            当前系统直连上市公司标准化教育数据库，多校区学员学籍、签约订单、消课流水均已实现硬隔离合规存证。
-          </p>
-          <div class="mt-3 pt-3 border-t border-gray-700/60 flex items-center justify-between text-[11px] text-gray-300 font-mono">
-            <span>作用域: {{ currentCampus.code }}</span>
-            <span class="text-emerald-400 font-semibold">● 存证已同步</span>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -455,9 +396,9 @@ import {
   CircleDollarSign,
   ClipboardCheck,
   CalendarDays,
-  ShieldCheck,
   Zap,
-  ArrowRight
+  ArrowRight,
+  RefreshCw
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
@@ -589,3 +530,47 @@ const quickAccessList = [
   { name: '审批中心', desc: '业务退费审批单', icon: ClipboardCheck, bgClass: 'bg-rose-50 text-rose-600', path: '/financial/approvalFlow' }
 ]
 </script>
+
+<style scoped>
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  background: var(--st-color-card);
+  border: 1px solid var(--st-color-border);
+  border-radius: var(--st-radius-lg);
+  box-shadow: var(--st-shadow-card);
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.kpi-card:hover {
+  border-color: var(--st-color-border-dark);
+  box-shadow: var(--st-shadow-hover);
+}
+.panel-card {
+  padding: 20px;
+  background: var(--st-color-card);
+  border: 1px solid var(--st-color-border);
+  border-radius: var(--st-radius-lg);
+  box-shadow: var(--st-shadow-card);
+}
+.panel-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--st-color-title);
+}
+.todo-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 8px;
+  margin: 0 -8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.todo-row:hover {
+  background: #F8FAFC;
+}
+</style>
