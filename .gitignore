@@ -41,6 +41,9 @@ server/uploads/*
 .pi/
 skills-lock.json
 
+# Local git bundle backups (machine-local, large)
+*.bundle
+
 # Editor & OS files
 .DS_Store
 Thumbs.db
