@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { UploadController } from './upload.controller';
+import { MediaController } from './media.controller';
 import { MediaUploadCoordinator } from './domain/media-upload.coordinator';
 import { StorageEnginePort } from './domain/ports/storage-engine.port';
 import { LocalStorageEngineAdapter } from './domain/adapters/local-storage-engine.adapter';
 import { MemoryMockStorageAdapter } from './domain/adapters/memory-mock-storage.adapter';
 
 @Module({
-  controllers: [UploadController],
+  controllers: [UploadController, MediaController],
   providers: [
     LocalStorageEngineAdapter,
     MemoryMockStorageAdapter,

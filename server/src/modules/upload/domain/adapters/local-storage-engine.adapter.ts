@@ -1,7 +1,9 @@
 import { Injectable, Optional } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
+import { SignedUrlOptions, StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
+import { signMediaKey } from '../media-signer';
+import { isSafeStorageKey } from '../media-key.util';
 
 /**
  * 生产/本地默认存储引擎适配器 (LocalStorageEngineAdapter)
@@ -92,5 +94,21 @@ export class LocalStorageEngineAdapter implements StorageEnginePort {
     }
     return relativeUrl;
   }
-}
 
+  signedUrl(key: string, options: SignedUrlOptions = {}): string {
+    const exp = Math.floor(Date.now() / 1000) + (options.expiresInSeconds ?? 3600);
+    const sig = signMediaKey(key, exp);
+    const base = (process.env.MEDIA_PUBLIC_BASE_URL || process.env.APP_BASE_URL || '').replace(/\/+$/, '');
+    const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+    // 本地磁盘暂不生成缩略图：thumb 与原图同一文件 (迁移 OSS 后由图片处理参数生成)
+    return `${base}/api/media/${encodedKey}?exp=${exp}&sig=${sig}`;
+  }
+
+  /** 本地媒体路由使用：解析 key 对应的磁盘绝对路径 (校验路径穿越) */
+  absolutePathFor(key: string): string | null {
+    if (!isSafeStorageKey(key)) return null;
+    const full = path.resolve(this.baseDir, key);
+    const root = path.resolve(this.baseDir) + path.sep;
+    return full.startsWith(root) ? full : null;
+  }
+}

@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { normalizeCnMobile } from '../../common/phone.util';
 import { Prisma } from '@prisma/client';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
 import { EnrollStudentDto } from './dto/enroll.dto';
@@ -217,6 +218,11 @@ export class StudentService {
    * 新建学员档案并初始化学员钱包
    */
   async createStudent(dto: CreateStudentDto) {
+    const phoneNormalized = normalizeCnMobile(dto.phone);
+    if (!phoneNormalized) {
+      throw new BadRequestException('家长手机号格式不正确，请填写 11 位中国大陆手机号');
+    }
+
     // 生成以 S 开头的唯一学号序列
     const seq = Math.floor(100000 + Math.random() * 900000);
     const studentNo = `S${new Date().getFullYear().toString().slice(2)}${seq}`;
@@ -228,6 +234,7 @@ export class StudentService {
           name: dto.name,
           gender: dto.gender,
           phone: dto.phone,
+          phoneNormalized,
           parentName: dto.parentName,
           school: dto.school,
           birthday: dto.birthday,
@@ -258,11 +265,30 @@ export class StudentService {
    * 修改学员基础档案
    */
   async updateStudent(id: string, dto: UpdateStudentDto) {
-    await this.getStudentById(id);
+    const current = await this.getStudentById(id);
+    const data: Record<string, any> = { ...dto };
+
+    // 家长端登录依赖规范化手机号
+    if (dto.phone !== undefined) {
+      const phoneNormalized = normalizeCnMobile(dto.phone);
+      if (!phoneNormalized) {
+        throw new BadRequestException('家长手机号格式不正确，请填写 11 位中国大陆手机号');
+      }
+      data.phoneNormalized = phoneNormalized;
+    }
+
+    // 离校时间：进入转校 / 流失状态时记录，恢复在读时清空 (家长端 3 个月只读窗口起算点)
+    if (dto.status !== undefined) {
+      const leftStatuses = ['transferred', 'dropped_out'];
+      const wasLeft = leftStatuses.includes((current as any).status);
+      const isLeft = leftStatuses.includes(dto.status);
+      if (isLeft && !wasLeft) data.leftAt = new Date();
+      if (!isLeft) data.leftAt = null;
+    }
 
     return this.prisma.student.update({
       where: { id },
-      data: dto,
+      data,
       include: { campus: true, wallet: true },
     });
   }

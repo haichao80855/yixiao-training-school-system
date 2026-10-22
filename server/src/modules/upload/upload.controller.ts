@@ -8,10 +8,11 @@ import {
   Headers,
   Req,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-import { Public } from '../../common/decorators/public.decorator';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { MediaUploadCoordinator } from './domain/media-upload.coordinator';
 
 /**
@@ -22,7 +23,6 @@ import { MediaUploadCoordinator } from './domain/media-upload.coordinator';
 export class UploadController {
   constructor(private readonly coordinator: MediaUploadCoordinator) {}
 
-  @Public()
   @Post('photos')
   @UseInterceptors(
     FilesInterceptor('files', 9, {
@@ -35,6 +35,7 @@ export class UploadController {
   async uploadClassroomPhotos(
     @UploadedFiles() files: Express.Multer.File[],
     @Req() req: Request,
+    @CurrentUser() user: any,
     @Body('scheduleEventId') scheduleEventId?: string,
     @Body('campusId') bodyCampusId?: string,
     @Headers('x-campus-id') headerCampusId?: string
@@ -43,7 +44,7 @@ export class UploadController {
       throw new BadRequestException('请至少选择一张随堂照片上传');
     }
 
-    const campusId = bodyCampusId || headerCampusId || 'campus-bj-hq';
+    const campusId = this.resolveCampusId(user, bodyCampusId, headerCampusId);
     const forwardedProto = req.headers['x-forwarded-proto'];
     const protocol = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || req.protocol || 'http';
     const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3001';
@@ -59,7 +60,6 @@ export class UploadController {
     return result;
   }
 
-  @Public()
   @Post('video')
   @UseInterceptors(
     FileInterceptor('file', {
@@ -71,6 +71,7 @@ export class UploadController {
   async uploadClassroomVideo(
     @UploadedFile() file: Express.Multer.File,
     @Req() req: Request,
+    @CurrentUser() user: any,
     @Body('scheduleEventId') scheduleEventId?: string,
     @Body('campusId') bodyCampusId?: string,
     @Headers('x-campus-id') headerCampusId?: string
@@ -79,7 +80,7 @@ export class UploadController {
       throw new BadRequestException('请选择课堂视频文件上传');
     }
 
-    const campusId = bodyCampusId || headerCampusId || 'campus-bj-hq';
+    const campusId = this.resolveCampusId(user, bodyCampusId, headerCampusId);
     const forwardedProto = req.headers['x-forwarded-proto'];
     const protocol = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto) || req.protocol || 'http';
     const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3001';
@@ -94,5 +95,20 @@ export class UploadController {
 
     return result;
   }
-}
 
+  /**
+   * 上传归属校区以登录凭据为准：仅全集团数据权限的账号可指定其他校区
+   */
+  private resolveCampusId(user: any, bodyCampusId?: string, headerCampusId?: string): string {
+    const requested = bodyCampusId || headerCampusId;
+    const canAccessAll =
+      user?.dataScope === 'all' ||
+      user?.permissions?.includes('*') ||
+      user?.permissions?.includes('admin:all');
+    if (requested && requested !== 'all' && canAccessAll) return requested;
+    if (!user?.campusId) {
+      throw new ForbiddenException('当前账号未归属校区，无法上传媒体');
+    }
+    return user.campusId;
+  }
+}

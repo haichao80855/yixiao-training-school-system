@@ -9,6 +9,8 @@ import { StudentModule } from './modules/student/student.module';
 import { EducationalModule } from './modules/educational/educational.module';
 import { FinancialModule } from './modules/financial/financial.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { ParentModule } from './modules/parent/parent.module';
+import { ParentBoundaryGuard } from './modules/parent/guards/parent-boundary.guard';
 import { DataScopeModule } from './modules/data-scope/data-scope.module';
 import { AppController } from './app.controller';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
@@ -30,6 +32,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     EducationalModule,
     FinancialModule,
     UploadModule,
+    ParentModule,
   ],
   controllers: [AppController],
   providers: [
@@ -37,6 +40,11 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    // 1.1 家长 / 教职工令牌边界 (默认拒绝：家长令牌只能访问 @ParentRoute() 接口)
+    {
+      provide: APP_GUARD,
+      useClass: ParentBoundaryGuard,
     },
     // 2. 全局启用 RBAC 操作权限码守卫 (带有 @RequirePermissions() 的接口自动按码核验)
     {

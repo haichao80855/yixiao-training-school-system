@@ -3,12 +3,18 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ParentJwtPayload, ParentPrincipal } from '../parent/parent.types';
 
 export interface JwtPayload {
   sub: string;
   account: string;
   campusId: string;
 }
+
+type AnyJwtPayload = JwtPayload | ParentJwtPayload;
+
+/** 家长会话 lastSeenAt 写回节流 (毫秒) */
+const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -23,7 +29,45 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(payload: AnyJwtPayload) {
+    if ((payload as ParentJwtPayload).typ === 'parent') {
+      return this.validateParent(payload as ParentJwtPayload);
+    }
+    return this.validateStaff(payload as JwtPayload);
+  }
+
+  /**
+   * 家长令牌：校验会话未被注销、账号令牌版本一致；不加载任何教职工角色与权限
+   */
+  private async validateParent(payload: ParentJwtPayload): Promise<ParentPrincipal> {
+    const session = await this.prisma.parentSession.findUnique({
+      where: { id: payload.sid },
+      include: { account: true },
+    });
+    if (
+      !session ||
+      session.revokedAt ||
+      session.parentAccountId !== payload.sub ||
+      session.account.tokenVersion !== payload.ver
+    ) {
+      throw new UnauthorizedException('登录已失效，请重新登录');
+    }
+    if (Date.now() - session.lastSeenAt.getTime() > SESSION_TOUCH_INTERVAL_MS) {
+      await this.prisma.parentSession
+        .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
+        .catch(() => undefined);
+    }
+    return {
+      principal: 'parent',
+      parentAccountId: session.parentAccountId,
+      sessionId: session.id,
+      phone: session.account.phone,
+      roles: [],
+      permissions: [],
+    };
+  }
+
+  private async validateStaff(payload: JwtPayload) {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
       include: {
@@ -78,6 +122,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
+      principal: 'staff' as const,
       id: user.id,
       account: user.account,
       realName: user.realName,

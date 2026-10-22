@@ -6,7 +6,7 @@ export interface ApiResponse<T = any> {
 }
 
 // 本地开发请使用 http://127.0.0.1:3001；若真机调试，请配置为局域网IP（如 http://192.168.x.x:3001）或内网穿透域名
-const BASE_URL = 'http://127.0.0.1:3001';
+export const BASE_URL = 'http://127.0.0.1:3001';
 
 // 401 防并发抖动重定向锁
 let isRedirecting = false;

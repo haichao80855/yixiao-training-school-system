@@ -556,7 +556,8 @@ async function main() {
       studentNo: 'S948918',
       name: '张子豪',
       gender: 'male',
-      phone: '156****0125',
+      phone: '13900000125',
+      phoneNormalized: '13900000125',
       parentName: '张建国',
       campusId: 'campus-bj-hq',
       status: 'normal',
@@ -567,7 +568,8 @@ async function main() {
       studentNo: 'S948919',
       name: '李欣怡',
       gender: 'female',
-      phone: '138****6688',
+      phone: '13900006688',
+      phoneNormalized: '13900006688',
       parentName: '李晓东',
       campusId: 'campus-bj-hq',
       status: 'normal',
@@ -578,7 +580,8 @@ async function main() {
       studentNo: 'S948920',
       name: '王梓涵',
       gender: 'male',
-      phone: '186****9922',
+      phone: '13900000125', // 演示：与张子豪同一家长手机号 (跨校区兄弟姐妹)
+      phoneNormalized: '13900000125',
       parentName: '王丽华',
       campusId: 'campus-bj-yy',
       status: 'normal',
@@ -589,7 +592,7 @@ async function main() {
   for (const s of studentsData) {
     const student = await prisma.student.upsert({
       where: { studentNo: s.studentNo },
-      update: {},
+      update: { phone: s.phone, phoneNormalized: s.phoneNormalized },
       create: s,
     })
 

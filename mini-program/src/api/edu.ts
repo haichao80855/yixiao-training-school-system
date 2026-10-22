@@ -473,6 +473,7 @@ export const eduApi = {
         },
         header: {
           'x-campus-id': campusId,
+          ...(uni.getStorageSync('token') ? { Authorization: `Bearer ${uni.getStorageSync('token')}` } : {}),
         },
         success: (uploadRes) => {
           if (uploadRes.statusCode >= 200 && uploadRes.statusCode < 300) {
@@ -529,6 +530,7 @@ export const eduApi = {
         },
         header: {
           'x-campus-id': campusId,
+          ...(uni.getStorageSync('token') ? { Authorization: `Bearer ${uni.getStorageSync('token')}` } : {}),
         },
 
         success: (uploadRes) => {

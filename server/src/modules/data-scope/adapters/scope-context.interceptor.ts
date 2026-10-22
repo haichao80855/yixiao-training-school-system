@@ -45,6 +45,11 @@ export class ScopeContextInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    // 家长令牌不参与校区行级隔离：家长端接口按「本人子女」逐一授权 (见 ParentPortalService.resolveChild)
+    if (user.principal === 'parent') {
+      return next.handle();
+    }
+
     // 2. 解析校区作用域与 RBAC 数据权限
     const headerCampusId = req.headers ? (req.headers['x-campus-id'] as string) : undefined;
     const queryCampusId = (req.query?.campusId as string) || (req.body?.campusId as string);
