@@ -1,26 +1,27 @@
 <template>
-  <div class="flex items-center space-x-1.5 text-xs text-st-secondary select-none">
+  <nav aria-label="面包屑" class="flex items-center gap-1.5 text-[13px] text-st-muted select-none">
     <span
       class="cursor-pointer hover:text-st-primary transition-colors"
       @click="$router.push('/dashboard')"
     >
       首页
     </span>
-    <span v-for="(item, index) in breadcrumbs" :key="index" class="flex items-center space-x-1.5">
-      <span class="text-gray-300">/</span>
+    <span v-for="(item, index) in breadcrumbs" :key="index" class="flex items-center gap-1.5">
+      <el-icon class="text-st-placeholder" :size="12"><ArrowRight /></el-icon>
       <span
-        :class="index === breadcrumbs.length - 1 ? 'font-semibold text-st-title cursor-default' : 'hover:text-st-primary cursor-pointer transition-colors'"
+        :class="index === breadcrumbs.length - 1 ? 'font-medium text-st-title cursor-default' : 'hover:text-st-primary cursor-pointer transition-colors'"
         @click="index !== breadcrumbs.length - 1 && item.path && $router.push(item.path)"
       >
         {{ item.title }}
       </span>
     </span>
-  </div>
+  </nav>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { ArrowRight } from '@element-plus/icons-vue'
 
 const route = useRoute()
 

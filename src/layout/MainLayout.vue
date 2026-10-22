@@ -10,7 +10,7 @@
       <!-- 主工作区 -->
       <main class="flex-1 flex flex-col overflow-hidden">
         <!-- 面包屑导航条 -->
-        <div class="h-9 px-4 bg-white/70 border-b border-st-border flex items-center shrink-0">
+        <div class="h-10 px-5 bg-white border-b border-st-border flex items-center shrink-0">
           <Breadcrumb />
         </div>
 

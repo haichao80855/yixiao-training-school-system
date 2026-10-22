@@ -1,122 +1,110 @@
 <template>
-  <header class="h-[60px] bg-white border-b border-st-border shadow-header px-4 flex items-center justify-between select-none z-30 relative">
-    <!-- 左侧：品牌 Logo 与折叠触发器 -->
-    <div class="flex items-center space-x-3 shrink-0">
-      <div class="flex items-center space-x-2.5 cursor-pointer" @click="handleGoHome">
-        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center text-white shadow-sm">
-          <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+  <header class="h-[60px] bg-white border-b border-st-border px-4 flex items-center justify-between select-none z-30 relative">
+    <!-- 左侧：品牌与折叠触发器 -->
+    <div class="flex items-center gap-2 shrink-0">
+      <button type="button" class="flex items-center gap-2.5 pr-2 rounded-lg" @click="handleGoHome">
+        <span class="w-8 h-8 rounded-lg bg-st-primary flex items-center justify-center text-white">
+          <svg class="w-[18px] h-[18px] fill-current" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
-        </div>
-        <div class="leading-tight">
-          <div class="flex items-center space-x-1.5">
-            <span class="font-extrabold text-st-title text-base tracking-tight">一校</span>
-            <span class="font-bold text-st-regular text-sm">教培系统</span>
-          </div>
-          <div class="text-[10px] text-st-muted font-mono tracking-tighter">
-            证券代码：002599
-          </div>
-        </div>
-      </div>
+        </span>
+        <span class="text-[16px] font-semibold text-st-title tracking-tight whitespace-nowrap">一校教培系统</span>
+      </button>
 
       <!-- 侧边栏折叠/展开按钮 -->
-      <el-button
-        link
-        size="small"
-        class="!ml-2 !p-1.5 text-st-secondary hover:!text-st-primary hover:!bg-st-primary-light transition-colors"
+      <button
+        type="button"
+        class="header-icon-btn ml-3"
         title="折叠/展开侧边栏"
+        aria-label="折叠/展开侧边栏"
         @click="$emit('toggle-sidebar')"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </el-button>
+        <el-icon :size="18"><Fold /></el-icon>
+      </button>
     </div>
 
-    <!-- 右侧：高级操作胶囊栏与用户卡片 -->
-    <div class="flex items-center space-x-3 shrink-0">
+    <!-- 右侧：校区、通知、全屏与用户 -->
+    <div class="flex items-center gap-1.5 shrink-0">
       <!-- 多校区切换选择器 -->
-      <CampusSelector customClass="bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 !text-white !border-transparent text-xs" />
+      <CampusSelector ref="campusSelectorRef" class="mr-2" />
 
       <!-- 待办消息与通知 -->
-      <el-popover placement="bottom" :width="280" trigger="click">
+      <el-popover placement="bottom-end" :width="300" trigger="click">
         <template #reference>
-          <div class="relative p-1.5 rounded-full text-st-secondary hover:text-st-primary hover:bg-gray-100 cursor-pointer transition-colors" title="待办通知">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            <span class="absolute -top-0.5 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full border-2 border-white">
+          <button type="button" class="header-icon-btn relative" title="待办通知" aria-label="待办通知">
+            <el-icon :size="18"><Bell /></el-icon>
+            <span class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-st-danger text-white text-[10px] leading-4 font-semibold text-center ring-2 ring-white">
               3
             </span>
-          </div>
+          </button>
         </template>
-        <div class="text-xs space-y-2">
-          <div class="font-bold text-st-title border-b border-gray-100 pb-1 flex justify-between">
-            <span>待办事项通知</span>
-            <span class="text-st-primary cursor-pointer hover:underline">全部已读</span>
+        <div class="text-[13px]">
+          <div class="flex items-center justify-between pb-2 mb-1 border-b border-st-border">
+            <span class="font-semibold text-st-title">待办通知</span>
+            <span class="text-xs text-st-primary cursor-pointer hover:underline">全部已读</span>
           </div>
-          <div class="p-2 bg-blue-50 rounded text-st-title cursor-pointer hover:bg-blue-100 transition-colors" @click="$router.push('/financial/approvalFlow')">
-            <span class="font-semibold text-st-primary">[待审批]</span> 学员退费工单待审核与财务核验
-          </div>
-          <div class="p-2 bg-amber-50 rounded text-st-title cursor-pointer hover:bg-amber-100 transition-colors" @click="$router.push('/studentCenter/unassigned')">
-            <span class="font-semibold text-amber-600">[学员入读]</span> 待分班学员池待履约排班入读
-          </div>
-          <div class="p-2 bg-purple-50 rounded text-st-title cursor-pointer hover:bg-purple-100 transition-colors" @click="$router.push('/educational/timeSchedule')">
-            <span class="font-semibold text-purple-600">[排课看板]</span> 查看本周校区 7×15 网格排期
-          </div>
+          <button type="button" class="notice-item" @click="$router.push('/financial/approvalFlow')">
+            <span class="notice-dot bg-st-primary"></span>
+            <span><span class="font-medium text-st-title">待审批</span> · 学员退费工单待审核与财务核验</span>
+          </button>
+          <button type="button" class="notice-item" @click="$router.push('/studentCenter/unassigned')">
+            <span class="notice-dot bg-st-warning"></span>
+            <span><span class="font-medium text-st-title">待分班</span> · 已购课学员等待安排班级</span>
+          </button>
+          <button type="button" class="notice-item" @click="$router.push('/educational/timeSchedule')">
+            <span class="notice-dot bg-st-purple"></span>
+            <span><span class="font-medium text-st-title">排课</span> · 查看本周校区课表</span>
+          </button>
         </div>
       </el-popover>
 
       <!-- 全屏切换 -->
-      <el-button
-        link
-        size="small"
-        class="!p-1.5 !rounded-full text-st-secondary hover:!text-st-primary hover:!bg-gray-100 transition-colors hidden sm:inline-flex"
+      <button
+        type="button"
+        class="header-icon-btn hidden sm:inline-flex"
         title="切换全屏模式"
+        aria-label="切换全屏模式"
         @click="toggleFullScreen"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-        </svg>
-      </el-button>
+        <el-icon :size="18"><FullScreen /></el-icon>
+      </button>
+
+      <span class="w-px h-5 bg-st-border mx-2 hidden lg:block"></span>
 
       <!-- 用户信息与下拉菜单 -->
-      <el-dropdown trigger="click" @command="handleUserCommand">
-        <div class="flex items-center space-x-2 cursor-pointer p-1 rounded-full hover:bg-gray-100 transition-colors">
-          <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm', isTeacher ? 'bg-gradient-to-r from-emerald-600 to-teal-600' : 'bg-gradient-to-r from-blue-600 to-indigo-600']">
+      <el-dropdown trigger="click" placement="bottom-end" @command="handleUserCommand">
+        <div class="flex items-center gap-2 cursor-pointer pl-1 pr-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">
+          <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-semibold', isTeacher ? 'bg-emerald-50 text-emerald-700' : 'bg-st-primary-light text-st-primary']">
             {{ avatarChar }}
           </div>
           <div class="hidden lg:block text-left leading-tight">
-            <div class="text-xs font-semibold text-st-title flex items-center">
-              {{ currentUserName }}
-              <span v-if="isTeacher" class="ml-1 text-[9px] bg-emerald-100 text-emerald-700 px-1 py-0.2 rounded font-normal">讲师</span>
-              <svg class="w-3 h-3 ml-1 text-st-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-            <div class="text-[10px] text-st-muted">{{ currentUserRole }}</div>
+            <div class="text-[13px] font-medium text-st-title">{{ currentUserName }}</div>
+            <div class="text-xs text-st-muted">{{ currentUserRole }}</div>
           </div>
+          <el-icon class="hidden lg:block text-st-placeholder" :size="12"><ArrowDown /></el-icon>
         </div>
         <template #dropdown>
-          <el-dropdown-menu>
+          <el-dropdown-menu class="min-w-[180px]">
             <el-dropdown-item command="profile">个人中心</el-dropdown-item>
             <el-dropdown-item command="password">修改密码</el-dropdown-item>
-            <el-dropdown-item command="campus" divided>切换工作校区</el-dropdown-item>
-            <el-dropdown-item command="switch-teacher" divided class="flex items-center gap-1.5">
-              <UserCheck class="w-4 h-4 mr-1 text-st-primary" />
-              <span>快速换成：张老师 (讲师)</span>
-            </el-dropdown-item>
-            <el-dropdown-item command="switch-admin" class="flex items-center gap-1.5">
-              <ShieldCheck class="w-4 h-4 mr-1 text-amber-500" />
-              <span>快速换成：冬海潮 (管理员)</span>
-            </el-dropdown-item>
-            <el-dropdown-item command="test-data" divided class="flex items-center gap-1.5">
-              <Database class="w-4 h-4 mr-1 text-st-secondary" />
-              <span>测试数据管理 / 清空Mock数据</span>
-            </el-dropdown-item>
-            <el-dropdown-item command="logout" divided class="!text-rose-600 font-semibold flex items-center gap-1.5">
-              <LogOut class="w-4 h-4 mr-1 text-rose-600" />
-              <span>安全退出</span>
+            <el-dropdown-item command="campus">切换工作校区</el-dropdown-item>
+            <template v-if="isDev">
+              <el-dropdown-item command="switch-teacher" divided>
+                <UserCheck class="w-4 h-4 mr-2 text-st-muted" />
+                <span>演示：切换为张老师</span>
+              </el-dropdown-item>
+              <el-dropdown-item command="switch-admin">
+                <ShieldCheck class="w-4 h-4 mr-2 text-st-muted" />
+                <span>演示：切换为管理员</span>
+              </el-dropdown-item>
+              <el-dropdown-item command="test-data">
+                <Database class="w-4 h-4 mr-2 text-st-muted" />
+                <span>测试数据管理</span>
+              </el-dropdown-item>
+            </template>
+            <el-dropdown-item command="logout" divided class="!text-st-danger">
+              <LogOut class="w-4 h-4 mr-2" />
+              <span>退出登录</span>
             </el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -215,6 +203,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { UserCheck, ShieldCheck, Database, LogOut, Settings, Info } from 'lucide-vue-next'
+import { Fold, Bell, FullScreen, ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/authStore'
 import { DIALOG_SIZE } from '@/constants/ui'
 import CampusSelector from './CampusSelector.vue'
@@ -228,8 +217,11 @@ const currentUserName = computed(() => authStore.user?.realName || authStore.use
 const currentUserRole = computed(() => authStore.user?.roleName || '超级管理员')
 const avatarChar = computed(() => currentUserName.value ? currentUserName.value.charAt(0) : '用')
 const isTeacher = computed(() => authStore.isTeacher)
+// 演示用的快捷换号与测试数据入口仅在开发环境展示
+const isDev = import.meta.env.DEV
 
 const aiDialogVisible = ref(false)
+const campusSelectorRef = ref<{ open?: () => void } | null>(null)
 
 function handleGoHome() {
   router.push('/dashboard')
@@ -365,6 +357,8 @@ function handleUserCommand(command: string) {
     authStore.login('donghaichao')
     ElMessage.success('已快速切换为超级管理员【冬海潮】身份')
     router.push('/dashboard')
+  } else if (command === 'campus') {
+    campusSelectorRef.value?.open?.()
   } else if (command === 'profile') {
     router.push('/systemSetting/authoritiesInfo')
   } else {
@@ -372,3 +366,41 @@ function handleUserCommand(command: string) {
   }
 }
 </script>
+
+<style scoped>
+.header-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: var(--st-color-secondary);
+  transition: background-color 0.15s, color 0.15s;
+}
+.header-icon-btn:hover {
+  background-color: #F1F5F9;
+  color: var(--st-color-title);
+}
+.notice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 8px;
+  border-radius: 6px;
+  text-align: left;
+  color: var(--st-color-secondary);
+  line-height: 1.5;
+}
+.notice-item:hover {
+  background-color: #F8FAFC;
+}
+.notice-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+</style>

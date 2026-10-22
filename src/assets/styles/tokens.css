@@ -1,53 +1,146 @@
+/* ==========================================================================
+ * 一校教培系统 · 设计令牌 (Design Tokens)
+ * 所有颜色、圆角、阴影、字体统一在此定义；Tailwind `st-*` 与 Element Plus 均引用这些变量。
+ * ========================================================================== */
 :root {
-  /* 盛通蓝品牌基准色与衍生色阶 */
-  --st-color-primary: #1890FF;
-  --st-color-primary-hover: #40A9FF;
-  --st-color-primary-active: #096DD9;
-  --st-color-primary-light: #ECF5FF;
-  --st-color-primary-border: #BAE7FF;
-  --st-color-primary-bg: #F0F7FF;
+  /* ---------- 品牌主色：沉稳学院蓝 ---------- */
+  --st-color-primary: #2563EB;
+  --st-color-primary-hover: #3B82F6;
+  --st-color-primary-active: #1D4ED8;
+  --st-color-primary-light: #EFF4FF;
+  /* RGB 通道（供 Tailwind 透明度修饰符使用，如 bg-st-primary/10） */
+  --st-rgb-primary: 37 99 235;
+  --st-rgb-primary-light: 239 244 255;
+  --st-color-primary-border: #C7D7FE;
+  --st-color-primary-bg: #F5F8FF;
 
-  /* 语义功能色 */
-  --st-color-success: #67C23A;
-  --st-color-success-light: #F0F9EB;
-  --st-color-warning: #FAAD14;
-  --st-color-warning-light: #FFF7E6;
-  --st-color-warning-deep: #D46B08;
-  --st-color-danger: #F56C6C;
-  --st-color-danger-light: #FEF0F0;
-  --st-color-danger-deep: #F5222D;
-  --st-color-purple: #722ED1;
-  --st-color-purple-light: #F9F0FF;
+  /* ---------- 语义功能色 (均满足白底 AA 对比度) ---------- */
+  --st-color-success: #16A34A;
+  --st-color-success-light: #ECFDF3;
+  --st-color-warning: #D97706;
+  --st-color-warning-light: #FFF7E8;
+  --st-color-warning-deep: #B45309;
+  --st-color-danger: #DC2626;
+  --st-color-danger-light: #FEF2F2;
+  --st-color-danger-deep: #B91C1C;
+  --st-color-purple: #7C3AED;
+  --st-color-purple-light: #F5F3FF;
 
-  /* 中性色阶 */
-  --st-color-bg: #F5F7FA;
-  --st-color-header: #FAFAFA;
+  /* ---------- 中性色阶 (Slate) ---------- */
+  --st-color-bg: #F5F6F8;
+  --st-color-header: #F8FAFC;
   --st-color-card: #FFFFFF;
-  --st-color-title: #1F2D3D;
-  --st-color-regular: #303133;
-  --st-color-secondary: #606266;
-  --st-color-muted: #909399;
-  --st-color-placeholder: #C0C4CC;
-  --st-color-border: #EBEEF5;
-  --st-color-border-dark: #DCDFE6;
+  --st-color-title: #0F172A;
+  --st-color-regular: #1E293B;
+  --st-color-secondary: #475569;
+  --st-color-muted: #64748B;
+  --st-color-placeholder: #94A3B8;
+  --st-color-border: #E5E7EB;
+  --st-color-border-dark: #D1D5DB;
+  --st-color-border-light: #EFF4FF;
 
-  /* Element Plus 覆盖变量 */
-  --el-color-primary: #1890FF;
-  --el-color-primary-light-3: #5cb3ff;
-  --el-color-primary-light-5: #8cc8ff;
-  --el-color-primary-light-7: #bce0ff;
-  --el-color-primary-light-8: #d4ebff;
-  --el-color-primary-light-9: #ecf5ff;
-  --el-color-primary-dark-2: #096dd9;
-  --el-color-success: #67C23A;
-  --el-color-warning: #FAAD14;
-  --el-color-danger: #F56C6C;
-  --el-color-error: #F56C6C;
+  /* 历史别名 (部分组件直接引用，保持兼容) */
+  --st-primary: var(--st-color-primary);
+  --st-success: var(--st-color-success);
+  --st-warning: var(--st-color-warning);
+  --st-danger: var(--st-color-danger);
+  --st-muted: var(--st-color-muted);
+  --st-border-color: var(--st-color-border);
+  --st-color-text-title: var(--st-color-title);
+  --st-color-text-secondary: var(--st-color-secondary);
 
-  /* 尺寸及布局规范 */
+  /* ---------- 字体 / 圆角 / 阴影 ---------- */
+  --st-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --st-radius-sm: 6px;
+  --st-radius-md: 8px;
+  --st-radius-lg: 12px;
+  --st-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --st-shadow-hover: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --st-shadow-popover: 0 8px 24px rgba(15, 23, 42, 0.12);
+
+  /* ---------- 尺寸及布局规范 ---------- */
   --st-header-height: 60px;
   --st-sidebar-width: 220px;
   --st-sidebar-collapsed-width: 64px;
   --st-table-header-height: 44px;
   --st-table-row-height: 50px;
+
+  /* ======================================================================
+   * Element Plus 主题覆盖
+   * ====================================================================== */
+  --el-font-family: var(--st-font-sans);
+  --el-font-size-base: 14px;
+
+  --el-color-primary: #2563EB;
+  --el-color-primary-light-3: #6692F1;
+  --el-color-primary-light-5: #92B1F5;
+  --el-color-primary-light-7: #BED0F9;
+  --el-color-primary-light-8: #D3E0FB;
+  --el-color-primary-light-9: #EFF4FF;
+  --el-color-primary-dark-2: #1D4ED8;
+
+  --el-color-success: #16A34A;
+  --el-color-success-light-3: #5CBF80;
+  --el-color-success-light-5: #8AD1A4;
+  --el-color-success-light-7: #B9E3C9;
+  --el-color-success-light-8: #D0EDDB;
+  --el-color-success-light-9: #ECFDF3;
+  --el-color-success-dark-2: #12823B;
+
+  --el-color-warning: #D97706;
+  --el-color-warning-light-3: #E4A051;
+  --el-color-warning-light-5: #ECBB82;
+  --el-color-warning-light-7: #F4D6B4;
+  --el-color-warning-light-8: #F7E4CD;
+  --el-color-warning-light-9: #FFF7E8;
+  --el-color-warning-dark-2: #AE5F05;
+
+  --el-color-danger: #DC2626;
+  --el-color-danger-light-3: #E66767;
+  --el-color-danger-light-5: #EE9292;
+  --el-color-danger-light-7: #F4BEBE;
+  --el-color-danger-light-8: #F8D4D4;
+  --el-color-danger-light-9: #FEF2F2;
+  --el-color-danger-dark-2: #B01E1E;
+  --el-color-error: #DC2626;
+  --el-color-error-light-3: #E66767;
+  --el-color-error-light-5: #EE9292;
+  --el-color-error-light-7: #F4BEBE;
+  --el-color-error-light-8: #F8D4D4;
+  --el-color-error-light-9: #FEF2F2;
+  --el-color-error-dark-2: #B01E1E;
+
+  --el-color-info: #64748B;
+  --el-color-info-light-3: #929EAE;
+  --el-color-info-light-5: #B2BAC5;
+  --el-color-info-light-7: #D0D5DC;
+  --el-color-info-light-8: #E0E3E8;
+  --el-color-info-light-9: #F1F5F9;
+  --el-color-info-dark-2: #505D6F;
+
+  --el-text-color-primary: #0F172A;
+  --el-text-color-regular: #334155;
+  --el-text-color-secondary: #64748B;
+  --el-text-color-placeholder: #94A3B8;
+  --el-text-color-disabled: #A8B1BF;
+
+  --el-border-color: #E2E8F0;
+  --el-border-color-light: #E5E7EB;
+  --el-border-color-lighter: #EEF0F3;
+  --el-border-color-extra-light: #F3F4F6;
+  --el-border-color-dark: #D1D5DB;
+  --el-border-color-darker: #CBD5E1;
+
+  --el-fill-color: #F1F5F9;
+  --el-fill-color-light: #F8FAFC;
+  --el-fill-color-lighter: #F8FAFC;
+  --el-fill-color-blank: #FFFFFF;
+  --el-bg-color-page: #F5F6F8;
+
+  --el-border-radius-base: 6px;
+  --el-border-radius-small: 4px;
+  --el-border-radius-round: 20px;
+  --el-box-shadow-light: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --el-box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
