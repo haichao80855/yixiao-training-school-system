@@ -10,6 +10,8 @@ export interface UploadClassroomPhotosCommand {
 }
 
 export interface PhotoItemDto {
+  /** 与存储介质无关的 key (推荐持久化该字段) */
+  key: string;
   originalUrl: string;
   thumbnailUrl: string;
   filename: string;
@@ -40,6 +42,8 @@ export interface UploadClassroomVideoCommand {
 
 
 export interface VideoUploadResult {
+  /** 与存储介质无关的 key (推荐持久化该字段) */
+  videoKey: string;
   videoUrl: string;
   filename: string;
   sizeBytes: number;
@@ -158,6 +162,7 @@ export class MediaUploadCoordinator {
     const thumbnailUrl = this.buildThumbnailUrl(resolvedUrl);
 
     return {
+      key: relativePath,
       originalUrl: resolvedUrl,
       thumbnailUrl,
       filename,
@@ -275,6 +280,7 @@ export class MediaUploadCoordinator {
     }
 
     return {
+      videoKey: relativePath,
       videoUrl: resolvedUrl,
       filename,
       sizeBytes: file.buffer.length,

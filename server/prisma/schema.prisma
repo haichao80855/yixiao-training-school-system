@@ -246,6 +246,8 @@ model Student {
   phone         String   // 家长手机号 156****0125
   parentName    String?  // 家长姓名
   wechatOpenId  String?  // 绑定的家长微信号
+  phoneNormalized String? // 规范化 11 位手机号 (家长端登录匹配用，保存学员时自动生成)
+  leftAt        DateTime? // 转出 / 退学审批通过时间 (家长端 3 个月只读窗口起算)
   faceVector    String?  // 刷脸考勤人脸底库标识
   status        String   @default("normal") // normal | suspended | transferred | dropped_out
   birthday      String?
@@ -264,6 +266,9 @@ model Student {
   abnormals     StudentAbnormalMovement[]
   serviceFees   ServiceFeeRecord[]
   evaluationItems LessonEvaluationStudentItem[]
+  parentReadStates ParentReadState[]
+
+  @@index([phoneNormalized])
 }
 
 model StudentCoursePackage {
@@ -620,3 +625,50 @@ model LessonEvaluationOutbox {
   @@index([campusId, status])
 }
 
+// -------------------------------------------------------
+// 家长端 (Parent Portal)
+// 家长账号 = Student.phone 规范化手机号；密码 = 手机号后 6 位 (不存储，登录时推导校验)
+// -------------------------------------------------------
+model ParentAccount {
+  id             String    @id @default(uuid())
+  phone          String    @unique // 规范化 11 位手机号
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  tokenVersion   Int       @default(0) // 递增即可使该账号全部会话失效
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  sessions       ParentSession[]
+  readStates     ParentReadState[]
+}
+
+// 每个已登录的微信 (同一手机号可多位家长同时在线)
+model ParentSession {
+  id              String    @id @default(uuid())
+  parentAccountId String
+  wechatOpenId    String?
+  deviceLabel     String?
+  lastStudentId   String?
+  createdAt       DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  revokedAt       DateTime?
+
+  account         ParentAccount @relation(fields: [parentAccountId], references: [id], onDelete: Cascade)
+
+  @@index([parentAccountId, revokedAt])
+  @@index([wechatOpenId])
+}
+
+// 课评已读状态 (同一账号下多位家长共享)
+model ParentReadState {
+  id              String   @id @default(uuid())
+  parentAccountId String
+  studentId       String
+  scheduleEventId String
+  readAt          DateTime @default(now())
+
+  account         ParentAccount @relation(fields: [parentAccountId], references: [id], onDelete: Cascade)
+  student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentAccountId, studentId, scheduleEventId])
+}

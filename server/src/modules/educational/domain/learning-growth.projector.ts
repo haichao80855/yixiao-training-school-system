@@ -889,7 +889,8 @@ export class LearningGrowthProjector {
 
     for (const att of student.attendances) {
       const sEvent = att.scheduleEvent;
-      const evaluation = sEvent?.evaluation;
+      // 家长端只展示已发布课评，草稿不外泄
+      const evaluation = sEvent?.evaluation?.status === 'published' ? sEvent.evaluation : undefined;
       const studentItems = evaluation?.studentItems || [];
       const personalItem = studentItems.find((item: any) => item.studentId === student.id);
 
@@ -901,9 +902,9 @@ export class LearningGrowthProjector {
         personalItem?.comment ||
         att.comment ||
         evaluation?.teacherComment ||
-        '课堂表现专注认真，实操互动积极！';
+        null;
 
-      const ratingScore = personalItem?.rating ? Number(personalItem.rating) : 5.0;
+      const ratingScore = personalItem?.rating ? Number(personalItem.rating) : (evaluation?.overallRating ?? null);
 
       // 提炼大纲知识点切片
       const syllabusPoints = this.extractSyllabusPoints(evaluation?.studyContent);
@@ -918,7 +919,7 @@ export class LearningGrowthProjector {
         lessonTitle: evaluation?.lessonTitle || sEvent?.class?.course?.name || '随堂学习',
         teacherName: sEvent?.teacher?.realName || '任课讲师',
         ratingScore,
-        performanceTag: personalItem?.performanceTag || '动手达人',
+        performanceTag: personalItem?.performanceTag || null,
         personalizedComment: comment,
         syllabusPoints,
         studyContentHtml: evaluation?.studyContent
@@ -930,7 +931,7 @@ export class LearningGrowthProjector {
         video: videoMeta,
         milestone: {
           cumulativeLessonIndex: cumulativeIndex,
-          earnedStarCount: Math.round(ratingScore),
+          earnedStarCount: ratingScore == null ? 0 : Math.round(ratingScore),
         },
       });
 
@@ -962,7 +963,7 @@ export class LearningGrowthProjector {
         campusName: student.campus?.name || '校区',
         totalLessonsAttended: student.attendances.length,
         totalBadgesEarned: feed.reduce((sum, f) => sum + f.badges.length, 0),
-        latestRating: feed[0]?.ratingScore || 5.0,
+        latestRating: feed[0]?.ratingScore ?? null,
       },
       growthRadar,
       feed,
@@ -1029,6 +1030,10 @@ export class LearningGrowthProjector {
     }
 
     const evaluation = schedule.evaluation;
+    // 家长端只展示已发布课评，草稿不外泄
+    if (!evaluation || evaluation.status !== 'published') {
+      throw new NotFoundException('该课次课评尚未发布');
+    }
     const personalItem = evaluation?.studentItems?.find((i: any) => i.studentId === studentId);
 
     const nineGridPhotos = this.parsePhotoAlbum(evaluation?.photoList);
@@ -1039,9 +1044,9 @@ export class LearningGrowthProjector {
       personalItem?.comment ||
       attendance.comment ||
       evaluation?.teacherComment ||
-      '随堂实操表现优异，积极配合教学互动！';
+      null;
 
-    const ratingScore = personalItem?.rating ? Number(personalItem.rating) : 5.0;
+    const ratingScore = personalItem?.rating ? Number(personalItem.rating) : (evaluation?.overallRating ?? null);
     const syllabusPoints = this.extractSyllabusPoints(evaluation?.studyContent);
     const badges = this.generateBadges(personalItem || attendance, 1);
 
@@ -1065,7 +1070,7 @@ export class LearningGrowthProjector {
       lessonTitle: evaluation?.lessonTitle || schedule.class?.course?.name || '随堂学习成果',
       teacherName: schedule.teacher?.realName || '主讲讲师',
       ratingScore,
-      performanceTag: personalItem?.performanceTag || '专注标兵',
+      performanceTag: personalItem?.performanceTag || null,
       personalizedComment: comment,
       syllabusPoints,
       studyContentHtml: evaluation?.studyContent
@@ -1077,7 +1082,7 @@ export class LearningGrowthProjector {
       video: videoMeta,
       milestone: {
         cumulativeLessonIndex: 1,
-        earnedStarCount: Math.round(ratingScore),
+        earnedStarCount: ratingScore == null ? 0 : Math.round(ratingScore),
       },
     };
 

@@ -7,10 +7,67 @@
       <view class="logo-circle">
         <text class="logo-text">一校</text>
       </view>
-      <text class="system-title">一校云 · 移动工作台</text>
-      <text class="system-subtitle">数字化教培运营与敏捷教学管理</text>
+      <text class="system-title">一校云</text>
+      <text class="system-subtitle">{{ role === 'parent' ? '课评、课表与成长记录，随时查看' : '数字化教培运营与敏捷教学管理' }}</text>
     </view>
 
+    <!-- 身份切换：家长 / 教职工 -->
+    <view class="role-switch">
+      <view class="role-option" :class="{ active: role === 'parent' }" @click="setRole('parent')">
+        <text>家长登录</text>
+      </view>
+      <view class="role-option" :class="{ active: role === 'staff' }" @click="setRole('staff')">
+        <text>教职工登录</text>
+      </view>
+    </view>
+
+    <!-- 家长登录 -->
+    <view v-if="role === 'parent'" class="login-form-card">
+      <view class="form-title">家长登录</view>
+      <text class="parent-hint">账号为在校区登记的家长手机号，密码为手机号后 6 位</text>
+
+      <view class="input-item">
+        <AppIcon name="smartphone" size="36rpx" color="#64748B" class="input-icon" />
+        <input
+          class="input-field"
+          type="number"
+          maxlength="11"
+          v-model="parentPhone"
+          placeholder="请输入家长手机号"
+          placeholder-class="placeholder-text"
+        />
+        <AppIcon name="x" size="28rpx" color="#94A3B8" class="clear-icon" v-if="parentPhone" @click="parentPhone = ''" />
+      </view>
+
+      <view class="input-item">
+        <AppIcon name="key" size="36rpx" color="#64748B" class="input-icon" />
+        <input
+          class="input-field"
+          :type="showPassword ? 'text' : 'password'"
+          maxlength="6"
+          v-model="parentPassword"
+          placeholder="手机号后 6 位"
+          placeholder-class="placeholder-text"
+        />
+        <AppIcon
+          :name="showPassword ? 'eye' : 'eye-off'"
+          size="36rpx"
+          color="#94A3B8"
+          class="eye-icon"
+          @click="showPassword = !showPassword"
+        />
+      </view>
+
+      <button class="login-button" :loading="loading" :disabled="loading" @click="handleParentLogin">
+        {{ loading ? '正在登录...' : '登录' }}
+      </button>
+
+      <view class="parent-help" @click="handleParentHelp">
+        <text class="help-link">登录不了？</text>
+      </view>
+    </view>
+
+    <template v-else>
     <!-- 登录方式双轨切换 Tab (账号密码登录 / 微信一键授权) -->
     <view class="login-type-tabs">
       <view
@@ -126,6 +183,7 @@
         <text class="back-link">使用工号/密码登录 ›</text>
       </view>
     </view>
+    </template>
 
     <!-- 底部版权声明 -->
     <view class="login-footer">
@@ -136,7 +194,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore, PARENT_HOME } from '../../stores/authStore';
 import AppIcon from '../../components/AppIcon.vue';
 
 const authStore = useAuthStore();
@@ -147,6 +205,46 @@ const password = ref('');
 const showPassword = ref(false);
 const rememberMe = ref(true);
 const loading = ref(false);
+const role = ref<'parent' | 'staff'>((uni.getStorageSync('loginRole') as 'parent' | 'staff') || 'parent');
+const parentPhone = ref('');
+const parentPassword = ref('');
+
+const setRole = (value: 'parent' | 'staff') => {
+  role.value = value;
+  uni.setStorageSync('loginRole', value);
+};
+
+const handleParentLogin = async () => {
+  const phone = parentPhone.value.trim();
+  const pwd = parentPassword.value.trim();
+  if (!/^1\d{10}$/.test(phone)) {
+    uni.showToast({ title: '请输入 11 位手机号', icon: 'none' });
+    return;
+  }
+  if (pwd.length !== 6) {
+    uni.showToast({ title: '密码为手机号后 6 位', icon: 'none' });
+    return;
+  }
+  loading.value = true;
+  try {
+    await authStore.loginParent(phone, pwd);
+    uni.setStorageSync('savedParentPhone', phone);
+    uni.reLaunch({ url: PARENT_HOME });
+  } catch (err) {
+    // 错误提示已由 request 统一弹出 (手机号或密码不正确 / 已锁定)
+    console.warn('家长登录失败:', err);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleParentHelp = () => {
+  uni.showModal({
+    title: '登录帮助',
+    content: '请使用孩子报名时登记的家长手机号登录，密码为该手机号后 6 位。如手机号有变更，请联系校区前台更新学员档案。',
+    showCancel: false,
+  });
+};
 
 const demoUsers = [
   { role: '校长/超管', account: 'donghaichao', pass: '123456' },
@@ -159,6 +257,8 @@ onMounted(() => {
     const info = uni.getSystemInfoSync();
     statusBarHeight.value = info.statusBarHeight || 20;
   } catch (e) {}
+
+  parentPhone.value = uni.getStorageSync('savedParentPhone') || '';
 
   const savedAccount = uni.getStorageSync('savedAccount');
   if (savedAccount) {
@@ -255,6 +355,51 @@ const handleHelp = () => {
 </script>
 
 <style lang="scss" scoped>
+.role-switch {
+  display: flex;
+  margin: 0 40rpx 24rpx;
+  padding: 6rpx;
+  background: rgba(15, 23, 42, 0.05);
+  border-radius: 9999rpx;
+
+  .role-option {
+    flex: 1;
+    height: 72rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999rpx;
+    font-size: 28rpx;
+    color: #475569;
+    transition: background-color 0.2s ease, color 0.2s ease;
+
+    &.active {
+      background: #FFFFFF;
+      color: #0F172A;
+      font-weight: 600;
+      box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.08);
+    }
+  }
+}
+
+.parent-hint {
+  display: block;
+  margin: -8rpx 0 28rpx;
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: #64748B;
+}
+
+.parent-help {
+  margin-top: 28rpx;
+  text-align: center;
+
+  .help-link {
+    font-size: 26rpx;
+    color: #2F54EB;
+  }
+}
+
 .login-page-container {
   min-height: 100vh;
   background: linear-gradient(180deg, #EBF2FF 0%, #F8FAFC 400rpx, #F8FAFC 100%);

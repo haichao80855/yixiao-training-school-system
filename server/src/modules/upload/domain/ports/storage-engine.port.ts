@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
+export interface SignedUrlOptions {
+  /** 有效期 (秒)，默认 3600 */
+  expiresInSeconds?: number;
+  /** thumb = 列表缩略图；original = 原图/原视频 */
+  variant?: 'original' | 'thumb';
+}
+
 export interface StoragePersistResult {
   relativePath: string;
   url: string;
@@ -40,5 +47,11 @@ export abstract class StorageEnginePort {
    * 解析相对路径的对外访问 URL (支持传入外部 baseUrl 规范化为绝对路径)
    */
   abstract resolveUrl(relativePath: string, baseUrl?: string): string;
+
+  /**
+   * 生成限时访问链接 (家长端等对外场景只允许使用该方法输出媒体地址)
+   * 本地磁盘：/api/media/<key>?exp=&sig= (HMAC 签名)；OSS：预签名 URL + 图片处理参数
+   */
+  abstract signedUrl(key: string, options?: SignedUrlOptions): string;
 }
 

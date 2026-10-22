@@ -5,12 +5,17 @@ onLaunch(() => {
   console.log('App Launch: 一校教培移动端启动');
   // 检查本地 Token
   const token = uni.getStorageSync('token');
+  const pages = getCurrentPages();
+  const currentPage = pages[pages.length - 1]?.route || '';
   if (!token) {
-    const pages = getCurrentPages();
-    const currentPage = pages[pages.length - 1]?.route;
     if (currentPage !== 'pages/login/index') {
       uni.reLaunch({ url: '/pages/login/index' });
     }
+    return;
+  }
+  // 家长账号进入家长端首页 (教职工工作台页面对家长不可见)
+  if (uni.getStorageSync('accountType') === 'parent' && !currentPage.startsWith('package-parent/')) {
+    uni.reLaunch({ url: '/package-parent/evaluations/index' });
   }
 });
 

@@ -4,6 +4,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { normalizeCnMobile } from '../src/common/phone.util';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -142,6 +143,7 @@ async function main() {
         name: stu.name,
         gender: stu.gender,
         phone: stu.phone,
+        phoneNormalized: normalizeCnMobile(stu.phone),
         parentName: stu.parentName,
         school: stu.school,
         status: stu.status,
@@ -153,6 +155,7 @@ async function main() {
         name: stu.name,
         gender: stu.gender,
         phone: stu.phone,
+        phoneNormalized: normalizeCnMobile(stu.phone),
         parentName: stu.parentName,
         school: stu.school,
         status: stu.status,

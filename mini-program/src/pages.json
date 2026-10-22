@@ -56,31 +56,52 @@
       "pages": [
         {
           "path": "lecture/index",
-          "style": { "navigationBarTitleText": "讲台", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "讲台",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "lecture/roll-call",
-          "style": { "navigationBarTitleText": "课次详情", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "课次详情",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "evaluation/edit",
-          "style": { "navigationBarTitleText": "随堂课评", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "随堂课评",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "class/index",
-          "style": { "navigationBarTitleText": "班级管理", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "班级管理",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "class/detail",
-          "style": { "navigationBarTitleText": "班级详情", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "班级详情",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "warning/index",
-          "style": { "navigationBarTitleText": "学员预警", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "学员预警",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "evaluation/manage",
-          "style": { "navigationBarTitleText": "课评管理", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "课评管理",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },
@@ -89,19 +110,31 @@
       "pages": [
         {
           "path": "list/index",
-          "style": { "navigationBarTitleText": "学员名册", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "学员名册",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "detail/index",
-          "style": { "navigationBarTitleText": "学员详情", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "学员详情",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "enroll/wizard",
-          "style": { "navigationBarTitleText": "学员报名", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "学员报名",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "edit/index",
-          "style": { "navigationBarTitleText": "编辑学员", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "编辑学员",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },
@@ -110,19 +143,31 @@
       "pages": [
         {
           "path": "orders/index",
-          "style": { "navigationBarTitleText": "订单管理", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "订单管理",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "orders/detail",
-          "style": { "navigationBarTitleText": "订单详情", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "订单详情",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "approval/index",
-          "style": { "navigationBarTitleText": "审批中心", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "审批中心",
+            "navigationStyle": "custom"
+          }
         },
         {
           "path": "approval/detail",
-          "style": { "navigationBarTitleText": "审批详情", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "审批详情",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },
@@ -131,7 +176,68 @@
       "pages": [
         {
           "path": "leads/index",
-          "style": { "navigationBarTitleText": "CRM线索", "navigationStyle": "custom" }
+          "style": {
+            "navigationBarTitleText": "CRM线索",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "package-parent",
+      "pages": [
+        {
+          "path": "evaluations/index",
+          "style": {
+            "navigationBarTitleText": "课评",
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F6F8FC"
+          }
+        },
+        {
+          "path": "evaluations/detail",
+          "style": {
+            "navigationBarTitleText": "课评详情",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "schedule/index",
+          "style": {
+            "navigationBarTitleText": "课表",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "courses/index",
+          "style": {
+            "navigationBarTitleText": "课程",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "courses/usage",
+          "style": {
+            "navigationBarTitleText": "课时明细",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "growth/index",
+          "style": {
+            "navigationBarTitleText": "成长",
+            "navigationStyle": "custom",
+            "enablePullDownRefresh": true,
+            "backgroundColor": "#F6F8FC"
+          }
+        },
+        {
+          "path": "me/index",
+          "style": {
+            "navigationBarTitleText": "我的",
+            "navigationStyle": "custom"
+          }
         }
       ]
     }
@@ -174,11 +280,22 @@
   "preloadRule": {
     "pages/workbench/index": {
       "network": "all",
-      "packages": ["package-edu", "package-student"]
+      "packages": [
+        "package-edu",
+        "package-student"
+      ]
     },
     "pages/todo/index": {
       "network": "all",
-      "packages": ["package-finance"]
+      "packages": [
+        "package-finance"
+      ]
+    },
+    "pages/login/index": {
+      "network": "all",
+      "packages": [
+        "package-parent"
+      ]
     }
   }
 }
