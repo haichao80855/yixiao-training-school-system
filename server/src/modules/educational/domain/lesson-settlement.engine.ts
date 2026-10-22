@@ -560,22 +560,37 @@ export class LessonSettlementEngine {
         }
 
         // 2. 落库考勤履约记录 AttendanceRecord
-        await tx.attendanceRecord.create({
-          data: {
-            scheduleEventId: schedule.id,
-            studentId: item.studentId,
-            packageId: targetPkg ? targetPkg.id : null,
-            status: item.status,
-            deductLessons: actualDeduct,
-            regularBurned: itemRegularBurned,
-            bonusBurned: itemBonusBurned,
-            comment: item.comment || null,
-            score: item.score !== undefined ? Number(item.score) : null,
-            rating: item.rating || null,
-            operator,
-            isReversed: false,
-          },
-        });
+        // 先写课评草稿、后点名时，课评流程已为学员建立了未扣课的考勤记录：此处更新该记录，
+        // 不再新建第二条 (否则同一学员同一课次会出现两条有效考勤，家长端课评流与课时明细重复)
+        const attendanceData = {
+          packageId: targetPkg ? targetPkg.id : null,
+          status: item.status,
+          deductLessons: actualDeduct,
+          regularBurned: itemRegularBurned,
+          bonusBurned: itemBonusBurned,
+          comment: item.comment || null,
+          score: item.score !== undefined ? Number(item.score) : null,
+          rating: item.rating || null,
+          operator,
+        };
+        const existingAttendance = schedule.attendances.find(
+          (a) => a.studentId === item.studentId && !a.isReversed,
+        );
+        if (existingAttendance) {
+          await tx.attendanceRecord.update({
+            where: { id: existingAttendance.id },
+            data: attendanceData,
+          });
+        } else {
+          await tx.attendanceRecord.create({
+            data: {
+              scheduleEventId: schedule.id,
+              studentId: item.studentId,
+              isReversed: false,
+              ...attendanceData,
+            },
+          });
+        }
       }
 
       // 3. 更新排课日程状态为 completed，语义类型更新为 completed (盛通绿色标签)

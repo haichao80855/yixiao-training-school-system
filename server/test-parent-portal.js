@@ -137,7 +137,55 @@ async function setupFixtures() {
   const e1 = await event(1, '2026-10-12', { status: 'published', teacherComment: '', own: true }); // 周一
   const e2 = await event(2, '2026-10-14', { status: 'published', teacherComment: '全班表现稳定', own: false }); // 同周周三
   const e3 = await event(3, '2026-10-07', { status: 'draft', teacherComment: '草稿评语不应外泄', own: true }); // 上一周，草稿
-  return { s1, s2, s3, s4, s5, pkg, e1, e2, e3, key };
+  // 回归场景：老师端把学员专属照片/视频/评语同时写进了课次公共字段，且同一课次有两条有效考勤
+  const e4 = await prisma.scheduleEvent.create({
+    data: {
+      id: `pt-${RUN}-4`,
+      campusId: 'campus-bj-hq',
+      classId: cls.id,
+      teacherId: cls.teacherId,
+      classroomId: cls.classroomId,
+      date: '2026-10-20',
+      startTime: '09:00',
+      endTime: '10:30',
+      status: 'completed',
+    },
+  });
+  ids.events.push(e4.id);
+  for (let i = 0; i < 2; i++) {
+    await prisma.attendanceRecord.create({
+      data: { scheduleEventId: e4.id, studentId: s5.id, status: 'present', operator: i ? 'roll-call' : 'evaluation-draft' },
+    });
+  }
+  const dupComment = '今天独立完成了迷宫闯关';
+  const ev4 = await prisma.lessonEvaluation.create({
+    data: {
+      campusId: 'campus-bj-hq',
+      scheduleEventId: e4.id,
+      classId: cls.id,
+      teacherId: cls.teacherId,
+      lessonTitle: '回归课次',
+      studyContent: '<p>迷宫</p>',
+      teacherComment: dupComment,
+      status: 'published',
+      publishedAt: new Date(),
+      photoList: JSON.stringify([`http://localhost:3001/uploads/${key}`]),
+      videoUrl: `/uploads/test-parent/${RUN}/own.mp4`,
+    },
+  });
+  ids.evaluations.push(ev4.id);
+  await prisma.lessonEvaluationStudentItem.create({
+    data: {
+      evaluationId: ev4.id,
+      studentId: s5.id,
+      rating: 5,
+      comment: dupComment,
+      photos: JSON.stringify([`/uploads/${key}`]),
+      videoUrl: `http://localhost:3001/uploads/test-parent/${RUN}/own.mp4`,
+    },
+  });
+
+  return { s1, s2, s3, s4, s5, pkg, e1, e2, e3, e4, key };
 }
 
 async function cleanup() {
@@ -253,6 +301,68 @@ async function run() {
   const revoke = await request('POST', `/api/students/${f.s1.id}/parent-sessions/revoke`, null, auth(staffToken));
   const afterRevoke = await request('GET', '/api/parent/me', null, auth(tokenA1));
   assert(revoke.status === 200 && afterRevoke.status === 401, '教职工一键注销后该手机号全部家长会话失效');
+
+  console.log('— 回归：专属媒体被重复写入课次公共字段 + 重复考勤');
+  const okB = await login(PHONE_B, PHONE_B.slice(-6));
+  const tokenB = okB.body.accessToken;
+  const feedB = await request('GET', `/api/parent/students/${f.s5.id}/evaluations`, null, auth(tokenB));
+  const feedBItems = (feedB.body?.items || []).filter((i) => i.scheduleEventId === f.e4.id);
+  assert(feedBItems.length === 1, '同一课次两条有效考勤时，课评流只出现一次');
+  assert(feedBItems[0]?.evaluation?.photoCount === 1, '同一张照片只计一次');
+  const detailB = await request('GET', `/api/parent/students/${f.s5.id}/evaluations/${f.e4.id}`, null, auth(tokenB));
+  assert(detailB.body?.forChild?.photos?.length === 1 && !!detailB.body?.forChild?.video, '照片与视频保留在本人专属评价中');
+  assert(detailB.body?.classMedia?.photos?.length === 0 && detailB.body?.classMedia?.video === null, '课堂记录不再重复展示同一张照片和同一个视频');
+  assert(detailB.body?.overall?.comment === null, '课堂评语与专属评语相同时不重复展示');
+  const albumB = await request('GET', `/api/parent/students/${f.s5.id}/album`, null, auth(tokenB));
+  const albumBVideo = await request('GET', `/api/parent/students/${f.s5.id}/album?type=video`, null, auth(tokenB));
+  assert(albumB.body?.weeks?.[0]?.photos?.length === 1, '成长相册中照片只出现一次');
+  assert(albumBVideo.body?.weeks?.[0]?.videos?.length === 1, '成长相册中视频只出现一次');
+  const summaryB = await request('GET', `/api/parent/students/${f.s5.id}/growth/summary`, null, auth(tokenB));
+  assert(
+    summaryB.body?.lessonsAttended === 1 && summaryB.body?.photos === 1 && summaryB.body?.videos === 1,
+    '成长概览按课次与文件去重计数',
+  );
+
+  console.log('— 回归：先存课评草稿、后点名不再产生第二条考勤');
+  const e5 = await prisma.scheduleEvent.create({
+    data: {
+      id: `pt-${RUN}-5`,
+      campusId: 'campus-bj-hq',
+      classId: f.e4.classId,
+      teacherId: f.e4.teacherId,
+      classroomId: f.e4.classroomId,
+      date: '2026-10-21',
+      startTime: '14:00',
+      endTime: '15:30',
+      status: 'scheduled',
+    },
+  });
+  ids.events.push(e5.id);
+  const draft = await request(
+    'POST',
+    '/api/educational/lesson-evaluations/commit',
+    {
+      scheduleEventId: e5.id,
+      publish: false,
+      payload: {
+        lessonTitle: '草稿后点名',
+        studyContentHtml: '<p>测试</p>',
+        studentOverrides: [{ studentId: f.s5.id, attendanceStatus: 'present', deductLessons: 1, personalizedComment: '草稿', photos: [] }],
+      },
+    },
+    auth(staffToken),
+  );
+  const rollCall = await request(
+    'POST',
+    '/api/educational/attendances/roll-call',
+    { scheduleEventId: e5.id, items: [{ studentId: f.s5.id, status: 'present' }] },
+    auth(staffToken),
+  );
+  const e5Rows = await prisma.attendanceRecord.count({ where: { scheduleEventId: e5.id, studentId: f.s5.id, isReversed: false } });
+  assert(draft.status < 300 && rollCall.status < 300, `课评草稿与点名接口调用成功 (${draft.status} / ${rollCall.status})`);
+  assert(e5Rows === 1, `点名复用课评草稿建立的考勤记录，有效考勤 ${e5Rows} 条 (应为 1)`);
+  const evDraft = await prisma.lessonEvaluation.findUnique({ where: { scheduleEventId: e5.id } });
+  if (evDraft) ids.evaluations.push(evDraft.id);
 
   console.log('— 锁定');
   for (let i = 0; i < 5; i++) await login(PHONE_B, '999999');

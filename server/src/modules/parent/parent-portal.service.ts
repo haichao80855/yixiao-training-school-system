@@ -4,6 +4,7 @@ import { maskCnMobile } from '../../common/phone.util';
 import { ParentChildrenService } from './parent-children.service';
 import { MediaLinksService, PhotoLink } from './media-links.service';
 import { ParentPrincipal } from './parent.types';
+import { parseMediaList, toStorageKey } from '../upload/domain/media-key.util';
 
 const ATTENDED = ['present', 'late'];
 const DAY_MS = 86400000;
@@ -191,10 +192,15 @@ export class ParentPortalService {
         },
       },
       orderBy: [{ scheduleEvent: { date: 'desc' } }, { scheduleEvent: { startTime: 'desc' } }],
+      distinct: ['scheduleEventId'],
       skip,
       take: take + 1,
     });
-    const page = records.slice(0, take);
+    // 同一课次若存在多条有效考勤 (历史数据：课评草稿与点名各建了一条)，只展示一次
+    const seenEvents = new Set<string>();
+    const page = records.slice(0, take).filter((r) =>
+      seenEvents.has(r.scheduleEventId) ? false : (seenEvents.add(r.scheduleEventId), true),
+    );
     const reads = await this.prisma.parentReadState.findMany({
       where: {
         parentAccountId: parent.parentAccountId,
@@ -212,8 +218,9 @@ export class ParentPortalService {
         const attended = ATTENDED.includes(r.status);
         const published = attended && ev?.status === 'published';
         const own = published ? ev!.studentItems[0] : undefined;
-        const ownPhotos = published ? this.media.photos(own?.photos) : [];
-        const classPhotos = published ? this.media.photos(ev!.photoList) : [];
+        const media = published ? this.splitMedia(ev!, own) : null;
+        const ownPhotos = media?.ownPhotos || [];
+        const classPhotos = media?.classPhotos || [];
         const comment = own?.comment || ev?.teacherComment || null;
         return {
           scheduleEventId: r.scheduleEventId,
@@ -230,7 +237,7 @@ export class ParentPortalService {
                 commentPreview: comment ? this.stripHtml(comment).slice(0, 60) : null,
                 photoThumbs: [...ownPhotos, ...classPhotos].slice(0, 3).map((p) => p.thumbUrl),
                 photoCount: ownPhotos.length + classPhotos.length,
-                hasVideo: !!(own?.videoUrl || ev!.videoUrl),
+                hasVideo: !!(media?.ownVideo || media?.classVideo),
                 publishedAt: ev!.publishedAt ? ev!.publishedAt.toISOString() : null,
                 unread: !readIds.has(r.scheduleEventId),
               }
@@ -248,6 +255,7 @@ export class ParentPortalService {
     const own = await this.prisma.lessonEvaluationStudentItem.findUnique({
       where: { evaluationId_studentId: { evaluationId: ev.id, studentId } },
     });
+    const media = this.splitMedia(ev, own);
 
     return {
       scheduleEventId,
@@ -263,7 +271,7 @@ export class ParentPortalService {
       },
       overall: {
         rating: ev.overallRating ?? null,
-        comment: ev.teacherComment || null,
+        comment: this.distinctOverallComment(ev.teacherComment, own?.comment),
         voice: ev.voiceUrl ? { url: this.media.file(ev.voiceUrl), seconds: ev.voiceDuration || null } : null,
       },
       forChild: own
@@ -272,13 +280,13 @@ export class ParentPortalService {
             tag: own.performanceTag || null,
             comment: own.comment || null,
             homework: own.homeworkTask || null,
-            photos: this.media.photos(own.photos),
-            video: own.videoUrl ? { url: this.media.file(own.videoUrl) } : null,
+            photos: media.ownPhotos,
+            video: media.ownVideo ? { url: this.media.file(media.ownVideo) } : null,
           }
         : null,
       classMedia: {
-        photos: this.media.photos(ev.photoList),
-        video: ev.videoUrl ? { url: this.media.file(ev.videoUrl) } : null,
+        photos: media.classPhotos,
+        video: media.classVideo ? { url: this.media.file(media.classVideo) } : null,
       },
       publishedAt: ev.publishedAt ? ev.publishedAt.toISOString() : null,
       revision: ev.currentRevision,
@@ -320,12 +328,13 @@ export class ParentPortalService {
       if (cursor && weekStart >= cursor) continue;
       const ev = event.evaluation!;
       const ref = { scheduleEventId: event.id, date: event.date, lessonTitle: ev.lessonTitle };
-      const ownPhotos = wantPhotos ? this.media.photos(own?.photos).map((p) => ({ ...p, ...ref, isOwn: true })) : [];
-      const classPhotos = wantPhotos ? this.media.photos(ev.photoList).map((p) => ({ ...p, ...ref, isOwn: false })) : [];
+      const media = this.splitMedia(ev, own);
+      const ownPhotos = wantPhotos ? media.ownPhotos.map((p) => ({ ...p, ...ref, isOwn: true })) : [];
+      const classPhotos = wantPhotos ? media.classPhotos.map((p) => ({ ...p, ...ref, isOwn: false })) : [];
       const videos = wantVideos
         ? [
-            own?.videoUrl ? { url: this.media.file(own.videoUrl), ...ref, isOwn: true } : null,
-            ev.videoUrl ? { url: this.media.file(ev.videoUrl), ...ref, isOwn: false } : null,
+            media.ownVideo ? { url: this.media.file(media.ownVideo), ...ref, isOwn: true } : null,
+            media.classVideo ? { url: this.media.file(media.classVideo), ...ref, isOwn: false } : null,
           ].filter(Boolean)
         : [];
       if (!ownPhotos.length && !classPhotos.length && !videos.length) continue;
@@ -356,18 +365,23 @@ export class ParentPortalService {
 
   async growthSummary(parent: ParentPrincipal, studentId: string) {
     await this.children.resolveChild(parent, studentId);
-    const [attendedCount, lessons] = await Promise.all([
-      this.prisma.attendanceRecord.count({
+    const [attendedEvents, lessons] = await Promise.all([
+      // 按课次去重计数 (同一课次可能存在多条有效考勤)
+      this.prisma.attendanceRecord.findMany({
         where: { studentId, isReversed: false, status: { in: ATTENDED } },
+        distinct: ['scheduleEventId'],
+        select: { scheduleEventId: true },
       }),
       this.attendedPublishedLessons(studentId),
     ]);
+    const attendedCount = attendedEvents.length;
     let photos = 0;
     let videos = 0;
     for (const { event, own } of lessons) {
       const ev = event.evaluation!;
-      photos += this.media.photos(own?.photos).length + this.media.photos(ev.photoList).length;
-      videos += (own?.videoUrl ? 1 : 0) + (ev.videoUrl ? 1 : 0);
+      const media = this.splitMedia(ev, own);
+      photos += media.ownPhotos.length + media.classPhotos.length;
+      videos += (media.ownVideo ? 1 : 0) + (media.classVideo ? 1 : 0);
     }
     return { lessonsAttended: attendedCount, evaluations: lessons.length, photos, videos };
   }
@@ -410,6 +424,40 @@ export class ParentPortalService {
       throw new NotFoundException('课评尚未发布');
     }
     return { event, attendance };
+  }
+
+  /**
+   * 拆分课次媒体：本人专属 + 班级公共。
+   * 历史数据中老师端曾把某位学员的专属照片/视频同时写进课次公共字段，
+   * 这里按存储 key 去重：已在本人专属里的文件不再作为班级媒体重复展示。
+   */
+  private splitMedia(ev: { photoList: string | null; videoUrl: string | null }, own?: { photos: string | null; videoUrl: string | null } | null) {
+    const ownPhotoRaw = parseMediaList(own?.photos);
+    const ownKeys = new Set(ownPhotoRaw.map(toStorageKey));
+    const ownVideoKey = own?.videoUrl ? toStorageKey(own.videoUrl) : null;
+    if (ownVideoKey) ownKeys.add(ownVideoKey);
+
+    const seenClass = new Set<string>();
+    const classPhotoRaw = parseMediaList(ev.photoList).filter((v) => {
+      const key = toStorageKey(v);
+      if (ownKeys.has(key) || seenClass.has(key)) return false;
+      seenClass.add(key);
+      return true;
+    });
+    const classVideo = ev.videoUrl && !ownKeys.has(toStorageKey(ev.videoUrl)) ? ev.videoUrl : null;
+
+    return {
+      ownPhotos: this.media.photos(JSON.stringify([...new Set(ownPhotoRaw)])),
+      ownVideo: own?.videoUrl || null,
+      classPhotos: this.media.photos(JSON.stringify(classPhotoRaw)),
+      classVideo,
+    };
+  }
+
+  /** 课次公共评语与本人专属评语相同时不重复展示 */
+  private distinctOverallComment(overall: string | null | undefined, own: string | null | undefined): string | null {
+    if (!overall) return null;
+    return own && own.trim() === overall.trim() ? null : overall;
   }
 
   private normalizeRange(from?: string, to?: string) {

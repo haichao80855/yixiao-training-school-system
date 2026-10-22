@@ -517,9 +517,9 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
         isEvaluated: true,
       })),
       studyContentHtml: currentContent || baseContent,
-      teacherComment: currentContent || baseContent,
-      photoList: currentPhotos,
-      videoUrl: currentVideo,
+      // 单学员课评：照片、视频、评语只写入该学员的 overrides，不作为课次公共内容提交
+      // (否则同一份照片/视频会同时成为「专属」与「班级」媒体，家长端显示两份)
+      photoList: [],
       overallRating: currentRating,
       templateName: draft.templateName || '通用课评模板',
       templateId: draft.templateId || 'tpl-std',

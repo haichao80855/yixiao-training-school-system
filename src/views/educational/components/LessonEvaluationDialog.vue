@@ -954,7 +954,8 @@ async function open(lesson: WorkbenchLessonCard) {
           evaluatedAt: item.evaluatedAt,
           evaluatedSource: item.evaluatedSource || 'web',
           rating: item.studentRating ?? 5.0,
-          comment: item.personalizedComment || (hasEvaluated ? '' : evaluation.teacherComment) || '',
+          // 不再用课次公共评语预填学员专属评语，避免保存后两处内容重复
+          comment: item.personalizedComment || '',
           performanceTag: item.performanceTag || '专注投入',
           photos: [...studentPhotos],
           videoUrl: studentVideo,
@@ -1011,9 +1012,10 @@ async function handleSaveAll(publish: boolean) {
         lessonTitle: form.lessonTitle,
         studyContentHtml: form.studyContent,
         overallRating: form.rating,
-        videoUrl: activeStudent.value?.videoUrl || '',
-        photoList: activeStudent.value?.photos || [],
-        teacherComment: activeStudent.value?.comment || form.teacherComment || '随堂学习进展顺利',
+        // 学员专属的照片、视频与评语只随 studentOverrides 提交；
+        // 不再把当前选中学员的内容写入课次公共字段 (否则家长端会在「专属评价」和「课堂记录」各显示一次，
+        // 且该学员的个人照片会作为班级照片出现在其他同学家长的端上)
+        teacherComment: form.teacherComment || undefined,
         aiPolished: form.aiPolished,
         studentOverrides,
       },
