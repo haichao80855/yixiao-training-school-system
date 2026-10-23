@@ -84,7 +84,8 @@ export class ParentPortalService {
       from: range.from,
       to: range.to,
       lessons: events.map((e) => {
-        const att = attendances.find((a) => a.scheduleEventId === e.id && !a.isReversed);
+        // 未结课课次上的考勤是课评草稿预建的，不代表已出勤
+        const att = e.status === 'completed' ? attendances.find((a) => a.scheduleEventId === e.id && !a.isReversed) : undefined;
         let status: string;
         if (e.status === 'cancelled') status = 'cancelled';
         else if (att) status = att.status === 'late' ? 'present' : att.status; // present | leave | absent
@@ -182,7 +183,8 @@ export class ParentPortalService {
     const skip = Math.max(Number(cursor) || 0, 0);
 
     const records = await this.prisma.attendanceRecord.findMany({
-      where: { studentId, isReversed: false },
+      // 只认已结课课次的考勤：课评草稿会为未上课的课次预建考勤，那不是真实出勤
+      where: { studentId, isReversed: false, scheduleEvent: { status: 'completed' } },
       include: {
         scheduleEvent: {
           include: {
@@ -368,7 +370,7 @@ export class ParentPortalService {
     const [attendedEvents, lessons] = await Promise.all([
       // 按课次去重计数 (同一课次可能存在多条有效考勤)
       this.prisma.attendanceRecord.findMany({
-        where: { studentId, isReversed: false, status: { in: ATTENDED } },
+        where: { studentId, isReversed: false, status: { in: ATTENDED }, scheduleEvent: { status: 'completed' } },
         distinct: ['scheduleEventId'],
         select: { scheduleEventId: true },
       }),
@@ -396,7 +398,7 @@ export class ParentPortalService {
         studentId,
         isReversed: false,
         status: { in: ATTENDED },
-        scheduleEvent: { evaluation: { status: 'published' } },
+        scheduleEvent: { status: 'completed', evaluation: { status: 'published' } },
       },
       include: {
         scheduleEvent: {
@@ -415,7 +417,7 @@ export class ParentPortalService {
   /** 课评对家长可见：已发布 + 子女该课次出勤 (未冲正)；否则统一 404 */
   private async loadVisibleEvaluation(studentId: string, scheduleEventId: string) {
     const attendance = await this.prisma.attendanceRecord.findFirst({
-      where: { studentId, scheduleEventId, isReversed: false, status: { in: ATTENDED } },
+      where: { studentId, scheduleEventId, isReversed: false, status: { in: ATTENDED }, scheduleEvent: { status: 'completed' } },
     });
     const event = attendance
       ? await this.prisma.scheduleEvent.findUnique({ where: { id: scheduleEventId }, include: EVENT_INCLUDE })

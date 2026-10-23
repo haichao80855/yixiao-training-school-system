@@ -484,7 +484,8 @@ export class LessonEvaluationCoordinator {
 
         const targetStatus = ov.attendanceStatus;
         const isDeductible = targetStatus === 'present' || targetStatus === 'late';
-        const targetDeduct = ov.deductLessons !== undefined ? ov.deductLessons : (isDeductible ? 1 : 0);
+        // 与点名结算规则一致：请假 / 缺勤一律不扣课时，即使客户端传入了扣课数
+        const targetDeduct = isDeductible ? (ov.deductLessons !== undefined ? Number(ov.deductLessons) : 1) : 0;
 
         const existingAtt = schedule.attendances.find((a) => a.studentId === ov.studentId && !a.isReversed);
 
@@ -494,15 +495,25 @@ export class LessonEvaluationCoordinator {
           const isDeductChanged = existingAtt.deductLessons !== targetDeduct;
 
           if (isStatusChanged || isDeductChanged) {
-            // 如果该日程已完成消课且课包课时发生变动，需要维护课包余额安全
+            // 已结课日程：按「扣课数差额」同步课包余额，保证考勤记录与课包实际扣减一致
+            // (原实现只处理 扣→免 与 免→扣 两种情况，1 课时改 2 课时时课包不变、记录却变为 2，反结课时会多退)
+            // 考勤记录上的扣课数必须等于课包实际扣减数 (反结课按该值原路退还)
+            let recordedDeduct = targetDeduct;
             if (schedule.status === 'completed') {
-              if (existingAtt.deductLessons > 0 && targetDeduct === 0) {
-                // 原扣课，现免消 (例如 present -> leave)：原路退还课包课时
+              // 记录上有扣课数、但从未落到课包 (点名时无在读课包) 的考勤，实际已扣为 0
+              const wasCharged =
+                !!existingAtt.packageId || (existingAtt.regularBurned || 0) + (existingAtt.bonusBurned || 0) > 0;
+              const prevDeduct = wasCharged ? existingAtt.deductLessons : 0;
+              const delta = targetDeduct - prevDeduct;
+
+              if (delta < 0) {
+                // 少扣：把差额原路退回当初扣课的课包
+                const refund = -delta;
                 let pkg: any = null;
                 if (existingAtt.packageId) {
                   pkg = await tx.studentCoursePackage.findUnique({ where: { id: existingAtt.packageId } });
-                }
-                if (!pkg) {
+                } else if ((existingAtt.regularBurned || 0) + (existingAtt.bonusBurned || 0) > 0) {
+                  // 兼容未记录 packageId 但确有扣课的历史记录；从未扣课的记录 (无课包) 不退
                   pkg = await tx.studentCoursePackage.findFirst({
                     where: { studentId: ov.studentId, courseId: schedule.class.courseId },
                   });
@@ -512,35 +523,52 @@ export class LessonEvaluationCoordinator {
                   await tx.studentCoursePackage.update({
                     where: { id: pkg.id },
                     data: {
-                      remainingLessons: { increment: existingAtt.deductLessons },
-                      consumedLessons: { decrement: existingAtt.deductLessons },
+                      remainingLessons: { increment: refund },
+                      consumedLessons: { decrement: refund },
                       status: nextStatus,
                     },
                   });
+                  // 正课优先消耗 → 退还时先退赠课
+                  const bonusBack = Math.min(existingAtt.bonusBurned || 0, refund);
+                  existingAtt.bonusBurned = (existingAtt.bonusBurned || 0) - bonusBack;
+                  existingAtt.regularBurned = Math.max(0, (existingAtt.regularBurned || 0) - (refund - bonusBack));
+                  existingAtt.packageId = pkg.id;
+                } else if (!pkg) {
+                  existingAtt.regularBurned = 0;
+                  existingAtt.bonusBurned = 0;
                 }
-                existingAtt.regularBurned = 0;
-                existingAtt.bonusBurned = 0;
-              } else if (existingAtt.deductLessons === 0 && targetDeduct > 0) {
-                // 原免消，现扣课 (例如 leave -> present)：正课优先扣除课包课时
-                const pkg = await tx.studentCoursePackage.findFirst({
-                  where: { studentId: ov.studentId, courseId: schedule.class.courseId, status: 'active' },
-                  orderBy: { createdAt: 'asc' },
-                });
+              } else if (delta > 0) {
+                // 多扣：已有扣课记录时只能在同一课包上追加 (避免一条考勤跨两个课包，反结课无法原路退还)；
+                // 尚未扣课时按 FIFO 取在读课包
+                let pkg: any = null;
+                if (existingAtt.packageId) {
+                  pkg = await tx.studentCoursePackage.findFirst({
+                    where: { id: existingAtt.packageId, status: 'active' },
+                  });
+                } else {
+                  pkg = await tx.studentCoursePackage.findFirst({
+                    where: { studentId: ov.studentId, courseId: schedule.class.courseId, status: 'active' },
+                    orderBy: { createdAt: 'asc' },
+                  });
+                }
                 if (pkg) {
                   const regularRemaining = Math.max(0, pkg.remainingLessons - pkg.bonusLessons);
-                  const burnRegular = regularRemaining >= targetDeduct ? targetDeduct : regularRemaining;
-                  const burnBonus = targetDeduct - burnRegular;
+                  const burnRegular = regularRemaining >= delta ? delta : regularRemaining;
+                  const burnBonus = delta - burnRegular;
                   await tx.studentCoursePackage.update({
                     where: { id: pkg.id },
                     data: {
-                      remainingLessons: { decrement: targetDeduct },
-                      consumedLessons: { increment: targetDeduct },
-                      status: pkg.remainingLessons - targetDeduct <= 0 ? 'completed' : 'active',
+                      remainingLessons: { decrement: delta },
+                      consumedLessons: { increment: delta },
+                      status: pkg.remainingLessons - delta <= 0 ? 'completed' : 'active',
                     },
                   });
                   existingAtt.packageId = pkg.id;
-                  existingAtt.regularBurned = burnRegular;
-                  existingAtt.bonusBurned = burnBonus;
+                  existingAtt.regularBurned = (existingAtt.regularBurned || 0) + burnRegular;
+                  existingAtt.bonusBurned = (existingAtt.bonusBurned || 0) + burnBonus;
+                } else if (existingAtt.packageId) {
+                  // 原课包已不在读 (已用完 / 冻结 / 退费)，无法追加扣课：记录保持实际扣减数
+                  recordedDeduct = prevDeduct;
                 }
               }
             }
@@ -549,13 +577,14 @@ export class LessonEvaluationCoordinator {
               where: { id: existingAtt.id },
               data: {
                 status: targetStatus,
-                deductLessons: targetDeduct,
-                regularBurned: targetDeduct === 0 ? 0 : existingAtt.regularBurned,
-                bonusBurned: targetDeduct === 0 ? 0 : existingAtt.bonusBurned,
+                deductLessons: recordedDeduct,
+                packageId: existingAtt.packageId,
+                regularBurned: recordedDeduct === 0 ? 0 : existingAtt.regularBurned,
+                bonusBurned: recordedDeduct === 0 ? 0 : existingAtt.bonusBurned,
               },
             });
             existingAtt.status = targetStatus;
-            existingAtt.deductLessons = targetDeduct;
+            existingAtt.deductLessons = recordedDeduct;
           }
         } else {
           // 尚未存在 AttendanceRecord，在暂存草稿或发布时初始化创建

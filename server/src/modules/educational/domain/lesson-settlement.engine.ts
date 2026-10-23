@@ -500,11 +500,14 @@ export class LessonSettlementEngine {
         // 1. 如果需要扣课时，寻找确切的出账课包
         if (actualDeduct > 0) {
           if (item.packageId) {
+            // 指定课包也必须是在读状态：已冻结 (停课) 或已退费的课包不能被扣课，
+            // 否则下面的状态写回会把冻结课包改回 active
             targetPkg = await tx.studentCoursePackage.findFirst({
               where: {
                 id: item.packageId,
                 studentId: item.studentId,
                 courseId: schedule.class.courseId,
+                status: 'active',
               },
             });
           }
@@ -661,7 +664,9 @@ export class LessonSettlementEngine {
       const details: ReversalReceipt['details'] = [];
 
       for (const att of activeAttendances) {
-        if (att.deductLessons > 0) {
+        // 只退还真正落到课包上的课时：点名时无在读课包、或课评草稿预建的考勤记录虽有扣课数，但从未扣减课包
+        const wasCharged = !!att.packageId || (att.regularBurned || 0) + (att.bonusBurned || 0) > 0;
+        if (att.deductLessons > 0 && wasCharged) {
           // 精确查找当初出账扣款的原课包
           let pkg: any = null;
           if (att.packageId) {

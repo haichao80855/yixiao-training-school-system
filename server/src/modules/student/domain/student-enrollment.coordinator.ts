@@ -408,28 +408,58 @@ export class StudentEnrollmentCoordinator {
         };
       }
 
-      // 计算恢复课时
-      const restoredLessons =
-        order.actualAmount < 0 && refundedPkg.pricePerLesson > 0
+      // 恢复课时：以发起退费时的异动快照为准 (退费金额已扣除赠课、手续费与超额赠课，不能反推课时)
+      const movement = await tx.studentAbnormalMovement.findFirst({
+        where: { studentId: order.studentId, type: 'refund', targetData: { contains: order.id } },
+        orderBy: { createdAt: 'desc' },
+      });
+      let snapshot: any = null;
+      try {
+        snapshot = movement?.originalData ? JSON.parse(movement.originalData) : null;
+      } catch {
+        snapshot = null;
+      }
+      const fromSnapshot =
+        !!snapshot && snapshot.packageId === refundedPkg.id && typeof snapshot.remainingLessons === 'number';
+      // 历史单据无快照时沿用旧的按金额折算口径
+      const restoredLessons = fromSnapshot
+        ? snapshot.remainingLessons
+        : order.actualAmount < 0 && refundedPkg.pricePerLesson > 0
           ? Math.round(Math.abs(order.actualAmount) / refundedPkg.pricePerLesson)
           : refundedPkg.totalLessons;
+      const restoredStatus =
+        fromSnapshot && (snapshot.status === 'frozen' || snapshot.status === 'completed') ? snapshot.status : 'active';
+
+      // 退费时释放了班级席位：班级仍存在时一并复原
+      let restoredClassId: string | null = null;
+      if (fromSnapshot && snapshot.classId) {
+        const cls = await tx.class.findUnique({ where: { id: snapshot.classId } });
+        if (cls) {
+          restoredClassId = cls.id;
+          await tx.class.update({
+            where: { id: cls.id },
+            data: { currentStudentCount: { increment: 1 } },
+          });
+        }
+      }
 
       await tx.studentCoursePackage.update({
         where: { id: refundedPkg.id },
         data: {
-          status: 'active',
+          status: restoredStatus,
           remainingLessons: restoredLessons,
+          ...(restoredClassId ? { classId: restoredClassId } : {}),
         },
       });
 
       this.logger.log(
-        `退费驳回课包资产已复原: 课包ID [${refundedPkg.id}], 恢复状态 [active], 恢复课时 [${restoredLessons}]`,
+        `退费驳回课包资产已复原: 课包ID [${refundedPkg.id}], 恢复状态 [${restoredStatus}], 恢复课时 [${restoredLessons}]`,
       );
 
       return {
         orderId,
         packageId: refundedPkg.id,
-        restoredStatus: 'active',
+        restoredStatus,
         restoredLessons,
       };
     };

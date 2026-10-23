@@ -42,7 +42,7 @@
         <!-- 老师写给孩子 -->
         <view v-if="letter" class="letter enter" style="animation-delay: 60ms">
           <view class="letter-head">
-            <text class="letter-from">{{ teacherName }}写给{{ childName }}</text>
+            <text class="letter-from">{{ teacherName }}对{{ childName }}的评价</text>
             <StarRating v-if="letter.rating !== null" :value="letter.rating" size="28rpx" />
           </view>
           <text class="quote-mark">“</text>
@@ -103,7 +103,7 @@
           <text class="section-title">课后小任务</text>
           <view class="homework">
             <view class="hw-icon">
-              <AppIcon name="pen-tool" size="30rpx" color="#8A4B0F" />
+              <AppIcon name="pen-tool" size="30rpx" color="#2F54EB" />
             </view>
             <text class="hw-text">{{ detail.forChild.homework }}</text>
           </view>
@@ -268,15 +268,14 @@ function toggleVoice() {
 .hero {
   position: relative;
   height: 680rpx;
-  background: #2B2A33;
+  background: #1E293B;
   overflow: hidden;
 
   &.plain {
     height: 520rpx;
     background:
-      radial-gradient(circle at 85% 15%, rgba(255, 255, 255, 0.18) 0, rgba(255, 255, 255, 0) 40%),
-      radial-gradient(circle at 10% 90%, rgba(255, 196, 140, 0.35) 0, rgba(255, 196, 140, 0) 45%),
-      linear-gradient(150deg, #3A5BEF 0%, #2440C2 100%);
+      radial-gradient(circle at 85% 10%, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0) 45%),
+      linear-gradient(160deg, #2F54EB 0%, #13235B 100%);
   }
 }
 
@@ -288,7 +287,7 @@ function toggleVoice() {
 .hero-img {
   width: 100%;
   height: 100%;
-  animation: hero-zoom 1.2s $p-ease-out both;
+  animation: p-fade-in 0.5s ease both;
 }
 
 @keyframes hero-zoom {
@@ -393,12 +392,21 @@ function toggleVoice() {
 }
 
 .letter {
+  @include p-card;
   position: relative;
-  padding: 36rpx 36rpx 32rpx;
-  border-radius: $p-r-card;
-  background: linear-gradient(180deg, #FFF8EF 0%, #FFFFFF 72%);
-  border: 2rpx solid #F3E6D4;
-  box-shadow: $p-shadow;
+  padding: 32rpx 32rpx 28rpx 40rpx;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 32rpx;
+    bottom: 32rpx;
+    width: 6rpx;
+    border-radius: 0 6rpx 6rpx 0;
+    background: $p-brand;
+  }
 }
 
 .letter-head {
@@ -409,25 +417,19 @@ function toggleVoice() {
 
 .letter-from {
   font-size: 26rpx;
-  font-weight: 700;
-  color: #9A5B1A;
+  font-weight: 600;
+  color: $p-ink-2;
 }
 
 .quote-mark {
-  display: block;
-  height: 36rpx;
-  margin-top: 20rpx;
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 88rpx;
-  line-height: 0.9;
-  color: #F2C88E;
+  display: none;
 }
 
 .letter-body {
   display: block;
-  margin-top: 4rpx;
+  margin-top: 20rpx;
   font-size: 31rpx;
-  line-height: 1.85;
+  line-height: 1.8;
   color: $p-ink;
   white-space: pre-wrap;
 }
@@ -474,7 +476,7 @@ function toggleVoice() {
   width: 100%;
   height: 220rpx;
   display: block;
-  background: #ECE8E2;
+  background: #E9EDF3;
 }
 
 .video {
@@ -482,7 +484,7 @@ function toggleVoice() {
   height: 392rpx;
   margin-top: 16rpx;
   border-radius: $p-r-inner;
-  background: #1D1B18;
+  background: #0F172A;
 }
 
 .learn-card {
@@ -546,14 +548,14 @@ function toggleVoice() {
   display: flex;
   gap: 20rpx;
   padding: 28rpx;
-  border-left: 8rpx solid $p-amber;
+  border-left: 6rpx solid $p-brand;
 }
 
 .hw-icon {
   width: 56rpx;
   height: 56rpx;
   border-radius: 16rpx;
-  background: $p-amber-50;
+  background: $p-brand-50;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -653,7 +655,7 @@ function toggleVoice() {
   width: 240rpx;
   height: 240rpx;
   border-radius: 20rpx;
-  background: #ECE8E2;
+  background: #E9EDF3;
   flex-shrink: 0;
 }
 

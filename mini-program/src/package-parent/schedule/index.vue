@@ -31,10 +31,10 @@
         <view class="week-nav">
           <text v-if="weekStart !== thisWeek" class="today-link" @click="goToday">本周</text>
           <view class="nav-btn" @click="shiftWeek(-7)">
-            <view class="rot-left"><AppIcon name="chevron-down" size="28rpx" color="#5C5751" /></view>
+            <view class="rot-left"><AppIcon name="chevron-down" size="28rpx" color="#475569" /></view>
           </view>
           <view class="nav-btn" @click="shiftWeek(7)">
-            <view class="rot-right"><AppIcon name="chevron-down" size="28rpx" color="#5C5751" /></view>
+            <view class="rot-right"><AppIcon name="chevron-down" size="28rpx" color="#475569" /></view>
           </view>
         </view>
       </view>
@@ -220,9 +220,9 @@ watch(() => parentStore.currentStudentId, reload);
   padding: 32rpx 32rpx 36rpx;
   margin-bottom: 40rpx;
   border-radius: $p-r-card;
-  background: #1D1B18;
+  background: linear-gradient(160deg, #1D39C4 0%, #13235B 100%);
   color: #FFFFFF;
-  box-shadow: 0 24rpx 48rpx -24rpx rgba(29, 27, 24, 0.55);
+  box-shadow: 0 20rpx 40rpx -24rpx rgba(19, 35, 91, 0.6);
   animation: p-fade-up 0.45s $p-ease-out both;
 }
 
@@ -233,7 +233,7 @@ watch(() => parentStore.currentStudentId, reload);
   width: 340rpx;
   height: 340rpx;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(91, 123, 255, 0.6) 0%, rgba(91, 123, 255, 0) 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 70%);
 }
 
 .next-label {
@@ -378,8 +378,7 @@ watch(() => parentStore.currentStudentId, reload);
   }
 
   &.selected {
-    background: $p-ink;
-    animation: day-pick 0.3s $p-ease-spring both;
+    background: $p-brand;
 
     .weekday {
       color: rgba(255, 255, 255, 0.6);
@@ -460,7 +459,7 @@ watch(() => parentStore.currentStudentId, reload);
     top: 0;
     bottom: 0;
     width: 2rpx;
-    background: repeating-linear-gradient(180deg, rgba(29, 27, 24, 0.14) 0 8rpx, transparent 8rpx 16rpx);
+    background: repeating-linear-gradient(180deg, rgba(15, 23, 42, 0.14) 0 8rpx, transparent 8rpx 16rpx);
   }
 
   .knot {
@@ -478,7 +477,7 @@ watch(() => parentStore.currentStudentId, reload);
 
 .tl-item.st-cancelled .knot,
 .tl-item.st-not_recorded .knot {
-  border-color: #CFC8BE;
+  border-color: #CBD5E1;
 }
 
 .tl-item.st-present .knot {
@@ -545,7 +544,7 @@ watch(() => parentStore.currentStudentId, reload);
 
   &.c-leave {
     background: $p-peach-50;
-    color: #B4501F;
+    color: #B45309;
   }
 
   &.c-absent {

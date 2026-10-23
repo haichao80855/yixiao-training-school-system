@@ -3,7 +3,7 @@
     <view class="art">
       <view class="blob" />
       <view class="icon-wrap">
-        <AppIcon :name="icon" size="52rpx" color="#958F88" />
+        <AppIcon :name="icon" size="52rpx" color="#94A3B8" />
       </view>
     </view>
     <text class="title">{{ title }}</text>
@@ -43,7 +43,7 @@ withDefaults(defineProps<{ icon?: string; title: string; description?: string }>
   width: 168rpx;
   height: 168rpx;
   border-radius: 46% 54% 52% 48% / 52% 44% 56% 48%;
-  background: linear-gradient(135deg, #EDE8E1, #F7F4EF);
+  background: linear-gradient(135deg, #E9EEF5, #F4F6FA);
 }
 
 .icon-wrap {

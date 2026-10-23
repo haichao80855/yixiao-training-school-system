@@ -1,43 +1,52 @@
 /* ==========================================================================
  * 家长端设计令牌 (Parent Design Tokens)
- * 方向：温暖纸感底色 + 墨色文字 + 品牌蓝点缀；照片优先、留白充足、动效克制。
+ * 与小程序教职工端同一套系统：沉稳学术蓝 + Slate 中性色，克制、专业。
  * 1px 设计稿 = 2rpx (750rpx 宽)。
  * ========================================================================== */
 
-// 色彩
-$p-canvas: #F5F3EF;
+// 中性色 (与 uni.scss 的 Slate 文本层级一致)
+$p-canvas: #F4F6FA;
 $p-surface: #FFFFFF;
-$p-ink: #1D1B18;
-$p-ink-2: #5C5751;
-$p-ink-3: #958F88;
-$p-line: rgba(29, 27, 24, 0.08);
-$p-fill: rgba(29, 27, 24, 0.05);
+$p-ink: #0F172A;
+$p-ink-2: #475569;
+$p-ink-3: #64748B;
+$p-ink-4: #94A3B8;
+$p-line: rgba(15, 23, 42, 0.08);
+$p-fill: rgba(15, 23, 42, 0.05);
 
+// 品牌与语义色
 $p-brand: #2F54EB;
-$p-brand-50: #EEF1FE;
-$p-brand-100: #DCE3FD;
-$p-amber: #F0A33A;
-$p-amber-50: #FFF4E2;
-$p-amber-ink: #8A4B0F;
-$p-mint: #22935F;
-$p-mint-50: #E7F5EC;
-$p-rose: #D9424A;
-$p-rose-50: #FCEBEC;
-$p-lilac: #7457E0;
-$p-lilac-50: #F1EDFD;
-$p-peach: #E0703A;
-$p-peach-50: #FFF0E6;
+$p-brand-strong: #1D39C4;
+$p-brand-50: #EEF2FF;
+$p-brand-100: #E0E7FF;
+$p-navy: #13235B;
+$p-amber: #E8A33D;
+$p-amber-50: #FEF6E7;
+$p-amber-ink: #92400E;
+$p-mint: #15803D;
+$p-mint-50: #ECFDF3;
+$p-rose: #DC2626;
+$p-rose-50: #FEF2F2;
+$p-sky: #0369A1;
+$p-sky-50: #E0F2FE;
+$p-indigo: #4F46E5;
+$p-indigo-50: #EEF2FF;
+// 兼容旧变量名 (页面中已有引用)
+$p-lilac: $p-indigo;
+$p-lilac-50: $p-indigo-50;
+$p-peach: $p-sky;
+$p-peach-50: $p-sky-50;
 
 // 形状与阴影
-$p-r-card: 40rpx;
-$p-r-inner: 28rpx;
-$p-r-sm: 20rpx;
-$p-shadow: 0 2rpx 4rpx rgba(29, 27, 24, 0.04), 0 20rpx 48rpx -28rpx rgba(29, 27, 24, 0.2);
-$p-shadow-float: 0 24rpx 60rpx -24rpx rgba(29, 27, 24, 0.3), 0 0 0 1rpx rgba(29, 27, 24, 0.06);
+$p-r-card: 32rpx;
+$p-r-inner: 20rpx;
+$p-r-sm: 16rpx;
+$p-shadow: 0 2rpx 4rpx rgba(15, 23, 42, 0.04), 0 16rpx 40rpx -28rpx rgba(15, 23, 42, 0.18);
+$p-shadow-float: 0 20rpx 48rpx -24rpx rgba(15, 23, 42, 0.28), 0 0 0 1rpx rgba(15, 23, 42, 0.06);
 
-// 动效
+// 动效：短、轻、不弹跳
 $p-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-$p-ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+$p-ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
 
 // 字体
 $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
@@ -50,9 +59,9 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
 
 /** 按压反馈：轻微缩放 */
 @mixin p-pressable {
-  transition: transform 0.16s $p-ease-out, background-color 0.16s ease;
+  transition: transform 0.14s $p-ease-out, background-color 0.14s ease;
   &:active {
-    transform: scale(0.98);
+    transform: scale(0.985);
   }
 }
 
@@ -63,13 +72,13 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
 
 /** 进入动画：配合 :style="enterDelay(index)" 实现逐项错峰 */
 @mixin p-enter {
-  animation: p-fade-up 0.42s $p-ease-out both;
+  animation: p-fade-up 0.32s $p-ease-out both;
 }
 
 @keyframes p-fade-up {
   from {
     opacity: 0;
-    transform: translateY(24rpx);
+    transform: translateY(12rpx);
   }
   to {
     opacity: 1;
@@ -96,7 +105,7 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
 }
 
 @mixin p-skeleton {
-  background: linear-gradient(90deg, #ECE8E2 25%, #F5F2ED 50%, #ECE8E2 75%);
+  background: linear-gradient(90deg, #E9EDF3 25%, #F4F6FA 50%, #E9EDF3 75%);
   background-size: 400% 100%;
   animation: p-shimmer 1.4s ease infinite;
 }
@@ -106,7 +115,7 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
   align-items: center;
   height: 44rpx;
   padding: 0 16rpx;
-  border-radius: 9999rpx;
+  border-radius: 8rpx;
   font-size: 23rpx;
   font-weight: 600;
   white-space: nowrap;

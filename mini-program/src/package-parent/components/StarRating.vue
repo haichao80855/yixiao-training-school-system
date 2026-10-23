@@ -6,7 +6,7 @@
       name="star"
       :size="size"
       :filled="true"
-      :color="i <= Math.round(value) ? '#F0A33A' : '#E7E1D8'"
+      :color="i <= Math.round(value) ? '#E8A33D' : '#E2E8F0'"
     />
     <text v-if="showValue" class="value">{{ value.toFixed(1) }}</text>
   </view>

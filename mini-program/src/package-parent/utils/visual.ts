@@ -1,17 +1,18 @@
 /** 家长端视觉辅助：孩子头像配色、入场错峰、数字滚动、环形进度 */
 import { ref, watch, type Ref } from 'vue';
 
-const CHILD_GRADIENTS: Array<[string, string, string]> = [
-  ['#FF9A62', '#F0643A', '#FFD3BA'],
-  ['#7CC6FF', '#4C7BF0', '#CFE0FF'],
-  ['#7FD8A6', '#2E9E6A', '#CDEFD9'],
-  ['#C6A2FF', '#7457E0', '#E3D6FF'],
-  ['#FFD36E', '#E89B1C', '#FFE9B8'],
+// 孩子头像：浅色底 + 深色字，按序号区分多个孩子 (同一套冷色系，克制不跳色)
+const CHILD_TONES: Array<{ bg: string; fg: string }> = [
+  { bg: '#E0E7FF', fg: '#1D39C4' },
+  { bg: '#E0F2FE', fg: '#0369A1' },
+  { bg: '#DCFCE7', fg: '#15803D' },
+  { bg: '#EDE9FE', fg: '#5B21B6' },
+  { bg: '#E2E8F0', fg: '#334155' },
 ];
 
 export function childPalette(index: number) {
-  const [from, to, ring] = CHILD_GRADIENTS[((index % CHILD_GRADIENTS.length) + CHILD_GRADIENTS.length) % CHILD_GRADIENTS.length];
-  return { background: `linear-gradient(135deg, ${from}, ${to})`, ring };
+  const tone = CHILD_TONES[((index % CHILD_TONES.length) + CHILD_TONES.length) % CHILD_TONES.length];
+  return { background: tone.bg, color: tone.fg, ring: tone.bg };
 }
 
 /** 列表入场错峰：前 8 项依次延迟 40ms，之后同时出现 */
@@ -47,7 +48,7 @@ export function useCountUp(source: () => number | null | undefined, duration = 6
 }
 
 /** 环形进度 SVG (data URI，供 <image> 使用；进入时描边动画) */
-export function ringSvg(percent: number, color: string, track = '#EFEBE5'): string {
+export function ringSvg(percent: number, color: string, track = '#E8ECF2'): string {
   const r = 36;
   const c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(1, percent));

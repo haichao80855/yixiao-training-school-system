@@ -56,7 +56,8 @@ export class StudentService {
     }
 
     if (query.status && query.status !== 'all' && query.status !== 'undefined' && query.status !== 'null') {
-      where.status = query.status;
+      // 「正常在读」包含已编班在读 (in_class)：报名入班 / 分班会把学员状态推进为 in_class
+      where.status = query.status === 'normal' ? { in: ['normal', 'in_class'] } : query.status;
     }
 
     if (query.keyword && query.keyword.trim() && query.keyword !== 'undefined' && query.keyword !== 'null') {

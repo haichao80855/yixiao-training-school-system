@@ -43,10 +43,11 @@ if (missingMainPages.length === 0 && appJson.pages.length === expectedMainPages.
 
 // 2. 检查 4 大业务分包
 console.log('\n【检查项 2】4 大业务分包是否完整配置');
-const expectedSubPkgs = ['package-edu', 'package-student', 'package-finance', 'package-crm'];
+// 家长端分包 package-parent 为家长门户新增（角色分包），业务分包仍为 4 大 + 家长端
+const expectedSubPkgs = ['package-edu', 'package-student', 'package-finance', 'package-crm', 'package-parent'];
 const actualSubPkgs = Array.isArray(appJson.subPackages) ? appJson.subPackages.map(s => s.root) : [];
 const missingSubPkgs = expectedSubPkgs.filter(pkg => !actualSubPkgs.includes(pkg));
-if (missingSubPkgs.length === 0 && actualSubPkgs.length === 4) {
+if (missingSubPkgs.length === 0 && actualSubPkgs.length === expectedSubPkgs.length) {
   report.subPackages = true;
   console.log('  ✅ 4 大业务分包 package-edu, package-student, package-finance, package-crm 完整配置');
 } else {

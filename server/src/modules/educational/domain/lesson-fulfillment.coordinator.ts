@@ -896,7 +896,9 @@ export class LessonFulfillmentCoordinator {
       // ----------------------------------------------------------------------
       if (strategy === 'FULL_ROLLBACK') {
         for (const att of activeAttendances) {
-          if (att.deductLessons > 0) {
+          // 只退还真正落到课包上的课时：点名时无在读课包、或课评草稿预建的考勤记录虽有扣课数，但从未扣减课包
+          const wasCharged = !!att.packageId || (att.regularBurned || 0) + (att.bonusBurned || 0) > 0;
+          if (att.deductLessons > 0 && wasCharged) {
             let pkg: any = null;
             if (att.packageId) {
               pkg = await tx.studentCoursePackage.findUnique({

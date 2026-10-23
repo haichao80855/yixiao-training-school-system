@@ -2,13 +2,13 @@
   <view class="parent-page" :class="{ 'has-tab-bar': !!tab, immersive }">
     <!-- 沉浸式页面 (详情)：内容自绘顶部，仅保留悬浮返回按钮 -->
     <view v-if="immersive" class="float-back" :style="{ top: statusBarHeight + 6 + 'px' }" @click="goBack">
-      <AppIcon name="arrow-left" size="36rpx" color="#1D1B18" />
+      <AppIcon name="arrow-left" size="36rpx" color="#0F172A" />
     </view>
 
     <view v-else class="parent-header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="bar" :style="{ paddingRight: capsuleWidth + 'px' }">
         <view v-if="showBack" class="back-btn" @click="goBack">
-          <AppIcon name="arrow-left" size="36rpx" color="#1D1B18" />
+          <AppIcon name="arrow-left" size="36rpx" color="#0F172A" />
         </view>
         <text v-if="showBack" class="bar-title">{{ title }}</text>
       </view>
@@ -20,13 +20,13 @@
         <view v-if="showChildSwitcher && currentChild" class="child-pill" @click="pickChild">
           <ChildAvatar :name="currentChild.name" :index="currentIndex" size="56rpx" :ring="true" />
           <text class="child-name">{{ currentChild.name }}</text>
-          <AppIcon v-if="parentStore.children.length > 1" name="chevron-down" size="24rpx" color="#5C5751" />
+          <AppIcon v-if="parentStore.children.length > 1" name="chevron-down" size="24rpx" color="#475569" />
         </view>
       </view>
     </view>
 
     <view v-if="showChildSwitcher && !immersive && parentStore.isReadOnly" class="readonly-banner">
-      <AppIcon name="lock" size="28rpx" color="#8A4B0F" />
+      <AppIcon name="lock" size="28rpx" color="#92400E" />
       <text>{{ currentChild?.name }} 已离校，历史课评与相册可查看至 {{ readOnlyUntilText }}</text>
     </view>
 
@@ -115,7 +115,7 @@ const goBack = () => {
   color: $p-ink;
 
   &.has-tab-bar {
-    padding-bottom: calc(176rpx + env(safe-area-inset-bottom));
+    padding-bottom: calc(140rpx + env(safe-area-inset-bottom));
   }
 }
 
@@ -166,15 +166,14 @@ const goBack = () => {
   display: block;
   font-size: 24rpx;
   color: $p-ink-3;
-  letter-spacing: 0.04em;
 }
 
 .title {
   display: block;
   margin-top: 4rpx;
-  font-size: 52rpx;
+  font-size: 44rpx;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 

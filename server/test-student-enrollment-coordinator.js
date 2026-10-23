@@ -313,7 +313,9 @@ async function runTests() {
     where: { id: enrollData.packageId },
   });
   assert(restoredPkg.status === 'active', '课包状态权威恢复为 active');
-  assert(restoredPkg.remainingLessons === 20, `课包实付可用正课精确恢复为 20 课时 (原路资产复原)`);
+  // 驳回 = 退费未发生：恢复到发起退费前的 25 课时 (20 实付 + 5 赠送)。
+  // 旧逻辑按退费金额反推只恢复 20 课时，赠课被吞，且 bonusLessons=5 仍在，导致实付正课被少算 5 节
+  assert(restoredPkg.remainingLessons === 25, `课包精确恢复为退费前的 25 课时 (20 实付 + 5 赠送，原路资产复原)`);
 
   console.log('\n--- 场景六：重新发起退费并通过三级终审 ---');
   const reRefundReq = await request(

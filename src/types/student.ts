@@ -3,7 +3,8 @@
 // 对应 PROJECT.md 与 MODULE_ANALYSIS_DESIGN.md
 // ==========================================
 
-export type StudentStatus = 'normal' | 'suspended' | 'transferred' | 'dropped_out';
+// in_class：已编入班级在读 (后端报名入班 / 分班时写入)，与 normal 一样属于「正常在读」
+export type StudentStatus = 'normal' | 'in_class' | 'suspended' | 'transferred' | 'dropped_out';
 
 export interface StudentCoursePackage {
   id?: string;

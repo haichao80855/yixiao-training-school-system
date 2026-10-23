@@ -38,7 +38,7 @@
     <view class="group">
       <view v-for="s in sessions" :key="s.id" class="row">
         <view class="device-icon">
-          <AppIcon name="smartphone" size="32rpx" color="#5C5751" />
+          <AppIcon name="smartphone" size="32rpx" color="#475569" />
         </view>
         <view class="row-main">
           <view class="row-title-line">
@@ -58,12 +58,12 @@
     <view class="group spaced">
       <view class="row pressable" @click="showHelp">
         <view class="device-icon">
-          <AppIcon name="help-circle" size="32rpx" color="#5C5751" />
+          <AppIcon name="help-circle" size="32rpx" color="#475569" />
         </view>
         <view class="row-main">
           <text class="row-title">账号与登录帮助</text>
         </view>
-        <AppIcon name="chevron-right" size="26rpx" color="#958F88" />
+        <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
       </view>
     </view>
 
@@ -115,7 +115,7 @@ function revoke(id: string) {
     title: '让该设备退出登录？',
     content: '该设备上的家长需要重新登录才能继续查看。',
     confirmText: '退出',
-    confirmColor: '#D9424A',
+    confirmColor: '#DC2626',
     success: async (res) => {
       if (!res.confirm) return;
       try {
@@ -138,7 +138,7 @@ function logout() {
   uni.showModal({
     title: '退出登录',
     content: '确定退出当前账号吗？',
-    confirmColor: '#D9424A',
+    confirmColor: '#DC2626',
     success: (res) => {
       if (res.confirm) authStore.logout();
     },
@@ -183,7 +183,7 @@ function dateTimeText(iso: string) {
   width: 360rpx;
   height: 360rpx;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 196, 140, 0.35) 0%, rgba(255, 196, 140, 0) 70%);
+  background: radial-gradient(circle, rgba(47, 84, 235, 0.08) 0%, rgba(47, 84, 235, 0) 70%);
 }
 
 .avatars {

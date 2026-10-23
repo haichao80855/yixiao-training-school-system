@@ -1,7 +1,7 @@
 <template>
   <view
     class="child-avatar"
-    :style="{ width: size, height: size, fontSize: fontSize, background: palette.background, boxShadow: ring ? `0 0 0 4rpx #FFFFFF, 0 0 0 7rpx ${palette.ring}` : 'none' }"
+    :style="{ width: size, height: size, fontSize: fontSize, background: palette.background, color: palette.color, boxShadow: ring ? '0 0 0 4rpx #FFFFFF' : 'none' }"
   >
     {{ initial }}
   </view>
@@ -27,7 +27,6 @@ const fontSize = computed(() => `calc(${props.size} * 0.42)`);
 .child-avatar {
   flex-shrink: 0;
   border-radius: 50%;
-  color: #FFFFFF;
   font-weight: 700;
   display: flex;
   align-items: center;

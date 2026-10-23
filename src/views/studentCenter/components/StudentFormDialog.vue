@@ -79,6 +79,7 @@
         <el-form-item label="在读状态" prop="status">
           <el-select v-model="form.status" class="w-full">
             <el-option label="正常在读" value="normal" />
+            <el-option v-if="form.status === 'in_class'" label="正常在读（已编班）" value="in_class" />
             <el-option label="停课休学" value="suspended" />
             <el-option label="已转校" value="transferred" />
             <el-option label="已退学流失" value="dropped_out" />

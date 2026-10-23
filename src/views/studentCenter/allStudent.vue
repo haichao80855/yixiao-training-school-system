@@ -618,7 +618,7 @@ const campusStats = computed(() => {
 
   return {
     total: list.length,
-    normal: list.filter(s => s.status === 'normal').length,
+    normal: list.filter(s => s.status === 'normal' || s.status === 'in_class').length,
     suspended: list.filter(s => s.status === 'suspended').length,
     unassigned: list.filter(s => !s.coursePackages || s.coursePackages.length === 0).length
   }
@@ -626,7 +626,9 @@ const campusStats = computed(() => {
 
 function getStatusTagType(status: string) {
   switch (status) {
-    case 'normal': return 'success'
+    case 'normal':
+    case 'in_class': // 已编班在读 (后端编班后写入)
+      return 'success'
     case 'suspended': return 'warning'
     case 'transferred': return 'info'
     case 'dropped_out': return 'danger'
@@ -636,7 +638,9 @@ function getStatusTagType(status: string) {
 
 function getStatusLabel(status: string) {
   switch (status) {
-    case 'normal': return '正常在读'
+    case 'normal':
+    case 'in_class':
+      return '正常在读'
     case 'suspended': return '停课休学'
     case 'transferred': return '已转校'
     case 'dropped_out': return '已结课流失'
@@ -768,7 +772,7 @@ function handleBatchExport() {
     s.phone,
     `"${s.campusName || '拓视未来-原阳校区'}"`,
     s.grade || '小学全学段',
-    s.status === 'normal' ? '正常在读' : (s.status === 'suspended' ? '停课休学' : '已转校'),
+    getStatusLabel(s.status),
     s.coursePackages?.reduce((sum, p) => sum + (p.remainingLessons || 0), 0) || 0,
     s.createdAt || '2026-09-01'
   ])

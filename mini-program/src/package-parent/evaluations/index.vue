@@ -1,5 +1,5 @@
 <template>
-  <ParentPage title="课堂日记" :overline="todayText" tab="evaluations" :unread="unreadCount">
+  <ParentPage title="课评" :overline="todayText" tab="evaluations" :unread="unreadCount">
     <!-- 骨架屏 -->
     <view v-if="loading && items.length === 0" class="skeleton-list">
       <view v-for="i in 2" :key="i" class="sk-card">
@@ -217,7 +217,6 @@ function openDetail(item: FeedItem) {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10rpx 20rpx -8rpx rgba(47, 84, 235, 0.6);
 }
 
 .new-num {
@@ -236,14 +235,14 @@ function openDetail(item: FeedItem) {
   display: block;
   font-size: 27rpx;
   font-weight: 600;
-  color: #1E2F8A;
+  color: #1E3A8A;
 }
 
 .new-sub {
   display: block;
   margin-top: 4rpx;
   font-size: 23rpx;
-  color: #5468C9;
+  color: #475569;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -289,7 +288,6 @@ function openDetail(item: FeedItem) {
   font-size: 21rpx;
   background: $p-rose;
   color: #FFFFFF;
-  animation: new-glow 1.6s ease-out 2;
 }
 
 @keyframes new-glow {
@@ -384,7 +382,7 @@ function openDetail(item: FeedItem) {
   width: 16rpx;
   height: 16rpx;
   border-radius: 50%;
-  border: 3rpx solid #CFC8BE;
+  border: 3rpx solid #CBD5E1;
   flex-shrink: 0;
 }
 
@@ -412,7 +410,7 @@ function openDetail(item: FeedItem) {
 
   &.st-leave {
     background: $p-peach-50;
-    color: #B4501F;
+    color: #B45309;
   }
 
   &.st-absent {

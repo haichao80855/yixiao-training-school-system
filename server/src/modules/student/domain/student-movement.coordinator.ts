@@ -113,6 +113,13 @@ export class StudentMovementCoordinator {
             message: '目标班级不存在',
           });
         } else {
+          if (pkg && targetClass.courseId !== pkg.courseId) {
+            blockingIssues.push({
+              code: 'TARGET_CLASS_COURSE_MISMATCH',
+              severity: 'blocking',
+              message: `目标班级「${targetClass.name}」所授课程与该课包不一致，跨课程调整请使用「换课」`,
+            });
+          }
           const willExceed = targetClass.currentStudentCount >= targetClass.capacity;
           capacityImpact = {
             targetClassId: targetClass.id,
@@ -486,6 +493,12 @@ export class StudentMovementCoordinator {
             throw new NotFoundException(`目标班级不存在 (ID: ${intent.targetClassId})`);
           }
 
+          // 转班仅限同课程班级：点名扣课按「班级课程 = 课包课程」匹配，课程不一致会导致上课不扣课时
+          if (targetClass.courseId !== pkg.courseId) {
+            throw new BadRequestException(
+              `目标班级「${targetClass.name}」所授课程与该课包不一致，跨课程调整请使用「换课」`,
+            );
+          }
           // 班容硬顶强阻断不变量 (Capacity Ceiling)
           if (targetClass.currentStudentCount >= targetClass.capacity) {
             throw new BadRequestException(
@@ -1029,6 +1042,9 @@ export class StudentMovementCoordinator {
           originalSnapshot = {
             packageId: pkg.id,
             remainingLessons: pkg.remainingLessons,
+            // 驳回退费时据此原样复原课包状态与班级席位
+            status: pkg.status,
+            classId: pkg.classId,
             bonusLessons: pkg.bonusLessons,
             pricePerLesson: pkg.pricePerLesson,
             computedRefundAmount: refundable,

@@ -59,7 +59,7 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
 
 .tile {
   position: relative;
-  background: #ECE8E2;
+  background: #E9EDF3;
   overflow: hidden;
 
   .img {
@@ -75,7 +75,7 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
   top: 0;
   right: 0;
   bottom: 0;
-  background: rgba(29, 27, 24, 0.42);
+  background: rgba(15, 23, 42, 0.42);
   color: #FFFFFF;
   font-size: 36rpx;
   font-weight: 600;
@@ -102,7 +102,7 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
 .video-only {
   height: 200rpx;
   border-radius: $p-r-inner;
-  background: linear-gradient(135deg, #2B2A33, #1D1B18);
+  background: linear-gradient(135deg, #1E293B, #0F172A);
   color: rgba(255, 255, 255, 0.85);
   font-size: 26rpx;
   display: flex;

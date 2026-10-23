@@ -55,7 +55,7 @@
         </view>
 
         <view v-if="c.lowHours" class="warn">
-          <AppIcon name="alert-triangle" size="28rpx" color="#8A4B0F" />
+          <AppIcon name="alert-triangle" size="28rpx" color="#92400E" />
           <text>
             课时即将用完<text v-if="c.estimatedWeeksLeft">，按最近的上课频率约还能上 {{ c.estimatedWeeksLeft }} 周</text>。如需续课请联系校区。
           </text>
@@ -63,7 +63,7 @@
 
         <view class="usage-link">
           <text>课时明细</text>
-          <AppIcon name="chevron-right" size="26rpx" color="#958F88" />
+          <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
         </view>
       </view>
     </view>
@@ -98,7 +98,7 @@ const overline = computed(() => {
 
 function ringFor(c: CoursePackage) {
   const percent = c.totalLessons > 0 ? c.remainingLessons / c.totalLessons : 0;
-  const color = c.status !== 'active' ? '#B9B2A8' : c.lowHours ? '#F0A33A' : '#2F54EB';
+  const color = c.status !== 'active' ? '#CBD5E1' : c.lowHours ? '#E8A33D' : '#2F54EB';
   return ringSvg(percent, color);
 }
 

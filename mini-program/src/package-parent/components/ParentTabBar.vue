@@ -13,7 +13,7 @@
             :name="tab.icon"
             size="40rpx"
             :stroke-width="tab.key === current ? 2.2 : 1.8"
-            :color="tab.key === current ? '#2F54EB' : '#958F88'"
+            :color="tab.key === current ? '#2F54EB' : '#6B7280'"
           />
           <view v-if="tab.key === 'evaluations' && unread > 0" class="badge">{{ unread > 9 ? '9+' : unread }}</view>
         </view>
@@ -48,68 +48,58 @@ const go = (tab: (typeof tabs)[number]) => {
 <style lang="scss" scoped>
 @import '../styles/tokens.scss';
 
+/* 与教职工端 CustomTabBar 一致：底部通栏、细分隔线、品牌色选中态 */
 .tab-dock {
   position: fixed;
-  left: 24rpx;
-  right: 24rpx;
-  bottom: calc(16rpx + env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 900;
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1rpx solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 -4rpx 20rpx rgba(15, 23, 42, 0.04);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .tab-bar {
-  height: 124rpx;
-  border-radius: 62rpx;
+  height: 112rpx;
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0 12rpx;
-  background: rgba(255, 255, 255, 0.92);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  backdrop-filter: blur(24px) saturate(1.4);
-  box-shadow: $p-shadow-float;
+  padding: 6rpx 12rpx 0;
 }
 
 .tab-item {
-  width: 124rpx;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6rpx;
+  gap: 4rpx;
 
   .tab-label {
     font-size: 21rpx;
-    color: $p-ink-3;
+    color: #6B7280;
     transition: color 0.2s ease;
   }
 
-  &.active {
-    .tab-label {
-      color: $p-brand;
-      font-weight: 600;
-    }
-
-    .icon-pill {
-      background: $p-brand-50;
-      animation: tab-pop 0.36s $p-ease-spring both;
-    }
+  &.active .tab-label {
+    color: $p-brand;
+    font-weight: 600;
   }
 }
 
 .icon-pill {
   position: relative;
-  width: 80rpx;
-  height: 56rpx;
-  border-radius: 28rpx;
+  height: 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s ease;
 }
 
 .badge {
   position: absolute;
-  top: -6rpx;
-  right: 2rpx;
+  top: -8rpx;
+  left: 28rpx;
   min-width: 32rpx;
   height: 32rpx;
   padding: 0 8rpx;
@@ -122,14 +112,5 @@ const go = (tab: (typeof tabs)[number]) => {
   line-height: 28rpx;
   text-align: center;
   border: 2rpx solid #FFFFFF;
-}
-
-@keyframes tab-pop {
-  0% {
-    transform: scale(0.86);
-  }
-  100% {
-    transform: scale(1);
-  }
 }
 </style>

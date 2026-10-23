@@ -62,7 +62,7 @@
               <text class="video-title">{{ v.lessonTitle }}</text>
               <text class="video-sub">{{ formatDateCn(v.date) }} · {{ v.isOwn ? `${childName}的视频` : '课堂视频' }}</text>
             </view>
-            <AppIcon name="chevron-right" size="26rpx" color="#958F88" />
+            <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
           </view>
         </view>
       </view>
@@ -102,10 +102,10 @@ const photos = useCountUp(() => summary.value?.photos);
 const videos = useCountUp(() => summary.value?.videos);
 
 const stats = computed(() => [
-  { key: 'lessons', label: '次上课', value: lessons.value, icon: 'calendar-check', color: '#22935F' },
+  { key: 'lessons', label: '次上课', value: lessons.value, icon: 'calendar-check', color: '#15803D' },
   { key: 'evals', label: '篇课评', value: evaluations.value, icon: 'message-square', color: '#2F54EB' },
-  { key: 'photos', label: '张照片', value: photos.value, icon: 'image', color: '#E0703A' },
-  { key: 'videos', label: '段视频', value: videos.value, icon: 'video', color: '#7457E0' },
+  { key: 'photos', label: '张照片', value: photos.value, icon: 'image', color: '#0369A1' },
+  { key: 'videos', label: '段视频', value: videos.value, icon: 'video', color: '#4F46E5' },
 ]);
 
 async function load(reset = true) {
@@ -190,27 +190,11 @@ onPullDownRefresh(async () => {
 }
 
 .stat {
+  @include p-card;
   @include p-enter;
   position: relative;
   padding: 28rpx;
-  border-radius: 36rpx;
   overflow: hidden;
-
-  &.t-lessons {
-    background: $p-mint-50;
-  }
-
-  &.t-evals {
-    background: $p-brand-50;
-  }
-
-  &.t-photos {
-    background: $p-peach-50;
-  }
-
-  &.t-videos {
-    background: $p-lilac-50;
-  }
 }
 
 .stat-icon {
@@ -219,11 +203,26 @@ onPullDownRefresh(async () => {
   top: 24rpx;
   width: 60rpx;
   height: 60rpx;
-  border-radius: 20rpx;
-  background: rgba(255, 255, 255, 0.75);
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.t-lessons .stat-icon {
+  background: $p-mint-50;
+}
+
+.t-evals .stat-icon {
+  background: $p-brand-50;
+}
+
+.t-photos .stat-icon {
+  background: $p-sky-50;
+}
+
+.t-videos .stat-icon {
+  background: $p-indigo-50;
 }
 
 .stat-num {
@@ -258,7 +257,7 @@ onPullDownRefresh(async () => {
   width: calc(50% - 6rpx);
   border-radius: 18rpx;
   background: $p-surface;
-  box-shadow: 0 2rpx 6rpx rgba(29, 27, 24, 0.08);
+  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.08);
   transition: transform 0.3s $p-ease-out;
 
   &.right {
@@ -326,7 +325,7 @@ onPullDownRefresh(async () => {
 
 .cell {
   position: relative;
-  background: #ECE8E2;
+  background: #E9EDF3;
   overflow: hidden;
 
   &.big {
@@ -380,8 +379,7 @@ onPullDownRefresh(async () => {
   height: 120rpx;
   border-radius: 20rpx;
   background:
-    radial-gradient(circle at 80% 20%, rgba(116, 87, 224, 0.5) 0, rgba(116, 87, 224, 0) 55%),
-    linear-gradient(135deg, #2B2A33, #1D1B18);
+    linear-gradient(135deg, #1E293B, #0F172A);
   display: flex;
   align-items: center;
   justify-content: center;

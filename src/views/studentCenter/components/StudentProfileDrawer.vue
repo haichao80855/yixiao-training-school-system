@@ -778,7 +778,9 @@ function calcProgress(pkg: StudentCoursePackage) {
 
 function getStatusTagType(status: string) {
   switch (status) {
-    case 'normal': return 'success'
+    case 'normal':
+    case 'in_class': // 已编班在读 (后端编班后写入)
+      return 'success'
     case 'suspended': return 'warning'
     case 'transferred': return 'info'
     case 'dropped_out': return 'danger'
@@ -788,7 +790,9 @@ function getStatusTagType(status: string) {
 
 function getStatusLabel(status: string) {
   switch (status) {
-    case 'normal': return '正常在读'
+    case 'normal':
+    case 'in_class':
+      return '正常在读'
     case 'suspended': return '停课休学'
     case 'transferred': return '已转校'
     case 'dropped_out': return '已结课流失'
