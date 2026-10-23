@@ -1,4 +1,4 @@
-import { request } from '../utils/request';
+import { request, BASE_URL as SHARED_BASE_URL } from '../utils/request';
 
 export interface ScheduleEventModel {
   id: string;
@@ -59,10 +59,15 @@ export interface FulfillmentWorkbenchModel {
   evaluationSummary?: {
     templateId?: string;
     templateName?: string;
+    lessonTitle?: string;
     studyContent?: string;
     teacherComment?: string;
     photoList?: string[];
     videoUrl?: string;
+    /** 课次课评状态：draft | published | revoked */
+    status?: string;
+    /** 课评最近一次发布时间 (ISO) */
+    lastPublishedAt?: string;
   };
 }
 
@@ -128,7 +133,8 @@ export interface CommitEvaluationPayload {
   payload?: any;
 }
 
-export const BASE_URL = 'https://73fa5aff.r38.cpolar.top';
+// 后端地址单一来源：与 utils/request 共用，避免上传 (uni.uploadFile) 与普通请求指向不同服务器
+export const BASE_URL = SHARED_BASE_URL;
 
 /**
  * 教务模块统一 API 客户端
@@ -236,14 +242,11 @@ export const eduApi = {
               : typeof s.photos === 'string'
                 ? JSON.parse(s.photos || '[]')
                 : [];
-            const isStudentEvaluated = Boolean(
-              s.isEvaluated ||
-              s.evaluated ||
-              (studentPhotos && studentPhotos.length > 0) ||
-              s.videoUrl ||
-              s.currentComment ||
-              s.comment
-            );
+            // 【写课评 / 看学情】【已推送】只认服务端 isPublished (课评已发布且家长可见)；
+            // 有评语 / 媒体但尚未发布的草稿、重开 / 反结课后的课评都不算已推送
+            const isStudentEvaluated = typeof s.isPublished === 'boolean'
+              ? s.isPublished
+              : Boolean(s.isEvaluated || s.evaluated);
             return {
               studentId: s.studentId,
               studentNo: s.studentNo,
@@ -273,10 +276,14 @@ export const eduApi = {
           evaluationSummary: res.evaluationDraft ? {
             templateId: res.evaluationDraft.templateId,
             templateName: res.evaluationDraft.templateName,
+            lessonTitle: res.evaluationDraft.lessonTitle,
             studyContent: res.evaluationDraft.studyContentHtml,
             teacherComment: res.evaluationDraft.teacherComment,
             photoList: res.evaluationDraft.photoList,
             videoUrl: res.evaluationDraft.videoUrl,
+            // 用于判定本地草稿是否已被其他端 (Web / 其他手机) 的发布覆盖
+            status: res.evaluationDraft.evaluationStatus,
+            lastPublishedAt: res.evaluationDraft.lastPublishedAt,
           } : res.evaluationSummary,
         };
       }

@@ -21,6 +21,23 @@ import { HttpFulfillmentAdapter } from './adapters/http-fulfillment.adapter';
 import { UniStorageDraftAdapter, MemoryDraftStorageAdapter } from './adapters/storage-draft.adapter';
 import { mediaPipeline } from '../../services/media-pipeline';
 
+/**
+ * 本地草稿是否已被服务端更新的写入覆盖 (草稿描述的是旧版本)：
+ * - 单学员草稿：早于该学员课评的最近评定时间 (Web / 其他手机写入了该学员的课评)
+ *   注意不能用课次发布时间：推送同班其他学员也会刷新课次发布时间，会误删本学员的草稿
+ * - 整班草稿：早于课次课评最近一次发布时间
+ */
+function isDraftSupersededByServer(draftSavedAt: string | undefined, raw: any, targetStudent?: any): boolean {
+  const savedAt = draftSavedAt ? Date.parse(draftSavedAt) : NaN;
+  if (!Number.isFinite(savedAt)) return false;
+  const serverTimes = (targetStudent
+    ? [targetStudent?.evaluatedAt]
+    : [raw?.evaluationDraft?.lastPublishedAt, raw?.evaluationSummary?.lastPublishedAt])
+    .map((t) => (t ? Date.parse(t) : NaN))
+    .filter((t) => Number.isFinite(t));
+  return serverTimes.some((t) => t > savedAt);
+}
+
 
 interface StudentBaseline {
   status: AttendanceStatus;
@@ -111,13 +128,18 @@ export class DefaultFulfillmentSession implements FulfillmentSession {
     };
     this.storage.setDraft({ scheduleId: this.schedule.id }, draftPayload);
 
-    // 兼顾单学员草稿
+    // 兼顾单学员草稿：只写入该学员的专属评语 (comment)。
+    // studyContent 是课次级大纲，不能放学员评语；班级公共照片 / 视频也不能写进学员草稿，
+    // 否则打开【写课评】时会被当作该学员的专属媒体，推送后家长端出现两份
     for (const s of this.students) {
       if (s.comment) {
+        const existing = this.storage.getDraft<any>({ scheduleId: this.schedule.id, studentId: s.studentId }) || {};
         this.storage.setDraft({ scheduleId: this.schedule.id, studentId: s.studentId }, {
-          studyContent: s.comment,
-          uploadedPhotos: this.evaluation.photoList,
-          uploadedVideo: this.evaluation.videoUrl,
+          ...existing,
+          scheduleId: this.schedule.id,
+          studentId: s.studentId,
+          comment: s.comment,
+          updatedAt: new Date().toISOString(),
         });
       }
     }
@@ -309,8 +331,16 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
     const baselineRating = 5;
 
     // 读取本地存储草稿 (基于 DraftScope 强类型领域语义)
-    const singleDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId, studentId });
-    const globalDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId });
+    // 草稿早于服务端最近一次发布 (Web / 其他手机 / 重新推送) 时作废，避免旧草稿覆盖已发布内容
+    let singleDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId, studentId });
+    if (singleDraft && isDraftSupersededByServer(singleDraft.updatedAt, raw, targetStudent || {})) {
+      this.storage.removeDraft({ scheduleId: scheduleEventId, studentId });
+      singleDraft = null;
+    }
+    let globalDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId });
+    if (globalDraft && isDraftSupersededByServer(globalDraft.savedAt, raw)) {
+      globalDraft = null;
+    }
     const studentOverride = globalDraft?.overrides?.find((o: any) => o.studentId === studentId);
 
     const templateName =
@@ -327,13 +357,17 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       raw?.evaluationSummary?.templateId ||
       'tpl-std';
 
+    // 课程学习内容与知识点大纲（课次级）：本地草稿 > 服务端课次课评
     const studyContent =
-      singleDraft?.studyContent ||
-      singleDraft?.content ||
-      targetStudent?.currentComment ||
-      targetStudent?.comment ||
-      studentOverride?.personalizedComment ||
-      (targetStudent?.isEvaluated || targetStudent?.evaluated ? '' : (raw?.evaluationDraft?.studyContentHtml || raw?.evaluationSummary?.studyContent || baselineContent));
+      singleDraft?.studyContent ??
+      (raw?.evaluationDraft?.studyContentHtml || raw?.evaluationSummary?.studyContent || '');
+
+    // 随堂特写评语（学员专属）：本地草稿 > 已落盘的学员评语；不再用模板 / 大纲预填
+    const comment =
+      singleDraft?.comment ??
+      (targetStudent?.isEvaluated || targetStudent?.evaluated
+        ? (targetStudent?.currentComment || targetStudent?.comment || studentOverride?.personalizedComment || '')
+        : (studentOverride?.personalizedComment || ''));
 
     const rating =
       singleDraft?.rating ??
@@ -383,15 +417,11 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
     const videoUrl: string = mediaPipeline.canonicalizeUrl(rawVideo);
 
 
-    const isEvaluated = Boolean(
-      targetStudent?.evaluated ||
-      targetStudent?.currentComment ||
-      (targetStudent?.comment && targetStudent.comment !== baselineContent) ||
-      raw?.evaluationDraft?.isExisting ||
-      (raw?.schedule?.status === 'completed' && Boolean(studyContent))
-    );
+    // 是否已评：只认服务端落盘状态，本地草稿 / 预填内容不算
+    const isEvaluated = Boolean(targetStudent?.isEvaluated || targetStudent?.evaluated);
 
     const isModified = Boolean(
+      Boolean(comment) ||
       (studyContent && studyContent !== baselineContent) ||
       rating !== baselineRating ||
       photos.length > 0 ||
@@ -408,6 +438,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       templateId,
       templateName,
       studyContent,
+      comment,
       rating,
       photos,
       videoUrl,
@@ -445,6 +476,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
         templateName: draft.templateName || existing.templateName || '通用课评模板',
         studyContent: draft.studyContent ?? existing.studyContent ?? '',
         content: draft.studyContent ?? existing.content ?? '',
+        comment: draft.comment ?? existing.comment ?? '',
         rating: draft.rating ?? existing.rating ?? 5,
         photos: draft.photos ?? existing.photos ?? [],
         uploadedPhotos: draft.photos ?? existing.uploadedPhotos ?? [],
@@ -483,8 +515,9 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
     studentId: string,
     draft: Partial<StudentEvaluationDraft>
   ): Promise<FulfillmentReceipt> {
-    const baseContent = draft._baselineToken?.baselineContent || '';
-    const currentContent = (draft.studyContent || '').trim();
+    // 两个字段分别落库：大纲 → 课次级 studyContent；特写评语 → 该学员 comment（不再互相顶替）
+    const classContent = (draft.studyContent || '').trim();
+    const personalComment = (draft.comment || '').trim();
     const currentRating = draft.rating ?? 5;
     const currentPhotos = draft.photos || [];
     const currentVideo = draft.videoUrl || '';
@@ -494,7 +527,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
         studentId,
         status: 'present',
         deductLessons: 1,
-        personalizedComment: currentContent || baseContent,
+        personalizedComment: personalComment,
         rating: currentRating,
         photos: currentPhotos,
         videoUrl: currentVideo,
@@ -516,7 +549,8 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
         videoUrl: a.videoUrl,
         isEvaluated: true,
       })),
-      studyContentHtml: currentContent || baseContent,
+      // 仅在填写了大纲时提交；服务端单学员更新时只更新大纲，不触碰班级公共媒体与评语
+      ...(classContent ? { studyContentHtml: classContent } : {}),
       // 单学员课评：照片、视频、评语只写入该学员的 overrides，不作为课次公共内容提交
       // (否则同一份照片/视频会同时成为「专属」与「班级」媒体，家长端显示两份)
       photoList: [],
@@ -583,15 +617,20 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       coursewareUrl: raw?.schedule?.coursewareUrl,
     };
 
-    // 读取本地草稿（全局草稿或单人草稿，基于 DraftScope）
-    const storedDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId });
+    // 读取本地草稿（全局草稿或单人草稿，基于 DraftScope）；早于服务端最近一次发布的整班草稿作废
+    let storedDraft = this.storage.getDraft<any>({ scheduleId: scheduleEventId });
+    if (storedDraft && isDraftSupersededByServer(storedDraft.savedAt, raw)) {
+      this.storage.removeDraft({ scheduleId: scheduleEventId });
+      storedDraft = null;
+    }
 
     const evaluation: SessionEvaluationDraft = {
       templateId: storedDraft?.evaluation?.templateId || raw?.evaluationDraft?.templateId || raw?.evaluationSummary?.templateId || 'tpl-std',
       templateName: storedDraft?.evaluation?.templateName || raw?.evaluationDraft?.templateName || raw?.evaluationSummary?.templateName || '通用课评模板',
-      lessonTitle: storedDraft?.evaluation?.lessonTitle || raw?.evaluationDraft?.lessonTitle || '随堂课评与素养分析',
-      studyContentHtml: storedDraft?.evaluation?.studyContentHtml || raw?.evaluationDraft?.studyContentHtml || raw?.evaluationSummary?.studyContent || '本堂课学生专注投入，知识点掌握扎实。',
-      teacherComment: storedDraft?.evaluation?.teacherComment || raw?.evaluationDraft?.teacherComment || raw?.evaluationSummary?.teacherComment || '课堂表现专注，互动积极，学习状态良好！',
+      // 无内容时留空，由服务端沿用已有课评或教研模板；不再用占位文案顶替 (全部推送时会覆盖老师写好的内容)
+      lessonTitle: storedDraft?.evaluation?.lessonTitle || raw?.evaluationDraft?.lessonTitle || raw?.evaluationSummary?.lessonTitle || '',
+      studyContentHtml: storedDraft?.evaluation?.studyContentHtml || raw?.evaluationDraft?.studyContentHtml || raw?.evaluationSummary?.studyContent || '',
+      teacherComment: storedDraft?.evaluation?.teacherComment || raw?.evaluationDraft?.teacherComment || raw?.evaluationSummary?.teacherComment || '',
       overallRating: storedDraft?.evaluation?.overallRating ?? 5.0,
       photoList: storedDraft?.evaluation?.photoList || raw?.evaluationDraft?.photoList || raw?.evaluationSummary?.photoList || [],
       videoUrl: storedDraft?.evaluation?.videoUrl || raw?.evaluationDraft?.videoUrl || raw?.evaluationSummary?.videoUrl,
@@ -620,7 +659,8 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
 
       const status: AttendanceStatus = draftedOverride?.status || s.status || s.recordedStatus || defaultStatus;
       const deductLessons: number = draftedOverride?.deductLessons ?? s.deductLessons ?? defaultDeduct;
-      const comment: string = draftedOverride?.personalizedComment || singleDraft?.studyContent || s.currentComment || s.comment || '';
+      // 学员评语只取服务端 / 全班履约草稿覆写；单学员本地草稿不参与（未推送前不算已评）
+      const comment: string = draftedOverride?.personalizedComment || s.currentComment || s.comment || '';
       const rating: number = draftedOverride?.rating || (s.currentRating !== undefined ? Number(s.currentRating) : (s.rating !== undefined ? Number(s.rating) : 5));
 
       const isAnomaly = status !== defaultStatus || deductLessons !== defaultDeduct || Boolean(comment) || rating !== 5;
@@ -632,13 +672,8 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
           : (singleDraft?.photos || []);
       const studentVideo: string | undefined = s.videoUrl || singleDraft?.videoUrl || undefined;
 
-      const isStudentEvaluated = Boolean(
-        s.isEvaluated ||
-        s.evaluated ||
-        (studentPhotos && studentPhotos.length > 0) ||
-        studentVideo ||
-        comment
-      );
+      // 是否已评只认服务端落盘状态（LessonEvaluationStudentItem.isEvaluated）
+      const isStudentEvaluated = Boolean(s.isEvaluated || s.evaluated);
 
       students.push({
         studentId,

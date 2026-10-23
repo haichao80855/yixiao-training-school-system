@@ -121,11 +121,16 @@ export class DefaultEvaluationRosterProjector implements EvaluationRosterProject
       const schedule = schedules[i];
       const result = workbenchResults[i];
 
+      // 已取消的课次不需要课评
+      if (schedule.status === 'cancelled') continue;
+
       if (result.status === 'fulfilled') {
         const wb = result.value;
         const students = wb.students || [];
 
         for (const student of students) {
+          // 与 Web 课评一致：请假 / 缺勤学员「请假免评」，不计入待评与覆盖率
+          if (student.status === 'leave' || student.status === 'absent') continue;
           const isPushed = Boolean(student.evaluated || student.isPushed);
           const rawItem: EvaluationRosterItemView = {
             id: student.studentId,

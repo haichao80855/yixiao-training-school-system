@@ -194,14 +194,15 @@ export class DefaultClientMediaPipeline implements ClientMediaPipeline {
             resolve(canonicalUrl);
           } catch (err: any) {
             uni.hideLoading();
-            console.warn('[MediaPipeline] 视频网络上传未能完成，启用本地预览降级:', err);
+            console.warn('[MediaPipeline] 视频上传失败:', err);
+            // 不再把本地临时路径 (wxfile://) 冒充为已上传视频：该路径仅本机可见，
+            // 一旦随课评提交，家长端与 Web 端都无法播放。上传失败就明确告知老师重试。
             uni.showToast({
-              title: '网络较慢，视频已暂存本地',
+              title: err?.message ? `视频上传失败：${err.message}` : '视频上传失败，请检查网络后重试',
               icon: 'none',
               duration: 2500,
             });
-            // 降级返回本地临时文件路径，保证用户在当前界面能看到视频并能继续写课评
-            resolve(res.tempFilePath);
+            reject(err instanceof Error ? err : new Error('视频上传失败'));
           }
         },
         fail: (err) => {

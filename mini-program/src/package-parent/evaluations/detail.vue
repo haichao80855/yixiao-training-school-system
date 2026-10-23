@@ -109,48 +109,6 @@
           </view>
         </view>
 
-        <!-- 课堂记录 -->
-        <view v-if="hasClassRecord" class="section enter" style="animation-delay: 240ms">
-          <text class="section-title">课堂记录</text>
-          <view class="class-card">
-            <view v-if="!letter && detail.overall.rating !== null" class="class-rating">
-              <StarRating :value="detail.overall.rating" size="28rpx" :show-value="true" />
-            </view>
-            <text v-if="detail.overall.comment" class="class-comment">{{ detail.overall.comment }}</text>
-
-            <view v-if="detail.overall.voice" class="voice" :class="{ playing }" @click="toggleVoice">
-              <view class="voice-btn">
-                <AppIcon :name="playing ? 'minus' : 'mic'" size="28rpx" color="#FFFFFF" />
-              </view>
-              <view class="wave">
-                <view v-for="i in 18" :key="i" class="bar" :style="{ height: waveHeight(i) + 'rpx', animationDelay: i * 60 + 'ms' }" />
-              </view>
-              <text v-if="detail.overall.voice.seconds" class="voice-len">{{ detail.overall.voice.seconds }}″</text>
-            </view>
-
-            <scroll-view v-if="classPhotosBelow.length" class="strip" scroll-x :show-scrollbar="false" enhanced>
-              <view class="strip-inner">
-                <image
-                  v-for="(p, idx) in classPhotosBelow"
-                  :key="idx"
-                  class="strip-photo"
-                  :src="mediaUrl(p.thumbUrl)"
-                  mode="aspectFill"
-                  lazy-load
-                  @click="preview(classPhotosBelow, idx)"
-                />
-              </view>
-            </scroll-view>
-
-            <video
-              v-if="detail.classMedia.video"
-              class="video"
-              :src="mediaUrl(detail.classMedia.video.url)"
-              object-fit="cover"
-            />
-          </view>
-        </view>
-
         <view class="end-mark">
           <text>· {{ teacherName }}用心记录的一节课 ·</text>
         </view>
@@ -161,7 +119,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { onLoad, onUnload } from '@dcloudio/uni-app';
+import { onLoad } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import StarRating from '../components/StarRating.vue';
 import EmptyState from '../components/EmptyState.vue';
@@ -174,10 +132,8 @@ const parentStore = useParentStore();
 const detail = ref<EvaluationDetail | null>(null);
 const loading = ref(true);
 const showFullContent = ref(false);
-const playing = ref(false);
 const heroIndex = ref(0);
 const studentId = ref('');
-let audio: UniApp.InnerAudioContext | null = null;
 
 const childName = computed(() => parentStore.children.find((c) => c.studentId === studentId.value)?.name || '孩子');
 const teacherName = computed(() => detail.value?.teacherName || '老师');
@@ -190,7 +146,6 @@ const heroPhotos = computed<PhotoLink[]>(() => {
 });
 const heroIsOwn = computed(() => !!detail.value?.forChild?.photos.length);
 const ownPhotosBelow = computed(() => (heroIsOwn.value ? [] : detail.value?.forChild?.photos || []));
-const classPhotosBelow = computed(() => (heroIsOwn.value ? detail.value?.classMedia.photos || [] : []));
 
 /** 写给孩子的信：优先本人专属评价，没有时用课堂总评 */
 const letter = computed(() => {
@@ -200,11 +155,6 @@ const letter = computed(() => {
     return { comment: d.forChild.comment, rating: d.forChild.rating, tag: d.forChild.tag };
   }
   return null;
-});
-
-const hasClassRecord = computed(() => {
-  const d = detail.value;
-  return !!d && !!(d.overall.comment || d.overall.voice || classPhotosBelow.value.length || d.classMedia.video || (!letter.value && d.overall.rating !== null));
 });
 
 onLoad(async (query: any) => {
@@ -220,41 +170,11 @@ onLoad(async (query: any) => {
   }
 });
 
-onUnload(() => {
-  audio?.destroy();
-  audio = null;
-});
-
 function preview(photos: PhotoLink[], index: number) {
   const urls = photos.map((p) => mediaUrl(p.url));
   uni.previewImage({ urls, current: urls[index] });
 }
 
-/** 语音条的静态波形 (确定性，非随机) */
-function waveHeight(i: number) {
-  return 10 + Math.round(Math.abs(Math.sin(i * 1.7)) * 26);
-}
-
-function toggleVoice() {
-  const voice = detail.value?.overall.voice;
-  if (!voice?.url) return;
-  if (!audio) {
-    audio = uni.createInnerAudioContext();
-    audio.src = mediaUrl(voice.url);
-    audio.onEnded(() => (playing.value = false));
-    audio.onError(() => {
-      playing.value = false;
-      uni.showToast({ title: '语音加载失败', icon: 'none' });
-    });
-  }
-  if (playing.value) {
-    audio.pause();
-    playing.value = false;
-  } else {
-    audio.play();
-    playing.value = true;
-  }
-}
 </script>
 
 <style lang="scss" scoped>

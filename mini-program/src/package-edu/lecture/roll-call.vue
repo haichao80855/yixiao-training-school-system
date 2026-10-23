@@ -15,7 +15,7 @@
     <view class="schedule-summary-card">
       <view class="tags-time-row">
         <view class="tag-pill tag-offline">线下课</view>
-        <view class="tag-pill tag-completed">已上</view>
+        <view class="tag-pill" :class="schedule.status === 'completed' ? 'tag-completed' : 'tag-pending'">{{ lessonStatusText }}</view>
         <text class="time-range">{{ schedule.timeRange }}</text>
       </view>
 
@@ -155,6 +155,11 @@ const schedule = ref<ScheduleEventModel>({
 // 参课学员名单 (根据实际班级花名册水化)
 const students = ref<StudentRollCallModel[]>([]);
 
+// 课次状态文案：与 Web 讲台一致 (未上课 / 上课中 / 已上课)
+const lessonStatusText = computed(() =>
+  schedule.value.status === 'completed' ? '已上' : schedule.value.status === 'in_progress' ? '上课中' : '未上'
+);
+
 const presentCount = computed(() => {
   return students.value.filter((s) => s.status === 'present' || s.status === 'late').length;
 });
@@ -171,13 +176,8 @@ const loadRollCallData = async (scheduleId: string) => {
     if (session.students) {
       students.value = session.students.map((s) => {
         const studentPhotos = s.photos || [];
-        const isStudentEvaluated = Boolean(
-          s.isEvaluated ||
-          (s as any).evaluated ||
-          (studentPhotos.length > 0) ||
-          s.videoUrl ||
-          s.comment
-        );
+        // 写课评 / 看学情 只认服务端「已推送」状态；本地草稿、预填评语、媒体都不算
+        const isStudentEvaluated = Boolean(s.isEvaluated || (s as any).evaluated);
         return {
           studentId: s.studentId,
           studentNo: s.studentNo,
@@ -208,7 +208,7 @@ const loadRollCallData = async (scheduleId: string) => {
         students.value = wb.students.map((s: any) => ({
           ...s,
           name: s.studentName || s.name,
-          evaluated: Boolean(s.isEvaluated || s.evaluated || s.currentComment || s.comment || (s.photos && s.photos.length > 0) || s.videoUrl),
+          evaluated: Boolean(s.isEvaluated || s.evaluated),
         }));
       } else {
         students.value = [];
@@ -262,13 +262,7 @@ onShow(async () => {
           if (item) {
             item.status = s.status;
             item.deductLessons = s.deductLessons;
-            const isStudentEvaluated = Boolean(
-              s.isEvaluated ||
-              (s as any).evaluated ||
-              s.comment ||
-              (s.photos && s.photos.length > 0) ||
-              s.videoUrl
-            );
+            const isStudentEvaluated = Boolean(s.isEvaluated || (s as any).evaluated);
             if (isStudentEvaluated) {
               item.evaluated = true;
               item.isEvaluated = true;
@@ -312,15 +306,14 @@ const syncAttendanceChange = async (immediate = false) => {
         deductLessons: s.deductLessons,
       }));
 
+      // 只同步出勤与课耗：不携带课次标题 / 学习内容 / 公共评语。
+      // 原实现每次点名都写入「随堂考勤」等占位文案，覆盖已写好甚至已发布的课评 (家长端可见)，
+      // 且因不带评定标记，会把所有学员的「已评定」重置为未评
       await eduApi.commitEvaluation({
         scheduleEventId: activeScheduleId,
         publish: false,
         dispatchStrategy: 'ATTENDED_ONLY',
         payload: {
-          lessonTitle: schedule.value.className ? `${schedule.value.className} - 随堂考勤` : '随堂考勤记录',
-          studyContentHtml: '随堂出勤记录与课评草稿',
-          teacherComment: '随堂教学进展正常',
-          overallRating: 5.0,
           studentOverrides,
         },
       });
@@ -398,8 +391,8 @@ const handleAutoEvaluation = () => {
       fulfillmentSession.value.updatePersonalizedComment(s.studentId, '本节课知识点掌握牢固，随堂练习完成出色！', 5.0);
     }
   }
-  students.value.forEach((s) => (s.evaluated = true));
-  uni.showToast({ title: '已依据课程大纲自动生成全员课评', icon: 'success' });
+  // 只是生成待推送内容：点击【全部推送】落库发布后，服务端才会标记为已推送 (看学情)
+  uni.showToast({ title: '已生成全员课评，点击「全部推送」后发布', icon: 'none' });
 };
 
 const handleAddTempStudent = () => {
@@ -464,7 +457,9 @@ const handleEvaluationAction = (stu: StudentRollCallModel) => {
 const handlePushAll = async () => {
   uni.showModal({
     title: '一键推送与履约',
-    content: `确认向 ${presentCount.value} 位到课学员家长微信推送随堂课评，并完成课时核销扣减？`,
+    content: schedule.value.status === 'completed'
+      ? `本课次已结课，确认向 ${presentCount.value} 位到课学员家长推送随堂课评？(不会重复扣课)`
+      : `确认向 ${presentCount.value} 位到课学员家长微信推送随堂课评，并完成课时核销扣减？`,
     confirmColor: '#FF6B00',
     success: async (res) => {
       if (res.confirm) {
@@ -474,7 +469,10 @@ const handlePushAll = async () => {
             for (const s of students.value) {
               fulfillmentSession.value.setStudentStatus(s.studentId, s.status, s.deductLessons);
             }
-            await fulfillmentSession.value.commit();
+            // 已结课的课次不能再次结算消课 (服务端拒绝)，只发布课评；未结课则结课消课并发布
+            await fulfillmentSession.value.commit({
+              mode: schedule.value.status === 'completed' ? 'PUBLISH_EVALUATION' : 'FULL_SETTLE',
+            });
           } else {
             await fulfillmentCoordinator.quickFulfill(schedule.value.id);
           }
@@ -570,6 +568,11 @@ const handleGoBack = async () => {
       &.tag-completed {
         background: #DCFCE7;
         color: #15803D;
+      }
+
+      &.tag-pending {
+        background: #EEF2FF;
+        color: #2F54EB;
       }
     }
 

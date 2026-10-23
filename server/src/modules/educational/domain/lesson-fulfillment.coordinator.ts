@@ -185,6 +185,16 @@ export class LessonFulfillmentCoordinator {
       const studentVideo = evalItem?.videoUrl || undefined;
       const isExempt = defaultStatus === 'leave' || defaultStatus === 'absent';
       const hasPersonalEvaluation = Boolean(evalItem);
+      // 家长端可见 = 课评已发布 且 (学员到课 或 有专属课评内容)；与家长端可见规则一致，
+      // 课评重开 (draft) / 反结课 (revoked) 后回到 false。小程序据此显示【看学情】/【已推送】
+      const isPublished = Boolean(
+        existingEval?.status === 'published' &&
+          (recordedStatus === 'present' ||
+            recordedStatus === 'late' ||
+            evalItem?.comment ||
+            studentPhotos.length > 0 ||
+            studentVideo),
+      );
       const isStudentEvaluated = Boolean(
         evalItem?.isEvaluated ||
         evalItem?.comment ||
@@ -212,6 +222,7 @@ export class LessonFulfillmentCoordinator {
         isRecorded: !!recorded,
         recordedStatus,
         isEvaluated: isStudentEvaluated,
+        isPublished,
         isExempt,
         hasPersonalEvaluation,
         evaluatedAt: evalItem?.evaluatedAt ? evalItem.evaluatedAt.toISOString() : undefined,
@@ -556,31 +567,39 @@ export class LessonFulfillmentCoordinator {
         revisionNumber = (existingEval?.currentRevision || 0) + 1;
 
         // 判断是否为单学员专有课评修改/提交 (确保学员数据绝对隔离，绝不串改同班其他学员)
-        const isSingleStudentUpdate = Boolean(
-          command.targetStudentId ||
-          (mode === 'PUBLISH_EVALUATION' && overrideMap.size === 1)
-        );
-        const singleTargetStudentId = command.targetStudentId || (isSingleStudentUpdate ? Array.from(overrideMap.keys())[0] : null);
+        // 只认显式 targetStudentId：全班发布时恰好只有一名学员有改动，也仍是全班发布 (原「覆写数 = 1」推断会把它误判为单学员推送)
+        const isSingleStudentUpdate = Boolean(command.targetStudentId);
+        const singleTargetStudentId = command.targetStudentId || null;
 
-        // 如果是单学员更新，且排课公共课评已存在：绝不覆盖已有的全班大纲、公共评语、公共相册与视频
+        // 如果是单学员更新，且排课公共课评已存在：绝不覆盖已有的公共评语、公共相册与视频；
+        // 「课程学习内容与知识点大纲」仅在调用方显式提交时更新（小程序写课评与 Web 一致可编辑大纲）
+        const explicitStudyContent =
+          typeof command.studyContentHtml === 'string' && command.studyContentHtml.trim()
+            ? command.studyContentHtml
+            : undefined;
         const evalUpdateData: any = isSingleStudentUpdate && existingEval
           ? {
+              ...(explicitStudyContent ? { studyContent: explicitStudyContent } : {}),
+              // 推送即发布：与首次推送 (create 分支) 一致；否则草稿态 / 重开后的课评推送后家长仍不可见
+              status: 'published',
               currentRevision: revisionNumber,
               publishedAt: new Date(),
               idempotencyKey: command.idempotencyKey || null,
             }
           : {
-              lessonTitle,
-              templateId: command.templateId || 'tmpl-common',
-              templateName: command.templateName || '通用课评模板',
-              studyContent: studyContentHtml,
-              overallRating,
-              teacherComment,
-              voiceUrl: command.voiceUrl || null,
-              voiceDuration: command.voiceDuration || 0,
-              videoUrl: command.videoUrl || null,
-              photoList: photoListJson,
-              aiPolished: command.aiPolished ?? false,
+              // 已有课评时，命令未携带的公共字段保留原值，不用教研模板兜底覆盖
+              // (小程序「一键结课」不携带课评内容，原实现会把老师写好的大纲 / 评语替换成模板文案)
+              lessonTitle: command.lessonTitle || existingEval?.lessonTitle || lessonTitle,
+              templateId: command.templateId || existingEval?.templateId || 'tmpl-common',
+              templateName: command.templateName || existingEval?.templateName || '通用课评模板',
+              studyContent: command.studyContentHtml || existingEval?.studyContent || studyContentHtml,
+              overallRating: command.overallRating ?? existingEval?.overallRating ?? overallRating,
+              teacherComment: command.teacherComment || existingEval?.teacherComment || teacherComment,
+              voiceUrl: command.voiceUrl !== undefined ? (command.voiceUrl || null) : (existingEval?.voiceUrl ?? null),
+              voiceDuration: command.voiceDuration !== undefined ? command.voiceDuration : (existingEval?.voiceDuration ?? 0),
+              videoUrl: command.videoUrl !== undefined ? (command.videoUrl || null) : (existingEval?.videoUrl ?? null),
+              photoList: command.photoList !== undefined ? photoListJson : (existingEval?.photoList ?? photoListJson),
+              aiPolished: command.aiPolished ?? existingEval?.aiPolished ?? false,
               status: 'published',
               currentRevision: revisionNumber,
               publishedAt: new Date(),
@@ -637,9 +656,10 @@ export class LessonFulfillmentCoordinator {
               performanceTag: ov.performanceTag,
               ...(ovPhotos !== undefined ? { photos: ovPhotos } : {}),
               ...(ovVideo !== undefined ? { videoUrl: ovVideo } : {}),
-              isEvaluated: isEval,
-              evaluatedAt: isEval ? new Date() : undefined,
-              evaluatedSource: (command as any).source || 'web',
+              // 只带出勤变化的覆写 (未显式评定且无评语/媒体) 不把已有的「已评定」重置为 false
+              ...(((ov as any).isEvaluated !== undefined || ov.personalizedComment || ovPhotos || ovVideo)
+                ? { isEvaluated: isEval, evaluatedAt: isEval ? new Date() : undefined, evaluatedSource: (command as any).source || 'web' }
+                : {}),
             },
             create: {
               evaluationId: evalRecordResult.id,
@@ -662,7 +682,7 @@ export class LessonFulfillmentCoordinator {
           scheduleEventId: schedule.id,
           className: cls.name,
           lessonTitle,
-          studyContent: isSingleStudentUpdate && existingEval ? existingEval.studyContent : studyContentHtml,
+          studyContent: isSingleStudentUpdate && existingEval ? (explicitStudyContent || existingEval.studyContent) : studyContentHtml,
           overallRating: isSingleStudentUpdate && existingEval ? existingEval.overallRating : overallRating,
           teacherComment: isSingleStudentUpdate && existingEval ? existingEval.teacherComment : teacherComment,
           photoList: isSingleStudentUpdate && existingEval ? (existingEval.photoList ? JSON.parse(existingEval.photoList) : []) : (command.photoList || []),
@@ -781,14 +801,18 @@ export class LessonFulfillmentCoordinator {
 
       // ----------------------------------------------------------------------
       // 步骤 6: 更新排课日程状态为 completed (盛通绿色标签)
+      // 仅消课结算模式推进结课；PUBLISH_EVALUATION 只发布课评，不点名不扣课，
+      // 若也置为 completed，课次会在「零考勤、零扣课」的情况下被锁死为已结课
       // ----------------------------------------------------------------------
-      await tx.scheduleEvent.update({
-        where: { id: schedule.id },
-        data: {
-          status: 'completed',
-          semanticType: 'completed',
-        },
-      });
+      if (mode === 'FULL_SETTLE' || mode === 'ATTENDANCE_ONLY') {
+        await tx.scheduleEvent.update({
+          where: { id: schedule.id },
+          data: {
+            status: 'completed',
+            semanticType: 'completed',
+          },
+        });
+      }
 
       const receiptId = `REC-FLM-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 

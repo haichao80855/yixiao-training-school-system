@@ -227,8 +227,8 @@
             <div>
               <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Image class="w-3.5 h-3.5 text-st-primary" />课堂随堂相册 (最多 9 张)</label>
               <div class="flex items-center gap-2">
-                <el-button size="small" type="primary" plain @click="handleAddPhoto">
-                  添加现场照片
+                <el-button size="small" type="primary" plain :loading="uploadingPhotos" @click="handleAddPhoto">
+                  {{ uploadingPhotos ? '上传中…' : '添加现场照片' }}
                 </el-button>
                 <span class="text-[11px] text-st-muted">已选 {{ form.photoList.length }} 张</span>
               </div>
@@ -326,6 +326,7 @@ import {
   Smartphone
 } from 'lucide-vue-next'
 import { educationalApi } from '@/api/modules/educational'
+import { uploadApi } from '@/api'
 import { DIALOG_SIZE } from '@/constants/ui'
 
 const emit = defineEmits<{
@@ -455,19 +456,46 @@ function handleBatchAllPresent() {
   ElMessage.info('已将全员设为到课 (扣减 1 课时)')
 }
 
+// 真实上传随堂照片 (与课评弹窗共用 /api/upload/photos)。
+// 原实现直接塞入固定的 Unsplash 示例图，结课发布后会作为班级照片推送到家长端
+const uploadingPhotos = ref(false)
+
 function handleAddPhoto() {
-  if (form.photoList.length >= 9) {
+  const remain = 9 - form.photoList.length
+  if (remain <= 0) {
     ElMessage.warning('随堂相册最多支持上传 9 张照片')
     return
   }
-  const samplePhotos = [
-    'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=300',
-    'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=300',
-    'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300',
-  ]
-  const picked = samplePhotos[form.photoList.length % samplePhotos.length]
-  form.photoList.push(picked)
-  ElMessage.success('已添加随堂现场照片')
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/jpeg,image/png,image/webp,image/gif'
+  input.multiple = true
+  input.onchange = async () => {
+    const MAX_BYTES = 10 * 1024 * 1024
+    const files = Array.from(input.files || []).slice(0, remain)
+    const validFiles = files.filter((f) => f.size <= MAX_BYTES)
+    if (validFiles.length < files.length) {
+      ElMessage.warning('部分照片超过 10MB 上限，已跳过')
+    }
+    if (validFiles.length === 0 || !currentLesson.value) return
+
+    uploadingPhotos.value = true
+    try {
+      const res = await uploadApi.uploadClassroomPhotos({
+        files: validFiles,
+        campusId: currentLesson.value.campusId || localStorage.getItem('yixiao_current_campus_id') || 'campus-bj-hq',
+        scheduleEventId: currentLesson.value.id,
+      })
+      const urls = res?.data?.persistedUrls || []
+      form.photoList.push(...urls)
+      ElMessage.success(`已上传 ${urls.length} 张随堂照片`)
+    } catch (err: any) {
+      ElMessage.error(err?.message || '上传随堂照片失败，请稍后重试')
+    } finally {
+      uploadingPhotos.value = false
+    }
+  }
+  input.click()
 }
 
 function handleRemovePhoto(index: number) {

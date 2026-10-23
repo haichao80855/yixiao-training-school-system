@@ -189,11 +189,12 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
       }
     }
 
+    // 与家长端一致：只展示老师对该学员的专属评语。不再回退到课次公共点评或固定文案——
+    // 家长端看不到那些文字，老师在【看学情】里却会把它当成已写给孩子的评语
     const comment =
       targetStudent.currentComment ||
       targetStudent.comment ||
-      wb.evaluationSummary?.teacherComment ||
-      '课堂专注投入，表现优异，随堂任务完成度高！';
+      '暂未填写该学员的专属评语';
 
     const rawVideoUrl = isPersonalized
       ? (targetStudent?.videoUrl || '')

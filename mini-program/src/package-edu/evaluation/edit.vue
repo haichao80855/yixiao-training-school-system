@@ -47,16 +47,35 @@
 
       <view class="field-divider"></view>
 
-      <!-- 核心输入项：学习内容 (对齐截图 017) -->
+      <!-- 1) 课程学习内容与知识点大纲：课次级，全班共享（与 Web 课评表单一致） -->
+      <view class="input-block">
+        <view class="label-row">
+          <text class="field-label">课程学习内容与知识点大纲</text>
+          <text class="field-hint">全班共享</text>
+        </view>
+        <textarea
+          class="study-content-textarea outline-textarea"
+          v-model="studyContent"
+          placeholder="请输入本堂课的核心知识点与学习内容"
+          placeholder-class="placeholder-text"
+          maxlength="1000"
+          @input="hasModified = true"
+        ></textarea>
+      </view>
+
+      <view class="field-divider"></view>
+
+      <!-- 2) 随堂特写评语：该学员专属，必填 -->
       <view class="input-block">
         <view class="label-row">
           <text class="required-star">*</text>
-          <text class="field-label">学习内容</text>
+          <text class="field-label">{{ studentName }} 的随堂特写评语</text>
+          <text class="field-count">{{ comment.length }}/1000</text>
         </view>
         <textarea
           class="study-content-textarea"
-          v-model="studyContent"
-          placeholder="请输入学习内容"
+          v-model="comment"
+          placeholder="写下孩子这节课的表现、进步与建议"
           placeholder-class="placeholder-text"
           maxlength="1000"
           @input="hasModified = true"
@@ -153,7 +172,8 @@ const studentName = ref('董御');
 const scheduleId = ref('sch-qmyy-12');
 const className = ref('周二18.30周六10.00班-12');
 const currentTemplateName = ref('通用课评模板');
-const studyContent = ref('');
+const studyContent = ref(''); // 课程学习内容与知识点大纲（课次级）
+const comment = ref(''); // 随堂特写评语（学员专属）
 const uploadedPhotos = ref<string[]>([]);
 const uploadedVideo = ref<string>('');
 
@@ -196,6 +216,7 @@ onMounted(async () => {
     if (draft.studentName) studentName.value = draft.studentName;
     if (draft.className) className.value = draft.className;
     if (draft.studyContent) studyContent.value = draft.studyContent;
+    if (draft.comment) comment.value = draft.comment;
     if (draft.templateName) currentTemplateName.value = draft.templateName;
     if (draft.photos && draft.photos.length > 0) uploadedPhotos.value = [...draft.photos];
     if (draft.videoUrl) uploadedVideo.value = draft.videoUrl;
@@ -203,8 +224,8 @@ onMounted(async () => {
       isRevisionMode.value = true;
     }
   } catch (e) {
-    // 默认大纲预置 (零心智通途兜底)
-    studyContent.value = '本节课重点掌握字母拼读规则与自然拼读交互，学员发音精准，课堂表现专注积极！';
+    // 水化失败时保持空白，不再预填与本课无关的示例文案
+    uni.showToast({ title: '课评数据加载失败，请返回重试', icon: 'none' });
   }
 });
 
@@ -215,7 +236,6 @@ const handleSwitchTemplate = () => {
       currentTemplateName.value = ['通用课评模板', '少儿编程创客模板', '英语自然拼读模板', '一对一专属评语模板'][res.tapIndex];
       uni.showToast({ title: `已载入: ${currentTemplateName.value}`, icon: 'none' });
       hasModified.value = true;
-      triggerAutoSave();
     },
   });
 };
@@ -238,7 +258,6 @@ const handleChoosePhoto = async () => {
     if (urls && urls.length > 0) {
       uploadedPhotos.value.push(...urls);
       hasModified.value = true;
-      triggerAutoSave();
     }
   } catch (err) {
     // 错误已由 mediaPipeline 抛出并展示
@@ -257,7 +276,6 @@ const handleChooseVideo = async () => {
     if (videoUrl) {
       uploadedVideo.value = videoUrl;
       hasModified.value = true;
-      triggerAutoSave();
     }
   } catch (err) {
     // 错误已由 mediaPipeline 抛出并展示
@@ -268,34 +286,15 @@ const handleChooseVideo = async () => {
 const removeVideo = () => {
   uploadedVideo.value = '';
   hasModified.value = true;
-  triggerAutoSave();
   uni.showToast({ title: '视频已移除', icon: 'none' });
 };
 
 const removePhoto = (idx: number) => {
   uploadedPhotos.value.splice(idx, 1);
   hasModified.value = true;
-  triggerAutoSave();
 };
 
-// 防抖自动暂存
-const triggerAutoSave = () => {
-  fulfillmentCoordinator.saveStudentDraft(
-    scheduleId.value,
-    studentId.value,
-    {
-      studentName: studentName.value,
-      className: className.value,
-      studyContent: studyContent.value,
-      templateName: currentTemplateName.value,
-      photos: uploadedPhotos.value,
-      videoUrl: uploadedVideo.value,
-      rating: 5,
-    },
-    { debounceMs: 400 }
-  );
-};
-
+// 草稿只在点击【保存】时写入：退出提醒承诺「已编辑课评不会保存」，不能在背后自动暂存
 // 广播课评完成状态并同步上一页实例
 const emitEvaluationSuccess = (targetStudentId: string, targetScheduleId: string) => {
   // 1. 全局事件广播，通知所有监听页面 (课次详情页与课评管理页)
@@ -323,7 +322,7 @@ const emitEvaluationSuccess = (targetStudentId: string, targetScheduleId: string
           item.isEvaluated = true;
           item.photos = [...uploadedPhotos.value];
           item.videoUrl = uploadedVideo.value || undefined;
-          item.comment = studyContent.value;
+          item.comment = comment.value;
         }
       }
       if (vm && Array.isArray(vm.rosterItems)) {
@@ -344,6 +343,7 @@ const handleSaveDraft = async () => {
       studentName: studentName.value,
       className: className.value,
       studyContent: studyContent.value,
+      comment: comment.value,
       templateName: currentTemplateName.value,
       photos: uploadedPhotos.value,
       videoUrl: uploadedVideo.value,
@@ -352,13 +352,13 @@ const handleSaveDraft = async () => {
     { immediate: true }
   );
   hasModified.value = false;
-  emitEvaluationSuccess(studentId.value, scheduleId.value);
-  uni.showToast({ title: '已保存至草稿箱', icon: 'success' });
+  // 草稿仅保存在本机、尚未推送：不广播「已评」，课次详情仍显示【写课评】
+  uni.showToast({ title: '草稿已保存，尚未推送', icon: 'none' });
 };
 
 const handleSubmitEvaluation = async () => {
-  if (!studyContent.value.trim()) {
-    uni.showToast({ title: '请输入学习内容', icon: 'none' });
+  if (!comment.value.trim()) {
+    uni.showToast({ title: '请填写随堂特写评语', icon: 'none' });
     return;
   }
 
@@ -369,6 +369,7 @@ const handleSubmitEvaluation = async () => {
       studentName: studentName.value,
       className: className.value,
       studyContent: studyContent.value,
+      comment: comment.value,
       templateName: currentTemplateName.value,
       photos: uploadedPhotos.value,
       videoUrl: uploadedVideo.value,
@@ -588,6 +589,21 @@ const confirmExit = () => {
         font-weight: 700;
         color: #111827;
       }
+
+      .field-hint {
+        margin-left: 8rpx;
+        padding: 2rpx 12rpx;
+        font-size: 20rpx;
+        color: #2F54EB;
+        background: #EEF2FF;
+        border-radius: 8rpx;
+      }
+
+      .field-count {
+        margin-left: auto;
+        font-size: 22rpx;
+        color: #94A3B8;
+      }
     }
 
     .study-content-textarea {
@@ -596,6 +612,14 @@ const confirmExit = () => {
       font-size: 26rpx;
       color: #1F2937;
       line-height: 1.5;
+
+      &.outline-textarea {
+        height: 150rpx;
+        padding: 16rpx 20rpx;
+        box-sizing: border-box;
+        background: #F8FAFC;
+        border-radius: 16rpx;
+      }
     }
 
     .placeholder-text {

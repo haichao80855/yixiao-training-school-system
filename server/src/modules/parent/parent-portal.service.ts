@@ -223,7 +223,9 @@ export class ParentPortalService {
         const media = published ? this.splitMedia(ev!, own) : null;
         const ownPhotos = media?.ownPhotos || [];
         const classPhotos = media?.classPhotos || [];
-        const comment = own?.comment || ev?.teacherComment || null;
+        // 预览只取老师对孩子的专属评语：详情页已不展示课次公共点评 (teacherComment)，
+        // 预览若回退到公共点评，会出现点进去找不到的文字
+        const comment = own?.comment || null;
         return {
           scheduleEventId: r.scheduleEventId,
           date: e?.date || null,

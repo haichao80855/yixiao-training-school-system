@@ -127,7 +127,10 @@ export interface StudentEvaluationDraft {
   lessonTitle: string;
   templateId?: string;
   templateName: string;
+  /** 课程学习内容与知识点大纲：课次级（全班共享），对应 LessonEvaluation.studyContent */
   studyContent: string;
+  /** 随堂特写评语：该学员专属，对应 LessonEvaluationStudentItem.comment */
+  comment: string;
   rating: number;
   photos: string[];
   videoUrl?: string;

@@ -386,7 +386,24 @@ export class LessonEvaluationCoordinator {
     const isSingleStudentUpdate = studentOverrides.length === 1;
     const singleTargetStudentId = isSingleStudentUpdate ? studentOverrides[0].studentId : null;
 
+    // 学员覆写是否携带课评内容 (评语 / 照片 / 视频 / 显式评定标记)；仅含出勤状态的覆写只同步考勤
+    const overrideHasEvaluationContent = (ov: (typeof studentOverrides)[0]) =>
+      Boolean(ov.personalizedComment || (ov.photos && ov.photos.length > 0) || ov.videoUrl);
+    // 仅同步考勤的草稿 (如小程序课次详情点名时的静默同步)：尚无课评时不凭空创建「随堂考勤」占位课评，
+    // 否则占位标题 / 学习内容会在之后的发布中原样出现在家长端
+    const isAttendanceOnlyDraft =
+      !publish &&
+      !existing &&
+      !payload.studyContentHtml &&
+      !payload.teacherComment &&
+      !(payload.photoList && payload.photoList.length > 0) &&
+      !payload.videoUrl &&
+      !payload.voiceUrl &&
+      !studentOverrides.some((ov) => ov.isEvaluated !== undefined || overrideHasEvaluationContent(ov));
+
     return this.prisma.$transaction(async (tx) => {
+      let evalRecord: any = null;
+      if (!isAttendanceOnlyDraft) {
       // 1. 落盘课评聚合根 LessonEvaluation (单学员修改时保留排课公共内容)
       const evalUpdateData: any = isSingleStudentUpdate && existing
         ? {
@@ -412,7 +429,7 @@ export class LessonEvaluationCoordinator {
             idempotencyKey: command.idempotencyKey || null,
           };
 
-      const evalRecord = await tx.lessonEvaluation.upsert({
+      evalRecord = await tx.lessonEvaluation.upsert({
         where: { scheduleEventId: schedule.id },
         update: evalUpdateData,
         create: {
@@ -440,9 +457,16 @@ export class LessonEvaluationCoordinator {
 
       // 2. 落盘单学员特写条目 LessonEvaluationStudentItem
       for (const ov of studentOverrides) {
+        // 只带出勤状态的覆写不触碰学员课评条目：既不新建空条目，也不把已有的「已评定」标记重置为 false
+        const isEvalExplicit = ov.isEvaluated !== undefined;
+        const hasOvContent = overrideHasEvaluationContent(ov);
+        if (!isEvalExplicit && !hasOvContent && ov.rating === undefined && !ov.performanceTag) {
+          continue;
+        }
         const ovPhotosJson = Array.isArray(ov.photos) ? JSON.stringify(ov.photos) : undefined;
         const ovVideo = ov.videoUrl !== undefined ? (ov.videoUrl || null) : undefined;
-        const isEval = ov.isEvaluated !== undefined ? ov.isEvaluated : Boolean(ov.personalizedComment || (ov.photos && ov.photos.length > 0) || ov.videoUrl);
+        const isEval = isEvalExplicit ? Boolean(ov.isEvaluated) : hasOvContent;
+        const touchEvaluatedFlag = isEvalExplicit || hasOvContent;
 
         await tx.lessonEvaluationStudentItem.upsert({
           where: {
@@ -457,9 +481,9 @@ export class LessonEvaluationCoordinator {
             performanceTag: ov.performanceTag,
             ...(ovPhotosJson !== undefined ? { photos: ovPhotosJson } : {}),
             ...(ovVideo !== undefined ? { videoUrl: ovVideo } : {}),
-            isEvaluated: isEval,
-            evaluatedAt: isEval ? new Date() : undefined,
-            evaluatedSource: (command as any).source || 'web',
+            ...(touchEvaluatedFlag
+              ? { isEvaluated: isEval, evaluatedAt: isEval ? new Date() : undefined, evaluatedSource: (command as any).source || 'web' }
+              : {}),
           },
           create: {
             evaluationId: evalRecord.id,
@@ -474,6 +498,8 @@ export class LessonEvaluationCoordinator {
             evaluatedSource: (command as any).source || 'web',
           },
         });
+      }
+
       }
 
       // 3. 考勤状态双向同步与资产安全落盘 (草稿态与发布态均一致维护)

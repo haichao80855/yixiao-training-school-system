@@ -87,6 +87,8 @@ export interface FulfillmentStudentView {
   readonly currentComment?: string;
   readonly currentRating?: string | number;
   readonly isEvaluated?: boolean;
+  /** 家长端是否可见该学员本课次课评：课评已发布 且 (学员到课 或 有专属课评内容) */
+  readonly isPublished?: boolean;
   readonly isExempt?: boolean;
   readonly hasPersonalEvaluation?: boolean;
   readonly evaluatedAt?: string;

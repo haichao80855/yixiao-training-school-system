@@ -164,7 +164,11 @@
 
           <!-- 底部双操作按钮 (对齐截图 013: [结课] 与 [操作]) -->
           <view class="card-actions-row" @click.stop>
-            <view class="action-pill-btn btn-finish" @click="handleFinishClass(item)">结课</view>
+            <view
+              class="action-pill-btn btn-finish"
+              :class="{ 'is-disabled': item.status === 'completed' }"
+              @click="handleFinishClass(item)"
+            >{{ item.status === 'completed' ? '已结课' : '结课' }}</view>
             <view class="action-pill-btn btn-more" @click="openActionMenu(item)">操作</view>
           </view>
         </view>
@@ -549,6 +553,11 @@ const handleCardClick = (item: ScheduleEventModel) => {
 };
 
 const handleFinishClass = async (item: ScheduleEventModel) => {
+  // 与 Web 讲台一致：已结课课次不能再次结课消课 (服务端会拒绝)；查看 / 修改课评请进入课次详情
+  if (item.status === 'completed') {
+    uni.showToast({ title: '该课次已结课，如需修改课评请进入课次详情', icon: 'none' });
+    return;
+  }
   uni.showModal({
     title: '确认一键结课',
     content: `即将对「${item.className}」执行全勤消课与自动课评持久化，确定结课？`,
@@ -1226,6 +1235,12 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
           background: #FFF7ED;
           color: #EA580C;
           border: 1rpx solid rgba(234, 88, 12, 0.2);
+
+          &.is-disabled {
+            background: #F1F5F9;
+            color: #94A3B8;
+            border-color: rgba(15, 23, 42, 0.06);
+          }
         }
 
         &.btn-more {
