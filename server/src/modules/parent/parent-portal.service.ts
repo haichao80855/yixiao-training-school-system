@@ -271,7 +271,8 @@ export class ParentPortalService {
       attendance: attendance.status,
       content: {
         html: ev.studyContent ? this.sanitizeHtml(ev.studyContent) : null,
-        keyPoints: ev.studyContent ? this.keyPoints(ev.studyContent) : [],
+        // 先清洗再提炼：<script> 等被移除的标签里的文字不能变成知识点
+        keyPoints: ev.studyContent ? this.keyPoints(this.sanitizeHtml(ev.studyContent)) : [],
       },
       overall: {
         rating: ev.overallRating ?? null,

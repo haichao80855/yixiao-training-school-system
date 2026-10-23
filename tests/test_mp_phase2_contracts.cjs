@@ -113,10 +113,11 @@ const coordinatorPath = path.resolve(__dirname, '../mini-program/src/coordinator
 const coordinatorContent = fs.readFileSync(coordinatorPath, 'utf8');
 assert.ok(coordinatorContent.includes('isEvaluated'), '❌ 履约协调器 hydrateStudentDraft 缺少 isEvaluated 已评标记');
 assert.ok(coordinatorContent.includes('currentComment'), '❌ 履约协调器 hydrateStudentDraft 缺少历史评语回填');
-// 8. 验证 5 维核心素养雷达图原生 WXML 渲染兼容性 (ADR-0010 & 微信小程序 vector image 规范)
-assert.ok(drawerContent.includes('radar-svg-img'), '❌ 学情卡雷达图缺少微信小程序原生 <image class="radar-svg-img"> 矢量渲染载体');
-assert.ok(drawerContent.includes('radarSvgUri'), '❌ 学情卡雷达图缺少动态 radarSvgUri 数据绑定');
-assert.ok(!drawerContent.includes('<svg viewBox'), '❌ 学情卡雷达图严禁直接使用 WXML 不支持的裸 <svg> 标签');
-console.log('✔ 5 维核心素养雷达图微信小程序矢量渲染与 WXML 兼容性契约通过');
+// 8. 看学情：5 维核心素养雷达图已下线，改为展示「课程内容与知识点大纲」(与家长端「本节课学了什么」同源)
+assert.ok(!drawerContent.includes('radarSvgUri') && !drawerContent.includes('radar-svg-img'), '❌ 看学情不应再渲染 5 维核心素养雷达图');
+assert.ok(drawerContent.includes('课程内容与知识点大纲'), '❌ 看学情缺少「课程内容与知识点大纲」板块');
+assert.ok(drawerContent.includes('growthData.courseOutline'), '❌ 课程大纲板块必须绑定投影器下发的 courseOutline');
+assert.ok(!drawerContent.includes('<svg viewBox'), '❌ 学情卡严禁直接使用 WXML 不支持的裸 <svg> 标签');
+console.log('✔ 看学情课程内容与知识点大纲板块契约通过 (雷达图已下线)');
 
 console.log('\n🎉 所有阶段二契约断言均 100% 验证通过！');

@@ -7,7 +7,7 @@
         <view class="header-main-row">
           <view class="header-left">
             <text class="header-title">随堂多媒体学情成长卡</text>
-            <text class="header-sub">ADR-0010 多媒体雷达实录</text>
+            <text class="header-sub">与家长端所见一致</text>
           </view>
           <view class="header-right-actions">
             <view class="header-edit-pill" @click="handleGoEdit">
@@ -31,7 +31,7 @@
           :bounces="true"
         >
           <view v-if="isLoading" class="loading-box">
-            <text class="loading-tip">正在投影学员多媒体学情雷达...</text>
+            <text class="loading-tip">正在加载学情...</text>
           </view>
 
         <view v-else-if="growthData" class="growth-card-body">
@@ -53,29 +53,32 @@
             </view>
           </view>
 
-          <!-- 2. 纯数学原生 5 维核心素养雷达图 (0 依赖 SVG) -->
+          <!-- 2. 课程内容与知识点大纲 (课次级，全班共享；与家长端「本节课学了什么」同源) -->
           <view class="section-card">
             <view class="section-title-row">
-              <text class="section-title">5 维核心素养雷达</text>
-              <text class="section-tag">双向考勤折算</text>
+              <text class="section-title">课程内容与知识点大纲</text>
+              <text class="section-tag">全班共享</text>
             </view>
 
-            <view class="radar-box">
-              <image
-                v-if="radarSvgUri"
-                class="radar-svg-img"
-                :src="radarSvgUri"
-                mode="aspectFit"
-              />
+            <view v-if="growthData.courseOutline.points.length || growthData.courseOutline.html" class="outline-box">
+              <view v-for="(point, idx) in growthData.courseOutline.points" :key="idx" class="outline-row">
+                <view class="outline-check">
+                  <AppIcon name="check" size="22rpx" color="#2563EB" />
+                </view>
+                <text class="outline-text">{{ point }}</text>
+              </view>
 
-              <!-- 5 维指标胶囊列表 -->
-              <view class="dimension-chips-grid">
-                <view class="dim-chip" v-for="dim in growthData.radarDimensions" :key="dim.key">
-                  <text class="dim-name">{{ dim.label }}</text>
-                  <text class="dim-score">{{ dim.score }}</text>
+              <view v-if="growthData.courseOutline.html" class="outline-more">
+                <view v-if="showFullOutline" class="outline-rich">
+                  <rich-text :nodes="growthData.courseOutline.html" />
+                </view>
+                <view class="outline-toggle" @click="showFullOutline = !showFullOutline">
+                  <text>{{ showFullOutline ? '收起完整大纲' : '查看完整大纲' }}</text>
+                  <AppIcon :name="showFullOutline ? 'chevron-up' : 'chevron-down'" size="22rpx" color="#2563EB" />
                 </view>
               </view>
             </view>
+            <text v-else class="outline-empty">本课次尚未填写课程内容与知识点大纲</text>
           </view>
 
           <!-- 3. 教师个性化随堂寄语 -->
@@ -90,15 +93,6 @@
               <text class="quote-mark right">”</text>
             </view>
 
-            <!-- 教学重难点 -->
-            <view class="syllabus-points-wrap" v-if="growthData.syllabusPoints.length > 0">
-              <text class="sub-label">随堂知识素养：</text>
-              <view class="points-chips">
-                <text class="point-badge" v-for="(p, idx) in growthData.syllabusPoints" :key="idx">
-                  ✓ {{ p }}
-                </text>
-              </view>
-            </view>
           </view>
 
           <!-- 4. 9 宫格多媒体相册 -->
@@ -167,7 +161,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue';
+import { ref, watch } from 'vue';
 import { learningGrowthProjector, type LessonGrowthView } from '../projectors/learning-growth';
 import AppIcon from './AppIcon.vue';
 
@@ -187,17 +181,8 @@ const emit = defineEmits<{
 const isLoading = ref(false);
 const growthData = ref<LessonGrowthView | null>(null);
 
-const radarSvgUri = computed(() => {
-  if (growthData.value?.radarSvgDataUri) {
-    return growthData.value.radarSvgDataUri;
-  }
-  const points = growthData.value?.radarSvgPolygonPoints;
-  if (!points) return '';
-  if (typeof (learningGrowthProjector as any).generateRadarSvgDataUri === 'function') {
-    return (learningGrowthProjector as any).generateRadarSvgDataUri(points, growthData.value?.radarDimensions);
-  }
-  return '';
-});
+// 完整大纲默认折叠，切换学员 / 课次时复位
+const showFullOutline = ref(false);
 
 watch(
   () => [props.visible, props.scheduleId, props.studentId],
@@ -211,6 +196,7 @@ watch(
 
 const loadGrowthData = async (scheduleId: string, studentId: string) => {
   isLoading.value = true;
+  showFullOutline.value = false;
   try {
     const view = await learningGrowthProjector.projectLessonGrowth({
       scheduleId,
@@ -501,47 +487,62 @@ const handleGoEdit = () => {
   }
 }
 
-/* 2. 原生 SVG 雷达 (小程序 <image> 矢量渲染) */
-.radar-box {
+/* 2. 课程内容与知识点大纲 */
+.outline-box {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 14rpx;
 
-  .radar-svg-img,
-  .radar-svg {
-    width: 380rpx;
-    height: 380rpx;
-    display: block;
-  }
-
-  .dimension-chips-grid {
+  .outline-row {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 12rpx;
-    margin-top: 16rpx;
-    width: 100%;
-
-    .dim-chip {
-      background: #F1F5F9;
-      border-radius: 12rpx;
-      padding: 8rpx 16rpx;
-      display: flex;
-      align-items: center;
-      gap: 8rpx;
-
-      .dim-name {
-        font-size: 22rpx;
-        color: #475569;
-      }
-
-      .dim-score {
-        font-size: 22rpx;
-        font-weight: 700;
-        color: #2563EB;
-      }
-    }
+    align-items: flex-start;
+    gap: 14rpx;
   }
+
+  .outline-check {
+    flex-shrink: 0;
+    width: 34rpx;
+    height: 34rpx;
+    margin-top: 2rpx;
+    border-radius: 50%;
+    background: #EFF6FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .outline-text {
+    flex: 1;
+    font-size: 26rpx;
+    color: #334155;
+    line-height: 1.6;
+  }
+
+  .outline-more {
+    margin-top: 4rpx;
+    padding-top: 14rpx;
+    border-top: 1rpx solid #F1F5F9;
+  }
+
+  .outline-rich {
+    font-size: 26rpx;
+    color: #334155;
+    line-height: 1.7;
+    margin-bottom: 12rpx;
+  }
+
+  .outline-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6rpx;
+    font-size: 24rpx;
+    color: #2563EB;
+  }
+}
+
+.outline-empty {
+  font-size: 24rpx;
+  color: #94A3B8;
 }
 
 /* 3. 随堂评语与教学大纲 */
@@ -566,29 +567,6 @@ const handleGoEdit = () => {
     font-size: 26rpx;
     color: #334155;
     line-height: 1.6;
-  }
-}
-
-.syllabus-points-wrap {
-  .sub-label {
-    font-size: 22rpx;
-    color: #64748B;
-    font-weight: 600;
-  }
-
-  .points-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10rpx;
-    margin-top: 8rpx;
-
-    .point-badge {
-      font-size: 22rpx;
-      color: #1E40AF;
-      background: #DBEAFE;
-      padding: 6rpx 14rpx;
-      border-radius: 8rpx;
-    }
   }
 }
 

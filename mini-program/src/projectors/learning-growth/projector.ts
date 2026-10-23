@@ -14,6 +14,32 @@ export interface LearningGrowthProjectorOptions {
   cacheTtlMs?: number;
 }
 
+
+/**
+ * 由课次大纲 HTML 构建「课程内容与知识点大纲」：
+ * 知识点提炼规则与家长端 parent-portal.service#keyPoints 一致 (段落 / 列表项 / 分号句号切分，2~60 字，最多 5 条)，
+ * 保证老师在【看学情】预览到的与家长端「本节课学了什么」一致
+ */
+function buildCourseOutline(rawHtml: string | null | undefined): { points: string[]; html: string } {
+  const html = typeof rawHtml === 'string' ? rawHtml.trim() : '';
+  if (!html) return { points: [], html: '' };
+  // rich-text 渲染前的基础清洗 (同家长端)：移除脚本 / 样式 / 内嵌对象、事件属性与 javascript: 链接
+  const safeHtml = html
+    .replace(/<(script|style|iframe|object|embed)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<(script|style|iframe|object|embed)[^>]*\/?>/gi, '')
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href|src)\s*=\s*("|')\s*javascript:[^"']*\2/gi, '');
+  const points = safeHtml
+    .replace(/<\/(p|li|h\d|div)>|<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .split(/[\n;；。]/)
+    .map((s) => s.replace(/\s+/g, ' ').trim())
+    .filter((s) => s.length > 2 && s.length <= 60)
+    .slice(0, 5);
+  return { points, html: safeHtml };
+}
+
 export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
   private readonly queryPort: GrowthQueryPort;
   private readonly cachePort: GrowthCachePort;
@@ -129,6 +155,7 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
       syllabusPoints: Array.isArray(lesson.syllabusPoints) && lesson.syllabusPoints.length > 0
         ? lesson.syllabusPoints
         : ['核心概念解析与实践', '随堂交互与逻辑思维拓展'],
+      courseOutline: buildCourseOutline(lesson.studyContentHtml || lesson.studyContent),
       photos,
       video,
       badges: Array.isArray(lesson.badges) && lesson.badges.length > 0
@@ -212,7 +239,9 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
       levelText: this.getScoreLevelText(score),
       performanceTag: targetStudent.performanceTag || (score >= 90 ? '专注标兵' : '进步之星'),
       teacherComment: comment,
-      syllabusPoints: ['核心知识体系构建', '模块化设计与逻辑实现', '团队互动与成果演示'],
+      // 取课次真实大纲，不再使用固定的示例知识点
+      syllabusPoints: buildCourseOutline(wb.evaluationSummary?.studyContent).points,
+      courseOutline: buildCourseOutline(wb.evaluationSummary?.studyContent),
       photos,
       video: canonicalVideoUrl ? { videoUrl: canonicalVideoUrl } : undefined,
 
@@ -343,6 +372,7 @@ export class DefaultLearningGrowthProjector implements LearningGrowthProjector {
       performanceTag: '学习标兵',
       teacherComment: '随堂学习表现优异，课堂练习认真扎实！',
       syllabusPoints: ['重点知识掌握牢固'],
+      courseOutline: { points: [], html: '' },
       photos: [],
       badges: [{ name: '学习之星', icon: 'star', desc: '课堂表现良好' }],
       radarDimensions: radar,

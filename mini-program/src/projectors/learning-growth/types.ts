@@ -32,6 +32,11 @@ export interface LessonGrowthView {
   readonly performanceTag: string;          // 表现标签 (如 '专注标兵')
   readonly teacherComment: string;          // 教师随堂个性化寄语
   readonly syllabusPoints: readonly string[];// 教学大纲知识点列表
+  /** 课程内容与知识点大纲：取自课次课评的 studyContent (与家长端「本节课学了什么」同源同口径) */
+  readonly courseOutline: {
+    readonly points: readonly string[];     // 提炼的知识点 (≤5 条)
+    readonly html: string;                  // 完整大纲 (已清洗，可直接 rich-text 渲染)；无大纲时为空串
+  };
   readonly photos: readonly LessonGrowthPhoto[]; // 9 宫格照片
   readonly video?: LessonGrowthVideo;       // 短视频直放元数据
   readonly badges: readonly LessonGrowthBadge[]; // 荣誉勋章
