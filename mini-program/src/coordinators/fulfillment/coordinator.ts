@@ -357,17 +357,24 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
       raw?.evaluationSummary?.templateId ||
       'tpl-std';
 
-    // 课程学习内容与知识点大纲（课次级）：本地草稿 > 服务端课次课评
+    // 课程学习内容与知识点大纲（课次级）：本地草稿 (非空) > 服务端课次课评
+    // 用 || 而非 ??：空白本地草稿 ('') 不能遮住服务端已有内容
     const studyContent =
-      singleDraft?.studyContent ??
-      (raw?.evaluationDraft?.studyContentHtml || raw?.evaluationSummary?.studyContent || '');
+      singleDraft?.studyContent ||
+      raw?.evaluationDraft?.studyContentHtml ||
+      raw?.evaluationSummary?.studyContent ||
+      '';
 
-    // 随堂特写评语（学员专属）：本地草稿 > 已落盘的学员评语；不再用模板 / 大纲预填
+    // 随堂特写评语（学员专属）：本地草稿 (非空) > 整班草稿覆写 > 服务端已落盘的学员评语。
+    // 服务端评语无论是 Web 草稿还是已推送都是老师写下的真实内容，必须回显；
+    // (不能以「已推送」为前提：isEvaluated 在小程序侧表示已推送，Web 保存的草稿评语会被丢掉)
+    // 不再用模板 / 大纲预填
     const comment =
-      singleDraft?.comment ??
-      (targetStudent?.isEvaluated || targetStudent?.evaluated
-        ? (targetStudent?.currentComment || targetStudent?.comment || studentOverride?.personalizedComment || '')
-        : (studentOverride?.personalizedComment || ''));
+      singleDraft?.comment ||
+      studentOverride?.personalizedComment ||
+      targetStudent?.currentComment ||
+      targetStudent?.comment ||
+      '';
 
     const rating =
       singleDraft?.rating ??

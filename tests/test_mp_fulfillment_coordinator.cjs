@@ -346,8 +346,10 @@ async function runTests() {
   // Case 9: 单学员精准异常覆写与出站信箱测试 (commitStudentEvaluation)
   // -------------------------------------------------------------
   console.log('>>> [Case 9] 测试单学员精准异常覆写与草稿出清 (commitStudentEvaluation)...');
+  // 写课评双字段：comment = 随堂特写评语 (学员专属)，studyContent = 课程学习内容与知识点大纲 (课次级)
   const stuReceipt = await coordinator.commitStudentEvaluation('sch-005', 'stu-101', {
-    studyContent: '张小凡领悟了噬魂之妙',
+    studyContent: '<p>本课大纲：噬魂棒法</p>',
+    comment: '张小凡领悟了噬魂之妙',
     rating: 5,
     _baselineToken: stuDraft._baselineToken,
   });
@@ -355,6 +357,7 @@ async function runTests() {
   assert.strictEqual(port.lastCommitPayload.anomalyOverrides.length, 1, '单学员点评仅包含当前学员的差异覆写');
   assert.strictEqual(port.lastCommitPayload.anomalyOverrides[0].studentId, 'stu-101');
   assert.strictEqual(port.lastCommitPayload.anomalyOverrides[0].personalizedComment, '张小凡领悟了噬魂之妙');
+  assert.strictEqual(port.lastCommitPayload.studyContentHtml, '<p>本课大纲：噬魂棒法</p>', '大纲必须作为课次级 studyContentHtml 提交，不能与学员评语混用');
   assert.strictEqual(stuReceipt.mode, 'PUBLISH_EVALUATION');
   assert.strictEqual(storage.getDraft('eval_draft_sch-005_stu-101'), null, '单学员评价提交后本地草稿必须被物理清除');
   console.log('✔ Case 9 验证通过: 单学员提交增量精确上行，且草稿原子清理完毕\n');

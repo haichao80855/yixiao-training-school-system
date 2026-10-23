@@ -381,13 +381,19 @@ async function runAllProbes() {
   await probe('6.2 Evaluation edit page validation guards', () => {
     const editSrc = fs.readFileSync(path.resolve(miniProgRoot, 'src/package-edu/evaluation/edit.vue'), 'utf8');
     // Guard against empty content
-    assert.ok(editSrc.includes('if (!studyContent.value.trim())'), 'Must validate empty studyContent');
+    // 写课评双字段后，必填项为「随堂特写评语」(comment)；大纲 (studyContent) 为选填
+    assert.ok(editSrc.includes('if (!comment.value.trim())'), 'Must validate empty personal comment');
     // Guard against leaving without saving
     assert.ok(editSrc.includes('showExitModal'), 'Must prompt exit dialog if modified');
     // Photo count <= 9
     assert.ok(editSrc.includes('9 - uploadedPhotos.value.length'), 'Must limit photo selection to 9 max');
     // Draft storage key structure
-    assert.ok(editSrc.includes('eval_draft_'), 'Must use unique draft storage key');
+    // 草稿读写已从页面下沉到 fulfillment 协调器的 storage 适配器，键仍在适配器内定义
+    const draftAdapterSrc = fs.readFileSync(
+      path.resolve(miniProgRoot, 'src/coordinators/fulfillment/adapters/storage-draft.adapter.ts'),
+      'utf8',
+    );
+    assert.ok(draftAdapterSrc.includes('eval_draft_'), 'Must use unique draft storage key');
   });
 
   // ---------------------------------------------------------------------------

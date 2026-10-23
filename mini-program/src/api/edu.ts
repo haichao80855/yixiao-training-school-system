@@ -244,9 +244,17 @@ export const eduApi = {
                 : [];
             // 【写课评 / 看学情】【已推送】只认服务端 isPublished (课评已发布且家长可见)；
             // 有评语 / 媒体但尚未发布的草稿、重开 / 反结课后的课评都不算已推送
+            // 旧版服务端无 isPublished 字段时沿用原口径 (有评定标记 / 评语 / 媒体即视为已评)
             const isStudentEvaluated = typeof s.isPublished === 'boolean'
               ? s.isPublished
-              : Boolean(s.isEvaluated || s.evaluated);
+              : Boolean(
+                s.isEvaluated ||
+                s.evaluated ||
+                (studentPhotos && studentPhotos.length > 0) ||
+                s.videoUrl ||
+                s.currentComment ||
+                s.comment
+              );
             return {
               studentId: s.studentId,
               studentNo: s.studentNo,
