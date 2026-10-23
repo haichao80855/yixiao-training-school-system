@@ -141,8 +141,9 @@
             <text class="time-range-text">{{ item.timeRange }}</text>
           </view>
 
-          <!-- 课程/班次大标题 -->
-          <view class="class-title-text">{{ item.className }}</view>
+          <!-- 课次大标题：班级名称-第N讲（讲次由服务端统一派生），大纲主题作副标题 -->
+          <view class="class-title-text">{{ lessonLabel(item) }}</view>
+          <view v-if="item.lessonTitle" class="lesson-topic-text">{{ item.lessonTitle }}</view>
 
           <!-- 班级类型与出勤人数 -->
           <view class="attendance-stat-row">
@@ -154,7 +155,7 @@
 
           <!-- 班级与教职人员信息 -->
           <view class="info-details-box">
-            <view class="info-line">班级：{{ item.classroomName }}</view>
+            <view class="info-line">教室：{{ item.classroomName }}</view>
             <view class="info-line staff-line">
               <text>讲师：{{ item.teacherName }}</text>
               <text class="advisor-gap">教务：{{ item.advisorName || item.teacherName }}</text>
@@ -501,6 +502,9 @@ const fetchDaySchedules = async (dateStr: string) => {
     courseDateSet.value = updated;
   }
 };
+
+const lessonLabel = (item: ScheduleEventModel) =>
+  item.lessonNumber ? `${item.className}-第${item.lessonNumber}讲` : item.className;
 
 const filteredSchedules = computed(() => {
   if (currentStatus.value === 'completed') {
@@ -1140,6 +1144,16 @@ const handleActionItem = (action: 'prep' | 'rollcall') => {
       color: #0F172A;
       margin-bottom: 14rpx;
       letter-spacing: 0.2rpx;
+    }
+
+    .lesson-topic-text {
+      margin: -8rpx 0 14rpx;
+      font-size: 24rpx;
+      color: #64748B;
+      line-height: 1.4;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .attendance-stat-row {

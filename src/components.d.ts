@@ -68,6 +68,7 @@ declare module 'vue' {
     HighDensityGrid: typeof import('./components/HighDensityGrid.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    StudentAvatar: typeof import('./components/StudentAvatar.vue')['default']
     SummaryStrip: typeof import('./components/SummaryStrip.vue')['default']
     ThemeProgress: typeof import('./components/ThemeProgress.vue')['default']
     ThemeSparkline: typeof import('./components/ThemeSparkline.vue')['default']

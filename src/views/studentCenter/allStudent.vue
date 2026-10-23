@@ -101,7 +101,7 @@
     <SummaryStrip
       :total-count="filteredStudents.length"
       unit="名学员"
-      :summary-text="`当前校区学员：共计 ${campusStats.total} 名，其中正常在读 ${campusStats.normal} 名，停课休学 ${campusStats.suspended} 名，待分班 ${campusStats.unassigned} 名`"
+      :summary-text="`当前校区学员：共计 ${campusStats.total} 名，其中正常在读 ${campusStats.normal} 名，未报读 ${campusStats.notEnrolled} 名，停课休学 ${campusStats.suspended} 名，待分班 ${campusStats.unassigned} 名`"
     >
       <template #right>
         <el-button type="primary" size="small" @click="handleAddStudent">
@@ -143,19 +143,7 @@
           <el-table-column label="学员姓名 / 学号" min-width="160">
             <template #default="{ row }">
               <div class="flex items-center space-x-2.5 cursor-pointer py-1" @click="handleOpenDrawer(row as any)">
-                <div class="relative flex-shrink-0">
-                  <img
-                    :src="row.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60'"
-                    class="w-9 h-9 rounded-full object-cover border border-gray-200"
-                  />
-                  <span
-                    v-if="row.faceEntered"
-                    class="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[8px]"
-                    title="已录入人脸"
-                  >
-                    <Check class="w-2.5 h-2.5" />
-                  </span>
-                </div>
+                <StudentAvatar :seed="row.id" :name="row.name" :gender="row.gender" :size="36" />
                 <div>
                   <div class="font-bold text-st-primary hover:underline text-xs flex items-center space-x-1">
                     <span>{{ row.name }}</span>
@@ -258,6 +246,15 @@
                 >
                   续费预警
                 </el-tag>
+                <!-- 无在读课时（仅有已退费/冻结课包或尚未购课）：不参与预警，但绝不能显示「充沛」 -->
+                <el-tag
+                  v-else-if="remainingOf(row) <= 0"
+                  type="info"
+                  size="small"
+                  effect="plain"
+                >
+                  无可用课时
+                </el-tag>
                 <el-tag
                   v-else
                   type="success"
@@ -267,13 +264,13 @@
                   充沛正常
                 </el-tag>
                 <span class="font-mono text-st-muted text-[11px]">
-                  余 {{ row.totalRemainingLessons ?? row.coursePackages?.reduce((s: number, p: any) => s + (p.remainingLessons || 0), 0) ?? 0 }} 课时
+                  余 {{ remainingOf(row) }} 课时
                 </span>
               </div>
               <div v-if="row.consumptionHealth?.dormantRisk && row.consumptionHealth.dormantRisk !== 'active'" class="text-[10px] text-purple-600 font-semibold">
-                停消休眠 {{ row.consumptionHealth.inactiveDays }} 天
+                停消休眠 {{ typeof row.consumptionHealth.inactiveDays === 'number' ? `${row.consumptionHealth.inactiveDays} 天` : '超 14 天' }}
               </div>
-              <div v-else-if="row.consumptionHealth?.estimatedDepletionDays !== undefined" class="text-[10px] text-st-muted">
+              <div v-else-if="typeof row.consumptionHealth?.estimatedDepletionDays === 'number' && remainingOf(row) > 0" class="text-[10px] text-st-muted">
                 预计 {{ row.consumptionHealth.estimatedDepletionDays }} 天后课时耗尽
               </div>
             </div>
@@ -297,17 +294,9 @@
         <!-- 在读状态 -->
         <el-table-column label="在读状态" width="95" align="center">
           <template #default="{ row }">
-            <el-tag :type="getStatusTagType(row.status)" size="small">
-              {{ getStatusLabel(row.status) }}
+            <el-tag :type="getStudentStatusTagType(row)" size="small" :effect="resolveStudentStatus(row) === 'not_enrolled' ? 'plain' : 'light'">
+              {{ getStudentStatusLabel(row) }}
             </el-tag>
-          </template>
-        </el-table-column>
-
-        <!-- 人脸底库 -->
-        <el-table-column label="人脸底库" width="85" align="center">
-          <template #default="{ row }">
-            <el-tag v-if="row.faceEntered" size="small" type="primary">已录入</el-tag>
-            <el-tag v-else size="small" type="info">未录入</el-tag>
           </template>
         </el-table-column>
 
@@ -351,7 +340,6 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="face">录入人脸特征</el-dropdown-item>
                     <el-dropdown-item command="wechat">{{ row.wechatBound ? '解除微信绑定' : '绑定家长微信' }}</el-dropdown-item>
                     <el-dropdown-item command="resetPwd">重置学员端密码</el-dropdown-item>
                     <el-dropdown-item command="delete" divided class="text-red-600">删除档案</el-dropdown-item>
@@ -415,20 +403,13 @@
       :student="formStudent"
       @success="refreshData"
     />
-
-    <!-- 人脸识别底库录入弹窗 -->
-    <FaceEntryDialog
-      v-model="faceDialogVisible"
-      :student="activeStudent"
-      @success="refreshData"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Phone, Check } from 'lucide-vue-next'
+import { Phone } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'
@@ -443,7 +424,8 @@ import StudentProfileDrawer from './components/StudentProfileDrawer.vue'
 import EnrollDialog from './components/EnrollDialog.vue'
 import AbnormalMovementDialog from './components/AbnormalMovementDialog.vue'
 import StudentFormDialog from './components/StudentFormDialog.vue'
-import FaceEntryDialog from './components/FaceEntryDialog.vue'
+import StudentAvatar from '@/components/StudentAvatar.vue'
+import { resolveStudentStatus, getStudentStatusLabel, getStudentStatusTagType, isStudentEnrolled } from '@/utils/studentStatus'
 
 const tenantStore = useTenantStore()
 const authStore = useAuthStore()
@@ -451,6 +433,7 @@ const authStore = useAuthStore()
 // 胶囊快捷状态筛选选项
 const statusCapsuleOptions = [
   { label: '全部状态', value: 'all' },
+  { label: '未报读', value: 'not_enrolled' },
   { label: '正常在读', value: 'normal' },
   { label: '停课休学', value: 'suspended' },
   { label: '已转校', value: 'transferred' },
@@ -466,7 +449,8 @@ const loading = ref(false)
 
 // 搜索条件
 const keyword = ref('')
-const selectedCampus = ref('all')
+// 默认跟随顶部当前校区（与控制台看板、待分班池同一校区口径），可手动切换「全部校区」
+const selectedCampus = ref(tenantStore.currentCampusId || 'all')
 const selectedGrade = ref('')
 const selectedStatus = ref('all')
 const selectedWarningLevel = ref('all')
@@ -482,7 +466,6 @@ const drawerVisible = ref(false)
 const enrollDialogVisible = ref(false)
 const movementDialogVisible = ref(false)
 const formDialogVisible = ref(false)
-const faceDialogVisible = ref(false)
 
 const activeStudent = ref<Student | null>(null)
 const activeRenewalDraft = ref<any>(null)
@@ -544,8 +527,12 @@ watch(() => authStore.token, () => {
   loadStudents()
 })
 
-watch(() => tenantStore.currentCampusId, () => {
-  loadStudents()
+watch(() => tenantStore.currentCampusId, (id) => {
+  if (id && selectedCampus.value !== id) {
+    selectedCampus.value = id // 由 selectedCampus 的 watch 触发重载
+  } else {
+    loadStudents()
+  }
 })
 
 // 筛选后学员全集
@@ -570,8 +557,14 @@ const filteredStudents = computed(() => {
     }
 
     // 状态
-    if (selectedStatus.value !== 'all' && s.status !== selectedStatus.value) {
-      return false
+    // 「正常在读」与后端同口径：包含已编班在读 (in_class)
+    if (selectedStatus.value !== 'all') {
+      // 「正常在读」须已报读；「未报读」为派生状态（见 utils/studentStatus）
+      const display = resolveStudentStatus(s)
+      const matchStatus = selectedStatus.value === 'normal'
+        ? (display === 'normal' || display === 'in_class')
+        : display === selectedStatus.value
+      if (!matchStatus) return false
     }
 
     // 课消风控与续费决策
@@ -585,7 +578,7 @@ const filteredStudents = computed(() => {
       } else if (selectedWarningLevel.value === 'warning') {
         if (risk !== 'warning') return false
       } else if (selectedWarningLevel.value === 'normal') {
-        if (risk !== 'normal') return false
+        if (risk !== 'normal' || remainingOf(s) <= 0) return false
       }
     }
 
@@ -610,6 +603,11 @@ const paginatedStudents = computed(() => {
   return filteredStudents.value.slice(start, start + pageSize.value)
 })
 
+// 在读课包剩余课时合计（与列表「余 X 课时」同一口径）
+function remainingOf(row: any): number {
+  return Number(row.totalRemainingLessons ?? row.coursePackages?.reduce((s: number, p: any) => s + (p.remainingLessons || 0), 0) ?? 0)
+}
+
 // 统计
 const campusStats = computed(() => {
   const list = selectedCampus.value === 'all'
@@ -618,35 +616,13 @@ const campusStats = computed(() => {
 
   return {
     total: list.length,
-    normal: list.filter(s => s.status === 'normal' || s.status === 'in_class').length,
+    normal: list.filter(s => (s.status === 'normal' || s.status === 'in_class') && isStudentEnrolled(s)).length,
+    notEnrolled: list.filter(s => resolveStudentStatus(s) === 'not_enrolled').length,
     suspended: list.filter(s => s.status === 'suspended').length,
-    unassigned: list.filter(s => !s.coursePackages || s.coursePackages.length === 0).length
+    // 与「待分班池」同口径：有在读课包 (active) 未编班且仍有剩余课时的学员
+    unassigned: list.filter(s => (s.coursePackages || []).some(p => !p.classId && (p.remainingLessons || 0) > 0)).length
   }
 })
-
-function getStatusTagType(status: string) {
-  switch (status) {
-    case 'normal':
-    case 'in_class': // 已编班在读 (后端编班后写入)
-      return 'success'
-    case 'suspended': return 'warning'
-    case 'transferred': return 'info'
-    case 'dropped_out': return 'danger'
-    default: return 'info'
-  }
-}
-
-function getStatusLabel(status: string) {
-  switch (status) {
-    case 'normal':
-    case 'in_class':
-      return '正常在读'
-    case 'suspended': return '停课休学'
-    case 'transferred': return '已转校'
-    case 'dropped_out': return '已结课流失'
-    default: return status
-  }
-}
 
 function handleSearch() {
   currentPage.value = 1
@@ -654,7 +630,7 @@ function handleSearch() {
 
 function handleReset() {
   keyword.value = ''
-  selectedCampus.value = 'all'
+  selectedCampus.value = tenantStore.currentCampusId || 'all'
   selectedGrade.value = ''
   selectedStatus.value = 'all'
   selectedWarningLevel.value = 'all'
@@ -707,24 +683,12 @@ function handleEdit(student: Student) {
   formDialogVisible.value = true
 }
 
-function handleFaceLibrary() {
-  if (selectedRows.value.length > 0) {
-    activeStudent.value = selectedRows.value[0]
-  } else if (paginatedStudents.value.length > 0) {
-    activeStudent.value = paginatedStudents.value[0]
-  }
-  faceDialogVisible.value = true
-}
-
 function quickCall(student: Student) {
   ElMessage.success(`软电话正在呼叫学员 [${student.name}] 家长电话: ${student.parentPhone || student.phone}`)
 }
 
 async function handleCommand(cmd: string, row: Student) {
-  if (cmd === 'face') {
-    activeStudent.value = row
-    faceDialogVisible.value = true
-  } else if (cmd === 'wechat') {
+  if (cmd === 'wechat') {
     try {
       const targetBound = !row.wechatBound
       await studentApi.updateStudent(row.id, { wechatOpenId: targetBound ? 'wx_mock_bind' : null })
@@ -772,7 +736,7 @@ function handleBatchExport() {
     s.phone,
     `"${s.campusName || '拓视未来-原阳校区'}"`,
     s.grade || '小学全学段',
-    getStatusLabel(s.status),
+    getStudentStatusLabel(s),
     s.coursePackages?.reduce((sum, p) => sum + (p.remainingLessons || 0), 0) || 0,
     s.createdAt || '2026-09-01'
   ])

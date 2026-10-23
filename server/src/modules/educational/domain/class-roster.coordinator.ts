@@ -395,7 +395,7 @@ export class ClassRosterCoordinator {
     }
 
     // 并行拉取总记录数、分页课包明细以及全局未分配课时总数
-    const [total, packages, totalLessonsAgg] = await Promise.all([
+    const [total, packages, totalLessonsAgg, allMatched] = await Promise.all([
       this.prisma.studentCoursePackage.count({ where }),
       this.prisma.studentCoursePackage.findMany({
         where,
@@ -413,6 +413,11 @@ export class ClassRosterCoordinator {
         where,
         _sum: { remainingLessons: true },
       }),
+      // 汇总卡片按全量口径统计（而非当前分页），且「待分班人数」按学员去重
+      this.prisma.studentCoursePackage.findMany({
+        where,
+        select: { studentId: true, createdAt: true },
+      }),
     ]);
 
     const now = new Date();
@@ -427,14 +432,6 @@ export class ClassRosterCoordinator {
         0,
         Math.floor((now.getTime() - pkg.createdAt.getTime()) / (1000 * 3600 * 24)),
       );
-      totalWaitDays += waitDays;
-
-      if (
-        pkg.createdAt.getMonth() === currentMonth &&
-        pkg.createdAt.getFullYear() === currentYear
-      ) {
-        monthlyNewCount++;
-      }
 
       return {
         id: `unas-${pkg.studentId}-${pkg.id}`,
@@ -459,15 +456,28 @@ export class ClassRosterCoordinator {
       };
     });
 
+    const monthlyNewStudents = new Set<string>();
+    for (const m of allMatched) {
+      totalWaitDays += Math.max(
+        0,
+        Math.floor((now.getTime() - m.createdAt.getTime()) / (1000 * 3600 * 24)),
+      );
+      if (m.createdAt.getMonth() === currentMonth && m.createdAt.getFullYear() === currentYear) {
+        monthlyNewStudents.add(m.studentId);
+      }
+    }
+    monthlyNewCount = monthlyNewStudents.size;
+    const distinctStudentCount = new Set(allMatched.map((m) => m.studentId)).size;
+
     const totalUnassignedLessons = totalLessonsAgg._sum.remainingLessons || 0;
-    const avgWaitDays = total > 0 ? Number((totalWaitDays / packages.length).toFixed(1)) : 0;
+    const avgWaitDays = allMatched.length > 0 ? Number((totalWaitDays / allMatched.length).toFixed(1)) : 0;
 
     return {
       total,
       page,
       pageSize,
       summary: {
-        totalStudents: total,
+        totalStudents: distinctStudentCount,
         totalUnassignedLessons,
         monthlyNewCount,
         avgWaitDays,

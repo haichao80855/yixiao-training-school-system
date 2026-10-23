@@ -203,8 +203,11 @@ export interface CompetencyRadarProfile {
 
 /** 课消健康度与流失预警 (单一真值源 SSOT) */
 export interface ConsumptionHealth {
-  weeklyBurnRate: number;      // 近 30 天滑动周均消课速率 (课时/周)
-  estimatedDepletionDays: number; // 预计剩余课时耗尽天数
+  /** 是否已报读（名下有未全额退费的课包）；未报读学员不做消课预警与续费判断 */
+  enrolled: boolean;
+  weeklyBurnRate: number;      // 近 30 天滑动周均消课速率 (课时/周)，无消课即为 0
+  /** 预计剩余课时耗尽天数；近 30 天无消课（无法预估）或无剩余课时时为 null */
+  estimatedDepletionDays: number | null;
   warningLevel: 'normal' | 'warning' | 'urgent'; // <=4 紧急, <=8 预警, 其余正常
   dormantRisk: boolean;        // 连续 14 天未上课休眠流失风险
   renewalWindowOpen: boolean;  // 是否处于续费跟进黄金窗口 (<=8课时 或 <=30天)

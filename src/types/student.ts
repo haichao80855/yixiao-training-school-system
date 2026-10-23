@@ -95,9 +95,12 @@ export interface CompetencyRadar {
 }
 
 export interface StudentConsumptionHealth {
+  /** 是否已报读；false 时不做消课预警与续费判断 */
+  enrolled?: boolean;
   weeklyBurnRate: number;
   dailyBurnRate?: number;
-  estimatedDepletionDays: number;
+  /** null = 无法预估（近 30 天无消课 / 无剩余课时 / 未报读） */
+  estimatedDepletionDays: number | null;
   estimatedDepletionDate?: string | null;
   warningLevel: 'normal' | 'warning' | 'urgent' | 'critical';
   visualBadge?: {
@@ -198,6 +201,8 @@ export interface Student {
   faceEntered?: boolean;
   faceImageUrl?: string;
   status: StudentStatus;
+  /** 名下是否有未全额退费的课包；false 时档案正常也展示为「未报读」 */
+  isEnrolled?: boolean;
   wallet: StudentWallet;
   coursePackages: StudentCoursePackage[];
   totalRemainingLessons?: number;

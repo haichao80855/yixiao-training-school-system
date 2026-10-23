@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateClassroomDto, UpdateClassroomDto } from './dto/classroom.dto';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
@@ -81,23 +82,52 @@ export class EducationalService {
   }
 
   async createClassroom(dto: CreateClassroomDto) {
-    const existing = await this.prisma.classroom.findUnique({
-      where: { code: dto.code },
-    });
-    if (existing) {
-      throw new BadRequestException(`教室编码 ${dto.code} 已存在`);
+    const inputCode = dto.code?.trim();
+    let code: string;
+    if (inputCode) {
+      const existing = await this.prisma.classroom.findUnique({
+        where: { code: inputCode },
+      });
+      if (existing) {
+        throw new BadRequestException(`教室编码 ${inputCode} 已存在`);
+      }
+      code = inputCode;
+    } else {
+      // 快速建室表单不填编码：按现有约定 CR-<校区后缀>-<序号> 自动生成（如 campus-bj-hq → CR-HQ-103）
+      code = await this.generateClassroomCode(dto.campusId);
     }
 
     return this.prisma.classroom.create({
       data: {
         campusId: dto.campusId,
-        code: dto.code,
+        code,
         name: dto.name,
         capacity: dto.capacity || 12,
         type: dto.type || 'maker',
         status: dto.status || 'available',
       },
     });
+  }
+
+  /** 生成校区内下一个可用教室编码：CR-<校区编码末段大写>-<最大序号+1，起始 101> */
+  private async generateClassroomCode(campusId: string): Promise<string> {
+    const campus = campusId
+      ? await this.prisma.campus.findUnique({ where: { id: campusId }, select: { code: true } })
+      : null;
+    const suffix = ((campus?.code || campusId || 'HQ').split('-').pop() || 'HQ')
+      .replace(/[^A-Za-z0-9]/g, '')
+      .toUpperCase() || 'HQ';
+    const prefix = `CR-${suffix}-`;
+
+    const siblings = await this.prisma.classroom.findMany({
+      where: { code: { startsWith: prefix } },
+      select: { code: true },
+    });
+    const maxSeq = siblings.reduce((max, c) => {
+      const m = c.code.slice(prefix.length).match(/^(\d+)$/);
+      return m ? Math.max(max, Number(m[1])) : max;
+    }, 100);
+    return `${prefix}${maxSeq + 1}`;
   }
 
   async updateClassroom(id: string, dto: UpdateClassroomDto) {
@@ -244,9 +274,33 @@ export class EducationalService {
   }
 
   async updateClass(id: string, dto: UpdateClassDto) {
+    // 显式白名单组装更新数据：前端日期为 YYYY-MM-DD 字符串，需与 createClass 一致转换为 Date；
+    // 同时避免把请求体中的非可编辑字段原样写库（全局未启用 ValidationPipe 白名单过滤）
+    const toDate = (value: string, label: string) => {
+      const d = new Date(value);
+      if (Number.isNaN(d.getTime())) {
+        throw new BadRequestException(`${label}格式不正确：${value}`);
+      }
+      return d;
+    };
+
+    const data: Prisma.ClassUncheckedUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.capacity !== undefined) data.capacity = Number(dto.capacity);
+    if (dto.status !== undefined) data.status = dto.status;
+    if (dto.teacherId) data.teacherId = dto.teacherId;
+    if (dto.classroomId) data.classroomId = dto.classroomId;
+    if (dto.advisorId !== undefined) data.advisorId = dto.advisorId || null;
+    if (dto.startDate) data.startDate = toDate(dto.startDate, '开班日期');
+    if (dto.endDate) data.endDate = toDate(dto.endDate, '结课日期');
+
+    if (data.startDate && data.endDate && (data.startDate as Date) > (data.endDate as Date)) {
+      throw new BadRequestException('结课日期不能早于开班日期');
+    }
+
     return this.prisma.class.update({
       where: { id },
-      data: dto,
+      data,
     });
   }
 
@@ -425,6 +479,58 @@ export class EducationalService {
   /**
    * 查询排课看板日程
    */
+  /**
+   * 派生课次的「第几讲」与讲次主题：
+   * - lessonNumber：该课次在本班全部未取消课次中按 日期+开始时间 排序的序号（1 起）
+   * - lessonTitle：课程大纲（单元 sort → 课时 sort 展开）中对应序号的课时名称；大纲未覆盖时不返回，由前端显示「第 N 讲」
+   * 已取消的课次不占序号。
+   */
+  private async resolveLessonSequence(
+    schedules: Array<{ id: string; classId: string; class?: { course?: { id: string } | null } | null }>,
+  ): Promise<Map<string, { lessonNumber: number; lessonTitle?: string }>> {
+    const result = new Map<string, { lessonNumber: number; lessonTitle?: string }>();
+    const classIds = Array.from(new Set(schedules.map((s) => s.classId).filter(Boolean)));
+    if (classIds.length === 0) return result;
+
+    const courseByClass = new Map<string, string>();
+    for (const s of schedules) {
+      if (s.class?.course?.id) courseByClass.set(s.classId, s.class.course.id);
+    }
+    const courseIds = Array.from(new Set(courseByClass.values()));
+
+    const [classEvents, units] = await Promise.all([
+      this.prisma.scheduleEvent.findMany({
+        where: { classId: { in: classIds }, status: { not: 'cancelled' } },
+        select: { id: true, classId: true },
+        orderBy: [{ date: 'asc' }, { startTime: 'asc' }, { createdAt: 'asc' }],
+      }),
+      courseIds.length
+        ? this.prisma.courseUnit.findMany({
+            where: { courseId: { in: courseIds } },
+            orderBy: { sort: 'asc' },
+            include: { lessons: { orderBy: { sort: 'asc' }, select: { lessonName: true } } },
+          })
+        : Promise.resolve([] as Array<{ courseId: string; lessons: { lessonName: string }[] }>),
+    ]);
+
+    const syllabusByCourse = new Map<string, string[]>();
+    for (const u of units) {
+      const list = syllabusByCourse.get(u.courseId) || [];
+      list.push(...u.lessons.map((l) => l.lessonName));
+      syllabusByCourse.set(u.courseId, list);
+    }
+
+    const counters = new Map<string, number>();
+    for (const ev of classEvents) {
+      const n = (counters.get(ev.classId) || 0) + 1;
+      counters.set(ev.classId, n);
+      const courseId = courseByClass.get(ev.classId);
+      const title = courseId ? syllabusByCourse.get(courseId)?.[n - 1] : undefined;
+      result.set(ev.id, { lessonNumber: n, ...(title ? { lessonTitle: title } : {}) });
+    }
+    return result;
+  }
+
   async getSchedules(query: {
     campusId?: string;
     startDate?: string;
@@ -476,6 +582,8 @@ export class EducationalService {
       },
     });
 
+    const lessonInfo = await this.resolveLessonSequence(schedules);
+
     return schedules.map((s: any) => {
       const activePackageStudentIds = (s.class?.studentPackages || []).map((p: any) => p.studentId);
       const attendanceStudentIds = (s.attendances || []).map((a: any) => a.studentId);
@@ -500,6 +608,9 @@ export class EducationalService {
         actualCount,
         attendanceCount: actualCount,
         evaluationStatus: s.evaluation?.status || 'none',
+        // 讲次序号与主题（ScheduleEvent 本身不存储，按班级课次顺序 + 课程大纲派生）
+        lessonNumber: lessonInfo.get(s.id)?.lessonNumber,
+        lessonTitle: lessonInfo.get(s.id)?.lessonTitle,
       };
     });
   }

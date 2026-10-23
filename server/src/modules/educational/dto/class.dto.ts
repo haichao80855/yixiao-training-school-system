@@ -68,4 +68,12 @@ export class UpdateClassDto {
   @IsOptional()
   @IsIn(['recruiting', 'in_progress', 'completed'])
   status?: string;
+
+  @IsOptional()
+  @IsString()
+  startDate?: string; // ISO 8601 或 YYYY-MM-DD
+
+  @IsOptional()
+  @IsString()
+  endDate?: string; // ISO 8601 或 YYYY-MM-DD
 }

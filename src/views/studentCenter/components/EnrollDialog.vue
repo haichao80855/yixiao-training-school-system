@@ -39,7 +39,8 @@
       <div v-if="currentStep === 0" class="border border-st-border rounded-lg p-5 bg-white space-y-4">
         <h4 class="text-sm font-bold text-st-title border-b pb-2">第 1 步：确认报读学员与合同签约校区</h4>
         <el-form label-position="top" size="small">
-          <el-form-item label="选择签约报读学员" required>
+          <!-- 从学员行 / 续费草案进入时学员已确定，只展示不再选择 -->
+          <el-form-item v-if="!studentLocked" label="选择签约报读学员" required>
             <el-select
               v-model="formData.studentId"
               filterable
@@ -56,13 +57,14 @@
           </el-form-item>
 
           <!-- 选中学员卡片展示 -->
+          <div v-if="studentLocked && selectedStudent" class="text-xs text-st-secondary mb-1.5">报读学员</div>
           <div v-if="selectedStudent" class="p-3 bg-blue-50 border border-blue-200 rounded flex items-center space-x-3">
-            <img :src="selectedStudent.avatar" class="w-12 h-12 rounded-full object-cover border" />
+            <StudentAvatar :seed="selectedStudent.id" :name="selectedStudent.name" :gender="selectedStudent.gender" :size="48" />
             <div class="flex-1 text-xs">
               <div class="flex items-center space-x-2">
                 <span class="font-bold text-sm text-st-title">{{ selectedStudent.name }}</span>
                 <span class="text-st-muted font-mono">{{ selectedStudent.studentNo }}</span>
-                <el-tag size="small" type="success">在读</el-tag>
+                <el-tag size="small" :type="getStudentStatusTagType(selectedStudent)">{{ getStudentStatusLabel(selectedStudent) }}</el-tag>
               </div>
               <div class="text-st-secondary mt-1">
                 年级: {{ selectedStudent.grade }} | 学校: {{ selectedStudent.school || '未填' }} |
@@ -222,6 +224,8 @@ import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { FileText } from 'lucide-vue-next'
 import type { Student } from '@/types/student'
+import StudentAvatar from '@/components/StudentAvatar.vue'
+import { getStudentStatusLabel, getStudentStatusTagType } from '@/utils/studentStatus'
 import { studentApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 import { DIALOG_SIZE } from '@/constants/ui'
@@ -255,7 +259,7 @@ async function loadData() {
     const targetCampus = props.student?.campusId || tenantStore.currentCampusId
     const [crsRes, stdRes] = await Promise.all([
       curriculumApi.getCourses({ campusId: targetCampus }),
-      studentApi.getStudents({ campusId: targetCampus })
+      studentApi.getStudents({ campusId: targetCampus, pageSize: 200 })
     ])
     if (crsRes?.data) {
       const list = Array.isArray(crsRes.data) ? crsRes.data : (crsRes.data.items || crsRes.data.list || [])
@@ -269,6 +273,9 @@ async function loadData() {
     console.warn('[EnrollDialog] 加载数据异常:', err)
   }
 }
+
+// 从某个学员行（或续费草案）打开时，学员已确定，不允许在向导里改选
+const studentLocked = computed(() => !!props.student || !!props.renewalDraft)
 
 const candidateStudents = computed(() => {
   if (props.student) {

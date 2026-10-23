@@ -255,8 +255,9 @@
           <!-- 课次大标题 -->
           <div class="pr-10">
             <h3 class="font-bold text-base text-st-title tracking-tight truncate hover:text-st-primary cursor-pointer">
-              {{ card.lessonTitle || card.className }}
+              {{ lessonLabel(card) }}
             </h3>
+            <p v-if="card.lessonTitle" class="text-xs text-st-muted truncate mt-0.5">{{ card.lessonTitle }}</p>
           </div>
 
           <!-- 班级胶囊标签 -->
@@ -392,8 +393,8 @@
 
         <el-table-column label="课次名称" min-width="180">
           <template #default="{ row }">
-            <div class="font-bold text-st-title">{{ row.lessonTitle || row.className }}</div>
-            <div class="text-[11px] text-st-muted">班级：{{ row.className }}</div>
+            <div class="font-bold text-st-title">{{ lessonLabel(row) }}</div>
+            <div v-if="row.lessonTitle" class="text-[11px] text-st-muted">{{ row.lessonTitle }}</div>
           </template>
         </el-table-column>
 
@@ -468,7 +469,7 @@
       <div v-if="activeLessonForSignIn" class="space-y-4 text-xs">
         <div class="bg-blue-50/70 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
           <div>
-            <div class="font-bold text-st-title">{{ activeLessonForSignIn.lessonTitle || activeLessonForSignIn.className }}</div>
+            <div class="font-bold text-st-title">{{ lessonLabel(activeLessonForSignIn) }}</div>
             <div class="text-st-muted mt-0.5">授课老师: {{ activeLessonForSignIn.teacherName }} | 教室: {{ activeLessonForSignIn.classroomName }}</div>
           </div>
           <div class="text-right">
@@ -517,6 +518,7 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { BookOpen, Calendar, Sparkles, Video } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
+import { formatLessonLabel as lessonLabel } from '@/utils/lessonLabel'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
 import { DIALOG_SIZE } from '@/constants/ui'

@@ -40,13 +40,6 @@
           <div class="text-[26px] leading-none font-semibold text-st-title font-mono tracking-tight whitespace-nowrap">
             <span class="text-lg text-st-muted font-medium mr-0.5">¥</span>{{ stats.totalRevenue.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
           </div>
-          <ThemeSparkline
-            :data="revenueTrend"
-            type="line"
-            color-theme="primary"
-            :width="88"
-            :height="28"
-          />
         </div>
         <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>已支付订单: <strong class="text-st-regular font-semibold font-mono">{{ stats.paidOrderCount }}</strong> 笔</span>
@@ -69,13 +62,6 @@
             </div>
             <span class="text-xs text-st-muted font-medium">人</span>
           </div>
-          <ThemeSparkline
-            :data="studentTrend"
-            type="bar"
-            color-theme="success"
-            :width="80"
-            :height="26"
-          />
         </div>
         <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>归属校区生源池</span>
@@ -100,13 +86,6 @@
             </div>
             <span class="text-xs text-st-muted font-medium">节课次</span>
           </div>
-          <ThemeSparkline
-            :data="scheduleTrend"
-            type="line"
-            color-theme="warning"
-            :width="88"
-            :height="28"
-          />
         </div>
         <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>冲突监测:</span>
@@ -136,13 +115,6 @@
             </div>
             <span class="text-xs text-st-muted font-medium">门标准课</span>
           </div>
-          <ThemeSparkline
-            :data="courseTrend"
-            type="bar"
-            color-theme="info"
-            :width="80"
-            :height="26"
-          />
         </div>
         <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>教研中心统一质控</span>
@@ -210,8 +182,9 @@
               class="p-3 rounded-lg border border-st-border hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
             >
               <div class="flex items-center space-x-3.5">
-                <div class="w-12 h-10 rounded-lg bg-st-primary-light text-st-primary flex items-center justify-center font-semibold text-[13px] shrink-0 font-mono">
-                  {{ item.timeSlot ? item.timeSlot.split('-')[0] : '课程' }}
+                <div class="w-16 h-11 rounded-lg bg-st-primary-light text-st-primary flex flex-col items-center justify-center shrink-0 leading-tight">
+                  <span class="text-[11px] font-medium">{{ item.dateLabel }}</span>
+                  <span class="font-semibold text-[13px] font-mono">{{ item.timeSlot ? item.timeSlot.split('-')[0] : '--:--' }}</span>
                 </div>
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
@@ -256,7 +229,7 @@
           <!-- 空日程状态 -->
           <div v-else class="py-12 flex flex-col items-center justify-center text-center text-st-muted space-y-2">
             <CalendarDays class="w-9 h-9 text-st-placeholder mx-auto" />
-            <p class="text-[13px]">当前校区暂无临近课次</p>
+            <p class="text-[13px]">未来两周暂无待上课次</p>
             <el-button size="small" type="primary" plain @click="$router.push('/educational/timeSchedule')">
               前往排课日历添加课次
             </el-button>
@@ -264,8 +237,8 @@
         </div>
 
         <div class="pt-3 mt-4 border-t border-st-border flex items-center justify-between text-xs text-st-muted">
-          <span>仅显示当前校区</span>
-          <span>共 {{ recentSchedules.length }} 节</span>
+          <span>当前校区 · 未来 14 天</span>
+          <span>共 {{ upcomingCount }} 节待上{{ upcomingCount > recentSchedules.length ? `，显示最近 ${recentSchedules.length} 节` : '' }}</span>
         </div>
       </div>
 
@@ -383,7 +356,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import ThemeSparkline from '@/components/ThemeSparkline.vue'
 import ThemeProgress from '@/components/ThemeProgress.vue'
 import {
   GraduationCap,
@@ -423,12 +395,6 @@ const greetingText = computed(() => {
 
 const refreshing = ref(false)
 
-// 核心指标平滑走势与柱状微走势数据 (最近 7 周期)
-const revenueTrend = ref([22, 28, 26, 38, 45, 42, 58])
-const studentTrend = ref([35, 42, 48, 46, 58, 66, 75])
-const scheduleTrend = ref([14, 18, 16, 25, 22, 30, 36])
-const courseTrend = ref([10, 12, 14, 15, 16, 18, 22])
-
 const defaultStats = {
   studentCount: 0,
   courseCount: 0,
@@ -443,54 +409,75 @@ const defaultStats = {
 
 const remoteStats = ref({ ...defaultStats })
 const recentSchedules = ref<any[]>([])
+const upcomingCount = ref(0)
 
 async function loadStats(isSilent = true) {
   if (!isSilent) refreshing.value = true
   try {
     const campusId = tenantStore.currentCampusId
-    const [ordersRes, studentsRes, coursesRes, schedulesRes, approvalsRes] = await Promise.all([
-      financialApi.getOrders({ campusId }).catch(() => ({ data: [] })),
-      studentApi.getStudents({ campusId }).catch(() => ({ data: [] })),
-      curriculumApi.getCourses({ campusId }).catch(() => ({ data: [] })),
-      educationalApi.getScheduleEvents({ campusId }).catch(() => ({ data: [] })),
-      financialApi.getApprovals({ campusId }).catch(() => ({ data: [] }))
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    const today = new Date()
+    const monday = new Date(today)
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7))
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    const upcomingEnd = new Date(today)
+    upcomingEnd.setDate(today.getDate() + 13)
+
+    // 列表接口均为分页接口：计数一律取后端 total / summary，避免只数到第一页
+    const [ordersRes, studentsRes, coursesRes, weekRes, upcomingRes, approvalsRes, unassignedRes] = await Promise.all([
+      financialApi.getOrders({ campusId, period: 'month', status: 'paid', pageSize: 1 }).catch(() => null),
+      // 与学员中心「正常在读」筛选同口径（normal + in_class）
+      studentApi.getStudents({ campusId, status: 'normal', pageSize: 1 }).catch(() => null),
+      curriculumApi.getCourses({ campusId, status: 'enabled', pageSize: 1 }).catch(() => null),
+      educationalApi.getScheduleEvents({ campusId, startDate: fmt(monday), endDate: fmt(sunday) }).catch(() => null),
+      educationalApi.getScheduleEvents({ campusId, startDate: fmt(today), endDate: fmt(upcomingEnd) }).catch(() => null),
+      financialApi.getApprovals({ campusId, status: 'pending', pageSize: 1 }).catch(() => null),
+      educationalApi.getUnassignedRoster({ campusId, page: 1, pageSize: 1 }).catch(() => null)
     ])
 
-    const orders = Array.isArray(ordersRes?.data) ? ordersRes.data : (ordersRes?.data?.list || ordersRes?.data?.items || [])
-    const students = Array.isArray(studentsRes?.data) ? studentsRes.data : (studentsRes?.data?.list || studentsRes?.data?.items || [])
-    const courses = Array.isArray(coursesRes?.data) ? coursesRes.data : (coursesRes?.data?.list || coursesRes?.data?.items || [])
-    const schedules = Array.isArray(schedulesRes?.data) ? schedulesRes.data : (schedulesRes?.data?.list || schedulesRes?.data?.items || [])
-    const approvals = Array.isArray(approvalsRes?.data) ? approvalsRes.data : (approvalsRes?.data?.list || approvalsRes?.data?.items || [])
+    const listOf = (res: any) => Array.isArray(res?.data) ? res.data : (res?.data?.list || res?.data?.items || [])
+    const totalOf = (res: any) => Number(res?.data?.total ?? listOf(res).length) || 0
 
-    const paidOrders = orders.filter((o: any) => o.status === 'paid')
-    const totalRevenue = paidOrders.reduce((sum: number, o: any) => sum + (Number(o.actualAmount) || 0), 0)
-    const conflictCount = schedules.filter((s: any) => s.semanticType === 'conflict' || s.isConflict).length
-    const pendingApprovalCount = approvals.filter((a: any) => a.status === 'pending' || a.status === 'under_review').length
-    const unassignedCount = students.filter((s: any) => s.status === 'unassigned' || !s.classId).length
+    const orderSummary = (ordersRes as any)?.data?.summary
+    const weekSchedules = listOf(weekRes).filter((s: any) => s.status !== 'cancelled')
+    const isConflict = (s: any) => s.semanticType === 'conflict' || Boolean(s.hasConflict || s.isConflict)
+    const nowHm = `${pad(today.getHours())}:${pad(today.getMinutes())}`
+    const upcoming = listOf(upcomingRes)
+      .filter((s: any) => s.status !== 'cancelled' && s.status !== 'completed')
+      .filter((s: any) => s.date > fmt(today) || (s.endTime || '23:59') >= nowHm)
+    const unassignedData = (unassignedRes as any)?.data
 
     remoteStats.value = {
-      studentCount: students.length,
-      courseCount: courses.length,
-      orderCount: orders.length,
-      paidOrderCount: paidOrders.length,
-      totalRevenue,
-      scheduleCount: schedules.length,
-      conflictCount,
-      pendingApprovalCount: pendingApprovalCount || 2,
-      unassignedCount: unassignedCount || 4
+      studentCount: totalOf(studentsRes),
+      courseCount: totalOf(coursesRes),
+      orderCount: Number(orderSummary?.totalOrders ?? 0),
+      paidOrderCount: Number(orderSummary?.totalPaidOrders ?? 0),
+      totalRevenue: Number(orderSummary?.totalActualAmount ?? 0),
+      scheduleCount: weekSchedules.length,
+      conflictCount: weekSchedules.filter(isConflict).length,
+      pendingApprovalCount: totalOf(approvalsRes),
+      unassignedCount: Number(unassignedData?.summary?.totalStudents ?? unassignedData?.total ?? 0)
     }
+    upcomingCount.value = upcoming.length
 
-    // 格式化近期课表日程列表（最多展示5节课）
-    recentSchedules.value = schedules.slice(0, 5).map((s: any) => ({
-      id: s.id,
-      lessonTitle: s.lessonTitle || s.courseName || '少儿创客大纲课程',
-      className: s.className || '创客旗舰班',
-      teacherName: s.teacherName || '张老师',
-      classroomName: s.classroomName || '创客实验室',
-      timeSlot: s.timeSlot || (s.startTime && s.endTime ? `${s.startTime}-${s.endTime}` : '14:00-15:30'),
-      isConflict: Boolean(s.semanticType === 'conflict' || s.isConflict),
-      status: s.status || 'scheduled'
-    }))
+    // 近期课次：今天起 14 天内未结课课次，按日期时间升序取前 5 节
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    recentSchedules.value = upcoming.slice(0, 5).map((s: any) => {
+      const d = new Date(`${s.date}T00:00:00`)
+      return {
+        id: s.id,
+        lessonTitle: s.lessonTitle || s.courseName,
+        className: s.className,
+        teacherName: s.teacherName,
+        classroomName: s.classroomName,
+        dateLabel: s.date === fmt(today) ? '今天' : `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${weekdays[d.getDay()]}`,
+        timeSlot: s.startTime && s.endTime ? `${s.startTime}-${s.endTime}` : '',
+        isConflict: isConflict(s),
+        status: s.status || 'scheduled'
+      }
+    })
   } catch (err) {
     console.warn('[Dashboard] 加载统计数据异常:', err)
   } finally {

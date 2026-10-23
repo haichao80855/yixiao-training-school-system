@@ -645,9 +645,15 @@ export class LearningGrowthProjector {
       };
     });
 
+    // 已报读 = 名下有未全额退费的课包（与学员列表「未报读」同口径）。
+    // 未报读学员没有课时可消耗，不做消课预警，也不进入续费跟进窗口。
+    const enrolled = student.packages.some((pkg) => pkg.status !== 'refunded');
+
     let overallWarningLevel: 'normal' | 'warning' | 'urgent' = 'normal';
-    if (totalRemaining <= 4) overallWarningLevel = 'urgent';
-    else if (totalRemaining <= 8) overallWarningLevel = 'warning';
+    if (enrolled) {
+      if (totalRemaining <= 4) overallWarningLevel = 'urgent';
+      else if (totalRemaining <= 8) overallWarningLevel = 'warning';
+    }
 
     // 4. 计算近 30 天滑动周消课速率与预计耗尽天数
     const nowMs = Date.now();
@@ -656,16 +662,20 @@ export class LearningGrowthProjector {
       .filter((t) => !t.isReversed && new Date(t.date).getTime() >= thirtyDaysAgoMs)
       .reduce((sum, t) => sum + t.deductLessons, 0);
 
-    const weeklyBurnRate = Number(Math.max(0.5, recentBurnedLessons / 4.2).toFixed(1));
+    // 不再设 0.5 课时/周的保底速率：近 30 天没有消课就是 0，耗尽天数无法预估 (null)
+    const weeklyBurnRate = Number((recentBurnedLessons / 4.2).toFixed(1));
     const dailyRate = weeklyBurnRate / 7;
-    const estimatedDepletionDays = dailyRate > 0 ? Math.round(totalRemaining / dailyRate) : 90;
+    const estimatedDepletionDays =
+      enrolled && totalRemaining > 0 && dailyRate > 0 ? Math.round(totalRemaining / dailyRate) : null;
 
     const latestDateStr = timeline[0]?.date;
     const latestDateMs = latestDateStr ? new Date(latestDateStr).getTime() : 0;
     const dormantRisk = latestDateMs > 0 && nowMs - latestDateMs > 14 * 86400000;
-    const renewalWindowOpen = totalRemaining <= 8 || estimatedDepletionDays <= 30;
+    const renewalWindowOpen =
+      enrolled && (totalRemaining <= 8 || (estimatedDepletionDays !== null && estimatedDepletionDays <= 30));
 
     const consumptionHealth: ConsumptionHealth = {
+      enrolled,
       weeklyBurnRate,
       estimatedDepletionDays,
       warningLevel: overallWarningLevel,

@@ -45,7 +45,7 @@
           <div><span class="text-st-muted">上课时段：</span><span class="font-medium text-st-title">{{ event.startTime }} - {{ event.endTime }} ({{ event.durationMinutes }}分钟)</span></div>
           <div><span class="text-st-muted">授课讲师：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ event.teacherName }}</span></div>
           <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />{{ event.classroomName }}</span></div>
-          <div><span class="text-st-muted">课次讲数：</span><span class="font-medium text-st-title">第 {{ event.lessonNumber || 1 }} 讲</span></div>
+          <div><span class="text-st-muted">课次讲数：</span><span class="font-medium text-st-title">{{ event.lessonNumber ? `第 ${event.lessonNumber} 讲` : '—' }}</span></div>
           <div><span class="text-st-muted">课次类型：</span><span class="font-medium text-st-title">{{ event.classType === 'formal' ? '正式课' : event.classType === 'make_up' ? '补课' : '公开试听' }}</span></div>
         </div>
         <div v-if="event.lessonTitle" class="pt-1 border-t border-gray-200">

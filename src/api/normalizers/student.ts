@@ -130,8 +130,10 @@ export function normalizeStudent(raw: any): Student {
   // 5. 消课健康度与流失预警单一真值源 (SSOT)
   const rawHealth = raw.consumptionHealth || raw.learningPortfolio?.consumptionHealth;
   const consumptionHealth = rawHealth ? {
+    enrolled: typeof rawHealth.enrolled === 'boolean' ? rawHealth.enrolled : undefined,
     weeklyBurnRate: Number(rawHealth.weeklyBurnRate || 0),
-    estimatedDepletionDays: Number(rawHealth.estimatedDepletionDays || 999),
+    // null / 缺省表示无法预估，不能用 999 之类的哨兵值冒充天数（0 也是有效值）
+    estimatedDepletionDays: rawHealth.estimatedDepletionDays == null ? null : Number(rawHealth.estimatedDepletionDays),
     warningLevel: (rawHealth.warningLevel || 'normal') as 'normal' | 'warning' | 'urgent',
     dormantRisk: Boolean(rawHealth.dormantRisk),
     renewalWindowOpen: Boolean(rawHealth.renewalWindowOpen),
@@ -182,6 +184,8 @@ export function normalizeStudent(raw: any): Student {
     campusId: raw.campusId || raw.campus?.id || 'campus-bj-hq',
     campusName: raw.campus?.name || raw.campusName || '拓视未来-原阳校区',
     status: (raw.status || 'normal') as StudentStatus,
+    // 列表接口下发：名下是否有未全额退费的课包（未报读判定）
+    isEnrolled: typeof raw.isEnrolled === 'boolean' ? raw.isEnrolled : undefined,
     wallet,
     coursePackages,
     learningRecords,

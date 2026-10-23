@@ -180,7 +180,7 @@
               </el-table-column>
               <el-table-column label="讲次主题" min-width="160">
                 <template #default="{ row }">
-                  <span class="truncate">{{ row.lessonTitle || `第${row.lessonNumber || 1}讲` }}</span>
+                  <span class="truncate">{{ row.lessonTitle || (row.lessonNumber ? `第${row.lessonNumber}讲` : '—') }}</span>
                 </template>
               </el-table-column>
               <el-table-column prop="classroomName" label="教室" width="110" />

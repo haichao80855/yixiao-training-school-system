@@ -22,6 +22,10 @@ export interface ScheduleEventModel {
   expectedCount: number;
   actualCount: number;
   coursewareUrl?: string;
+  /** 本班第几讲（服务端按班级未取消课次顺序派生，与 Web 讲台一致） */
+  lessonNumber?: number;
+  /** 课程大纲中对应讲次的主题；大纲未覆盖时为空 */
+  lessonTitle?: string;
 }
 
 export interface StudentRollCallModel {
@@ -180,6 +184,8 @@ export const eduApi = {
             expectedCount,
             actualCount,
             coursewareUrl: item.coursewareUrl,
+            lessonNumber: typeof item.lessonNumber === 'number' ? item.lessonNumber : undefined,
+            lessonTitle: item.lessonTitle || undefined,
           };
         });
       }

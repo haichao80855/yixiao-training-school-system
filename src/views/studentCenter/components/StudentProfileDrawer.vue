@@ -10,27 +10,15 @@
       <div class="bg-gradient-to-r from-slate-50 to-blue-50/40 border border-slate-200 rounded-xl p-5 shadow-sm">
         <div class="flex items-start justify-between">
           <div class="flex items-center space-x-4">
-            <div class="relative">
-              <img
-                :src="student.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120'"
-                class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-md"
-              />
-              <span
-                v-if="student.faceEntered"
-                class="absolute -bottom-1 -right-1 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full border-2 border-white flex items-center shadow-xs"
-                title="已录入人脸底库"
-              >
-                人脸
-              </span>
-            </div>
+            <StudentAvatar :seed="student.id" :name="student.name" :gender="student.gender" :size="64" />
             <div>
               <div class="flex items-center space-x-2">
                 <h3 class="text-xl font-bold text-st-title">{{ student.name }}</h3>
                 <span class="text-xs text-st-muted font-mono bg-white px-2 py-0.5 rounded border border-gray-200 font-semibold">
                   {{ student.studentNo }}
                 </span>
-                <el-tag size="small" :type="getStatusTagType(student.status)">
-                  {{ getStatusLabel(student.status) }}
+                <el-tag size="small" :type="getStudentStatusTagType(student)">
+                  {{ getStudentStatusLabel(student) }}
                 </el-tag>
                 <el-tag v-if="student.wechatBound" size="small" type="success" effect="plain">
                   微信已绑
@@ -78,9 +66,24 @@
           </div>
         </div>
 
+        <!-- 未报读：没有课时可消耗，不做消课预警 / 续费判断 -->
+        <div
+          v-if="consumptionHealth && !healthEnrolled"
+          class="mt-3 p-2.5 rounded-lg border text-xs flex items-center justify-between bg-slate-50 border-slate-200 text-slate-700"
+        >
+          <div class="flex items-center space-x-3">
+            <span class="font-bold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+              消课健康度: 未报读
+            </span>
+            <span class="text-slate-500">报读课程后开始统计消课速率与课时余量</span>
+          </div>
+          <el-button size="small" type="primary" link @click="emit('openEnroll', student)">立即报读</el-button>
+        </div>
+
         <!-- 消课健康度与流失预警单一真值源 (SSOT) -->
         <div
-          v-if="consumptionHealth"
+          v-else-if="consumptionHealth"
           class="mt-3 p-2.5 rounded-lg border text-xs flex items-center justify-between"
           :class="consumptionHealth.warningLevel === 'urgent' ? 'bg-red-50 border-red-200 text-red-900' : consumptionHealth.warningLevel === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-emerald-50 border-emerald-200 text-emerald-900'"
         >
@@ -90,7 +93,11 @@
               消课健康度: {{ consumptionHealth.warningLevel === 'urgent' ? '急需续费 / 课时即将耗尽' : consumptionHealth.warningLevel === 'warning' ? '课时偏低预警' : '健康充裕' }}
             </span>
             <span class="text-slate-600">周均消课: <b class="font-mono text-slate-900">{{ consumptionHealth.weeklyBurnRate }} 课时/周</b></span>
-            <span class="text-slate-600">预计耗尽: <b class="font-mono text-slate-900">{{ consumptionHealth.estimatedDepletionDays }} 天</b></span>
+            <span class="text-slate-600">预计耗尽:
+              <b v-if="consumptionHealth.estimatedDepletionDays != null" class="font-mono text-slate-900">{{ consumptionHealth.estimatedDepletionDays }} 天</b>
+              <b v-else-if="totalRemainingLessons <= 0" class="text-slate-900">课时已用完</b>
+              <b v-else class="text-slate-900">近 30 天无消课，暂无法预估</b>
+            </span>
             <span v-if="consumptionHealth.dormantRisk" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">14天未消课休眠风险</span>
             <span v-if="consumptionHealth.renewalWindowOpen" class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-semibold">处于续费跟进黄金期</span>
           </div>
@@ -623,6 +630,8 @@ import { Play, Link2, Image, Mic, Video, Phone } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student, StudentCoursePackage, CompetitionRecord } from '@/types/student'
 import { studentApi } from '@/api'
+import StudentAvatar from '@/components/StudentAvatar.vue'
+import { getStudentStatusLabel, getStudentStatusTagType, resolveStudentStatus } from '@/utils/studentStatus'
 
 const props = defineProps<{
   modelValue: boolean
@@ -690,6 +699,13 @@ const walletLedgerSorted = computed(() => {
 
 const consumptionHealth = computed(() => {
   return profileDetail.value?.consumptionHealth || props.student?.consumptionHealth || null
+})
+
+// 优先用后端下发的 enrolled；旧数据缺省时按学员状态口径推断
+const healthEnrolled = computed(() => {
+  const h = consumptionHealth.value as any
+  if (typeof h?.enrolled === 'boolean') return h.enrolled
+  return props.student ? resolveStudentStatus(props.student) !== 'not_enrolled' : true
 })
 
 const growthRadar = computed(() => {
@@ -774,30 +790,6 @@ async function copySingleLessonShareLink(token: string, scheduleEventId?: string
 function calcProgress(pkg: StudentCoursePackage) {
   const consumed = pkg.consumedLessons || (pkg.totalLessons - pkg.remainingLessons)
   return Math.min(100, Math.round((consumed / pkg.totalLessons) * 100))
-}
-
-function getStatusTagType(status: string) {
-  switch (status) {
-    case 'normal':
-    case 'in_class': // 已编班在读 (后端编班后写入)
-      return 'success'
-    case 'suspended': return 'warning'
-    case 'transferred': return 'info'
-    case 'dropped_out': return 'danger'
-    default: return 'info'
-  }
-}
-
-function getStatusLabel(status: string) {
-  switch (status) {
-    case 'normal':
-    case 'in_class':
-      return '正常在读'
-    case 'suspended': return '停课休学'
-    case 'transferred': return '已转校'
-    case 'dropped_out': return '已结课流失'
-    default: return status
-  }
 }
 
 function getLedgerTagType(type: string) {

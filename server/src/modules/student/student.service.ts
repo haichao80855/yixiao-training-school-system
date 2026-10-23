@@ -56,8 +56,17 @@ export class StudentService {
     }
 
     if (query.status && query.status !== 'all' && query.status !== 'undefined' && query.status !== 'null') {
-      // 「正常在读」包含已编班在读 (in_class)：报名入班 / 分班会把学员状态推进为 in_class
-      where.status = query.status === 'normal' ? { in: ['normal', 'in_class'] } : query.status;
+      if (query.status === 'normal') {
+        // 「正常在读」包含已编班在读 (in_class)，且必须已报读（名下至少有一个未全额退费的课包）
+        where.status = { in: ['normal', 'in_class'] };
+        where.packages = { some: { status: { not: 'refunded' } } };
+      } else if (query.status === 'not_enrolled') {
+        // 「未报读」为派生状态：档案正常但没有任何有效报读（钱包充值不算报读；课包全额退费后回到未报读）
+        where.status = { in: ['normal', 'in_class'] };
+        where.packages = { none: { status: { not: 'refunded' } } };
+      } else {
+        where.status = query.status;
+      }
     }
 
     if (query.keyword && query.keyword.trim() && query.keyword !== 'undefined' && query.keyword !== 'null') {
@@ -96,11 +105,22 @@ export class StudentService {
               attendances: true,
               orders: true,
               abnormals: true,
+              // 已消耗完毕 (completed) 的课包：结课扣到 0 时课包会被置为 completed，
+              // 不在上方 active 课包列表中，但学员仍是「课时耗尽、待续费」状态
+              packages: { where: { status: 'completed' } },
             },
           },
         },
       }),
     ]);
+
+    // 报读判定：名下未全额退费的课包数（含在读 / 已耗尽 / 冻结），0 即「未报读」
+    const packageCounts = await this.prisma.studentCoursePackage.groupBy({
+      by: ['studentId'],
+      where: { studentId: { in: students.map((s) => s.id) }, status: { not: 'refunded' } },
+      _count: { _all: true },
+    });
+    const packageCountMap = new Map(packageCounts.map((g) => [g.studentId, g._count._all]));
 
     // 格式化输出并计算课时与预警指标
     const list = students.map((stu) => {
@@ -120,7 +140,10 @@ export class StudentService {
       );
 
       let computedWarningLevel = 'normal';
-      if (stu.packages.length > 0) {
+      // 有在读课包，或课包已全部耗尽 (completed) 的学员都参与课消预警；
+      // 从未购课的纯建档学员不参与
+      const hasLessonAssets = stu.packages.length > 0 || stu._count.packages > 0;
+      if (hasLessonAssets) {
         if (totalRemainingLessons <= RENEWAL_RISK_CONSTANTS.CRITICAL_LESSONS_THRESHOLD) {
           computedWarningLevel = 'urgent';
         } else if (totalRemainingLessons <= RENEWAL_RISK_CONSTANTS.WARNING_LESSONS_THRESHOLD) {
@@ -142,6 +165,7 @@ export class StudentService {
         parentName: stu.parentName,
         school: stu.school,
         status: stu.status,
+        isEnrolled: (packageCountMap.get(stu.id) || 0) > 0,
         campusId: stu.campusId,
         campus: stu.campus,
         principalBalance: stu.wallet?.principalBalance || 0,

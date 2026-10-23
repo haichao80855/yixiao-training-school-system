@@ -76,9 +76,15 @@
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <el-form-item label="在读状态" prop="status">
+        <!-- 新建档案不选状态：建档即为「未报读」，报读课程后自动转为在读 -->
+        <el-form-item v-if="!isEdit" label="在读状态">
+          <div class="text-xs text-st-muted leading-5">
+            建档后为 <span class="text-st-primary font-medium">未报读</span>，报读课程后自动转为正常在读；钱包充值不改变报读状态，课包全额退费后回到未报读
+          </div>
+        </el-form-item>
+        <el-form-item v-else label="在读状态" prop="status">
           <el-select v-model="form.status" class="w-full">
-            <el-option label="正常在读" value="normal" />
+            <el-option :label="editingNotEnrolled ? '正常（未报读）' : '正常在读'" value="normal" />
             <el-option v-if="form.status === 'in_class'" label="正常在读（已编班）" value="in_class" />
             <el-option label="停课休学" value="suspended" />
             <el-option label="已转校" value="transferred" />
@@ -110,6 +116,7 @@ import type { Student, StudentStatus } from '@/types/student'
 import { studentApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 import { DIALOG_SIZE } from '@/constants/ui'
+import { isStudentEnrolled } from '@/utils/studentStatus'
 
 const props = defineProps<{
   modelValue: boolean
@@ -129,6 +136,7 @@ const visible = computed({
 })
 
 const isEdit = computed(() => !!props.student)
+const editingNotEnrolled = computed(() => !!props.student && !isStudentEnrolled(props.student))
 const submitting = ref(false)
 
 const form = reactive({

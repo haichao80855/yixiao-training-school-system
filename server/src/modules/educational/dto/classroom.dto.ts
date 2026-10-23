@@ -5,9 +5,10 @@ export class CreateClassroomDto {
   @IsNotEmpty()
   campusId: string;
 
+  // 可选：快速建室不填编码时由服务端按 CR-<校区>-<序号> 自动生成
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  code: string;
+  code?: string;
 
   @IsString()
   @IsNotEmpty()
