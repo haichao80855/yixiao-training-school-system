@@ -70,18 +70,48 @@
                 <span class="text-sm font-extrabold text-emerald-400 font-mono tracking-wider">
                   {{ String(idx + 1).padStart(2, '0') }}
                 </span>
-                <span
-                  v-if="lesson.pptUrl"
-                  class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30"
-                >
-                  在线白板
-                </span>
-                <span
-                  v-else-if="lesson.downloadUrl"
-                  class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-300"
-                >
-                  源文件
-                </span>
+                <div class="flex items-center gap-1.5">
+                  <span
+                    v-if="lesson.pptUrl"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30"
+                  >
+                    在线白板
+                  </span>
+                  <span
+                    v-else-if="lesson.downloadUrl"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-300"
+                  >
+                    源文件
+                  </span>
+
+                  <!-- 程序下载 (仅阿里云 OSS 托管的初始/完整程序) -->
+                  <el-dropdown
+                    v-if="getLessonPrograms(lesson).length > 0"
+                    trigger="click"
+                    @command="handleDownloadProgram"
+                    @click.stop
+                  >
+                    <button
+                      type="button"
+                      title="下载程序"
+                      class="w-6 h-6 rounded-md bg-white/10 hover:bg-st-primary text-gray-200 hover:text-white flex items-center justify-center transition-colors"
+                      @click.stop
+                    >
+                      <el-icon :size="14"><Download /></el-icon>
+                    </button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item
+                          v-for="program in getLessonPrograms(lesson)"
+                          :key="program.kind"
+                          :command="program"
+                        >
+                          {{ program.label }}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
               </div>
 
               <!-- 课次名称 -->
@@ -144,13 +174,114 @@ interface LessonItem {
   pptUrl?: string
   pptFileName?: string
   downloadUrl?: string
-  resources?: any[]
+  resources?: unknown[]
 }
+
+type ProgramKind = 'starter' | 'complete'
+
+interface LessonProgram {
+  kind: ProgramKind
+  label: string
+  url: string
+}
+
+// 盛通 OSS 归档约定：单片机机器人配套程序统一存放于
+// public-prod-shengtong/course/publicMaterial/{机器人名称}预置程序.rsp | {机器人名称}完整程序.rsp
+const ROBOT_PROGRAM_BASE_URL = 'https://public-prod-shengtong.oss-cn-zhangjiakou.aliyuncs.com/course/publicMaterial/'
+
+const PROGRAM_FILES: { kind: ProgramKind; suffix: string; label: string }[] = [
+  { kind: 'starter', suffix: '预置程序', label: '下载预置程序' },
+  { kind: 'complete', suffix: '完整程序', label: '下载完整程序' }
+]
 
 const visible = ref(false)
 const course = ref<CourseItem | null>(null)
 const lessonList = ref<LessonItem[]>([])
 const playerRef = ref<InstanceType<typeof CoursewarePlayerDialog> | null>(null)
+// 机器人名称 -> OSS 上实际存在的配套程序
+const robotPrograms = ref<Record<string, LessonProgram[]>>({})
+let programProbeToken = 0
+
+function isAliyunOssUrl(url?: string) {
+  if (!url) return false
+  try {
+    return /\.aliyuncs\.com$/i.test(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+
+function isOssMicrocontrollerCourse(targetCourse: CourseItem, lessons: LessonItem[]) {
+  const isMicrocontroller = [targetCourse.configCourseSubjectName, targetCourse.courseName]
+    .some(name => name?.includes('单片机'))
+  return isMicrocontroller && lessons.some(l => isAliyunOssUrl(l.downloadUrl))
+}
+
+// 课次名前缀（如「选学老鼠机器人」「3.0体验课竞速机器人」）不属于机器人名称
+const LESSON_NAME_PREFIX = /^(选学|体验课|体验)/
+const OSS_PROBE_RETRIES = 3
+
+// 课次名形如「攀爬机器人（上）」「01-体验初阶-赛车机器人-系统」，取出不含「机器人」的名称主干
+function getRobotName(lesson: LessonItem) {
+  const core = lesson.sessionName.match(/([一-龥]+)机器人/)?.[1].replace(LESSON_NAME_PREFIX, '')
+  return core || null
+}
+
+// 404 视为不存在；网络异常重试，避免偶发失败把已有程序判成缺失
+async function ossFileExists(url: string) {
+  for (let attempt = 0; attempt < OSS_PROBE_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, { method: 'HEAD' })
+      return res.ok
+    } catch {
+      // 继续重试
+    }
+  }
+  return false
+}
+
+// OSS 上的文件名有「攀爬机器人预置程序.rsp」与「兔子预置程序.rsp」两种写法，
+// 同一机器人的两个程序也可能写法不同，因此逐个程序依次尝试
+async function findRobotPrograms(robotName: string): Promise<LessonProgram[]> {
+  const programs = await Promise.all(PROGRAM_FILES.map(async file => {
+    for (const name of [`${robotName}机器人`, robotName]) {
+      const url = ROBOT_PROGRAM_BASE_URL + encodeURIComponent(`${name}${file.suffix}.rsp`)
+      if (await ossFileExists(url)) return { kind: file.kind, label: file.label, url }
+    }
+    return null
+  }))
+  return programs.filter((p): p is LessonProgram => p !== null)
+}
+
+async function probeRobotPrograms(targetCourse: CourseItem, lessons: LessonItem[]) {
+  const token = ++programProbeToken
+  robotPrograms.value = {}
+  if (!isOssMicrocontrollerCourse(targetCourse, lessons)) return
+
+  const robotNames = Array.from(new Set(lessons.map(getRobotName).filter((n): n is string => !!n)))
+  // 每个机器人查到即显示按钮，不必等整门课全部查完
+  await Promise.all(robotNames.map(async name => {
+    const programs = await findRobotPrograms(name)
+    // 抽屉已切换到其他课程时丢弃过期结果
+    if (token !== programProbeToken || programs.length === 0) return
+    robotPrograms.value = { ...robotPrograms.value, [name]: programs }
+  }))
+}
+
+function getLessonPrograms(lesson: LessonItem): LessonProgram[] {
+  const robotName = getRobotName(lesson)
+  return robotName ? robotPrograms.value[robotName] || [] : []
+}
+
+function handleDownloadProgram(program: LessonProgram) {
+  // .rsp 以 application/octet-stream 下发，直接导航即触发下载
+  const link = document.createElement('a')
+  link.href = program.url
+  link.rel = 'noopener'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
 async function open(targetCourse: CourseItem) {
   course.value = targetCourse
@@ -163,6 +294,7 @@ async function open(targetCourse: CourseItem) {
       if (dbLessons.length > 0) {
         lessonList.value = dbLessons
         visible.value = true
+        void probeRobotPrograms(targetCourse, dbLessons)
         return
       }
     }
@@ -185,6 +317,7 @@ async function open(targetCourse: CourseItem) {
     }))
   }
   visible.value = true
+  void probeRobotPrograms(targetCourse, lessonList.value)
 }
 
 function handlePlayCourseware(lesson: LessonItem) {
