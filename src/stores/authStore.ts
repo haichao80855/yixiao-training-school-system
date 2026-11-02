@@ -20,177 +20,27 @@ export interface UserProfile {
 
 const TOKEN_KEY = 'yixiao_auth_token'
 const USER_KEY = 'yixiao_auth_user'
-const LOGOUT_FLAG_KEY = 'yixiao_auth_has_logged_out'
-
-export const PRESET_USERS: Record<string, UserProfile & { password?: string; description?: string }> = {
-  // 1. 授课老师 (张老师)
-  zhangls: {
-    id: 'u-zhangls',
-    account: 'zhangls',
-    password: '123',
-    realName: '张老师',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    teacherId: 't-001',
-    roles: ['teacher'],
-    roleName: '少儿编程专职主讲教师',
-    departmentName: '少儿编程教学组',
-    postName: '高级编程讲师',
-    dataScope: 'self',
-    description: '信奥金牌讲师，主讲 Scratch / Python，教学讲台核心执教人',
-    permissions: [
-      'curriculum:view',
-      'curriculum:courseManage',
-      'educational:workbench',
-      'educational:workbench:attend',
-      'educational:schedule:view',
-      'educational:classManagement',
-      'student:view'
-    ]
-  },
-  teacher: {
-    id: 'u-zhangls',
-    account: 'teacher',
-    password: '123',
-    realName: '张老师',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    teacherId: 't-001',
-    roles: ['teacher'],
-    roleName: '少儿编程专职主讲教师',
-    departmentName: '少儿编程教学组',
-    postName: '高级编程讲师',
-    dataScope: 'self',
-    description: '快捷授课教师账号（同张老师）',
-    permissions: [
-      'curriculum:view',
-      'curriculum:courseManage',
-      'educational:workbench',
-      'educational:workbench:attend',
-      'educational:schedule:view',
-      'educational:classManagement',
-      'student:view'
-    ]
-  },
-  // 2. 超级管理员 (冬海潮)
-  donghaichao: {
-    id: 'u-01',
-    account: 'donghaichao',
-    password: '123',
-    realName: '冬海潮',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    roles: ['super_admin'],
-    roleName: '超级管理员 (集团总部)',
-    departmentName: '教务教学部',
-    postName: '总系统管理员',
-    dataScope: 'all',
-    description: '系统最高权限，统管全集团校区、财务审批与组织架构',
-    permissions: ['*']
-  },
-  admin: {
-    id: 'u-01',
-    account: 'admin',
-    password: '123',
-    realName: '冬海潮',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    roles: ['super_admin'],
-    roleName: '超级管理员 (集团总部)',
-    departmentName: '教务教学部',
-    postName: '总系统管理员',
-    dataScope: 'all',
-    description: '快捷管理员账号（同冬海潮）',
-    permissions: ['*']
-  },
-  // 3. 硬件创客导师 (赵老师 / 赵立鹏)
-  zhaolp: {
-    id: 'u-05',
-    account: 'zhaolp',
-    password: '123',
-    realName: '赵立鹏',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    teacherId: 't-005',
-    roles: ['teacher'],
-    roleName: 'EV3/单片机硬件导师',
-    departmentName: '创客工程组',
-    postName: '硬件主讲教师',
-    dataScope: 'self',
-    description: 'EV3机器人与开源硬件导师',
-    permissions: [
-      'curriculum:view',
-      'educational:workbench',
-      'educational:workbench:attend',
-      'educational:schedule:view'
-    ]
-  },
-  // 4. 分校区执行校长 (张建华)
-  zhangjh: {
-    id: 'u-02',
-    account: 'zhangjh',
-    password: '123',
-    realName: '张建华',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    roles: ['principal'],
-    roleName: '分校区执行校长',
-    departmentName: '校长办公室',
-    postName: '执行校长',
-    dataScope: 'campus',
-    description: '校区日常运营、教务调度与大额退费审批',
-    permissions: [
-      'curriculum:view',
-      'student:view',
-      'educational:schedule:view',
-      'educational:workbench:attend',
-      'financial:approval:process'
-    ]
-  },
-  // 5. 校区财务 (王财务)
-  wangcw: {
-    id: 'u-04',
-    account: 'wangcw',
-    password: '123',
-    realName: '王财务',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    roles: ['cashier', 'finance'],
-    roleName: '校区出纳与财务',
-    departmentName: '校区财务处',
-    postName: '校区总出纳',
-    dataScope: 'campus',
-    description: '收费核销、出纳流水与财务终审入账',
-    permissions: [
-      'financial:order:view',
-      'financial:approval:process',
-      'financial:ledger:view'
-    ]
-  }
-}
 
 export const useAuthStore = defineStore('auth', () => {
-  // 检查是否主动退出过
-  const hasLoggedOut = typeof window !== 'undefined' && localStorage.getItem(LOGOUT_FLAG_KEY) === '1'
-
-  // 读取现有状态；若未退出且无状态则默认初始化为冬海潮管理员
+  // 只恢复本人上次登录保存的会话；没有会话就是未登录 (由路由守卫送回登录页)。
+  // 原实现在无会话时默认预置超级管理员身份，打开任意内部页面即以超管身份进入
   const initialToken = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) || '' : ''
   const initialUserStr = typeof window !== 'undefined' ? localStorage.getItem(USER_KEY) : null
 
   let defaultUser: UserProfile | null = null
   let defaultToken = ''
 
-  if (initialToken && initialUserStr) {
+  // 遗留的本地演示令牌 (mock-* / 本地登录产生的 st-token-*) 不是有效会话，一并清除
+  if ((initialToken.startsWith('mock-') || initialToken.startsWith('st-token-')) && typeof window !== 'undefined') {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+  } else if (initialToken && initialUserStr) {
     try {
       defaultUser = JSON.parse(initialUserStr)
       defaultToken = initialToken
     } catch {
       defaultUser = null
     }
-  } else if (!hasLoggedOut) {
-    // 首次进入系统默认预置冬海潮身份
-    defaultUser = { ...PRESET_USERS.donghaichao }
-    defaultToken = 'mock-st-token-donghaichao'
   }
 
   const token = ref<string>(defaultToken)
@@ -217,41 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (typeof window !== 'undefined') {
       localStorage.setItem(TOKEN_KEY, newToken)
       localStorage.setItem(USER_KEY, JSON.stringify(userInfo))
-      localStorage.removeItem(LOGOUT_FLAG_KEY)
     }
-  }
-
-  function login(accountOrPhone: string, _password?: string): { success: boolean; user: UserProfile } {
-    const key = (accountOrPhone || '').toLowerCase().trim()
-    const preset = PRESET_USERS[key] || Object.values(PRESET_USERS).find((p) => p.phone && p.phone.trim() === key)
-
-    let targetUser: UserProfile
-    if (preset) {
-      const { password: _, description: __, ...u } = preset
-      targetUser = u
-    } else {
-      // 允许任意自定义账号登录
-      const isTeacherRole = key.includes('teacher') || key.includes('ls') || key.includes('教')
-      targetUser = {
-        id: `u-${Date.now()}`,
-        account: key,
-        realName: isTeacherRole ? '张老师' : key,
-        phone: key.length === 11 && /^\d+$/.test(key) ? key : undefined,
-        campusId: 'campus-bj-hq',
-        campusName: '拓视未来-原阳校区',
-        teacherId: isTeacherRole ? 't-001' : undefined,
-        roles: isTeacherRole ? ['teacher'] : ['super_admin'],
-        roleName: isTeacherRole ? '少儿编程专职主讲教师' : '普通用户',
-        departmentName: '教学教务中心',
-        postName: isTeacherRole ? '授课教师' : '运营人员',
-        permissions: ['*'],
-        dataScope: isTeacherRole ? 'self' : 'all'
-      }
-    }
-
-    const newToken = `st-token-${targetUser.account}-${Date.now()}`
-    setLoginSession(newToken, targetUser)
-    return { success: true, user: targetUser }
   }
 
   function logout() {
@@ -260,7 +76,6 @@ export const useAuthStore = defineStore('auth', () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
-      localStorage.setItem(LOGOUT_FLAG_KEY, '1')
     }
   }
 
@@ -284,45 +99,42 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function loginAsync(accountOrPhone: string, password = '123456'): Promise<{ success: boolean; user: UserProfile }> {
+  async function loginAsync(accountOrPhone: string, password: string): Promise<{ success: boolean; user: UserProfile }> {
+    // 只认服务端认证结果：任何失败都如实抛出，绝不降级为本地登录
+    // (原实现在服务端不可达或返回非预期错误时，会以任意账号、不校验密码在本地登录)
+    let res: Awaited<ReturnType<typeof authApi.login>>
     try {
-      const res = await authApi.login({ account: accountOrPhone, password })
-      const rawToken = res?.data?.accessToken || res?.data?.token
-      if (res && res.success && rawToken && res.data?.user) {
-        const u = res.data.user
-        const mappedUser: UserProfile = {
-          id: u.id,
-          account: u.account,
-          realName: u.realName,
-          phone: u.phone,
-          campusId: u.campusId,
-          campusName: u.campusName,
-          roles: u.roles?.map((r: any) => typeof r === 'string' ? r : (r.code || r.name)) || ['staff'],
-          roleName: u.roles?.[0]?.name || (u.roles?.includes('super_admin') ? '超级管理员' : '系统员工'),
-          departmentName: u.departmentName || '教务中心',
-          postName: u.postName || '运营人员',
-          permissions: u.permissions || ['*'],
-          dataScope: u.dataScope || 'campus'
-        }
-        setLoginSession(rawToken, mappedUser)
-        return { success: true, user: mappedUser }
-      }
+      res = await authApi.login({ account: accountOrPhone, password })
     } catch (e: any) {
-      // 关键防线：若后端返回明确鉴权业务错误（如密码错误、账号锁定停用、账号不存在），真实抛出阻断，绝不假双写！
-      const errMsg = e?.message || ''
-      if (
-        errMsg.includes('密码错误') ||
-        errMsg.includes('账号不存在') ||
-        errMsg.includes('锁定') ||
-        errMsg.includes('停用') ||
-        errMsg.includes('401') ||
-        errMsg.includes('403')
-      ) {
-        throw new Error(errMsg || '用户名或密码错误')
+      const errMsg: string = e?.message || ''
+      if (e instanceof TypeError || /Failed to fetch|NetworkError|Load failed/i.test(errMsg)) {
+        throw new Error('无法连接服务器，请检查网络后重试')
       }
-      console.warn('[AuthStore] 远程后端认证未就绪，使用本地双轨模式登录:', e)
+      throw new Error(errMsg || '登录失败，请检查账号与密码')
     }
-    return login(accountOrPhone, password)
+
+    const rawToken = res?.data?.accessToken || res?.data?.token
+    if (!res?.success || !rawToken || !res.data?.user) {
+      throw new Error('登录失败：服务器返回的登录信息不完整，请稍后重试')
+    }
+
+    const u = res.data.user
+    const mappedUser: UserProfile = {
+      id: u.id,
+      account: u.account,
+      realName: u.realName,
+      phone: u.phone,
+      campusId: u.campusId,
+      campusName: u.campusName,
+      roles: u.roles?.map((r: any) => typeof r === 'string' ? r : (r.code || r.name)) || ['staff'],
+      roleName: u.roles?.[0]?.name || (u.roles?.includes('super_admin') ? '超级管理员' : '系统员工'),
+      departmentName: u.departmentName || '教务中心',
+      postName: u.postName || '运营人员',
+      permissions: u.permissions || ['*'],
+      dataScope: u.dataScope || 'campus'
+    }
+    setLoginSession(rawToken, mappedUser)
+    return { success: true, user: mappedUser }
   }
 
   async function refreshProfile(): Promise<void> {
@@ -346,12 +158,9 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  if (typeof window !== 'undefined') {
-    if (!token.value || token.value.startsWith('mock-')) {
-      loginAsync('donghaichao', '123456')
-    } else {
-      refreshProfile()
-    }
+  // 启动时不再自动登录任何账号；已有会话则向服务端核验 (令牌失效时 request 会清除会话并回到登录页)
+  if (typeof window !== 'undefined' && token.value) {
+    refreshProfile()
   }
 
   return {
@@ -361,7 +170,6 @@ export const useAuthStore = defineStore('auth', () => {
     isSuperAdmin,
     isTeacher,
     setLoginSession,
-    login,
     loginAsync,
     refreshProfile,
     logout,

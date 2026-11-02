@@ -106,11 +106,8 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="success" size="small" @click="$emit('quickSwitch', row as any)" title="以该员工身份快速登录体验">
-              体验
-            </el-button>
             <el-button link type="primary" size="small" @click="$emit('resetPassword', row as any)">
               改密
             </el-button>
@@ -149,7 +146,6 @@ const props = defineProps<{
 defineEmits<{
   resetNodeSelection: []
   openAddUser: []
-  quickSwitch: [user: SystemUser]
   resetPassword: [user: SystemUser]
   openAuth: [user: SystemUser]
   toggleStatus: [user: SystemUser]

@@ -179,7 +179,8 @@ router.beforeEach((to, _from, next) => {
     }
   } else {
     if (!authStore.isAuthenticated) {
-      next('/login')
+      // 未登录一律回登录页，并记住原本要去的页面
+      next({ path: '/login', query: { redirect: to.fullPath } })
     } else {
       next()
     }

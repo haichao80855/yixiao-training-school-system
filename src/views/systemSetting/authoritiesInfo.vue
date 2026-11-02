@@ -54,7 +54,6 @@
             :selected-node="selectedNode"
             @reset-node-selection="resetNodeSelection"
             @open-add-user="showAddUserDialog = true"
-            @quick-switch="handleQuickSwitchUser"
             @reset-password="openResetPassword"
             @open-auth="openUserAuthDrawer"
             @toggle-status="handleToggleUserStatus"
@@ -121,7 +120,6 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
 import { systemApi } from '@/api'
@@ -141,7 +139,6 @@ import TransferAdminDialog from './components/TransferAdminDialog.vue'
 import OrgLogoPanel from './components/OrgLogoPanel.vue'
 import OrgProductPanel from './components/OrgProductPanel.vue'
 
-const router = useRouter()
 const authStore = useAuthStore()
 
 // --- 核心响应式状态 ---
@@ -293,17 +290,6 @@ async function submitAddUser(formData: any) {
     ElMessage.error(err.message || '录入员工失败')
   } finally {
     submittingUser.value = false
-  }
-}
-
-function handleQuickSwitchUser(user: SystemUser) {
-  authStore.login(user.account)
-  ElMessage.success(`已切换为员工【${user.name}】身份`)
-  const isTeacher = user.roleName?.includes('教师') || user.roleName?.includes('老师') || user.roleName?.includes('讲师') || user.roleId === 'r4'
-  if (isTeacher) {
-    router.push('/educational/workbench')
-  } else {
-    router.push('/dashboard')
   }
 }
 

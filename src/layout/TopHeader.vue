@@ -89,15 +89,7 @@
             <el-dropdown-item command="password">修改密码</el-dropdown-item>
             <el-dropdown-item command="campus">切换工作校区</el-dropdown-item>
             <template v-if="isDev">
-              <el-dropdown-item command="switch-teacher" divided>
-                <UserCheck class="w-4 h-4 mr-2 text-st-muted" />
-                <span>演示：切换为张老师</span>
-              </el-dropdown-item>
-              <el-dropdown-item command="switch-admin">
-                <ShieldCheck class="w-4 h-4 mr-2 text-st-muted" />
-                <span>演示：切换为管理员</span>
-              </el-dropdown-item>
-              <el-dropdown-item command="test-data">
+              <el-dropdown-item command="test-data" divided>
                 <Database class="w-4 h-4 mr-2 text-st-muted" />
                 <span>测试数据管理</span>
               </el-dropdown-item>
@@ -202,7 +194,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { UserCheck, ShieldCheck, Database, LogOut, Settings, Info } from 'lucide-vue-next'
+import { Database, LogOut, Settings, Info } from 'lucide-vue-next'
 import { Fold, Bell, FullScreen, ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/authStore'
 import { DIALOG_SIZE } from '@/constants/ui'
@@ -349,14 +341,6 @@ function handleUserCommand(command: string) {
       ElMessage.success('已安全退出登录')
       router.push('/login')
     }).catch(() => {})
-  } else if (command === 'switch-teacher') {
-    authStore.login('zhangls')
-    ElMessage.success('已快速切换为授课老师【张老师】身份')
-    router.push('/educational/workbench')
-  } else if (command === 'switch-admin') {
-    authStore.login('donghaichao')
-    ElMessage.success('已快速切换为超级管理员【冬海潮】身份')
-    router.push('/dashboard')
   } else if (command === 'campus') {
     campusSelectorRef.value?.open?.()
   } else if (command === 'profile') {

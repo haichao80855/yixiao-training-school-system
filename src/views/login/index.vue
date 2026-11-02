@@ -88,7 +88,7 @@
 
           <div class="flex items-center justify-between text-[13px] text-st-secondary">
             <el-checkbox v-model="rememberMe" label="记住账号" />
-            <span class="text-st-primary hover:underline cursor-pointer">忘记密码？</span>
+            <span class="text-st-primary hover:underline cursor-pointer" @click="handleForgotPassword">忘记密码？</span>
           </div>
 
           <el-button
@@ -102,33 +102,6 @@
           </el-button>
         </el-form>
 
-        <!-- 演示账号 -->
-        <div class="mt-9">
-          <div class="flex items-center gap-3 text-xs text-st-muted">
-            <span class="flex-1 h-px bg-st-border"></span>
-            <span>演示账号快速体验</span>
-            <span class="flex-1 h-px bg-st-border"></span>
-          </div>
-
-          <div class="mt-4 grid grid-cols-2 gap-2">
-            <button
-              v-for="demo in demoAccounts"
-              :key="demo.account"
-              type="button"
-              class="demo-account group"
-              :disabled="loading"
-              @click="handleQuickLogin(demo.account)"
-            >
-              <span :class="['w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-semibold shrink-0', demo.avatarClass]">
-                {{ demo.name.charAt(0) }}
-              </span>
-              <span class="min-w-0 text-left">
-                <span class="block text-[13px] font-medium text-st-title truncate">{{ demo.name }}</span>
-                <span class="block text-xs text-st-muted truncate">{{ demo.role }}</span>
-              </span>
-            </button>
-          </div>
-        </div>
       </div>
     </main>
   </div>
@@ -136,36 +109,67 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Monitor, Zap, Shield, User, Lock } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
 
 const router = useRouter()
+const route = useRoute()
+
+/** 登录后回跳地址：只接受站内相对路径，防止被构造成跳到外部站点 */
+function safeRedirectTarget(): string | null {
+  const raw = route.query.redirect
+  const target = Array.isArray(raw) ? raw[0] : raw
+  if (
+    typeof target !== 'string' ||
+    !target.startsWith('/') ||
+    target.startsWith('//') ||
+    target.includes('\\') ||
+    target.startsWith('/login')
+  ) {
+    return null
+  }
+  return target
+}
 const authStore = useAuthStore()
 const tenantStore = useTenantStore()
 
 const loading = ref(false)
-const rememberMe = ref(true)
 
-// 演示环境快捷登录账号
-const demoAccounts = [
-  { account: 'zhangls', name: '张老师', role: '授课老师', avatarClass: 'bg-emerald-50 text-emerald-700' },
-  { account: 'donghaichao', name: '冬海潮', role: '超级管理员', avatarClass: 'bg-st-primary-light text-st-primary' },
-  { account: 'zhangjh', name: '张建华', role: '执行校长', avatarClass: 'bg-violet-50 text-violet-700' },
-  { account: 'wangcw', name: '王财务', role: '校区出纳', avatarClass: 'bg-amber-50 text-amber-700' }
-]
+// 「记住账号」只记住账号本身，绝不保存密码
+const REMEMBERED_ACCOUNT_KEY = 'yixiao_remembered_account'
+function readRememberedAccount(): string {
+  try {
+    return localStorage.getItem(REMEMBERED_ACCOUNT_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+const rememberedAccount = readRememberedAccount()
+const rememberMe = ref(Boolean(rememberedAccount))
 
+// 不再预填任何账号或密码
 const loginForm = reactive({
-  account: 'zhangls',
-  password: '123456'
+  account: rememberedAccount,
+  password: ''
 })
 
-async function executeLogin(account: string, password?: string) {
+async function executeLogin(account: string, password: string) {
   loading.value = true
   try {
-    const res = await authStore.loginAsync(account, password || '123456')
+    const res = await authStore.loginAsync(account, password)
+
+    try {
+      if (rememberMe.value) {
+        localStorage.setItem(REMEMBERED_ACCOUNT_KEY, account)
+      } else {
+        localStorage.removeItem(REMEMBERED_ACCOUNT_KEY)
+      }
+    } catch {
+      // 存储不可用时忽略
+    }
 
     // 联动校区
     if (res.user.campusId) {
@@ -174,8 +178,11 @@ async function executeLogin(account: string, password?: string) {
 
     ElMessage.success(`欢迎您，${res.user.realName}！已以【${res.user.roleName || '系统用户'}】身份成功登录`)
 
-    // 若是授课老师，直达教学讲台页面；否则进入仪表盘
-    if (res.user.roles.includes('teacher') || res.user.teacherId) {
+    // 会话失效被送回登录页的，登录后回到原页面；否则老师直达教学讲台、其他角色进入仪表盘
+    const redirectTarget = safeRedirectTarget()
+    if (redirectTarget) {
+      router.push(redirectTarget)
+    } else if (res.user.roles.includes('teacher') || res.user.teacherId) {
       router.push('/educational/workbench')
     } else {
       router.push('/dashboard')
@@ -188,17 +195,21 @@ async function executeLogin(account: string, password?: string) {
 }
 
 function handleFormLogin() {
-  if (!loginForm.account) {
+  const account = loginForm.account.trim()
+  if (!account) {
     ElMessage.warning('请输入用户名、工号或手机号')
     return
   }
-  executeLogin(loginForm.account, loginForm.password)
+  // 不再以默认密码兜底：密码为空直接拦截
+  if (!loginForm.password) {
+    ElMessage.warning('请输入密码')
+    return
+  }
+  executeLogin(account, loginForm.password)
 }
 
-function handleQuickLogin(account: string) {
-  loginForm.account = account
-  loginForm.password = '123456'
-  executeLogin(account, '123456')
+function handleForgotPassword() {
+  ElMessage.info('请联系校区管理员在「系统设置 → 组织架构与机构」的员工列表中为你重置密码')
 }
 </script>
 
@@ -220,24 +231,6 @@ function handleQuickLogin(account: string) {
   background: rgba(255, 255, 255, 0.12);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
   margin-top: -3px;
-}
-.demo-account {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--st-color-border);
-  border-radius: 10px;
-  background: #fff;
-  transition: border-color 0.15s, background-color 0.15s;
-}
-.demo-account:hover {
-  border-color: var(--st-color-primary-border);
-  background: var(--st-color-primary-bg);
-}
-.demo-account:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 :deep(.el-form-item__label) {
   font-size: 13px;

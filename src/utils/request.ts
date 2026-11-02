@@ -1,6 +1,6 @@
 /**
  * 拓视未来教育「一校教培系统」通用网络请求客户端 (Dual-Track HTTP Client)
- * 自动注入当前校区租户 ID (X-Campus-Id) 与 JWT Bearer Token (支持自动静默获取与 401 自动重试)
+ * 自动注入当前校区租户 ID (X-Campus-Id) 与本人登录的 JWT Bearer Token；401 时清除会话并回到登录页
  */
 
 interface RequestOptions extends RequestInit {
@@ -8,52 +8,45 @@ interface RequestOptions extends RequestInit {
   fallbackData?: any
 }
 
-let tokenPromise: Promise<string> | null = null
+const TOKEN_KEY = 'yixiao_auth_token'
+const USER_KEY = 'yixiao_auth_user'
 
-async function getValidAuthToken(): Promise<string> {
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return ''
-  const currentToken = localStorage.getItem('yixiao_auth_token') || ''
-  if (currentToken && !currentToken.startsWith('mock-') && !currentToken.startsWith('st-token-')) {
-    return currentToken
+/** 会话失效 (无有效登录凭据 / 服务端 401)：不得回退本地数据，必须回到登录页重新登录 */
+export class SessionExpiredError extends Error {
+  constructor(message = '登录已失效，请重新登录') {
+    super(message)
+    this.name = 'SessionExpiredError'
   }
+}
 
-  // 若用户处于登录页或已显式退出登录，严禁静默覆盖为超管会话
-  const hasLoggedOut = localStorage.getItem('yixiao_auth_has_logged_out') === 'true'
-  const isLoginPage = typeof window !== 'undefined' && window.location?.pathname?.includes('/login')
-  if (hasLoggedOut || isLoginPage) {
-    return ''
-  }
-
-  // 若无有效真实 JWT Token 且非登录页环境，发起自动换取真实凭证
-  if (!tokenPromise) {
-    tokenPromise = (async () => {
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ account: 'donghaichao', password: '123456' }),
-        })
-        if (res.ok) {
-          const json = await res.json()
-          const jwt = json.data?.accessToken || json.token
-          if (jwt) {
-            localStorage.setItem('yixiao_auth_token', jwt)
-            if (json.data?.user) {
-              localStorage.setItem('yixiao_auth_user', JSON.stringify(json.data.user))
-            }
-            return jwt
-          }
-        }
-      } catch (e) {
-        console.warn('[Request] 静默换取真实JWT失败:', e)
-      }
-      return ''
-    })()
-  }
-
-  const token = await tokenPromise
-  tokenPromise = null
+/** 只读取本人登录得到的真实 JWT；本地演示令牌 (mock- / st-token-) 不是有效凭据 */
+function readAuthToken(): string {
+  if (typeof localStorage === 'undefined') return ''
+  const token = localStorage.getItem(TOKEN_KEY) || ''
+  if (!token || token.startsWith('mock-') || token.startsWith('st-token-')) return ''
   return token
+}
+
+let redirectingToLogin = false
+
+/**
+ * 会话失效处理：清除本地登录状态并跳转登录页 (带回跳地址)。
+ * 不再以任何内置账号静默重新登录——原实现会在 401 / 无令牌时自动以超级管理员身份换取令牌。
+ */
+function handleSessionExpired(): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
+  } catch {
+    // 存储不可用时忽略
+  }
+  const { pathname, search, hash } = window.location
+  if (pathname.startsWith('/login') || redirectingToLogin) return
+  redirectingToLogin = true
+  const redirect = encodeURIComponent(`${pathname}${search}${hash}`)
+  // 整页跳转：同时重置内存中的登录状态 (Pinia)
+  window.location.assign(`/login?redirect=${redirect}`)
 }
 
 export async function request<T = any>(
@@ -77,11 +70,8 @@ export async function request<T = any>(
     }
   }
 
-  // 2. 获取当前的校区租户 ID 与 Token (支持自动静默获取真实有效 Token)
-  let token = localStorage.getItem('yixiao_auth_token') || ''
-  if (!token || token.startsWith('mock-')) {
-    token = await getValidAuthToken()
-  }
+  // 2. 获取当前的校区租户 ID 与本人登录的 Token (无有效 Token 时不携带 Authorization)
+  const token = readAuthToken()
   const campusId = localStorage.getItem('yixiao_current_campus_id') || 'campus-bj-hq'
 
   const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData
@@ -98,22 +88,15 @@ export async function request<T = any>(
   }
 
   try {
-    let res = await fetch(finalUrl, {
+    const res = await fetch(finalUrl, {
       ...fetchOptions,
       headers,
     })
 
-    // 若遇到 401，尝试刷新真实 Token 并自动重试一次
+    // 401：会话无效或已过期 → 清除登录状态并回到登录页 (登录接口自身的 401 是密码错误等，照常抛出)
     if (res.status === 401 && !url.includes('/api/auth/login')) {
-      localStorage.removeItem('yixiao_auth_token')
-      const freshToken = await getValidAuthToken()
-      if (freshToken) {
-        headers['Authorization'] = `Bearer ${freshToken}`
-        res = await fetch(finalUrl, {
-          ...fetchOptions,
-          headers,
-        })
-      }
+      handleSessionExpired()
+      throw new SessionExpiredError()
     }
 
     if (!res.ok) {
@@ -132,6 +115,8 @@ export async function request<T = any>(
       fromMock: false,
     }
   } catch (err: any) {
+    // 会话失效绝不回退本地数据，否则页面会在未登录状态下展示示例数据
+    if (err instanceof SessionExpiredError) throw err
     // 关键防线：写操作绝对禁止回退 fallbackData！必须直接抛出异常阻断业务流程！
     const method = (fetchOptions.method || 'GET').toUpperCase()
     const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
