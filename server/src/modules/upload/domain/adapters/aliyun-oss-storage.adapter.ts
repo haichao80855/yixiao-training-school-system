@@ -60,13 +60,14 @@ export function readAliyunOssConfigFromEnv(env: NodeJS.ProcessEnv = process.env)
 /**
  * 阿里云 OSS 存储引擎适配器 (AliyunOssStorageAdapter)
  * Bucket 保持私有读写：对外只输出限时预签名链接，缩略图由 OSS 图片/视频处理参数实时生成。
- * resolveUrl 仍返回 /uploads/<key> 形式，保证数据库中的历史值可被 toStorageKey 还原，
- * 管理端访问 /uploads/<key> 时由 main.ts 302 跳转到签名地址。
+ * resolveUrl 仍返回 /uploads/<key> 形式，保证数据库中的历史值可被 toStorageKey 还原；
+ * 接口出参由 MediaLinkInterceptor 统一换成签名地址，/uploads/ 本身不对外提供访问。
  */
 @Injectable()
 export class AliyunOssStorageAdapter implements StorageEnginePort {
   private readonly writeClient: OssClientLike;
   private readonly signClient: OssClientLike;
+  private signHostCache: string | null | undefined;
 
   constructor(
     @Optional() config?: AliyunOssConfig,
@@ -155,6 +156,35 @@ export class AliyunOssStorageAdapter implements StorageEnginePort {
       expires: options.expiresInSeconds ?? 3600,
       ...(process ? { process } : {}),
     });
+  }
+
+  keyFromSignedUrl(url: string): string | null {
+    let parsed: URL;
+    try {
+      parsed = new URL(url);
+    } catch {
+      return null;
+    }
+    if (parsed.host !== this.signHost()) return null;
+    const signed = parsed.searchParams.has('Signature') || parsed.searchParams.has('x-oss-signature');
+    if (!signed) return null;
+    try {
+      return this.cleanKey(decodeURIComponent(parsed.pathname)) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** 签名链接所用域名 (Bucket 公网域名或自定义域名)，以签名客户端实际输出为准 */
+  private signHost(): string {
+    if (this.signHostCache === undefined) {
+      try {
+        this.signHostCache = new URL(this.signClient.signatureUrl('probe', { expires: 60 })).host;
+      } catch {
+        this.signHostCache = null;
+      }
+    }
+    return this.signHostCache ?? '';
   }
 
   private thumbProcess(key: string): string | undefined {

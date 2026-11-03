@@ -1,5 +1,6 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { SignedUrlOptions, StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
+import { keyFromLocalMediaRoute } from '../media-key.util';
 
 /**
  * 单元测试专用内存存储桩 (MemoryMockStorageAdapter)
@@ -63,6 +64,10 @@ export class MemoryMockStorageAdapter implements StorageEnginePort {
   signedUrl(key: string, options: SignedUrlOptions = {}): string {
     const exp = Math.floor(Date.now() / 1000) + (options.expiresInSeconds ?? 3600);
     return `/api/media/${key}?exp=${exp}&sig=memory`;
+  }
+
+  keyFromSignedUrl(url: string): string | null {
+    return keyFromLocalMediaRoute(url);
   }
 
   // 供单测断言使用的辅助方法

@@ -18,6 +18,7 @@ import { PermissionsGuard } from './modules/auth/guards/permissions.guard';
 import { DataScopeGuard } from './modules/auth/guards/data-scope.guard';
 import { ScopeContextInterceptor } from './modules/data-scope/adapters/scope-context.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { MediaLinkInterceptor } from './modules/upload/media-link.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 @Module({
@@ -65,6 +66,11 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
+    },
+    // 5.1 媒体链接拦截器：出参 /uploads/<key> 换成限时签名链接，入参签名链接还原为存储引用
+    {
+      provide: APP_INTERCEPTOR,
+      useExisting: MediaLinkInterceptor,
     },
     // 6. 全局统一 HTTP 异常过滤器
     {

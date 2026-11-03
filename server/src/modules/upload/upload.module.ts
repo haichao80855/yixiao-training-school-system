@@ -6,6 +6,7 @@ import { StorageEnginePort } from './domain/ports/storage-engine.port';
 import { LocalStorageEngineAdapter } from './domain/adapters/local-storage-engine.adapter';
 import { MemoryMockStorageAdapter } from './domain/adapters/memory-mock-storage.adapter';
 import { AliyunOssStorageAdapter } from './domain/adapters/aliyun-oss-storage.adapter';
+import { MediaLinkInterceptor } from './media-link.interceptor';
 
 function createStorageEngine(local: LocalStorageEngineAdapter, memory: MemoryMockStorageAdapter): StorageEnginePort {
   switch (process.env.STORAGE_ENGINE) {
@@ -29,12 +30,14 @@ function createStorageEngine(local: LocalStorageEngineAdapter, memory: MemoryMoc
       inject: [LocalStorageEngineAdapter, MemoryMockStorageAdapter],
     },
     MediaUploadCoordinator,
+    MediaLinkInterceptor,
   ],
   exports: [
     MediaUploadCoordinator,
     StorageEnginePort,
     LocalStorageEngineAdapter,
     MemoryMockStorageAdapter,
+    MediaLinkInterceptor,
   ],
 })
 export class UploadModule {}
