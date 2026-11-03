@@ -147,18 +147,19 @@ async function runTests() {
   assert(yearRange.scaleFactor, 12.0);
   console.log('  ✅ resolvePeriodRange 日期区间与缩放因子正确\n');
 
-  // 4. 验证 normalizeDashboardOverview 在不同时间段下的降级缩放与图表标签动态变化
-  console.log('【4】验证 normalizeDashboardOverview 降级与图表标签动态联动');
+  // 4. 验证 normalizeDashboardOverview 降级为 0 (不伪造数据) 且图表横轴随周期变化
+  console.log('【4】验证 normalizeDashboardOverview 零值降级与图表标签动态联动');
   const normalizedToday = normalizeDashboardOverview(null, 'campus-1', '今日');
   const normalizedYear = normalizeDashboardOverview(null, 'campus-1', '本年');
+  const normalizedMonth = normalizeDashboardOverview(null, 'campus-1');
 
-  console.log('  -> 今日降级课耗金额:', normalizedToday.lessonConsumptionAmount, '趋势点数量:', normalizedToday.consumptionTrend.length, '第一点标签:', normalizedToday.consumptionTrend[0].label);
-  console.log('  -> 本年降级课耗金额:', normalizedYear.lessonConsumptionAmount, '趋势点数量:', normalizedYear.consumptionTrend.length, '第一点标签:', normalizedYear.consumptionTrend[0].label);
-
-  assert.notStrictEqual(normalizedToday.lessonConsumptionAmount, normalizedYear.lessonConsumptionAmount, '今日与本年降级金额应按周期缩放');
+  assert.strictEqual(normalizedToday.lessonConsumptionAmount, 0, '接口失败时课耗金额应为 0，不得伪造');
+  assert.strictEqual(normalizedYear.enrollmentStudentCount, 0, '接口失败时招生人数应为 0，不得伪造');
+  assert(normalizedYear.consumptionTrend.every((p) => p.value === 0), '降级趋势点应全部为 0');
   assert.strictEqual(normalizedToday.consumptionTrend[0].label, '09:00', '今日趋势图横坐标应为整点');
   assert(normalizedYear.consumptionTrend[0].label.includes('月'), '本年趋势图横坐标应包含月份');
-  console.log('  ✅ normalizeDashboardOverview 随周期自适应缩放与坐标系自适应验证通过\n');
+  assert.strictEqual(normalizedMonth.period, '本月', '默认统计周期应为本月');
+  console.log('  ✅ normalizeDashboardOverview 零值降级与坐标系自适应验证通过\n');
 
   console.log('================================================================');
   console.log('🎉 小程序端管理员页面时间段切换联动全套验证 100% 通过！');

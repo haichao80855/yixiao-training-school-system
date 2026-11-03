@@ -18,6 +18,10 @@ export interface LineChartResult {
   min: number;
   max: number;
   svgDataUri: string;
+  /** SVG viewBox 尺寸与内边距，供叠加层把坐标换算为百分比定位 */
+  width: number;
+  height: number;
+  padding: number;
 }
 
 export interface DonutSliceResult {
@@ -107,6 +111,9 @@ export function transformLineSeries(
       min: 0,
       max: 100,
       svgDataUri: `data:image/svg+xml;utf8,${encodeURIComponent(emptySvg)}`,
+      width,
+      height,
+      padding,
     };
   }
 
@@ -195,7 +202,7 @@ export function transformLineSeries(
 
   const svgDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(svgXml)}`;
 
-  return { points, pathD, areaPathD, yAxisTicks, min, max, svgDataUri };
+  return { points, pathD, areaPathD, yAxisTicks, min, max, svgDataUri, width, height, padding };
 }
 
 /**

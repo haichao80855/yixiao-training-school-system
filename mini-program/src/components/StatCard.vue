@@ -70,6 +70,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import AppIcon from './AppIcon.vue';
+import { PERIOD_OPTIONS } from '../api/stats';
 
 export interface SubCardItem {
   label: string;
@@ -95,7 +96,7 @@ const props = withDefaults(
     value: '',
     unit: '',
     period: '',
-    periodOptions: () => ['10月', '今日', '本周', '本月', '上月', '本年'],
+    periodOptions: () => PERIOD_OPTIONS,
     subCards: () => [],
     footerLabel: '',
     footerValue: '',

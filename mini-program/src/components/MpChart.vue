@@ -10,24 +10,33 @@
     >
       <image class="chart-svg-img" :src="lineResult.svgDataUri" mode="scaleToFill" />
 
-      <!-- 动态手势交互 Crosshair 辅助线与 Floating Tooltip 浮层 -->
+      <!-- 动态手势交互 Crosshair 辅助线与 Floating Tooltip 浮层 (按 viewBox 百分比定位) -->
       <view v-if="activePoint" class="interactive-overlay">
-        <view class="crosshair-line" :style="{ left: activePoint.x + 'px' }" />
+        <view class="crosshair-line" :style="{ left: xPct(activePoint.x) + '%' }" />
         <view
           class="floating-tooltip"
-          :style="{ left: tooltipX + 'px', top: Math.max(10, activePoint.y - 48) + 'px' }"
+          :style="{ left: tooltipLeftPct + '%', top: Math.max(0, yPct(activePoint.y) - 30) + '%' }"
         >
           <text class="tooltip-label">{{ activePoint.label }}</text>
           <text class="tooltip-val">{{ activePoint.value }} {{ unit }}</text>
         </view>
       </view>
 
-      <!-- Y 轴刻度标注 (右侧或左侧) -->
-      <view class="y-ticks-column">
-        <text class="tick-label top-tick">{{ lineResult.max }}</text>
-        <text class="tick-label mid-tick">{{ Math.round((lineResult.max + lineResult.min) / 2) }}</text>
-        <text class="tick-label btm-tick">{{ lineResult.min }}</text>
-      </view>
+      <!-- Y 轴刻度：与 SVG 三条网格线对齐 -->
+      <text
+        v-for="tick in lineResult.yAxisTicks"
+        :key="tick.y"
+        class="tick-label"
+        :style="{ top: yPct(tick.y) + '%' }"
+      >{{ tick.value }}</text>
+
+      <!-- X 轴标签：点位过多时抽样显示，首尾必显 -->
+      <text
+        v-for="pt in xAxisLabels"
+        :key="pt.label"
+        class="x-label"
+        :style="{ left: xPct(pt.x) + '%' }"
+      >{{ pt.label }}</text>
     </view>
 
     <!-- 2. 环形占比图 (Donut) -->
@@ -87,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, getCurrentInstance, ref } from 'vue';
 import {
   transformLineSeries,
   transformDonutSlices,
@@ -133,6 +142,9 @@ const lineResult = computed(() => {
       min: 0,
       max: 100,
       svgDataUri: '',
+      width: 340,
+      height: 180,
+      padding: 30,
     };
   }
   return transformLineSeries(props.data, {
@@ -162,23 +174,59 @@ const displayCenterValue = computed(() => {
   return Number(donutResult.value.total).toLocaleString();
 });
 
-// 手势交互悬浮 Tooltip 状态
-const activePoint = ref<LinePoint | null>(null);
-const tooltipX = computed(() => {
-  if (!activePoint.value) return 0;
-  return Math.max(10, Math.min(260, activePoint.value.x - 45));
+const MAX_X_LABELS = 5;
+
+/** viewBox 坐标 → 容器百分比 (图片 scaleToFill 铺满容器，二者等比) */
+function xPct(x: number): number {
+  return (x / lineResult.value.width) * 100;
+}
+function yPct(y: number): number {
+  return (y / lineResult.value.height) * 100;
+}
+
+const xAxisLabels = computed(() => {
+  const pts = lineResult.value.points;
+  if (pts.length <= MAX_X_LABELS) return pts;
+  const step = (pts.length - 1) / (MAX_X_LABELS - 1);
+  return Array.from({ length: MAX_X_LABELS }, (_, i) => pts[Math.round(i * step)]);
 });
 
-function handleTouch(e: any) {
-  if (!lineResult.value.points || lineResult.value.points.length === 0) return;
+// 手势交互悬浮 Tooltip 状态
+const activePoint = ref<LinePoint | null>(null);
+const tooltipLeftPct = computed(() => {
+  if (!activePoint.value) return 0;
+  return Math.max(0, Math.min(72, xPct(activePoint.value.x) - 14));
+});
+
+const instance = getCurrentInstance();
+let wrapperRect: { left: number; width: number } | null = null;
+
+function measureWrapper(): Promise<{ left: number; width: number } | null> {
+  return new Promise((resolve) => {
+    uni
+      .createSelectorQuery()
+      .in(instance?.proxy)
+      .select('.line-chart-wrapper')
+      .boundingClientRect((rect: any) => resolve(rect && rect.width ? { left: rect.left, width: rect.width } : null))
+      .exec();
+  });
+}
+
+async function handleTouch(e: any) {
+  const pts = lineResult.value.points;
+  if (!pts || pts.length === 0) return;
   const touch = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
   if (!touch) return;
-  const clientX = touch.clientX ?? touch.x ?? 0;
+  if (e.type === 'touchstart' || !wrapperRect) wrapperRect = await measureWrapper();
+  if (!wrapperRect) return;
+  // 触点屏幕坐标 → viewBox 横坐标，再找最近的数据点
+  const clientX = touch.clientX ?? touch.pageX ?? 0;
+  const viewX = ((clientX - wrapperRect.left) / wrapperRect.width) * lineResult.value.width;
 
-  let nearest = lineResult.value.points[0];
+  let nearest = pts[0];
   let minDiff = Infinity;
-  for (const pt of lineResult.value.points) {
-    const diff = Math.abs(pt.x - clientX);
+  for (const pt of pts) {
+    const diff = Math.abs(pt.x - viewX);
     if (diff < minDiff) {
       minDiff = diff;
       nearest = pt;
@@ -221,8 +269,8 @@ function handleTouchEnd() {
 
     .crosshair-line {
       position: absolute;
-      top: 16rpx;
-      bottom: 24rpx;
+      top: 16.7%;
+      bottom: 16.7%;
       width: 2rpx;
       background-color: #2F54EB;
       opacity: 0.6;
@@ -250,21 +298,23 @@ function handleTouchEnd() {
     }
   }
 
-  .y-ticks-column {
+  .tick-label {
     position: absolute;
-    right: 8rpx;
-    top: 0;
-    bottom: 24rpx;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    right: 4rpx;
+    transform: translateY(-50%);
+    font-size: 18rpx;
+    color: #9CA3AF;
     pointer-events: none;
+  }
 
-    .tick-label {
-      font-size: 18rpx;
-      color: #9CA3AF;
-      text-align: right;
-    }
+  .x-label {
+    position: absolute;
+    bottom: 0;
+    transform: translateX(-50%);
+    font-size: 18rpx;
+    color: #9CA3AF;
+    white-space: nowrap;
+    pointer-events: none;
   }
 }
 

@@ -297,9 +297,10 @@ console.log('【维度 5】api/stats.ts 4 角色 Normalizer 数据防穿透对�
 console.log('----------------------------------------------------------------');
 
 runTest('5.1 normalizeDashboardOverview 应对 null/undefined/空对象及 0 值保留', () => {
-  const fromNull = statsModule.normalizeDashboardOverview(null, 'campus-01', '10月');
+  const fromNull = statsModule.normalizeDashboardOverview(null, 'campus-01', '本月');
   assert.strictEqual(fromNull.campusId, 'campus-01');
-  assert.strictEqual(fromNull.period, '10月');
+  assert.strictEqual(fromNull.period, '本月');
+  assert.strictEqual(fromNull.lessonConsumptionAmount, 0, '接口失败时不得伪造课耗金额');
   assert.strictEqual(typeof fromNull.lessonConsumptionAmount, 'number');
   assert.strictEqual(Number.isFinite(fromNull.lessonConsumptionAmount), true);
   assert.ok(Array.isArray(fromNull.consumptionTrend) && fromNull.consumptionTrend.length > 0);
