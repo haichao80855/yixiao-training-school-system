@@ -34,6 +34,8 @@ echo -e "${YELLOW}构建前端...${NC}"
 npm run build
 echo -e "${YELLOW}构建后端...${NC}"
 npm --prefix server run build
+echo -e "${YELLOW}构建网页家长端 (mini-program H5)...${NC}"
+npm --prefix mini-program run build:h5
 echo -e "${GREEN}✓ 本地构建产物已就绪！${NC}"
 
 # 3. 远端全量自动备份
@@ -65,7 +67,14 @@ echo "-> 同步前端静态资源至 ${REMOTE_DIR}/frontend/ ..."
 rsync -avz --delete \
   --exclude="._*" \
   --exclude=".DS_Store" \
+  --exclude="/parent/" \
   dist/ "${REMOTE_HOST}:${REMOTE_DIR}/frontend/"
+
+echo "-> 同步网页家长端至 ${REMOTE_DIR}/frontend/parent/ ..."
+rsync -avz --delete \
+  --exclude="._*" \
+  --exclude=".DS_Store" \
+  mini-program/dist/build/h5/ "${REMOTE_HOST}:${REMOTE_DIR}/frontend/parent/"
 
 echo "-> 同步后端编译代码至 ${REMOTE_DIR}/server/dist/ ..."
 rsync -avz --delete \
@@ -154,6 +163,7 @@ EOF
 echo -e "\n${BLUE}================================================================================${NC}"
 echo -e "${GREEN}🎉 拓视未来教育「一校教培系统」已成功部署至阿里云生产环境！${NC}"
 echo -e "${BLUE}================================================================================${NC}"
-echo -e "前端公网访问入口: http://39.107.33.4/"
+echo -e "前端公网访问入口: https://aiic.space/"
+echo -e "网页家长端入口:   https://aiic.space/parent/"
 echo -e "后端监控接口:     http://39.107.33.4/api/stats/overview"
 echo -e "${BLUE}================================================================================${NC}\n"

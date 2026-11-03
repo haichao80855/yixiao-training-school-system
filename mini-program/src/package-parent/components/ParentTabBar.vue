@@ -59,6 +59,10 @@ const go = (tab: (typeof tabs)[number]) => {
   border-top: 1rpx solid rgba(15, 23, 42, 0.06);
   box-shadow: 0 -4rpx 20rpx rgba(15, 23, 42, 0.04);
   padding-bottom: env(safe-area-inset-bottom);
+  /* #ifdef H5 */
+  max-width: 480px;
+  margin: 0 auto;
+  /* #endif */
 }
 
 .tab-bar {

@@ -48,7 +48,7 @@
               <text v-if="entry.item.evaluation.unread" class="new-pill">新</text>
             </view>
 
-            <view v-if="entry.item.evaluation.photoThumbs.length || entry.item.evaluation.hasVideo" class="mosaic">
+            <view v-if="entry.item.evaluation.photoThumbs.length || entry.item.evaluation.hasVideo" class="mosaic-wrap">
               <PhotoMosaic
                 :thumbs="entry.item.evaluation.photoThumbs.map(mediaUrl)"
                 :total="entry.item.evaluation.photoCount"
@@ -299,7 +299,8 @@ function openDetail(item: FeedItem) {
   }
 }
 
-.mosaic {
+/* 不与 PhotoMosaic 根节点同名：网页版会把本页 scoped 样式带到子组件根节点上 */
+.mosaic-wrap {
   display: block;
   margin: 20rpx 0 24rpx;
 }
@@ -313,7 +314,7 @@ function openDetail(item: FeedItem) {
   color: $p-ink;
 }
 
-.mosaic + .lesson-title {
+.mosaic-wrap + .lesson-title {
   margin-top: 0;
 }
 

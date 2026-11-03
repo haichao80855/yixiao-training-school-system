@@ -1,5 +1,6 @@
 {
   "pages": [
+    // #ifndef H5
     {
       "path": "pages/index/index",
       "style": {
@@ -42,6 +43,7 @@
         "navigationStyle": "custom"
       }
     },
+    // #endif
     {
       "path": "pages/login/index",
       "style": {
@@ -51,6 +53,7 @@
     }
   ],
   "subPackages": [
+    // #ifndef H5
     {
       "root": "package-edu",
       "pages": [
@@ -171,6 +174,7 @@
         }
       ]
     },
+    // #endif
     {
       "root": "package-parent",
       "pages": [
@@ -249,6 +253,7 @@
       ]
     }
   ],
+  // #ifndef H5
   "tabBar": {
     "color": "#6B7280",
     "selectedColor": "#2F54EB",
@@ -278,6 +283,7 @@
       }
     ]
   },
+  // #endif
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "一校教培系统",
@@ -285,6 +291,7 @@
     "backgroundColor": "#F4F6F9"
   },
   "preloadRule": {
+    // #ifndef H5
     "pages/workbench/index": {
       "network": "all",
       "packages": [
@@ -298,6 +305,7 @@
         "package-finance"
       ]
     },
+    // #endif
     "pages/login/index": {
       "network": "all",
       "packages": [
