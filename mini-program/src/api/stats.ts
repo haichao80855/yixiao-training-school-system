@@ -4,6 +4,11 @@
 
 import { request } from '../utils/request';
 
+/** 看板默认统计周期：始终为当前自然月 */
+export const DEFAULT_PERIOD = '本月';
+/** 统计周期下拉选项 */
+export const PERIOD_OPTIONS = ['今日', '本周', '本月', '上月', '本年'];
+
 export interface DashboardCardPeriods {
   consumption: string;
   enrollment: string;
@@ -31,7 +36,9 @@ export interface DashboardOverviewModel {
   churnRiskStudentCount: number;
   churnRate: string;
   consumptionTrend: Array<{ label: string; value: number }>;
-  enrollmentFunnel: Array<{ step: string; value: number }>;
+  enrollmentNewCount: number;
+  enrollmentRenewalCount: number;
+  enrollmentTrend: Array<{ label: string; value: number }>;
   churnTrend?: Array<{ label: string; value: number }>;
 }
 
@@ -86,7 +93,7 @@ export interface SalesStatsModel {
   achievementRate: string;
 }
 
-export function resolvePeriodRange(period = '10月', refDate = new Date()): {
+export function resolvePeriodRange(period = DEFAULT_PERIOD, refDate = new Date()): {
   startDate: string;
   endDate: string;
   trendLabels: string[];
@@ -153,14 +160,9 @@ export function resolvePeriodRange(period = '10月', refDate = new Date()): {
   return {
     startDate: fmt(firstDay),
     endDate: fmt(lastDay),
-    trendLabels: [
-      `${pad(targetMonth + 1)}-05`,
-      `${pad(targetMonth + 1)}-10`,
-      `${pad(targetMonth + 1)}-15`,
-      `${pad(targetMonth + 1)}-20`,
-      `${pad(targetMonth + 1)}-25`,
-      `${pad(targetMonth + 1)}-30`,
-    ],
+    trendLabels: [1, 6, 11, 16, 21, 26, lastDay.getDate()].map(
+      (day) => `${pad(targetMonth + 1)}-${pad(day)}`
+    ),
     scaleFactor: 1.0,
   };
 }
@@ -168,88 +170,48 @@ export function resolvePeriodRange(period = '10月', refDate = new Date()): {
 export function normalizeDashboardOverview(
   raw: any,
   campusId = '',
-  period = '10月'
+  period = DEFAULT_PERIOD
 ): DashboardOverviewModel {
   const d = raw || {};
-  const currentPeriod = d.period || period || '10月';
+  const currentPeriod = d.period || period || DEFAULT_PERIOD;
   const range = resolvePeriodRange(currentPeriod);
-  const s = range.scaleFactor;
-
-  // 基础月度基准常数 (周期动态等比缩放保底，确保离线容灾时各时间段呈现真实差异)
-  const baseConsumption = Math.round(15820.0 * s);
-  const baseCount = Math.max(0, Math.round(86 * s));
-  const baseEnrollment = Math.max(0, Math.round(42 * s));
-  const baseAdvance = Math.round(186500.0 * s);
-  const baseChurn = s < 0.1 ? 0 : Math.max(0, Math.round(5 * s));
-
-  // 动态生成符合当前周期时间维度的课耗折线点列
-  const defaultTrend = range.trendLabels.map((lbl, idx) => {
-    const weights = [0.8, 1.2, 0.9, 1.4, 1.1, 1.0, 1.3];
-    const w = weights[idx % weights.length];
-    return {
-      label: lbl,
-      value: Math.round((baseConsumption / (range.trendLabels.length || 1)) * w),
-    };
-  });
-
-  // 动态生成流失趋势折线点列
-  const defaultChurnTrend = range.trendLabels.map((lbl, idx) => {
-    const val = baseChurn > 0 ? Math.round((baseChurn / (range.trendLabels.length || 1)) * (0.6 + (idx % 3) * 0.3)) : 0;
-    return {
-      label: lbl,
-      value: val,
-    };
-  });
-
-  const effEnrollment = Number(d.enrollmentStudentCount ?? baseEnrollment);
-  const defaultFunnel = [
-    { step: '线索咨询', value: effEnrollment * 7 },
-    { step: '试听邀约', value: effEnrollment * 5 },
-    { step: '到访体验', value: effEnrollment * 3 },
-    { step: '新签成单', value: effEnrollment },
-  ];
-
-  const consumptionAmt = Number(d.lessonConsumptionAmount ?? baseConsumption);
-  const regularRatio = 0.7;
-  const expandRatio = 0.23;
-  const otherRatio = 0.07;
+  // 接口失败或缺字段时一律以 0 展示，不再按固定基数伪造课耗 / 招生 / 流失数据
+  const zeroTrend = range.trendLabels.map((label) => ({ label, value: 0 }));
+  const num = (v: any) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+  const series = (v: any) => (Array.isArray(v) && v.length > 0 ? v : zeroTrend);
 
   return {
     campusId: d.campusId || campusId || 'all',
     period: currentPeriod,
     cardPeriods: d.cardPeriods,
-    lessonConsumptionAmount: consumptionAmt,
-    lessonConsumptionRegular: Number(d.lessonConsumptionRegular ?? Math.round(consumptionAmt * regularRatio)),
-    lessonConsumptionExpand: Number(d.lessonConsumptionExpand ?? Math.round(consumptionAmt * expandRatio)),
-    lessonConsumptionOther: Number(d.lessonConsumptionOther ?? Math.round(consumptionAmt * otherRatio)),
-    lessonConsumptionCount: Number(d.lessonConsumptionCount ?? baseCount),
-    enrollmentStudentCount: effEnrollment,
-    enrollmentRegularCount: Number(d.enrollmentRegularCount ?? Math.round(effEnrollment * 0.67)),
-    enrollmentExpandCount: Number(d.enrollmentExpandCount ?? Math.max(0, effEnrollment - Math.round(effEnrollment * 0.67))),
-    advanceReceiptAmount: Number(d.advanceReceiptAmount ?? baseAdvance),
-    advanceCourseAmount: Number(d.advanceCourseAmount ?? Math.round((d.advanceReceiptAmount ?? baseAdvance) * 0.68)),
-    advanceGoodsAmount: Number(d.advanceGoodsAmount ?? Math.round((d.advanceReceiptAmount ?? baseAdvance) * 0.21)),
-    advanceWalletAmount: Number(d.advanceWalletAmount ?? Math.round((d.advanceReceiptAmount ?? baseAdvance) * 0.11)),
-    refundAmount: Number(d.refundAmount ?? 0),
-    churnRiskStudentCount: Number(d.churnRiskStudentCount ?? baseChurn),
-    churnRate: d.churnRate || (baseChurn > 0 ? `${(2.8 * (s >= 1 ? 1 : 0.8)).toFixed(1)}%` : '0.0%'),
-    consumptionTrend: Array.isArray(d.consumptionTrend) && d.consumptionTrend.length > 0
-      ? d.consumptionTrend
-      : defaultTrend,
-    enrollmentFunnel: Array.isArray(d.enrollmentFunnel) && d.enrollmentFunnel.length > 0
-      ? d.enrollmentFunnel
-      : defaultFunnel,
-    churnTrend: Array.isArray(d.churnTrend) && d.churnTrend.length > 0
-      ? d.churnTrend
-      : defaultChurnTrend,
+    lessonConsumptionAmount: num(d.lessonConsumptionAmount),
+    lessonConsumptionRegular: num(d.lessonConsumptionRegular),
+    lessonConsumptionExpand: num(d.lessonConsumptionExpand),
+    lessonConsumptionOther: num(d.lessonConsumptionOther),
+    lessonConsumptionCount: num(d.lessonConsumptionCount),
+    enrollmentStudentCount: num(d.enrollmentStudentCount),
+    enrollmentRegularCount: num(d.enrollmentRegularCount),
+    enrollmentExpandCount: num(d.enrollmentExpandCount),
+    enrollmentNewCount: num(d.enrollmentNewCount),
+    enrollmentRenewalCount: num(d.enrollmentRenewalCount),
+    advanceReceiptAmount: num(d.advanceReceiptAmount),
+    advanceCourseAmount: num(d.advanceCourseAmount),
+    advanceGoodsAmount: num(d.advanceGoodsAmount),
+    advanceWalletAmount: num(d.advanceWalletAmount),
+    refundAmount: num(d.refundAmount),
+    churnRiskStudentCount: num(d.churnRiskStudentCount),
+    churnRate: d.churnRate || '0.0%',
+    consumptionTrend: series(d.consumptionTrend),
+    enrollmentTrend: series(d.enrollmentTrend),
+    churnTrend: series(d.churnTrend),
   };
 }
 
-export function normalizeEduStats(raw: any, campusId = '', period = '10月'): EduStatsModel {
+export function normalizeEduStats(raw: any, campusId = '', period = DEFAULT_PERIOD): EduStatsModel {
   const d = raw || {};
   return {
     campusId: d.campusId || campusId || 'all',
-    period: d.period || period || '10月',
+    period: d.period || period || DEFAULT_PERIOD,
     registeredTotal: Number(d.registeredTotal ?? 216),
     monthStartCount: Number(d.monthStartCount ?? 202),
     currentAddedCount: Number(d.currentAddedCount ?? 20),
@@ -278,12 +240,12 @@ export function normalizeEduStats(raw: any, campusId = '', period = '10月'): Ed
 export function normalizeFinanceStats(
   raw: any,
   campusId = '',
-  period = '10月'
+  period = DEFAULT_PERIOD
 ): FinanceStatsModel {
   const d = raw || {};
   return {
     campusId: d.campusId || campusId || 'all',
-    period: d.period || period || '10月',
+    period: d.period || period || DEFAULT_PERIOD,
     advanceTotalAmount: Number(d.advanceTotalAmount ?? 248600.0),
     advanceCourseAmount: Number(d.advanceCourseAmount ?? 172000.0),
     advanceGoodsAmount: Number(d.advanceGoodsAmount ?? 52600.0),
@@ -310,11 +272,11 @@ export function normalizeFinanceStats(
   };
 }
 
-export function normalizeSalesStats(raw: any, campusId = '', period = '10月'): SalesStatsModel {
+export function normalizeSalesStats(raw: any, campusId = '', period = DEFAULT_PERIOD): SalesStatsModel {
   const d = raw || {};
   return {
     campusId: d.campusId || campusId || 'all',
-    period: d.period || period || '10月',
+    period: d.period || period || DEFAULT_PERIOD,
     leadsTotal: Number(d.leadsTotal ?? 350),
     leadsTodayAdded: Number(d.leadsTodayAdded ?? 18),
     auditionInvitedCount: Number(d.auditionInvitedCount ?? 228),
@@ -338,14 +300,14 @@ export function normalizeSalesStats(raw: any, campusId = '', period = '10月'): 
 export const statsApi = {
   async getDashboardOverview(
     campusId?: string,
-    period: string | { consumption?: string; enrollment?: string; advance?: string; churn?: string } = '10月'
+    period: string | { consumption?: string; enrollment?: string; advance?: string; churn?: string } = DEFAULT_PERIOD
   ): Promise<DashboardOverviewModel> {
     const isObj = typeof period === 'object' && period !== null;
-    const consumptionPeriod = isObj ? (period.consumption || '10月') : period;
-    const enrollmentPeriod = isObj ? (period.enrollment || '10月') : period;
-    const advancePeriod = isObj ? (period.advance || '10月') : period;
-    const churnPeriod = isObj ? (period.churn || '10月') : period;
-    const mainPeriod = isObj ? (period.consumption || '10月') : period;
+    const consumptionPeriod = isObj ? (period.consumption || DEFAULT_PERIOD) : period;
+    const enrollmentPeriod = isObj ? (period.enrollment || DEFAULT_PERIOD) : period;
+    const advancePeriod = isObj ? (period.advance || DEFAULT_PERIOD) : period;
+    const churnPeriod = isObj ? (period.churn || DEFAULT_PERIOD) : period;
+    const mainPeriod = isObj ? (period.consumption || DEFAULT_PERIOD) : period;
 
     const consumptionRange = resolvePeriodRange(consumptionPeriod);
     const enrollmentRange = resolvePeriodRange(enrollmentPeriod);
@@ -353,15 +315,16 @@ export const statsApi = {
     const churnRange = resolvePeriodRange(churnPeriod);
 
     try {
-      const [workbenchRes, enrollmentFinanceRes, advanceFinanceRes, rosterRes] = await Promise.all([
+      const [dashboardRes, advFinance, rosterRes] = await Promise.all([
         request<any>({
-          url: '/api/educational/settlement/workbench',
+          url: '/api/financial/dashboard/admin',
           method: 'GET',
           data: {
             campusId,
-            period: consumptionPeriod,
-            startDate: consumptionRange.startDate,
-            endDate: consumptionRange.endDate,
+            consumptionStart: consumptionRange.startDate,
+            consumptionEnd: consumptionRange.endDate,
+            enrollmentStart: enrollmentRange.startDate,
+            enrollmentEnd: enrollmentRange.endDate,
           },
         }).catch(() => null),
         request<any>({
@@ -369,23 +332,11 @@ export const statsApi = {
           method: 'GET',
           data: {
             campusId,
-            period: enrollmentPeriod,
-            startDate: enrollmentRange.startDate,
-            endDate: enrollmentRange.endDate,
+            period: advancePeriod,
+            startDate: advanceRange.startDate,
+            endDate: advanceRange.endDate,
           },
         }).catch(() => null),
-        enrollmentPeriod === advancePeriod
-          ? null
-          : request<any>({
-              url: '/api/financial/orders/summary',
-              method: 'GET',
-              data: {
-                campusId,
-                period: advancePeriod,
-                startDate: advanceRange.startDate,
-                endDate: advanceRange.endDate,
-              },
-            }).catch(() => null),
         request<any>({
           url: '/api/student/renewal/roster',
           method: 'GET',
@@ -393,46 +344,10 @@ export const statsApi = {
         }).catch(() => null),
       ]);
 
-      const advFinance = advanceFinanceRes || enrollmentFinanceRes;
-
-      // 1. 课耗数据
-      const wbMetrics = workbenchRes?.metrics || {};
-      const deductedLessons = Number(wbMetrics.totalDeductedLessons ?? 0);
-      const completedCount = Number(wbMetrics.completedCount ?? 0);
-      const consumptionAmt = Number(
-        wbMetrics.consumptionAmount !== undefined
-          ? wbMetrics.consumptionAmount
-          : deductedLessons * 120
-      );
-      const consumptionRegular = Number(
-        wbMetrics.consumptionRegularAmount !== undefined
-          ? wbMetrics.consumptionRegularAmount
-          : Math.round(consumptionAmt * 0.7)
-      );
-      const consumptionExpand = Number(
-        wbMetrics.consumptionExpandAmount !== undefined
-          ? wbMetrics.consumptionExpandAmount
-          : Math.max(0, consumptionAmt - consumptionRegular)
-      );
-
-      // 课耗趋势点列
-      const consumptionTrend = consumptionRange.trendLabels.map((lbl, idx) => {
-        const weights = [0.8, 1.2, 0.9, 1.4, 1.1, 1.0, 1.3];
-        const w = weights[idx % weights.length];
-        const pointVal = consumptionAmt > 0
-          ? Math.round((consumptionAmt / consumptionRange.trendLabels.length) * w)
-          : 0;
-        return { label: lbl, value: pointVal };
-      });
-
-      // 2. 招生人数
-      const paidOrders = Number(enrollmentFinanceRes?.totalPaidOrders ?? 0);
-      const enrollmentFunnel = [
-        { step: '线索咨询', value: paidOrders * 7 },
-        { step: '试听邀约', value: paidOrders * 5 },
-        { step: '到访体验', value: paidOrders * 3 },
-        { step: '新签成单', value: paidOrders },
-      ];
+      // 1. 课耗数据 (后端按考勤实扣课时 × 课包单价汇总，趋势按天/小时/月真实分桶)
+      const consumption = dashboardRes?.consumption || {};
+      // 2. 招生人数 (已缴费课程订单去重学员，区分新签 / 续费)
+      const enrollment = dashboardRes?.enrollment || {};
 
       // 3. 预收数据
       const advanceActual = Number(advFinance?.totalActualAmount ?? 0);
@@ -465,14 +380,16 @@ export const statsApi = {
           advance: advancePeriod,
           churn: churnPeriod,
         },
-        lessonConsumptionAmount: consumptionAmt,
-        lessonConsumptionRegular: consumptionRegular,
-        lessonConsumptionExpand: consumptionExpand,
-        lessonConsumptionOther: 0,
-        lessonConsumptionCount: completedCount || deductedLessons,
-        enrollmentStudentCount: paidOrders,
-        enrollmentRegularCount: Math.round(paidOrders * 0.67),
-        enrollmentExpandCount: Math.max(0, paidOrders - Math.round(paidOrders * 0.67)),
+        lessonConsumptionAmount: consumption.amount,
+        lessonConsumptionRegular: consumption.regularAmount,
+        lessonConsumptionExpand: consumption.expandAmount,
+        lessonConsumptionOther: consumption.otherAmount,
+        lessonConsumptionCount: consumption.lessonCount,
+        enrollmentStudentCount: enrollment.studentCount,
+        enrollmentRegularCount: enrollment.regularCount,
+        enrollmentExpandCount: enrollment.expandCount,
+        enrollmentNewCount: enrollment.newCount,
+        enrollmentRenewalCount: enrollment.renewalCount,
         advanceReceiptAmount: advanceActual,
         advanceCourseAmount: advanceCourse,
         advanceGoodsAmount: advanceGoods,
@@ -480,8 +397,8 @@ export const statsApi = {
         refundAmount,
         churnRiskStudentCount: churnRiskCount,
         churnRate,
-        consumptionTrend,
-        enrollmentFunnel,
+        consumptionTrend: consumption.trend,
+        enrollmentTrend: enrollment.trend,
         churnTrend,
       };
 
@@ -491,7 +408,7 @@ export const statsApi = {
     }
   },
 
-  async getEduStats(campusId?: string, period = '10月'): Promise<EduStatsModel> {
+  async getEduStats(campusId?: string, period = DEFAULT_PERIOD): Promise<EduStatsModel> {
     const range = resolvePeriodRange(period);
     try {
       const [workbenchRes, studentsRes] = await Promise.all([
@@ -541,7 +458,7 @@ export const statsApi = {
     }
   },
 
-  async getFinanceStats(campusId?: string, period = '10月'): Promise<FinanceStatsModel> {
+  async getFinanceStats(campusId?: string, period = DEFAULT_PERIOD): Promise<FinanceStatsModel> {
     const range = resolvePeriodRange(period);
     try {
       const res = await request<any>({
@@ -584,7 +501,7 @@ export const statsApi = {
     }
   },
 
-  async getSalesStats(campusId?: string, period = '10月'): Promise<SalesStatsModel> {
+  async getSalesStats(campusId?: string, period = DEFAULT_PERIOD): Promise<SalesStatsModel> {
     const range = resolvePeriodRange(period);
     try {
       const res = await request<any>({

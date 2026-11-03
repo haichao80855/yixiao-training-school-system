@@ -52,11 +52,18 @@
           { label: '常规课', value: adminData.enrollmentRegularCount, icon: 'book-open', type: 'regular' },
           { label: '扩科', value: adminData.enrollmentExpandCount, icon: 'book-open', type: 'expand' }
         ]"
-        footerLabel="招生转化率"
-        footerValue="78.5%"
+        footerLabel="新签 / 续费"
+        :footerValue="`${adminData.enrollmentNewCount} / ${adminData.enrollmentRenewalCount}`"
       >
-        <view class="funnel-box">
-          <MpChart type="funnel" :data="adminData.enrollmentFunnel" />
+        <view class="chart-box">
+          <view class="chart-unit">单位:人</view>
+          <MpChart
+            type="line"
+            :data="adminData.enrollmentTrend"
+            unit="人"
+            color="#13C2C2"
+            fillColor="rgba(19, 194, 194, 0.12)"
+          />
         </view>
       </StatCard>
 
@@ -394,6 +401,8 @@ import {
   normalizeEduStats,
   normalizeFinanceStats,
   normalizeSalesStats,
+  DEFAULT_PERIOD,
+  PERIOD_OPTIONS,
 } from '../../api/stats';
 
 const campusStore = useCampusStore();
@@ -407,12 +416,12 @@ const roleTabs = [
 ];
 
 const currentRoleTab = ref('admin');
-const currentPeriod = ref('10月');
+const currentPeriod = ref(DEFAULT_PERIOD);
 const adminCardPeriods = ref({
-  consumption: '10月',
-  enrollment: '10月',
-  advance: '10月',
-  churn: '10月',
+  consumption: DEFAULT_PERIOD,
+  enrollment: DEFAULT_PERIOD,
+  advance: DEFAULT_PERIOD,
+  churn: DEFAULT_PERIOD,
 });
 const loading = ref(false);
 
@@ -421,40 +430,8 @@ const currentRoleName = computed(() => {
   return match ? match.name : '管理员';
 });
 
-// 数据模型（默认以真实 0 基线初始化）
-const zeroDashboard = {
-  lessonConsumptionAmount: 0,
-  lessonConsumptionRegular: 0,
-  lessonConsumptionExpand: 0,
-  lessonConsumptionOther: 0,
-  lessonConsumptionCount: 0,
-  enrollmentStudentCount: 0,
-  enrollmentRegularCount: 0,
-  enrollmentExpandCount: 0,
-  advanceReceiptAmount: 0,
-  advanceCourseAmount: 0,
-  advanceGoodsAmount: 0,
-  advanceWalletAmount: 0,
-  churnRiskStudentCount: 0,
-  churnRate: '0.0%',
-  consumptionTrend: [
-    { label: '10-01', value: 0 },
-    { label: '10-02', value: 0 },
-    { label: '10-03', value: 0 },
-    { label: '10-04', value: 0 },
-    { label: '10-05', value: 0 },
-    { label: '10-06', value: 0 },
-    { label: '10-07', value: 0 },
-  ],
-  enrollmentFunnel: [
-    { step: '线索咨询', value: 0 },
-    { step: '试听邀约', value: 0 },
-    { step: '到访体验', value: 0 },
-    { step: '新签成单', value: 0 },
-  ],
-};
-
-const adminData = ref<DashboardOverviewModel>(normalizeDashboardOverview(zeroDashboard));
+// 数据模型（默认以真实 0 基线初始化，趋势横轴按默认周期生成）
+const adminData = ref<DashboardOverviewModel>(normalizeDashboardOverview(null, '', DEFAULT_PERIOD));
 const eduData = ref<EduStatsModel>(normalizeEduStats({
   registeredTotal: 0,
   monthStartCount: 0,
@@ -530,19 +507,7 @@ function toggleAccordion(key: string) {
 }
 
 // 流失趋势（根据 adminData.churnTrend 响应式联动）
-const churnTrendData = computed(() => {
-  return adminData.value.churnTrend && adminData.value.churnTrend.length > 0
-    ? adminData.value.churnTrend
-    : [
-        { label: '10-01', value: 0 },
-        { label: '10-02', value: 0 },
-        { label: '10-03', value: 0 },
-        { label: '10-04', value: 0 },
-        { label: '10-05', value: 0 },
-        { label: '10-06', value: 0 },
-        { label: '10-07', value: 0 },
-      ];
-});
+const churnTrendData = computed(() => adminData.value.churnTrend || []);
 
 // 班容柱形
 const classCapacityBars = computed(() => {
@@ -601,9 +566,9 @@ function handleAdminCardPeriodChange(cardKey: 'consumption' | 'enrollment' | 'ad
 
 function handlePeriodClick() {
   uni.showActionSheet({
-    itemList: ['10月', '今日', '本周', '本月', '上月', '本年'],
+    itemList: PERIOD_OPTIONS,
     success: (res) => {
-      const selected = ['10月', '今日', '本周', '本月', '上月', '本年'][res.tapIndex];
+      const selected = PERIOD_OPTIONS[res.tapIndex];
       handlePeriodChange(selected);
     },
   });

@@ -14,10 +14,14 @@ import { CreateApprovalDto, AuditApprovalDto, BatchAuditDto } from './dto/approv
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { AdminDashboardAggregator } from './domain/admin-dashboard.aggregator';
 
 @Controller('api/financial')
 export class FinancialController {
-  constructor(private readonly financialService: FinancialService) {}
+  constructor(
+    private readonly financialService: FinancialService,
+    private readonly adminDashboard: AdminDashboardAggregator,
+  ) {}
 
   // ----------------------------------------------------------------
   // 1. 财务订单账本与汇总统计
@@ -39,6 +43,25 @@ export class FinancialController {
     @CampusScope() scope?: CampusScopeResult,
   ) {
     return this.financialService.getOrderSummary(query, scope?.targetCampusId);
+  }
+
+  /** 管理员首页看板：课耗与招生的真实汇总及趋势 (两张卡片可各自选择统计周期) */
+  @Get('dashboard/admin')
+  @RequirePermissions('financial:orderManagement')
+  async getAdminDashboard(
+    @Query('consumptionStart') consumptionStart: string,
+    @Query('consumptionEnd') consumptionEnd: string,
+    @Query('enrollmentStart') enrollmentStart: string,
+    @Query('enrollmentEnd') enrollmentEnd: string,
+    @CampusScope() scope?: CampusScopeResult,
+  ) {
+    return this.adminDashboard.aggregate({
+      campusId: scope?.targetCampusId,
+      consumptionStart,
+      consumptionEnd,
+      enrollmentStart,
+      enrollmentEnd,
+    });
   }
 
   @Get('orders/:id')

@@ -11,6 +11,7 @@ import { QuarterlySettlementStrategy } from './domain/strategies/quarterly-settl
 import { CourseChangeDiffStrategy } from './domain/strategies/course-change-diff.strategy';
 import { WalletPrestoreStrategy } from './domain/strategies/wallet-prestore.strategy';
 import { GenericSettlementStrategy } from './domain/strategies/generic-settlement.strategy';
+import { AdminDashboardAggregator } from './domain/admin-dashboard.aggregator';
 
 @Module({
   imports: [StudentModule],
@@ -25,6 +26,7 @@ import { GenericSettlementStrategy } from './domain/strategies/generic-settlemen
     WalletPrestoreStrategy,
     GenericSettlementStrategy,
     FinancialApprovalOrchestrator,
+    AdminDashboardAggregator,
   ],
   exports: [FinancialService, FinancialApprovalOrchestrator],
 })
