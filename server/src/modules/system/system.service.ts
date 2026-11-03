@@ -850,6 +850,11 @@ export class SystemService {
       }
     }
 
+    if (!dto.campusId) {
+      throw new BadRequestException('请选择员工管辖校区');
+    }
+    await this.assertUserPlacement(dto.campusId, dto.orgNodeId);
+
     const plainPassword = dto.password?.trim() || '123456';
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
@@ -892,6 +897,22 @@ export class SystemService {
     };
   }
 
+  /** 校验员工所属校区与组织节点真实存在，避免外键报错把数据库原始异常抛给前端 */
+  private async assertUserPlacement(campusId?: string, orgNodeId?: string | null) {
+    if (campusId) {
+      const campus = await this.prisma.campus.findUnique({ where: { id: campusId }, select: { id: true } });
+      if (!campus) {
+        throw new BadRequestException('所选校区不存在或已被删除，请刷新页面后重新选择');
+      }
+    }
+    if (orgNodeId) {
+      const node = await this.prisma.orgNode.findUnique({ where: { id: orgNodeId }, select: { id: true } });
+      if (!node) {
+        throw new BadRequestException('所选归属部门/岗位不存在或已被删除，请刷新页面后重新选择');
+      }
+    }
+  }
+
   // 16. 编辑员工账号
   async updateUser(id: string, dto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
@@ -916,6 +937,8 @@ export class SystemService {
         }
       }
     }
+
+    await this.assertUserPlacement(dto.campusId || undefined, dto.orgNodeId || undefined);
 
     const updatedUser = await this.prisma.user.update({
       where: { id },
