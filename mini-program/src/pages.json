@@ -172,18 +172,6 @@
       ]
     },
     {
-      "root": "package-crm",
-      "pages": [
-        {
-          "path": "leads/index",
-          "style": {
-            "navigationBarTitleText": "CRM线索",
-            "navigationStyle": "custom"
-          }
-        }
-      ]
-    },
-    {
       "root": "package-parent",
       "pages": [
         {

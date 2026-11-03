@@ -28,15 +28,15 @@ for (const p of expectedMainPages) {
 }
 console.log('✔ 主包 5 大核心 Tab 及登录页路径校验通过');
 
-// 3. 验证 4 大业务分包配置
+// 3. 验证 3 大业务分包配置 (CRM 分包已下线)
 assert.ok(Array.isArray(appJson.subPackages), '❌ subPackages 配置缺失');
 const subPkgRoots = appJson.subPackages.map((s) => s.root);
 assert.ok(subPkgRoots.includes('package-edu'), '❌ 缺少教务分包 package-edu');
 assert.ok(subPkgRoots.includes('package-student'), '❌ 缺少学员分包 package-student');
 assert.ok(subPkgRoots.includes('package-finance'), '❌ 缺少财务分包 package-finance');
-assert.ok(subPkgRoots.includes('package-crm'), '❌ 缺少CRM分包 package-crm');
+assert.ok(!subPkgRoots.includes('package-crm'), '❌ CRM 分包 package-crm 已下线，不应再配置');
 
-console.log('✔ 4 大业务分包路由与子页面挂载通过');
+console.log('✔ 3 大业务分包路由与子页面挂载通过');
 
 // 4. 验证请求拦截器契约
 const requestTsPath = path.resolve(__dirname, '../mini-program/src/utils/request.ts');
