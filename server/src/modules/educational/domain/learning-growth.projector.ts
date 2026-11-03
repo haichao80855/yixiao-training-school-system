@@ -50,6 +50,12 @@ import {
   ParentTokenReceipt,
   CampusScopeContext,
 } from './learning-growth.types';
+import { isOwnUploadRef } from '../../upload/domain/media-key.util';
+
+/** 可展示的媒体地址：外链或本系统上传引用 (/uploads/<key>，出参时由 MediaLinkInterceptor 签名) */
+function isMediaRef(value: string): boolean {
+  return value.startsWith('http') || isOwnUploadRef(value);
+}
 
 @Injectable()
 export class LearningGrowthProjector {
@@ -1169,11 +1175,11 @@ export class LearningGrowthProjector {
       const parsed = JSON.parse(photoListRaw);
       if (Array.isArray(parsed)) {
         return parsed
-          .filter((u) => typeof u === 'string' && u.startsWith('http'))
+          .filter((u) => typeof u === 'string' && isMediaRef(u))
           .slice(0, 9);
       }
     } catch {
-      if (photoListRaw.startsWith('http')) return [photoListRaw];
+      if (isMediaRef(photoListRaw)) return [photoListRaw];
     }
     return [];
   }
@@ -1213,7 +1219,7 @@ export class LearningGrowthProjector {
     voiceUrl: string | null | undefined,
     durationSeconds?: number | null,
   ): VoiceAudioMeta | undefined {
-    if (!voiceUrl || typeof voiceUrl !== 'string' || !voiceUrl.startsWith('http')) {
+    if (!voiceUrl || typeof voiceUrl !== 'string' || !isMediaRef(voiceUrl)) {
       return undefined;
     }
     const sec = durationSeconds && durationSeconds > 0 ? durationSeconds : 45;
@@ -1229,7 +1235,7 @@ export class LearningGrowthProjector {
    * 解析随堂小视频播放元数据
    */
   private parseVideoMeta(videoUrl: string | null | undefined): VideoPlayerMeta | undefined {
-    if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('http')) {
+    if (!videoUrl || typeof videoUrl !== 'string' || !isMediaRef(videoUrl)) {
       return undefined;
     }
     const posterUrl = this.mediaStorage.buildVideoPosterUrl(videoUrl);

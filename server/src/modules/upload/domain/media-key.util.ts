@@ -45,3 +45,34 @@ export function parseMediaList(raw: string | null | undefined): string[] {
   }
   return [];
 }
+
+/** 整串为本系统上传的学员媒体引用 (MediaUploadCoordinator 写入的 photos/、videos/ 前缀)，可带缩略图参数 */
+const OWN_UPLOAD_REF = /^(?:https?:\/\/[^/\s]+)?\/uploads\/(?:photos|videos)\/[^?#\s]+(?:[?#]\S*)?$/;
+/** 缩略图 / 视频封面派生参数 (MediaUploadCoordinator 与 MediaStoragePort 生成) */
+const THUMB_HINT = /[?&#](?:w=|x-oss-process=|poster)/;
+
+export function isOwnUploadRef(value: string): boolean {
+  return OWN_UPLOAD_REF.test(value);
+}
+
+export function isThumbnailRef(value: string): boolean {
+  return THUMB_HINT.test(value);
+}
+
+/** 存储 key 的规范持久化形式 (与历史数据一致，可被 toStorageKey 还原) */
+export function toUploadRef(key: string): string {
+  return `/uploads/${key}`;
+}
+
+/** 本地 / 内存引擎签名路由 /api/media/<key>?exp=&sig= 还原为 key */
+export function keyFromLocalMediaRoute(url: string): string | null {
+  const match = url.match(/^(?:https?:\/\/[^/\s]+)?\/api\/media\/([^?#\s]+)\?(\S*)$/);
+  if (!match || !/(?:^|&)sig=/.test(match[2])) return null;
+  let key: string;
+  try {
+    key = decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+  return isSafeStorageKey(key) ? key : null;
+}

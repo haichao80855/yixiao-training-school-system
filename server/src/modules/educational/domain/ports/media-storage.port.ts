@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { isOwnUploadRef } from '../../../upload/domain/media-key.util';
 
 export interface MediaCropSpec {
   width: number;
@@ -23,7 +24,7 @@ export abstract class MediaStoragePort {
 @Injectable()
 export class AliyunOssMediaAdapter implements MediaStoragePort {
   buildThumbnailUrl(originalUrl: string, spec: MediaCropSpec = { width: 300, height: 300 }): string {
-    if (!originalUrl || typeof originalUrl !== 'string' || !originalUrl.startsWith('http')) {
+    if (!originalUrl || typeof originalUrl !== 'string' || (!originalUrl.startsWith('http') && !isOwnUploadRef(originalUrl))) {
       return originalUrl || '';
     }
     const format = spec.format || 'webp';
@@ -37,7 +38,7 @@ export class AliyunOssMediaAdapter implements MediaStoragePort {
   }
 
   buildVideoPosterUrl(videoUrl: string): string {
-    if (!videoUrl || typeof videoUrl !== 'string' || !videoUrl.startsWith('http')) {
+    if (!videoUrl || typeof videoUrl !== 'string' || (!videoUrl.startsWith('http') && !isOwnUploadRef(videoUrl))) {
       return '';
     }
     if (videoUrl.includes('x-oss-process=')) {

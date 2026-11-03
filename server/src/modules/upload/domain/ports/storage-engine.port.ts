@@ -53,5 +53,10 @@ export abstract class StorageEnginePort {
    * 本地磁盘：/api/media/<key>?exp=&sig= (HMAC 签名)；OSS：预签名 URL + 图片处理参数
    */
   abstract signedUrl(key: string, options?: SignedUrlOptions): string;
+
+  /**
+   * 识别本引擎签发的限时链接并还原为存储 key (管理端回传签名链接保存时使用)；非本引擎链接返回 null
+   */
+  abstract keyFromSignedUrl(url: string): string | null;
 }
 

@@ -153,7 +153,19 @@ async function runTests() {
   assert.strictEqual(cfg.customDomain, undefined);
   console.log('  ✔ 通过');
 
-  console.log('\n🎉 AliyunOssStorageAdapter 全部 7 项测试通过！\n');
+  console.log('\n▶ [Case 8] 回传签名链接还原为 key：仅识别本 Bucket 签名域名且带签名的链接');
+  const ossAdapter = new AliyunOssStorageAdapter({
+    region: 'oss-cn-hangzhou', bucket: 'demo-bucket', accessKeyId: 'a', accessKeySecret: 'b',
+  });
+  const signedKey = 'photos/campus-a/sch-1/20261102/abc.jpg';
+  assert.strictEqual(ossAdapter.keyFromSignedUrl(ossAdapter.signedUrl(signedKey)), signedKey);
+  assert.strictEqual(ossAdapter.keyFromSignedUrl(ossAdapter.signedUrl(signedKey, { variant: 'thumb' })), signedKey, '缩略图链接同样还原');
+  assert.strictEqual(ossAdapter.keyFromSignedUrl(`https://demo-bucket.oss-cn-hangzhou.aliyuncs.com/${signedKey}`), null, '无签名不识别');
+  assert.strictEqual(ossAdapter.keyFromSignedUrl(`https://other.example.com/${signedKey}?Signature=x`), null, '其他域名不识别');
+  assert.strictEqual(ossAdapter.keyFromSignedUrl('/uploads/photos/a.jpg'), null);
+  console.log('  ✔ 通过');
+
+  console.log('\n🎉 AliyunOssStorageAdapter 全部 8 项测试通过！\n');
 }
 
 runTests().catch((err) => {

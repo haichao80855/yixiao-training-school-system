@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { SignedUrlOptions, StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
 import { signMediaKey } from '../media-signer';
-import { isSafeStorageKey } from '../media-key.util';
+import { isSafeStorageKey, keyFromLocalMediaRoute } from '../media-key.util';
 
 /**
  * 生产/本地默认存储引擎适配器 (LocalStorageEngineAdapter)
@@ -102,6 +102,10 @@ export class LocalStorageEngineAdapter implements StorageEnginePort {
     const encodedKey = key.split('/').map(encodeURIComponent).join('/');
     // 本地磁盘暂不生成缩略图：thumb 与原图同一文件 (迁移 OSS 后由图片处理参数生成)
     return `${base}/api/media/${encodedKey}?exp=${exp}&sig=${sig}`;
+  }
+
+  keyFromSignedUrl(url: string): string | null {
+    return keyFromLocalMediaRoute(url);
   }
 
   /** 本地媒体路由使用：解析 key 对应的磁盘绝对路径 (校验路径穿越) */
