@@ -34,16 +34,18 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="归属部门" required>
-          <el-input v-model="form.departmentName" placeholder="如：教务教学部" />
+        <el-form-item label="归属部门/岗位" required>
+          <el-select v-model="form.departmentId" class="w-full" placeholder="请选择">
+            <el-option v-for="o in orgOptions" :key="o.id" :label="o.label" :value="o.id" />
+          </el-select>
         </el-form-item>
       </div>
+      <div class="-mt-2 mb-2 text-xs text-gray-400">
+        如需细分部门或岗位，请先在左侧组织架构中新增，再回来选择
+      </div>
       <div class="grid grid-cols-2 gap-x-3">
-        <el-form-item label="岗位职务" required>
-          <el-input v-model="form.postName" placeholder="如：少儿编程讲师" />
-        </el-form-item>
         <el-form-item label="分配角色" required>
-          <el-select v-model="form.roleId" class="w-full" @change="onRoleChange">
+          <el-select v-model="form.roleId" class="w-full" placeholder="请选择角色" @change="onRoleChange">
             <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
           </el-select>
         </el-form-item>
@@ -65,15 +67,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
-import type { RoleItem, DataScope } from '@/types/system'
+import type { RoleItem, DataScope, OrgNode } from '@/types/system'
 
 const props = defineProps<{
   modelValue: boolean
   campuses: any[]
   roles: RoleItem[]
+  orgTree: OrgNode[]
   defaultCampusId?: string
   loading?: boolean
 }>()
@@ -90,12 +93,9 @@ const form = reactive({
   email: '',
   campusId: '',
   campusName: '',
-  departmentId: 'dept-hq-edu',
-  departmentName: '教务教学部',
-  postId: 'post-hq-teacher',
-  postName: '少儿编程金牌讲师',
-  roleId: 'r4',
-  roleName: '少儿编程专职主讲教师',
+  departmentId: '',
+  roleId: '',
+  roleName: '',
   dataScope: 'self' as DataScope
 })
 
@@ -108,10 +108,12 @@ watch(
       form.phone = '138' + Math.floor(Math.random() * 90000000 + 10000000)
       form.email = ''
       const initialCampus = props.campuses.find(c => c.id === props.defaultCampusId || c.code === props.defaultCampusId) || props.campuses[0]
-      form.campusId = initialCampus ? (initialCampus.id || initialCampus.code) : 'campus-bj-hq'
-      form.campusName = initialCampus ? initialCampus.name : '拓视未来-原阳校区'
-      form.roleId = props.roles[0]?.id || 'r4'
-      onRoleChange(form.roleId)
+      form.campusId = initialCampus ? (initialCampus.id || initialCampus.code) : ''
+      form.campusName = initialCampus ? initialCampus.name : ''
+      form.departmentId = orgOptions.value[0]?.id || ''
+      // 角色必须手动选择，避免默认选中列表第一个 (超级管理员) 而误建高权限账号
+      form.roleId = ''
+      form.roleName = ''
       form.dataScope = 'self'
     }
   }
@@ -122,7 +124,33 @@ function onCampusChange(cId: string) {
   if (c) {
     form.campusName = c.name
   }
+  form.departmentId = orgOptions.value[0]?.id || ''
 }
+
+/** 当前校区组织子树：校区节点本身 (校区直属) + 其下部门与岗位，均为真实存在的组织节点 */
+const orgOptions = computed(() => {
+  const options: { id: string; label: string }[] = []
+  const findCampusNode = (nodes: OrgNode[]): OrgNode | undefined => {
+    for (const n of nodes) {
+      if (n.type === 'campus' && n.campusId === form.campusId) return n
+      const hit = n.children ? findCampusNode(n.children) : undefined
+      if (hit) return hit
+    }
+    return undefined
+  }
+  const campusNode = findCampusNode(props.orgTree || [])
+  if (!campusNode) return options
+  options.push({ id: campusNode.id, label: `${campusNode.name}（校区直属）` })
+  const walk = (nodes: OrgNode[] | undefined, prefix: string) => {
+    for (const n of nodes || []) {
+      const label = prefix ? `${prefix} / ${n.name}` : n.name
+      options.push({ id: n.id, label })
+      walk(n.children, label)
+    }
+  }
+  walk(campusNode.children, '')
+  return options
+})
 
 function onRoleChange(rId: string) {
   const role = props.roles.find(r => r.id === rId)
@@ -135,6 +163,10 @@ function onRoleChange(rId: string) {
 function handleSubmit() {
   if (!form.name.trim() || !form.account.trim() || !form.phone.trim()) {
     ElMessage.warning('请补全员工姓名、账号和手机号')
+    return
+  }
+  if (!form.campusId || !form.departmentId || !form.roleId) {
+    ElMessage.warning('请选择管辖校区、归属部门/岗位和角色')
     return
   }
   emit('submit', { ...form })

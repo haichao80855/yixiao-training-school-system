@@ -77,6 +77,7 @@
       v-model="showAddUserDialog"
       :campuses="campuses"
       :roles="roles"
+      :org-tree="orgTree"
       :default-campus-id="selectedNode?.level === 3 ? selectedNode.id : ''"
       :loading="submittingUser"
       @submit="submitAddUser"
