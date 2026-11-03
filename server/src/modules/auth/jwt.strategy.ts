@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
+import { resolveJwtSecret } from './jwt-secret';
 import { ParentJwtPayload, ParentPrincipal } from '../parent/parent.types';
 
 export interface JwtPayload {
@@ -25,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET') || 'shengtong_edu_secret_key_2026_antigravity',
+      secretOrKey: resolveJwtSecret(configService.get<string>('JWT_SECRET')),
     });
   }
 
