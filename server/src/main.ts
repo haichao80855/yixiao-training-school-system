@@ -9,9 +9,15 @@ import { isSafeStorageKey } from './modules/upload/domain/media-key.util';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  // 允许跨域请求以供前端 Vue 3.5 访问
+  // 跨域白名单：生产环境前端经 Nginx 同源代理 /api，小程序不受 CORS 约束，默认关闭跨域；
+  // 需要额外放行的域名通过 CORS_ORIGINS (逗号分隔) 配置。开发环境保持放开以便 Vite 直连。
+  const corsOrigins = (process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const isProduction = process.env.NODE_ENV === 'production';
   app.enableCors({
-    origin: '*',
+    origin: corsOrigins.length > 0 ? corsOrigins : isProduction ? false : '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

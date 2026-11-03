@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
+import { resolveJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
@@ -12,7 +13,7 @@ import { JwtStrategy } from './jwt.strategy';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'shengtong_edu_secret_key_2026_antigravity',
+        secret: resolveJwtSecret(configService.get<string>('JWT_SECRET')),
         signOptions: {
           expiresIn: configService.get<string>('JWT_EXPIRES_IN') || '7d',
         },

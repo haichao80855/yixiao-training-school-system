@@ -29,15 +29,11 @@ echo -e "${GREEN}✓ SSH 连通成功！${NC}"
 
 # 2. 本地前端与后端构建产物检查
 echo -e "\n${GREEN}[Step 2/6] 检查本地生产构建产物...${NC}"
-if [ ! -f "dist/index.html" ]; then
-  echo -e "${YELLOW}前端 dist 产物缺失，正在执行 npm run build...${NC}"
-  npm run build
-fi
-
-if [ ! -f "server/dist/main.js" ]; then
-  echo -e "${YELLOW}后端 server/dist 产物缺失，正在执行 server build...${NC}"
-  npm --prefix server run build
-fi
+# 每次部署都重新构建，避免把旧的 dist 产物发布上线
+echo -e "${YELLOW}构建前端...${NC}"
+npm run build
+echo -e "${YELLOW}构建后端...${NC}"
+npm --prefix server run build
 echo -e "${GREEN}✓ 本地构建产物已就绪！${NC}"
 
 # 3. 远端全量自动备份
@@ -77,16 +73,22 @@ rsync -avz --delete \
   --exclude=".DS_Store" \
   server/dist/ "${REMOTE_HOST}:${REMOTE_DIR}/server/dist/"
 
-echo "-> 同步 Prisma Schema 与数据字典/组织架构数据库 ..."
+echo "-> 同步 Prisma Schema ..."
 rsync -avz \
   --exclude="._*" \
   --exclude=".DS_Store" \
   server/prisma/schema.prisma "${REMOTE_HOST}:${REMOTE_DIR}/server/prisma/schema.prisma"
 
-rsync -avz \
-  --exclude="._*" \
-  --exclude=".DS_Store" \
-  server/prisma/dev.db "${REMOTE_HOST}:${REMOTE_DIR}/server/prisma/dev.db"
+# 生产数据库只在首次部署时初始化，之后绝不用本地开发库覆盖线上真实业务数据
+if ssh "$REMOTE_HOST" "test -f ${REMOTE_DIR}/server/prisma/dev.db"; then
+  echo "-> 远端已存在生产数据库，跳过数据库文件同步 (结构变更由 prisma db push 增量应用)"
+else
+  echo -e "${YELLOW}-> 远端尚无数据库，首次部署：上传本地初始化数据库 ...${NC}"
+  rsync -avz \
+    --exclude="._*" \
+    --exclude=".DS_Store" \
+    server/prisma/dev.db "${REMOTE_HOST}:${REMOTE_DIR}/server/prisma/dev.db"
+fi
 
 rsync -avz \
   --exclude="._*" \
@@ -107,25 +109,29 @@ ssh "$REMOTE_HOST" "bash -s" << 'EOF'
   # 1. 清理 Mac 元数据文件
   find /opt/yixiao -name "._*" -delete 2>/dev/null || true
 
-  # 2. 生成 Prisma Client
+  # 2. 按 package-lock 安装依赖 (含 prisma CLI)，生成 Prisma Client
   cd /opt/yixiao/server
+  npm ci --include=dev --registry=https://registry.npmmirror.com
   npx prisma generate
 
-  # 3. 兼容双启动路径 (dist/main.js & dist/src/main.js)
+  # 3. 增量应用数据库结构变更：会丢数据的变更 prisma 会报错中止，服务不会重启
+  npx prisma db push --skip-generate
+
+  # 4. 兼容双启动路径 (dist/main.js & dist/src/main.js)
   mkdir -p /opt/yixiao/server/dist/src
   cp /opt/yixiao/server/dist/main.js /opt/yixiao/server/dist/src/main.js
 
-  # 4. 更新 systemd 服务配置指向规范入口
+  # 5. 更新 systemd 服务配置指向规范入口
   if grep -q "dist/src/main.js" /etc/systemd/system/yixiao-server.service; then
     sed -i 's|/opt/yixiao/server/dist/src/main.js|/opt/yixiao/server/dist/main.js|g' /etc/systemd/system/yixiao-server.service
     systemctl daemon-reload
   fi
 
-  # 5. 重启后端服务
+  # 6. 重启后端服务
   systemctl restart yixiao-server
   sleep 3
 
-  # 6. 重载 Nginx
+  # 7. 重载 Nginx
   nginx -t
   systemctl reload nginx
 
