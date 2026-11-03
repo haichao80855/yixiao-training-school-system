@@ -9,7 +9,7 @@ export interface QuickActionItem {
   icon: string;
   bg: string;
   path: string;
-  category: 'edu' | 'student' | 'finance' | 'crm' | 'curriculum';
+  category: 'edu' | 'student' | 'finance' | 'curriculum';
   badge?: string;
 }
 
@@ -34,11 +34,11 @@ export const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
   { id: 'lecture_podium', name: '讲台', icon: 'presentation', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'edu' },
   { id: 'class_manage', name: '班级管理', icon: 'building-2', bg: M3_BLUE_BG, path: '/package-edu/class/index', category: 'edu' },
   { id: 'student_all', name: '全部学员', icon: 'users', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'student' },
-  { id: 'my_resources', name: '我的资源', icon: 'folder-user', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'crm' },
+  { id: 'order_manage', name: '订单管理', icon: 'file-text', bg: M3_BLUE_BG, path: '/package-finance/orders/index', category: 'finance' },
   { id: 'student_enroll', name: '学员报名', icon: 'user-plus', bg: M3_BLUE_BG, path: '/package-student/enroll/wizard', category: 'student' },
 ];
 
-// 可选业务功能库全集 (5大业务分类共 29 项，对齐截图 002, 035, 049)
+// 可选业务功能库全集 (4大业务分类共 18 项，对齐截图 002, 035, 049)
 export const ALL_AVAILABLE_ACTIONS: Record<string, QuickActionItem[]> = {
   教研: [
     { id: 'course_manage', name: '课程管理', icon: 'book-open', bg: M3_BLUE_BG, path: '/package-edu/lecture/index', category: 'curriculum' },
@@ -66,19 +66,6 @@ export const ALL_AVAILABLE_ACTIONS: Record<string, QuickActionItem[]> = {
     { id: 'transfer_approval', name: '异动审批', icon: 'arrow-left-right', bg: M3_BLUE_BG, path: '/package-finance/approval/index?type=transfer', category: 'finance' },
     { id: 'refund_approval', name: '退费审批', icon: 'rotate-ccw', bg: M3_BLUE_BG, path: '/package-finance/approval/index?type=refund', category: 'finance' },
   ],
-  CRM: [
-    { id: 'my_resources', name: '我的资源', icon: 'folder-user', bg: M3_BLUE_BG, path: '/package-student/list/index', category: 'crm' },
-    { id: 'deals_data', name: '成单数据', icon: 'bar-chart-3', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'group_data', name: '组内数据', icon: 'users-round', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'pending_leads', name: '待分配线索', icon: 'inbox', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'audition_records', name: '试听记录', icon: 'headphones', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'work_efficiency', name: '工作效率', icon: 'timer', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'performance_stats', name: '业绩统计', icon: 'trending-up', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'channel_stats', name: '渠道统计', icon: 'globe', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'crm_public_pool', name: '公海线索', icon: 'waves', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'crm_recycle', name: '回收站线索', icon: 'trash-2', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-    { id: 'all_leads', name: '全部线索', icon: 'target', bg: M3_BLUE_BG, path: '/package-crm/leads/index', category: 'crm' },
-  ],
 };
 
 /**
@@ -89,7 +76,7 @@ export function getDefaultQuickActions(): QuickActionItem[] {
 }
 
 /**
- * 获取按大类分组的所有可选业务功能库 (5 大类 29 项)
+ * 获取按大类分组的所有可选业务功能库 (4 大类 18 项)
  */
 export function getAllAvailableActions(): ActionCategoryGroup[] {
   return Object.entries(ALL_AVAILABLE_ACTIONS).map(([category, items]) => ({
@@ -108,10 +95,15 @@ export function getUserQuickActions(): QuickActionItem[] {
     if (!raw) return getDefaultQuickActions();
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     if (Array.isArray(parsed) && parsed.length >= 1 && parsed.length <= 8) {
-      return parsed.map((item) => ({
-        ...item,
-        icon: resolveIconName(item.icon),
-      }));
+      // 剔除已下线的功能项 (如旧版缓存中的 CRM 入口)
+      const availableIds = new Set(Object.values(ALL_AVAILABLE_ACTIONS).flat().map((a) => a.id));
+      const valid = parsed.filter((item) => availableIds.has(item?.id));
+      if (valid.length >= 1) {
+        return valid.map((item) => ({
+          ...item,
+          icon: resolveIconName(item.icon),
+        }));
+      }
     }
   } catch (e) {
     console.warn('[Workbench] 读取持久化配置异常，回退默认:', e);

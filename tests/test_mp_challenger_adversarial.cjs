@@ -102,17 +102,16 @@ async function main() {
 
   await runTest('1.3 业务分包路由挂载与辅助页面健全性校验', () => {
     const subPkgs = appJson.subPackages;
-    // 4 大教职工业务分包 + 家长端分包 (package-parent)
+    // 3 大教职工业务分包 + 家长端分包 (package-parent)；CRM 分包已下线
     assert.deepStrictEqual(
       subPkgs.map((p) => p.root).sort(),
-      ['package-crm', 'package-edu', 'package-finance', 'package-parent', 'package-student'],
-      '分包应为 4 大业务分包 + 家长端分包',
+      ['package-edu', 'package-finance', 'package-parent', 'package-student'],
+      '分包应为 3 大业务分包 + 家长端分包',
     );
     
-    // 检查辅助占位子页面 (warning/index, leads/index) 是否正确继承 GenericSubPage
+    // 检查辅助占位子页面 (warning/index) 是否正确继承 GenericSubPage
     const auxPages = [
       'package-edu/warning/index.vue',
-      'package-crm/leads/index.vue',
     ];
     for (const aux of auxPages) {
       const vuePath = path.resolve(miniProgRoot, 'src', aux);

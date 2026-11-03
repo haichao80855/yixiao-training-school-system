@@ -330,23 +330,16 @@ runTest('4.2 编译产物 app.json 原生 tabBar 结构验证', () => {
   }
 });
 
-runTest('4.3 warning 与 leads 子页面充实度检验 (>= 500B 且具备卡片和交互)', () => {
+runTest('4.3 warning 子页面充实度检验 (>= 500B 且具备卡片和交互)', () => {
   const warningPath = path.resolve(mpRoot, 'src/package-edu/warning/index.vue');
-  const leadsPath = path.resolve(mpRoot, 'src/package-crm/leads/index.vue');
 
   const warningStat = fs.statSync(warningPath);
-  const leadsStat = fs.statSync(leadsPath);
 
   assert.ok(warningStat.size >= 5000, `warning/index.vue 体积为 ${warningStat.size}B，需 >= 5KB`);
-  assert.ok(leadsStat.size >= 5000, `leads/index.vue 体积为 ${leadsStat.size}B，需 >= 5KB`);
 
   const warningContent = fs.readFileSync(warningPath, 'utf8');
   assert.ok(warningContent.includes('category-tabs') || warningContent.includes('currentCategory'), 'warning/index.vue 缺少预警分类 Tab');
   assert.ok(warningContent.includes('warning-card'), 'warning/index.vue 缺少预警卡片布局');
-
-  const leadsContent = fs.readFileSync(leadsPath, 'utf8');
-  assert.ok(leadsContent.includes('pipeline-summary') || leadsContent.includes('stage-tabs'), 'leads/index.vue 缺少线索漏斗阶段');
-  assert.ok(leadsContent.includes('handleCall'), 'leads/index.vue 缺少拨打电话跟进交互');
 });
 
 // --------------------------------------------------------------------------------

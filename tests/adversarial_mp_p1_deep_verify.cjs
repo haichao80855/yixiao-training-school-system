@@ -41,15 +41,15 @@ if (missingMainPages.length === 0 && appJson.pages.length === expectedMainPages.
   console.error(`  ❌ 主包页面不符合预期: missing=[${missingMainPages}], actualLength=${appJson.pages.length}`);
 }
 
-// 2. 检查 4 大业务分包
-console.log('\n【检查项 2】4 大业务分包是否完整配置');
-// 家长端分包 package-parent 为家长门户新增（角色分包），业务分包仍为 4 大 + 家长端
-const expectedSubPkgs = ['package-edu', 'package-student', 'package-finance', 'package-crm', 'package-parent'];
+// 2. 检查 3 大业务分包 (CRM 分包已下线)
+console.log('\n【检查项 2】3 大业务分包是否完整配置');
+// 家长端分包 package-parent 为家长门户新增（角色分包），业务分包为 3 大 + 家长端
+const expectedSubPkgs = ['package-edu', 'package-student', 'package-finance', 'package-parent'];
 const actualSubPkgs = Array.isArray(appJson.subPackages) ? appJson.subPackages.map(s => s.root) : [];
 const missingSubPkgs = expectedSubPkgs.filter(pkg => !actualSubPkgs.includes(pkg));
 if (missingSubPkgs.length === 0 && actualSubPkgs.length === expectedSubPkgs.length) {
   report.subPackages = true;
-  console.log('  ✅ 4 大业务分包 package-edu, package-student, package-finance, package-crm 完整配置');
+  console.log('  ✅ 3 大业务分包 package-edu, package-student, package-finance 及家长端分包完整配置');
 } else {
   console.error(`  ❌ 业务分包缺失或异常: missing=[${missingSubPkgs}], actual=[${actualSubPkgs}]`);
 }
