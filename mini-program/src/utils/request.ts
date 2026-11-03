@@ -5,8 +5,9 @@ export interface ApiResponse<T = any> {
   success?: boolean;
 }
 
-// 本地开发请使用 http://127.0.0.1:3001；若真机调试，请配置为局域网IP（如 http://192.168.x.x:3001）或内网穿透域名
-export const BASE_URL = 'http://127.0.0.1:3001';
+// 后端地址按构建模式读取：npm run dev:mp-weixin 使用 .env.development，npm run build:mp-weixin 使用 .env.production。
+// 真机调试本地后端时，可在 .env.development.local 中改为局域网 IP（如 http://192.168.x.x:3001）
+export const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:3001').replace(/\/+$/, '');
 
 // 401 防并发抖动重定向锁
 let isRedirecting = false;
