@@ -72,6 +72,16 @@
         <text v-else-if="!nextCursor">· 已经到底了 ·</text>
       </view>
     </view>
+
+    <!-- #ifdef H5 -->
+    <!-- 网页版没有 previewMedia：全屏浮层播放课堂视频 -->
+    <view v-if="playingUrl" class="video-overlay" @click="playingUrl = ''">
+      <video class="overlay-video" :src="playingUrl" autoplay controls object-fit="contain" @click.stop />
+      <view class="overlay-close" @click.stop="playingUrl = ''">
+        <AppIcon name="x" size="40rpx" color="#FFFFFF" />
+      </view>
+    </view>
+    <!-- #endif -->
   </ParentPage>
 </template>
 
@@ -164,9 +174,14 @@ function photoActions(photo: AlbumWeek['photos'][number]) {
   });
 }
 
+const playingUrl = ref('');
+
 function playVideo(url: string) {
   // #ifdef MP-WEIXIN
   uni.previewMedia({ sources: [{ url: mediaUrl(url), type: 'video' }] });
+  // #endif
+  // #ifdef H5
+  playingUrl.value = mediaUrl(url);
   // #endif
 }
 
@@ -428,4 +443,35 @@ onPullDownRefresh(async () => {
   height: 360rpx;
   border-radius: 32rpx;
 }
+
+/* #ifdef H5 */
+.video-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay-video {
+  width: 100%;
+  max-width: 480px;
+  height: 70vh;
+}
+
+.overlay-close {
+  position: absolute;
+  top: calc(24rpx + env(safe-area-inset-top));
+  right: 24rpx;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* #endif */
 </style>

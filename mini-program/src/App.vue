@@ -6,7 +6,13 @@ onLaunch(() => {
   // 检查本地 Token
   const token = uni.getStorageSync('token');
   const pages = getCurrentPages();
-  const currentPage = pages[pages.length - 1]?.route || '';
+  let currentPage = pages[pages.length - 1]?.route || '';
+  // #ifdef H5
+  // 网页版首次加载时页面栈尚为空：从地址栏取当前页，刷新或直接打开子页面时不被重定向回首页
+  if (!currentPage) {
+    currentPage = location.pathname.slice(import.meta.env.BASE_URL.length).replace(/^\/+/, '');
+  }
+  // #endif
   if (!token) {
     if (currentPage !== 'pages/login/index') {
       uni.reLaunch({ url: '/pages/login/index' });
@@ -171,4 +177,20 @@ view, text, image, input, button, scroll-view {
 .m3-animate-slide-up {
   animation: m3FadeSlideUp 0.35s cubic-bezier(0.05, 0.7, 0.1, 1) both;
 }
+
+/* #ifdef H5 */
+/* 网页家长端：手机上铺满；在平板 / 电脑上收成 480px 宽的居中手机版面 */
+body {
+  background-color: #E7E3DC;
+}
+
+uni-page-body {
+  display: block;
+  max-width: 480px;
+  min-height: 100vh;
+  margin: 0 auto;
+  background-color: #F5F3EF;
+  box-shadow: 0 0 40px rgba(15, 23, 42, 0.06);
+}
+/* #endif */
 </style>

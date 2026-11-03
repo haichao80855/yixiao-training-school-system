@@ -222,6 +222,9 @@ const goBack = () => {
 .float-back {
   position: fixed;
   left: 24rpx;
+  /* #ifdef H5 */
+  left: max(24rpx, calc(50% - 240px + 24rpx));
+  /* #endif */
   z-index: 950;
   width: 68rpx;
   height: 68rpx;

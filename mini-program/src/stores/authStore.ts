@@ -8,6 +8,31 @@ export type AccountType = 'staff' | 'parent';
 /** 家长端首页 (课评) */
 export const PARENT_HOME = '/package-parent/evaluations/index';
 
+/** 网页版登录设备名：系统 + 浏览器，如「iPhone 微信」「Android Chrome」，便于在「登录设备」中辨认 */
+export function webDeviceLabel(ua: string): string {
+  const os = /iPhone/.test(ua)
+    ? 'iPhone'
+    : /iPad/.test(ua)
+      ? 'iPad'
+      : /Android/.test(ua)
+        ? 'Android'
+        : /Macintosh/.test(ua)
+          ? 'Mac'
+          : /Windows/.test(ua)
+            ? 'Windows'
+            : '网页';
+  const browser = /MicroMessenger/.test(ua)
+    ? '微信'
+    : /EdgA?\//.test(ua)
+      ? 'Edge'
+      : /(Chrome|CriOS)\//.test(ua)
+        ? 'Chrome'
+        : /Safari\//.test(ua)
+          ? 'Safari'
+          : '浏览器';
+  return `${os} ${browser}`;
+}
+
 export interface UserRoleInfo {
   code: string;
   name: string;
@@ -59,17 +84,25 @@ export const useAuthStore = defineStore('auth', {
      * 家长登录：账号为学员档案中的家长手机号，密码为手机号后 6 位
      */
     async loginParent(phone: string, password: string) {
-      const wxCode = await new Promise<string | undefined>((resolve) => {
+      let wxCode: string | undefined;
+      // #ifdef MP-WEIXIN
+      wxCode = await new Promise<string | undefined>((resolve) => {
         uni.login({
           provider: 'weixin',
           success: (res) => resolve(res.code),
           fail: () => resolve(undefined),
         });
       });
+      // #endif
       let deviceLabel: string | undefined;
       try {
+        // #ifdef MP-WEIXIN
         const info = uni.getSystemInfoSync();
         deviceLabel = [info.brand, info.model].filter(Boolean).join(' ') || undefined;
+        // #endif
+        // #ifdef H5
+        deviceLabel = webDeviceLabel(navigator.userAgent);
+        // #endif
       } catch {}
 
       const res = await parentApi.login({ phone, password, wxCode, deviceLabel });

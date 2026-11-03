@@ -11,6 +11,7 @@
       <text class="system-subtitle">{{ role === 'parent' ? '课评、课表与成长记录，随时查看' : '数字化教培运营与敏捷教学管理' }}</text>
     </view>
 
+    <!-- #ifndef H5 -->
     <!-- 身份切换：家长 / 教职工 -->
     <view class="role-switch">
       <view class="role-option" :class="{ active: role === 'parent' }" @click="setRole('parent')">
@@ -20,6 +21,7 @@
         <text>教职工登录</text>
       </view>
     </view>
+    <!-- #endif -->
 
     <!-- 家长登录 -->
     <view v-if="role === 'parent'" class="login-form-card">
@@ -67,6 +69,7 @@
       </view>
     </view>
 
+    <!-- #ifndef H5 -->
     <template v-else>
     <!-- 登录方式双轨切换 Tab (账号密码登录 / 微信一键授权) -->
     <view class="login-type-tabs">
@@ -184,6 +187,7 @@
       </view>
     </view>
     </template>
+    <!-- #endif -->
 
     <!-- 底部版权声明 -->
     <view class="login-footer">
@@ -205,7 +209,12 @@ const password = ref('');
 const showPassword = ref(false);
 const rememberMe = ref(true);
 const loading = ref(false);
-const role = ref<'parent' | 'staff'>((uni.getStorageSync('loginRole') as 'parent' | 'staff') || 'parent');
+let initialRole: 'parent' | 'staff' = (uni.getStorageSync('loginRole') as 'parent' | 'staff') || 'parent';
+// #ifdef H5
+// 网页版仅开放家长端
+initialRole = 'parent';
+// #endif
+const role = ref<'parent' | 'staff'>(initialRole);
 const parentPhone = ref('');
 const parentPassword = ref('');
 
@@ -257,6 +266,9 @@ onMounted(() => {
     const info = uni.getSystemInfoSync();
     statusBarHeight.value = info.statusBarHeight || 20;
   } catch (e) {}
+  // #ifdef H5
+  uni.setNavigationBarTitle({ title: '家长登录 · 一校云' });
+  // #endif
 
   parentPhone.value = uni.getStorageSync('savedParentPhone') || '';
 
