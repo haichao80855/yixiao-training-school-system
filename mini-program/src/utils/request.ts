@@ -53,6 +53,17 @@ export async function request<T = any>(options: {
           // 智能解包：如果后端返回 { code: 200, data: ..., message: ... } 则提取内部 data
           const payload = body && typeof body === 'object' && body.data !== undefined ? body.data : body;
           resolve(payload as T);
+        } else if (res.statusCode === 401 && /\/auth\/login$/.test(options.url)) {
+          // 登录接口的 401 是账号或密码错误，不是登录失效：直接提示后端原因
+          const body = res.data as any;
+          const errMsg = body?.message || '账号或密码不正确';
+          const msg = Array.isArray(errMsg) ? errMsg[0] : errMsg;
+          uni.showToast({ title: msg, icon: 'none', duration: 2500 });
+          const error: any = new Error(msg);
+          error.status = 401;
+          error.statusCode = 401;
+          error.data = body;
+          reject(error);
         } else if (res.statusCode === 401) {
           uni.removeStorageSync('token');
 
