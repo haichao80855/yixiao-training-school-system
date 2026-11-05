@@ -1,5 +1,6 @@
 <template>
   <div class="tp-stack">
+    <PageTitle title="学员" :overline="students.length > 0 ? `共 ${total} 位学员` : ''" />
     <RosterTabs />
     <SearchBox v-model="keyword" placeholder="搜索姓名、学号、手机号" @search="load(1)" />
 
@@ -9,9 +10,9 @@
       :has-data="students.length > 0"
       :is-empty="!loading && students.length === 0"
       :empty-text="keyword ? '没有匹配的学员' : '你的班级还没有在读学员'"
+      :empty-hint="keyword ? '换个姓名、学号或手机号试试' : '学员分到你的班级后会出现在这里'"
       @retry="load(1)"
     >
-      <p class="tp-text-meta tp-num" style="margin: 0">共 {{ total }} 位学员</p>
       <div class="tp-list">
         <RouterLink v-for="stu in students" :key="stu.id" :to="`/teacher/students/${stu.id}`" class="tp-row">
           <span class="tp-avatar" aria-hidden="true">{{ stu.name.slice(0, 1) }}</span>
@@ -37,6 +38,7 @@ import { onActivated, ref } from 'vue'
 import { ChevronRight } from 'lucide-vue-next'
 import { teacherPortalApi, type TeacherStudentItem } from '@/api'
 import LoadState from './components/LoadState.vue'
+import PageTitle from './components/PageTitle.vue'
 import RosterTabs from './components/RosterTabs.vue'
 import SearchBox from './components/SearchBox.vue'
 import { usePageRefresh } from './utils/pageRefresh'

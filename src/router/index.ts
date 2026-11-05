@@ -151,7 +151,7 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'TeacherHome',
         component: () => import('@/views/teacher/TeacherHome.vue'),
-        meta: { title: '首页', teacherTab: 'home', teacherWide: true, teacherNoHeader: true }
+        meta: { title: '首页', teacherTab: 'home', teacherWide: true }
       },
       {
         path: 'schedule',
