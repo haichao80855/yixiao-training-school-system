@@ -120,12 +120,14 @@
     <div class="p-2 border-t border-st-border">
       <button
         type="button"
+        :disabled="!tenantStore.canSwitchCampus"
         @click="openCampusModal"
         :class="[
-          'w-full rounded-lg hover:bg-slate-50 transition-colors flex items-center text-left',
+          'w-full rounded-lg transition-colors flex items-center text-left',
+          tenantStore.canSwitchCampus ? 'hover:bg-slate-50' : 'cursor-default',
           collapsed ? 'justify-center p-2' : 'gap-2.5 px-2.5 py-2'
         ]"
-        :title="`当前校区：${currentCampus.name}（点击切换）`"
+        :title="tenantStore.canSwitchCampus ? `当前校区：${currentCampus.name}（点击切换）` : `当前校区：${currentCampus.name}`"
       >
         <span class="w-8 h-8 rounded-lg bg-st-primary-light text-st-primary flex items-center justify-center shrink-0">
           <el-icon :size="16"><Location /></el-icon>
@@ -134,7 +136,7 @@
           <span class="block text-[13px] font-medium text-st-title truncate">{{ currentCampus.name }}</span>
           <span class="block text-xs text-st-muted truncate">{{ currentCampus.code }}</span>
         </span>
-        <el-icon v-if="!collapsed" class="text-st-placeholder shrink-0"><Switch /></el-icon>
+        <el-icon v-if="!collapsed && tenantStore.canSwitchCampus" class="text-st-placeholder shrink-0"><Switch /></el-icon>
       </button>
     </div>
 

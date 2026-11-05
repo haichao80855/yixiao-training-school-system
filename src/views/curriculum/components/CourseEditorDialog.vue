@@ -489,7 +489,7 @@ const defaultForm: CourseItem = {
   grade: '小学低',
   attribute: 'extended',
   status: 'enabled',
-  authorizedCampusIds: ['campus-bj-hq'],
+  authorizedCampusIds: [],
   description: '',
   standardDuration: 60,
   maxCapacity: 16,
@@ -509,13 +509,13 @@ watch(
       if (props.courseData) {
         Object.assign(form, JSON.parse(JSON.stringify(props.courseData)))
         if (!form.units) form.units = []
-        if (!form.authorizedCampusIds) form.authorizedCampusIds = ['campus-bj-hq']
+        if (!form.authorizedCampusIds) form.authorizedCampusIds = [tenantStore.currentCampusId]
       } else {
         Object.assign(form, JSON.parse(JSON.stringify(defaultForm)))
         form.id = `course-${Date.now()}`
         form.code = `012-CRS-${Math.floor(Math.random() * 900 + 100)}`
-        // 默认全选实体校区
-        form.authorizedCampusIds = tenantStore.campuses.map(c => c.id)
+        // 新课程默认只授权当前校区，其他校区由教研人员按需开通
+        form.authorizedCampusIds = [tenantStore.currentCampusId]
       }
     }
   }
@@ -597,7 +597,7 @@ function clearCampuses() {
 }
 
 function selectHqOnly() {
-  form.authorizedCampusIds = ['campus-bj-hq']
+  form.authorizedCampusIds = tenantStore.campuses.filter(c => c.isHeadquarter).map(c => c.id)
 }
 
 // 单元与课时管理
@@ -720,7 +720,7 @@ async function handleSave() {
         grade: form.grade || 'middle',
         attribute: form.attribute || 'regular',
         description: form.description || '',
-        campusIds: form.authorizedCampusIds || ['campus-bj-hq']
+        campusIds: form.authorizedCampusIds || [tenantStore.currentCampusId]
       })
       if (res && res.data) {
         savedCourse = res.data

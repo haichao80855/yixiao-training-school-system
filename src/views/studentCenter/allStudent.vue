@@ -487,7 +487,7 @@ async function loadStudents() {
   loading.value = true
   try {
     const res = await studentApi.getStudents({
-      campusId: selectedCampus.value === 'all' ? undefined : selectedCampus.value,
+      campusId: selectedCampus.value,
       keyword: keyword.value || undefined,
       status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
       warningLevel: selectedWarningLevel.value === 'all' ? undefined : selectedWarningLevel.value,
@@ -734,7 +734,7 @@ function handleBatchExport() {
     s.studentNo,
     `"${s.name}"`,
     s.phone,
-    `"${s.campusName || '拓视未来-原阳校区'}"`,
+    `"${s.campusName || ''}"`,
     s.grade || '小学全学段',
     getStudentStatusLabel(s),
     s.coursePackages?.reduce((sum, p) => sum + (p.remainingLessons || 0), 0) || 0,

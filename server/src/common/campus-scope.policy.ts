@@ -52,8 +52,10 @@ export function resolveCampusScope(
 
   // 1. 超管 / 全校区数据权限
   if (isSuper) {
+    // 显式参数优先，其次是当前工作校区 (Header)；显式 all 或两者皆无时透视全集团
+    const requestedCampusId = queryCampusId || headerCampusId;
     const targetCampusId =
-      queryCampusId && queryCampusId !== 'all' ? queryCampusId : undefined;
+      requestedCampusId && requestedCampusId !== 'all' ? requestedCampusId : undefined;
     return {
       targetCampusId,
       canAccessAll: true,

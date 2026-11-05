@@ -193,7 +193,7 @@
 
       <!-- 16. 归属校区 -->
       <el-select v-model="filterForm.campusId" placeholder="归属校区" size="small" clearable>
-        <el-option label="拓视未来-原阳校区" value="campus-bj-hq" />
+        <el-option v-for="c in tenantStore.campuses" :key="c.id" :label="c.name" :value="c.id" />
       </el-select>
 
       <!-- Row 3 (8 控件) -->
@@ -843,7 +843,7 @@ import type {
 } from '@/types'
 
 const tenantStore = useTenantStore()
-const currentCampusName = computed(() => tenantStore.currentCampus?.name || '拓视未来-原阳校区')
+const currentCampusName = computed(() => tenantStore.currentCampus?.name || '')
 
 // 主分段 Tab
 const activeMainTab = ref<'regular' | 'quarterly'>('regular')
@@ -1315,7 +1315,7 @@ function getPayMethodLabel(method?: PaymentMethod): string {
 
 onMounted(async () => {
   // 保持与当前校区初始状态一致
-  filterForm.campusId = tenantStore.currentCampusId || 'CAMPUS_HQ'
+  filterForm.campusId = tenantStore.currentCampusId
   await loadOrders()
 })
 
