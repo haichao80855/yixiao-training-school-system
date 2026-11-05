@@ -1,7 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import * as path from 'path';
 import OSS = require('ali-oss');
-import { SignedUrlOptions, StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
+import { SignedUrlOptions, signedUrlExpiry, StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
 
 export interface AliyunOssConfig {
   region: string;
@@ -40,6 +40,9 @@ const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
 /** 九宫格方形缩略图 / 视频首帧封面 (OSS 数据处理参数，随签名一起生效) */
 const IMAGE_THUMB_PROCESS = 'image/resize,m_fill,w_300,h_300/quality,q_80';
 const VIDEO_THUMB_PROCESS = 'video/snapshot,t_1000,f_jpg,w_300,h_300,m_fast';
+/** 大图预览：长边不超过 1280 (不放大)，手机上看不出差别但流量小得多。GIF 不处理，避免丢失动画 */
+const IMAGE_PREVIEW_PROCESS = 'image/auto-orient,1/resize,m_lfit,w_1280,h_1280/quality,q_80';
+const PREVIEWABLE_IMAGE_EXT = /\.(jpe?g|png|webp)$/i;
 
 export function readAliyunOssConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AliyunOssConfig {
   const required = ['OSS_REGION', 'OSS_BUCKET', 'OSS_ACCESS_KEY_ID', 'OSS_ACCESS_KEY_SECRET'] as const;
@@ -151,10 +154,16 @@ export class AliyunOssStorageAdapter implements StorageEnginePort {
 
   signedUrl(key: string, options: SignedUrlOptions = {}): string {
     const cleanKey = this.cleanKey(key);
-    const process = options.variant === 'thumb' ? this.thumbProcess(cleanKey) : undefined;
+    const process = this.variantProcess(cleanKey, options.variant);
+    const ttl = options.expiresInSeconds ?? 3600;
+    const stable = options.stableForSeconds;
+    const nowSeconds = Math.floor(Date.now() / 1000);
     return this.signClient.signatureUrl(cleanKey, {
-      expires: options.expiresInSeconds ?? 3600,
+      // SDK 用「当前时间 + expires」作为到期时间，这里反算出对齐后的到期时间
+      expires: stable ? signedUrlExpiry(options, nowSeconds) - nowSeconds : ttl,
       ...(process ? { process } : {}),
+      // 响应头参数参与签名，取固定值，否则同一窗口内链接也会变化
+      ...(stable ? { response: { 'cache-control': `private, max-age=${ttl + stable}` } } : {}),
     });
   }
 
@@ -185,6 +194,12 @@ export class AliyunOssStorageAdapter implements StorageEnginePort {
       }
     }
     return this.signHostCache ?? '';
+  }
+
+  private variantProcess(key: string, variant: SignedUrlOptions['variant']): string | undefined {
+    if (variant === 'thumb') return this.thumbProcess(key);
+    if (variant === 'preview' && PREVIEWABLE_IMAGE_EXT.test(key)) return IMAGE_PREVIEW_PROCESS;
+    return undefined;
   }
 
   private thumbProcess(key: string): string | undefined {

@@ -1,5 +1,5 @@
 import { Injectable, Optional } from '@nestjs/common';
-import { SignedUrlOptions, StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
+import { SignedUrlOptions, StorageEnginePort, StoragePersistResult, signedUrlExpiry } from '../ports/storage-engine.port';
 import { keyFromLocalMediaRoute } from '../media-key.util';
 
 /**
@@ -62,7 +62,7 @@ export class MemoryMockStorageAdapter implements StorageEnginePort {
 
 
   signedUrl(key: string, options: SignedUrlOptions = {}): string {
-    const exp = Math.floor(Date.now() / 1000) + (options.expiresInSeconds ?? 3600);
+    const exp = signedUrlExpiry(options);
     return `/api/media/${key}?exp=${exp}&sig=memory`;
   }
 

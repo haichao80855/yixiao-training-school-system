@@ -297,6 +297,8 @@ async function run() {
   assert(archive.body?.months?.[0]?.items?.[0]?.url?.includes('/api/media/') && !archive.body.months[0].items[0].storageKey, '历史档案只输出签名链接，不输出存储 key');
   const archiveNext = await request('GET', `/api/parent/students/${f.s1.id}/archive?limit=2&cursor=2025-03`, null, auth(tokenA1));
   assert(archiveNext.body?.months?.map((m) => m.month).join() === '2024-12,2024-11' && archiveNext.body?.nextCursor === null, '按 cursor 翻到最后一页');
+  const archiveAgain = await request('GET', `/api/parent/students/${f.s1.id}/archive?limit=2`, null, auth(tokenA1));
+  assert(archiveAgain.body?.months?.[0]?.items?.[0]?.thumbUrl === archive.body?.months?.[0]?.items?.[0]?.thumbUrl, '重复请求时照片链接不变，手机可命中缓存');
   const archiveVideo = await request('GET', `/api/parent/students/${f.s1.id}/archive?type=video`, null, auth(tokenA1));
   assert(archiveVideo.body?.months?.length === 1 && archiveVideo.body.months[0].items.length === 1, '视频分类只返回视频');
   const archiveBadCursor = await request('GET', `/api/parent/students/${f.s1.id}/archive?cursor=abc`, null, auth(tokenA1));
