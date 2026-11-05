@@ -82,7 +82,7 @@ export interface ApprovalDetailModel extends ApprovalItemModel {
 }
 
 const formatPaymentMethod = (pm?: string): string => {
-  if (!pm) return '微信支付';
+  if (!pm) return '--';
   const map: Record<string, string> = {
     wechat: '微信支付',
     alipay: '支付宝',
@@ -121,7 +121,7 @@ export function normalizeOrderItem(item: any): OrderItemModel {
 
   let rawItems = Array.isArray(item.items) ? item.items : [];
   if (rawItems.length === 0 && (item.package || item.coursePackage || item.packageName)) {
-    const pkgName = item.package?.course?.name || item.coursePackage?.name || item.packageName || '标准正课包';
+    const pkgName = item.package?.course?.name || item.coursePackage?.name || item.packageName || '课程包';
     rawItems = [
       {
         id: item.packageId || `item-${item.id || '1'}`,
@@ -159,7 +159,7 @@ export function normalizeOrderItem(item: any): OrderItemModel {
     ? (typeof item.createdAt === 'string'
         ? item.createdAt.slice(0, 19).replace('T', ' ')
         : new Date(item.createdAt).toISOString().slice(0, 19).replace('T', ' '))
-    : (item.createdAtText || '2026-10-15 16:32:10');
+    : (item.createdAtText || '--');
 
   return {
     id: String(item.id || ''),
@@ -178,7 +178,7 @@ export function normalizeOrderItem(item: any): OrderItemModel {
     paymentMethod: formatPaymentMethod(item.paymentMethod),
     createdAtText,
     operatorName: String(
-      item.creator?.realName || item.owner?.realName || item.operator?.realName || item.operatorName || '经办顾问'
+      item.creator?.realName || item.owner?.realName || item.operator?.realName || item.operatorName || '--'
     ),
     items,
     voucherUrl: item.voucherUrl,
@@ -229,7 +229,7 @@ export function normalizeApprovalItem(item: any): ApprovalItemModel {
     ? (typeof item.createdAt === 'string'
         ? item.createdAt.slice(0, 16).replace('T', ' ')
         : new Date(item.createdAt).toISOString().slice(0, 16).replace('T', ' '))
-    : (item.createdAtText || '2026-10-15 10:30');
+    : (item.createdAtText || '--');
 
   const studentName = String(
     item.order?.student?.name || item.student?.name || item.studentName || '学员'
@@ -267,8 +267,8 @@ export function normalizeApprovalItem(item: any): ApprovalItemModel {
     statusText,
     currentStep,
     totalSteps,
-    applicantName: String(item.applicantName || item.applicant?.realName || '冯老师'),
-    applicantRole: String(item.applicantRole || (businessType === 'refund' ? '学管顾问' : '课程顾问')),
+    applicantName: String(item.applicantName || item.applicant?.realName || '--'),
+    applicantRole: String(item.applicantRole || ''),
     campusId: String(item.order?.campusId || item.campusId || 'campus-bj-hq'),
     campusName: String(item.order?.campus?.name || item.campus?.name || item.campusName || '拓视未来-原阳校区'),
     createdAtText,
@@ -403,9 +403,9 @@ export const financeApi = {
     const rawNodes = Array.isArray(res.nodes) ? res.nodes : (Array.isArray(res.timeline) ? res.timeline : []);
     const timeline: ApprovalTimelineNode[] = rawNodes.map((n: any, idx: number) => ({
       nodeId: n.id || n.nodeId || `node-${idx + 1}`,
-      nodeName: n.nodeName || n.stepName || (idx === 0 ? '发起退费申请' : (idx === 1 ? '财务核验课耗' : '校长终审签批')),
+      nodeName: n.nodeName || n.stepName || `第${idx + 1}步`,
       approverName: n.reviewer?.realName || n.reviewerName || n.approverName || '审核人',
-      approverRole: n.approverRole || (n.step === 1 ? '教务顾问' : (n.step === 2 ? '财务主管' : '校区校长')),
+      approverRole: n.approverRole || '',
       status: (n.action === 'pass' ? 'approved' : (n.action === 'reject' ? 'rejected' : 'pending')) as 'approved' | 'rejected' | 'pending',
       statusText: n.statusText || (n.action === 'pass' ? '已核准' : (n.action === 'reject' ? '已驳回' : '待审批')),
       actionTimeText: n.createdAt ? (typeof n.createdAt === 'string' ? n.createdAt.slice(0, 16).replace('T', ' ') : '') : (n.actionTimeText || ''),

@@ -41,8 +41,8 @@ export const catalogApi = {
     });
     const rawList: any[] = Array.isArray(res) ? res : (Array.isArray((res as any)?.list) ? (res as any).list : []);
     let list: CourseCatalogItem[] = rawList.map((c: any) => {
-      const pricePerLesson = c.unitPrice ?? c.pricePerLesson ?? 64;
-      const totalLessons = c.totalLessons ?? 48;
+      const pricePerLesson = c.unitPrice ?? c.pricePerLesson ?? 0;
+      const totalLessons = c.totalLessons ?? 0;
       const totalPrice = c.totalPrice ?? (pricePerLesson * totalLessons);
       return {
         id: c.id,

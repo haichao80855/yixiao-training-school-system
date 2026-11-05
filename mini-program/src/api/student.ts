@@ -95,80 +95,6 @@ export interface EnrollPayloadModel {
   paymentMethod?: string;
 }
 
-// 高保真内置备用数据源（对齐截图 023~027）
-const MOCK_STUDENTS: StudentListItemModel[] = [
-  {
-    id: 's-01',
-    name: '董御',
-    studentNo: 'S950014',
-    phone: '13460475611',
-    status: 'active',
-    statusText: '在读',
-    remainingLessons: 84,
-    remainingAmount: 4992,
-    enrolledClassesCount: 1,
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    isAssignedClass: true,
-  },
-  {
-    id: 's-02',
-    name: '陈梓澄',
-    studentNo: 'S950013',
-    phone: '13812345678',
-    status: 'active',
-    statusText: '在读',
-    remainingLessons: 81,
-    remainingAmount: 4864,
-    enrolledClassesCount: 1,
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    isAssignedClass: true,
-  },
-  {
-    id: 's-03',
-    name: '韦千寻',
-    studentNo: 'S950012',
-    phone: '15993080680',
-    status: 'active',
-    statusText: '在读',
-    remainingLessons: 67,
-    remainingAmount: 3968,
-    enrolledClassesCount: 1,
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    isAssignedClass: true,
-  },
-  {
-    id: 's-04',
-    name: '娄栩歌',
-    studentNo: 'S950011',
-    phone: '18236139606',
-    status: 'active',
-    statusText: '在读',
-    remainingLessons: 63,
-    remainingAmount: 3780,
-    enrolledClassesCount: 1,
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    isAssignedClass: true,
-  },
-  {
-    id: 's-05',
-    name: '周子程',
-    studentNo: 'S950010',
-    phone: '13522223333',
-    status: 'pending_assignment',
-    statusText: '待分班',
-    remainingLessons: 40,
-    remainingAmount: 2400,
-    enrolledClassesCount: 0,
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    isAssignedClass: false,
-  },
-];
-
 export const studentApi = {
   // 1. 获取学员名册列表 (023 & 029)
   async getStudents(params?: {
@@ -363,64 +289,10 @@ export const studentApi = {
       }
     } catch (e) {
       console.warn('[studentApi] 获取学员详情接口失败:', e);
+      throw e;
     }
 
-    // 默认兜底（兼容离线测试样本 s-01，非测试样本保持真实0基线）
-    if (id === 's-01') {
-      return {
-        id: 's-01',
-        name: '董御',
-        studentNo: 'S950014',
-        gender: '男',
-        phone: '13460475611',
-        guardianRelation: '妈妈',
-        expireDateText: '无限期',
-        channelSource: '英语',
-        status: '在读',
-        campusName: '拓视未来-原阳校区',
-        totalRemainingLessons: 78,
-        totalRemainingAmount: 4992,
-        walletBalance: 0,
-        cardCount: 0,
-        frozenLessons: 6,
-        courses: [
-          {
-            id: 'sc-01',
-            courseId: 'crs-qm',
-            courseName: '启蒙英语',
-            classId: 'cls-qm-002',
-            className: '启蒙英语-002班',
-            isEnrolledClass: true,
-            remainingLessons: 78,
-            remainingAmount: 4992,
-            totalLessons: 100,
-          },
-        ],
-        attendances: [],
-        communications: [],
-      };
-    }
-
-    return {
-      id: id || '',
-      name: '学员',
-      studentNo: '',
-      gender: '男',
-      phone: '',
-      guardianRelation: '家长',
-      expireDateText: '无限期',
-      channelSource: '其他',
-      status: '未报读',
-      campusName: '拓视未来-原阳校区',
-      totalRemainingLessons: 0,
-      totalRemainingAmount: 0,
-      walletBalance: 0,
-      cardCount: 0,
-      frozenLessons: 0,
-      courses: [],
-      attendances: [],
-      communications: [],
-    };
+    throw new Error('未找到该学员');
   },
 
   // 3. 报名开单 (089~093)
@@ -574,7 +446,7 @@ export const studentApi = {
         return res;
       }
     } catch (e) {
-      console.warn('[studentApi] 获取消课预警大盘失败，使用离线数据:', e);
+      console.warn('[studentApi] 获取消课预警大盘失败:', e);
     }
     return null;
   },

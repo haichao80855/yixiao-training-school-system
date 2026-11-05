@@ -295,7 +295,7 @@ async function run() {
     assert.strictEqual(typeof sent.payload, 'object');
     assert.strictEqual(sent.payload.studyContentHtml, '英语音标综合复习');
     assert.strictEqual(sent.payload.teacherComment, '发音非常地道，掌握迅速！');
-    assert.strictEqual(sent.payload.overallRating, 5.0);
+    assert.strictEqual(sent.payload.overallRating, undefined, '未填写评分时不得编造默认值');
     assert.strictEqual(sent.payload.templateName, '通用课评模板');
     assert.deepStrictEqual(sent.payload.photoList, ['https://cdn.example.com/photo1.jpg']);
     assert.strictEqual(sent.payload.videoUrl, 'https://cdn.example.com/video1.mp4');

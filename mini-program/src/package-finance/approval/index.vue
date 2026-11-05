@@ -92,7 +92,7 @@
 
           <!-- 申请人信息 -->
           <view class="applicant-row">
-            <text class="applicant-text">申请人：{{ item.applicantName }} ({{ item.applicantRole }})</text>
+            <text class="applicant-text">申请人：{{ item.applicantName }}{{ item.applicantRole ? ' (' + item.applicantRole + ')' : '' }}</text>
             <text class="apply-time">{{ item.createdAtText }}</text>
           </view>
 

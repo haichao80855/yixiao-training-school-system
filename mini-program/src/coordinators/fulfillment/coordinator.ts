@@ -327,7 +327,7 @@ export class ClientLessonFulfillmentCoordinatorImpl implements ClientLessonFulfi
     const baselineContent =
       raw?.evaluationDraft?.studyContentHtml ||
       raw?.evaluationSummary?.studyContent ||
-      '本堂课学生专注投入，知识点掌握扎实。';
+      '';
     const baselineRating = 5;
 
     // 读取本地存储草稿 (基于 DraftScope 强类型领域语义)

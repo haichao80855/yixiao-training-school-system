@@ -39,6 +39,7 @@ const { financeApi } = require(compiled('finance'));
 const { catalogApi } = require(compiled('catalog'));
 const { classApi } = require(compiled('class'));
 const { eduApi } = require(compiled('edu'));
+const { studentApi } = require(compiled('student'));
 
 const readers = [
   ['financeApi.getOrders', () => financeApi.getOrders()],
@@ -49,6 +50,7 @@ const readers = [
   ['catalogApi.getCourses', () => catalogApi.getCourses()],
   ['classApi.getClassDetail', () => classApi.getClassDetail('cls-01')],
   ['eduApi.getFulfillmentWorkbench', () => eduApi.getFulfillmentWorkbench('sch-01')],
+  ['studentApi.getStudentProfile', () => studentApi.getStudentProfile('s-01')],
 ];
 
 async function main() {
@@ -71,6 +73,7 @@ async function main() {
   await assert.rejects(financeApi.getApprovalDetail('appr-01'), /未找到/);
   await assert.rejects(classApi.getClassDetail('cls-01'), /未找到/);
   await assert.rejects(eduApi.getFulfillmentWorkbench('sch-01'), /未找到/);
+  await assert.rejects(studentApi.getStudentProfile('s-01'), /未找到/);
   console.log('✔ 详情接口返回空响应时报「未找到」');
 
   // 真实的空结果保持为空
@@ -115,14 +118,54 @@ async function main() {
   assert.strictEqual(detail.accountNo, undefined, '后端未返回银行账号时不得补假账号');
   console.log('✔ 审批详情只使用后端响应，不混入内置数据');
 
+  // 真实记录缺字段时显示占位，不补虚构的人名、日期、支付方式和价格
+  respond = ok({ id: 'o1', orderNo: 'O1' });
+  const bareOrder = await financeApi.getOrderById('o1');
+  assert.strictEqual(bareOrder.paymentMethod, '--');
+  assert.strictEqual(bareOrder.operatorName, '--');
+  assert.strictEqual(bareOrder.createdAtText, '--');
+  respond = ok({ list: [{ id: 'a1' }] });
+  const [bareApproval] = (await financeApi.getApprovals()).list;
+  assert.strictEqual(bareApproval.applicantName, '--');
+  assert.strictEqual(bareApproval.applicantRole, '');
+  assert.strictEqual(bareApproval.createdAtText, '--');
+  respond = ok([{ id: 'sch', date: '2026-11-01', startTime: '09:00', endTime: '10:00' }]);
+  const [bareSchedule] = await eduApi.getSchedules({});
+  assert.strictEqual(bareSchedule.className, '--');
+  assert.strictEqual(bareSchedule.teacherName, '--');
+  respond = ok({ schedule: { id: 'sch' }, students: [] });
+  const bareWb = await eduApi.getFulfillmentWorkbench('sch');
+  assert.strictEqual(bareWb.schedule.className, '--');
+  assert.strictEqual(bareWb.schedule.teacherName, '--');
+  respond = ok([{ id: 'c1', name: '课程' }]);
+  const [bareCourse] = await catalogApi.getCourses();
+  assert.strictEqual(bareCourse.pricePerLesson, 0);
+  assert.strictEqual(bareCourse.totalPrice, 0);
+  console.log('✔ 记录缺字段时不补虚构内容');
+
+  // 点名静默同步只带考勤，不得夹带编造的课评内容（否则会覆盖老师写好的课评）
+  let sent = null;
+  respond = (opts) => { sent = opts.data; opts.success({ statusCode: 200, data: {} }); };
+  await eduApi.commitEvaluation({
+    scheduleEventId: 'sch',
+    publish: false,
+    dispatchStrategy: 'ATTENDED_ONLY',
+    payload: { studentOverrides: [{ studentId: 's1', attendanceStatus: 'present', deductLessons: 1 }] },
+  });
+  for (const key of ['studyContentHtml', 'teacherComment', 'lessonTitle', 'templateName', 'overallRating']) {
+    assert.strictEqual(sent.payload[key], undefined, `考勤同步不得携带 ${key}`);
+  }
+  console.log('✔ 考勤同步不夹带课评内容');
+
   console.warn = originalWarn;
   console.error = originalError;
 
   // 源码与页面
-  const apiSources = ['finance', 'catalog', 'class', 'edu'].map((n) => [n, readSrc(`api/${n}.ts`)]);
+  const apiSources = ['finance', 'catalog', 'class', 'edu', 'student'].map((n) => [n, readSrc(`api/${n}.ts`)]);
   for (const [name, source] of apiSources) {
     assert.ok(!/MOCK_[A-Z]+/.test(source), `api/${name}.ts 仍有 MOCK_ 常量`);
     assert.ok(!/高保真|离线容灾|内置数据/.test(source), `api/${name}.ts 仍有回落逻辑`);
+    assert.ok(!/冯老师|李校长|董御|S950014|周二18\.30|本堂课学生专注/.test(source), `api/${name}.ts 仍有虚构默认值`);
   }
   for (const [page, needle] of [
     ['package-finance/orders/index.vue', 'subject="订单"'],

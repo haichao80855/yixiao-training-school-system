@@ -275,12 +275,8 @@ async function main() {
       assert.strictEqual(typeof studentApi[m], 'function', `studentApi.${m} 不是可调用函数`);
     }
 
-    // 验证学员详情档案数据
-    const profile = await studentApi.getStudentProfile('s-01');
-    assert.strictEqual(profile.name, '董御', '学员姓名不匹配');
-    assert.strictEqual(profile.studentNo, 'S950014', '学号不匹配');
-    assert.strictEqual(profile.totalRemainingLessons, 78, '剩余课次不匹配');
-    assert.strictEqual(profile.totalRemainingAmount, 4992, '剩余金额不匹配');
+    // 请求失败时不得回落到内置档案
+    await assert.rejects(studentApi.getStudentProfile('s-01'));
   });
 
   await runTest('3.3 classApi 与 catalogApi: 班级/目录端点完整性', async () => {

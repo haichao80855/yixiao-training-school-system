@@ -52,7 +52,7 @@
           </view>
           <view class="detail-item">
             <text class="lbl">经办发起人：</text>
-            <text class="val">{{ detail.applicantName }} ({{ detail.applicantRole }})</text>
+            <text class="val">{{ detail.applicantName }}{{ detail.applicantRole ? ' (' + detail.applicantRole + ')' : '' }}</text>
           </view>
           <view class="detail-item">
             <text class="lbl">申请发起时间：</text>
@@ -105,7 +105,7 @@
                 </text>
               </view>
               <view class="approver-info">
-                {{ node.approverName }} ({{ node.approverRole }})
+                {{ node.approverName }}{{ node.approverRole ? ' (' + node.approverRole + ')' : '' }}
               </view>
               <view class="node-time" v-if="node.actionTimeText">
                 {{ node.actionTimeText }}

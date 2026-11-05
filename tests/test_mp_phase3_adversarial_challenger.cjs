@@ -197,14 +197,9 @@ async function run() {
     assert.strictEqual(profile.attendances[0].classType, '常规课');
   });
 
-  await runChallenge('1.2 Graceful fallback when backend is unreachable', async () => {
+  await runChallenge('1.2 Backend unreachable: rejects instead of returning a placeholder profile', async () => {
     mockRequestBehavior = 'network_error';
-    const profile = await studentApi.getStudentProfile('stu-fallback');
-    assert.ok(profile, 'Profile fallback returned null');
-    assert.strictEqual(profile.id, 'stu-fallback');
-    assert.ok(profile.name, 'Fallback profile missing name');
-    assert.ok(Array.isArray(profile.courses), 'Fallback courses must be array');
-    assert.ok(Array.isArray(profile.attendances), 'Fallback attendances must be array');
+    await assert.rejects(studentApi.getStudentProfile('stu-fallback'));
   });
 
   // =========================================================================

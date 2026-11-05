@@ -310,10 +310,10 @@ async function runAllProbes() {
     // CRITICAL: Coordinator destructures { payload, publish } = command;
     // Must assert sent.payload exists!
     assert.ok(sent.payload, 'sent.payload must be defined to prevent coordinator TypeError');
-    assert.strictEqual(sent.payload.lessonTitle, '随堂课评与素养分析');
+    assert.strictEqual(sent.payload.lessonTitle, undefined);
     assert.strictEqual(sent.payload.studyContentHtml, payload.studyContent);
     assert.strictEqual(sent.payload.teacherComment, payload.teacherComment);
-    assert.strictEqual(sent.payload.overallRating, 5.0);
+    assert.strictEqual(sent.payload.overallRating, undefined);
     assert.deepStrictEqual(sent.payload.photoList, payload.photoList);
     assert.strictEqual(sent.payload.videoUrl, payload.videoUrl);
 
