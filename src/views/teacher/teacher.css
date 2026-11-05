@@ -1,0 +1,153 @@
+/* 网页教师端：手机优先，平板 / 电脑上内容居中限宽。尺寸用 px：全局 html 字号 14px，rem 不等于常见手机尺寸 */
+.teacher-portal {
+  font-size: 15px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tp-container {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.tp-card {
+  background: #fff;
+  border: 1px solid var(--st-color-border);
+  border-radius: 12px;
+  padding: 14px;
+  min-width: 0;
+}
+
+.tp-section-title {
+  margin: 18px 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--st-color-title);
+}
+
+.tp-tag {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tp-tag-muted { background: #f1f5f9; color: var(--st-color-secondary); }
+.tp-tag-primary { background: var(--st-color-primary-bg); color: var(--st-color-primary-active); }
+.tp-tag-success { background: var(--st-color-success-light); color: #15803d; }
+.tp-tag-warning { background: var(--st-color-warning-light); color: var(--st-color-warning-deep); }
+.tp-tag-danger { background: var(--st-color-danger-light); color: var(--st-color-danger-deep); }
+
+.tp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tp-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.tp-btn-primary { background: var(--st-color-primary-active); color: #fff; }
+.tp-btn-secondary { background: #fff; border-color: var(--st-color-border-dark); color: var(--st-color-regular); }
+.tp-btn-sm { min-height: 36px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
+
+/* 16px 以下的输入框在 iOS Safari 聚焦时会放大页面 */
+.tp-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--st-color-border-dark);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--st-color-title);
+  font-size: 16px;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+.tp-input::placeholder { color: var(--st-color-placeholder); }
+textarea.tp-input { resize: vertical; display: block; }
+
+.tp-segment {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: #e8ebf0;
+  border-radius: 10px;
+}
+.tp-segment-item {
+  flex: 1;
+  min-height: 38px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--st-color-secondary);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tp-segment-item.is-active {
+  background: #fff;
+  color: var(--st-color-primary-active);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+.tp-search {
+  position: relative;
+}
+.tp-search > svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--st-color-placeholder);
+  pointer-events: none;
+}
+.tp-search > input { padding-left: 36px; }
+
+/* 页面撑满滚动区，内容较短时操作条也贴在底部 */
+.tp-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.tp-page > .grid {
+  margin-bottom: 12px;
+}
+
+/* 贴底操作条：留出 iPhone 底部安全区 */
+.tp-action-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: auto -16px -12px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid var(--st-color-border);
+  display: flex;
+  gap: 10px;
+}

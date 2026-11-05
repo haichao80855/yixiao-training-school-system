@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -54,6 +54,33 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  async changeOwnPassword(userId: string, oldPassword?: string, newPassword?: string) {
+    if (!oldPassword || !newPassword) {
+      throw new BadRequestException('请填写原密码与新密码');
+    }
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/.test(newPassword)) {
+      throw new BadRequestException('新密码需为 8-20 位，并包含大小写字母和数字');
+    }
+    if (oldPassword === newPassword) {
+      throw new BadRequestException('新密码不能与原密码相同');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('账号不存在');
+    }
+    // 原密码错误用 400：401 会被前端视为登录失效并踢回登录页
+    if (!(await bcrypt.compare(oldPassword, user.password))) {
+      throw new BadRequestException('原密码不正确');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: await bcrypt.hash(newPassword, 10) },
+    });
+    return { success: true };
   }
 
   async login(user: any) {

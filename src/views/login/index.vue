@@ -178,15 +178,8 @@ async function executeLogin(account: string, password: string) {
 
     ElMessage.success(`欢迎您，${res.user.realName}！已以【${res.user.roleName || '系统用户'}】身份成功登录`)
 
-    // 会话失效被送回登录页的，登录后回到原页面；否则老师直达教学讲台、其他角色进入仪表盘
-    const redirectTarget = safeRedirectTarget()
-    if (redirectTarget) {
-      router.push(redirectTarget)
-    } else if (res.user.roles.includes('teacher') || res.user.teacherId) {
-      router.push('/educational/workbench')
-    } else {
-      router.push('/dashboard')
-    }
+    // 会话失效被送回登录页的，登录后回到原页面；否则老师进入教师端、其他角色进入仪表盘
+    router.push(safeRedirectTarget() || authStore.homePath)
   } catch (err: any) {
     ElMessage.error(err.message || '登录失败，请检查用户名与密码是否正确')
   } finally {

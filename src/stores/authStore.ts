@@ -60,6 +60,18 @@ export const useAuthStore = defineStore('auth', () => {
     )
   })
   const isTeacher = computed(() => user.value?.roles.includes('teacher') || !!user.value?.teacherId)
+  // 只有教师角色的账号：默认进入网页教师端；兼任校长 / 教务等其他角色的账号仍进管理后台
+  const isTeacherOnly = computed(() => {
+    const roles = user.value?.roles
+    return (
+      !!roles?.length &&
+      roles.every((r) => r === 'teacher') &&
+      !isSuperAdmin.value &&
+      // 教师端依赖讲台权限；未开通的账号仍进后台，避免与路由守卫互相重定向
+      !!user.value?.permissions?.includes('educational:workbench')
+    )
+  })
+  const homePath = computed(() => (isTeacherOnly.value ? '/teacher' : '/dashboard'))
 
   function setLoginSession(newToken: string, userInfo: UserProfile) {
     token.value = newToken
@@ -169,6 +181,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isSuperAdmin,
     isTeacher,
+    isTeacherOnly,
+    homePath,
     setLoginSession,
     loginAsync,
     refreshProfile,
