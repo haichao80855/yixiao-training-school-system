@@ -156,7 +156,7 @@ ssh "$REMOTE_HOST" "bash -s" << 'EOF'
   systemctl is-active nginx
 
   echo -n "API 监控健康状态: "
-  curl -s -f http://127.0.0.1:3001/api/stats/overview || echo "FAILED"
+  curl -s -f http://127.0.0.1:3001/api/health || echo "FAILED"
   echo ""
 EOF
 
@@ -165,5 +165,5 @@ echo -e "${GREEN}🎉 拓视未来教育「一校教培系统」已成功部署�
 echo -e "${BLUE}================================================================================${NC}"
 echo -e "前端公网访问入口: https://aiic.space/"
 echo -e "网页家长端入口:   https://aiic.space/parent/"
-echo -e "后端监控接口:     http://39.107.33.4/api/stats/overview"
+echo -e "后端存活探针:     https://aiic.space/api/health"
 echo -e "${BLUE}================================================================================${NC}\n"

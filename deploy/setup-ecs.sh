@@ -118,7 +118,7 @@ echo -e "\n${GREEN}[Step 4/5] 容器健康状态检查与等待就绪...${NC}"
 sleep 5
 
 for i in {1..12}; do
-  if curl -sf http://127.0.0.1/api/stats/overview > /dev/null; then
+  if curl -sf http://127.0.0.1/api/health > /dev/null; then
     echo -e "${GREEN}✓ 后端与前端服务已成功通过健康检查！${NC}"
     break
   fi
@@ -133,6 +133,6 @@ echo -e "\n${BLUE}==============================================================
 echo -e "${GREEN}🎉 拓视未来教育「一校教培系统」阿里云生产环境部署完成！${NC}"
 echo -e "${BLUE}================================================================================${NC}"
 echo -e "前端访问入口: http://<你的ECS公网IP>/"
-echo -e "后端健康监控: http://<你的ECS公网IP>/api/stats/overview"
+echo -e "后端健康监控: http://<你的ECS公网IP>/api/health"
 echo -e "运维日志查看: $COMPOSE_CMD -f deploy/docker-compose.prod.yml logs -f"
 echo -e "${BLUE}================================================================================${NC}\n"
