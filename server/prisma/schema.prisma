@@ -267,6 +267,7 @@ model Student {
   serviceFees   ServiceFeeRecord[]
   evaluationItems LessonEvaluationStudentItem[]
   parentReadStates ParentReadState[]
+  archiveMedia  StudentArchiveMedia[]
 
   @@index([phoneNormalized])
 }
@@ -671,4 +672,21 @@ model ParentReadState {
   student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([parentAccountId, studentId, scheduleEventId])
+}
+
+// 学员历史成长档案：系统上线前的课堂照片 / 视频，与排课、课评、课耗完全独立
+model StudentArchiveMedia {
+  id          String   @id @default(uuid())
+  studentId   String
+  lessonDate  String   // YYYY-MM-DD 上课日期 (来自档案日期文件夹)
+  type        String   // photo | video
+  storageKey  String   @unique // OSS key: archive/<学号>/<日期>/<文件名>
+  sizeBytes   Int      @default(0)
+  sortOrder   Int      @default(0)
+  importBatch String?
+  createdAt   DateTime @default(now())
+
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, type, lessonDate])
 }

@@ -388,7 +388,64 @@ export class ParentPortalService {
       photos += media.ownPhotos.length + media.classPhotos.length;
       videos += (media.ownVideo ? 1 : 0) + (media.classVideo ? 1 : 0);
     }
-    return { lessonsAttended: attendedCount, evaluations: lessons.length, photos, videos };
+    return {
+      lessonsAttended: attendedCount,
+      evaluations: lessons.length,
+      photos,
+      videos,
+      archive: await this.archiveSummary(studentId),
+    };
+  }
+
+  // ------------------------------------------------------------------
+  // 历史成长档案：系统上线前的照片 / 视频，按月分页 (独立于排课与课评)
+  // ------------------------------------------------------------------
+  async archive(parent: ParentPrincipal, studentId: string, cursor?: string, type?: string, limit?: string) {
+    await this.children.resolveChild(parent, studentId);
+    if (cursor && !/^\d{4}-\d{2}$/.test(cursor)) throw new BadRequestException('cursor 格式应为 YYYY-MM');
+    const mediaType = type === 'video' ? 'video' : 'photo';
+    const monthsPerPage = Math.min(Math.max(Number(limit) || 3, 1), 12);
+
+    const rows = await this.prisma.studentArchiveMedia.findMany({
+      where: { studentId, type: mediaType },
+      select: { id: true, lessonDate: true, storageKey: true },
+      orderBy: [{ lessonDate: 'desc' }, { sortOrder: 'asc' }],
+    });
+    const months = new Map<string, typeof rows>();
+    for (const row of rows) {
+      const month = row.lessonDate.slice(0, 7);
+      if (cursor && month >= cursor) continue;
+      if (!months.has(month)) months.set(month, []);
+      months.get(month)!.push(row);
+    }
+    const ordered = [...months.entries()];
+    const page = ordered.slice(0, monthsPerPage);
+    return {
+      months: page.map(([month, items]) => ({
+        month,
+        dayCount: new Set(items.map((i) => i.lessonDate)).size,
+        items: items.map((i) => ({ id: i.id, date: i.lessonDate, ...this.media.photo(i.storageKey)! })),
+      })),
+      nextCursor: ordered.length > monthsPerPage ? page[page.length - 1][0] : null,
+    };
+  }
+
+  private async archiveSummary(studentId: string) {
+    const groups = await this.prisma.studentArchiveMedia.groupBy({
+      by: ['type'],
+      where: { studentId },
+      _count: { _all: true },
+      _min: { lessonDate: true },
+      _max: { lessonDate: true },
+    });
+    const count = (type: string) => groups.find((g) => g.type === type)?._count._all ?? 0;
+    const dates = groups.flatMap((g) => [g._min.lessonDate, g._max.lessonDate]).filter((d): d is string => !!d).sort();
+    return {
+      photos: count('photo'),
+      videos: count('video'),
+      earliestDate: dates[0] ?? null,
+      latestDate: dates[dates.length - 1] ?? null,
+    };
   }
 
   // ------------------------------------------------------------------

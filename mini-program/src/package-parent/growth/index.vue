@@ -11,6 +11,17 @@
       </view>
     </view>
 
+    <view v-if="archive && archive.photos + archive.videos > 0" class="archive-card" @click="openArchive">
+      <view class="archive-icon">
+        <AppIcon name="folder-user" size="36rpx" color="#2F54EB" />
+      </view>
+      <view class="archive-info">
+        <text class="archive-title">历史档案</text>
+        <text class="archive-sub">{{ archiveRange }} · {{ archive.photos }} 张照片 · {{ archive.videos }} 段视频</text>
+      </view>
+      <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
+    </view>
+
     <view class="segments">
       <view class="seg-thumb" :class="{ right: type === 'video' }" />
       <view class="segment" :class="{ active: type === 'photo' }" @click="setType('photo')">照片</view>
@@ -74,13 +85,7 @@
     </view>
 
     <!-- #ifdef H5 -->
-    <!-- 网页版没有 previewMedia：全屏浮层播放课堂视频 -->
-    <view v-if="playingUrl" class="video-overlay" @click="playingUrl = ''">
-      <video class="overlay-video" :src="playingUrl" autoplay controls object-fit="contain" @click.stop />
-      <view class="overlay-close" @click.stop="playingUrl = ''">
-        <AppIcon name="x" size="40rpx" color="#FFFFFF" />
-      </view>
-    </view>
+    <VideoOverlay :url="playingUrl" @close="playingUrl = ''" />
     <!-- #endif -->
   </ParentPage>
 </template>
@@ -90,6 +95,7 @@ import { computed, ref, watch } from 'vue';
 import { onShow, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import VideoOverlay from '../components/VideoOverlay.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, mediaUrl, type AlbumWeek, type GrowthSummary } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
@@ -105,11 +111,23 @@ const loading = ref(false);
 const loadingMore = ref(false);
 
 const childName = computed(() => parentStore.currentChild?.name || '孩子');
+const archive = computed(() => summary.value?.archive ?? null);
+const archiveRange = computed(() => {
+  const { earliestDate, latestDate } = archive.value || {};
+  if (!earliestDate || !latestDate) return '';
+  const fmt = (d: string) => `${d.slice(0, 4)}.${Number(d.slice(5, 7))}`;
+  return `${fmt(earliestDate)} – ${fmt(latestDate)}`;
+});
+
+function openArchive() {
+  uni.navigateTo({ url: '/package-parent/growth/archive' });
+}
 
 const lessons = useCountUp(() => summary.value?.lessonsAttended);
 const evaluations = useCountUp(() => summary.value?.evaluations);
-const photos = useCountUp(() => summary.value?.photos);
-const videos = useCountUp(() => summary.value?.videos);
+// 统计含历史档案，否则老生家长会看到 0 张照片而下方有几百张历史照片
+const photos = useCountUp(() => summary.value && summary.value.photos + (summary.value.archive?.photos ?? 0));
+const videos = useCountUp(() => summary.value && summary.value.videos + (summary.value.archive?.videos ?? 0));
 
 const stats = computed(() => [
   { key: 'lessons', label: '次上课', value: lessons.value, icon: 'calendar-check', color: '#15803D' },
@@ -252,6 +270,45 @@ onPullDownRefresh(async () => {
   display: block;
   margin-top: 8rpx;
   font-size: 24rpx;
+  color: $p-ink-2;
+}
+
+.archive-card {
+  @include p-card;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx;
+  margin-bottom: 28rpx;
+}
+
+.archive-icon {
+  flex-shrink: 0;
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 20rpx;
+  background: $p-indigo-50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archive-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.archive-title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 650;
+  color: $p-ink;
+}
+
+.archive-sub {
+  display: block;
+  margin-top: 6rpx;
+  font-size: 22rpx;
   color: $p-ink-2;
 }
 
@@ -443,35 +500,4 @@ onPullDownRefresh(async () => {
   height: 360rpx;
   border-radius: 32rpx;
 }
-
-/* #ifdef H5 */
-.video-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  background: rgba(0, 0, 0, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.overlay-video {
-  width: 100%;
-  max-width: 480px;
-  height: 70vh;
-}
-
-.overlay-close {
-  position: absolute;
-  top: calc(24rpx + env(safe-area-inset-top));
-  right: 24rpx;
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-/* #endif */
 </style>
