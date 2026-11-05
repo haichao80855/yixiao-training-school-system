@@ -1,111 +1,93 @@
 <template>
   <LoadState :loading="workbench.loading.value" :error="workbench.error.value" :has-data="!!student" @retry="init">
-    <p v-if="workbench.data.value && !student" class="tp-card text-center text-st-muted m-0">该学员不在本课次名单中</p>
-    <div v-if="student && schedule" class="grid gap-3">
-      <p v-if="restoredFromAutosave" class="tp-stale-notice !cursor-default !mb-0" role="status">已恢复你上次未保存的内容，记得保存或推送</p>
-      <section class="tp-card">
-        <div class="flex items-center justify-between gap-2">
-          <p class="m-0 text-[16px] font-medium text-st-title break-words">{{ student.studentName }}</p>
-          <span v-if="isRevision" class="tp-tag tp-tag-warning">修改已推送的课评</span>
-          <span v-else-if="!isAttended(attendanceStatus)" class="tp-tag tp-tag-muted">{{ attendanceLabel(attendanceStatus) }}</span>
-        </div>
-        <p class="m-0 mt-1 text-[13px] text-st-muted break-words">
-          {{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}
-        </p>
-      </section>
+    <p v-if="workbench.data.value && !student" class="tp-card tp-state" style="margin: 0">该学员不在本课次名单中</p>
+    <template v-if="student && schedule">
+      <div class="tp-stack">
+        <p v-if="restoredFromAutosave" class="tp-stale-notice" style="margin: 0; cursor: default" role="status">已恢复你上次未保存的内容，记得保存或推送</p>
 
-      <section class="tp-card">
-        <p class="field-label">课堂评分</p>
-        <div class="flex gap-1" role="radiogroup" aria-label="课堂评分">
-          <button
-            v-for="n in 5"
-            :key="n"
-            type="button"
-            class="star-btn"
-            role="radio"
-            :aria-checked="rating === n"
-            :aria-label="`${n} 星`"
-            @click="rating = n"
-          >
-            <Star class="w-7 h-7" :class="n <= rating ? 'fill-amber-400 text-amber-400' : 'text-st-border-dark'" />
-          </button>
-        </div>
-      </section>
-
-      <section class="tp-card">
-        <label class="field-label" for="study-content">
-          课程学习内容与知识点<span v-if="studyContentRequired" class="text-st-danger"> *</span>
-          <span class="font-normal text-st-muted">（全班共享）</span>
-        </label>
-        <textarea
-          id="study-content"
-          v-model="studyContent"
-          class="tp-input"
-          rows="4"
-          maxlength="1000"
-          placeholder="这节课学了什么、重点知识点"
-        />
-
-        <label class="field-label !mt-3" for="comment">
-          {{ student.studentName }} 的专属评语<span class="text-st-danger"> *</span>
-        </label>
-        <textarea
-          id="comment"
-          v-model="comment"
-          class="tp-input"
-          rows="5"
-          maxlength="1000"
-          placeholder="写下孩子这节课的表现、进步与建议"
-        />
-        <p class="m-0 mt-1 text-right text-[12px] text-st-muted tabular-nums">{{ comment.length }}/1000</p>
-      </section>
-
-      <section class="tp-card">
-        <p class="field-label">照片与视频 <span class="font-normal text-st-muted">（照片最多 9 张，视频 1 个）</span></p>
-        <div class="grid grid-cols-3 gap-2">
-          <div v-for="(photo, idx) in photos" :key="photo" class="media-cell">
-            <img :src="photoThumbs.get(photo) || photo" alt="课堂照片" class="w-full h-full object-cover" loading="lazy" />
-            <button type="button" class="media-remove" :aria-label="`移除第 ${idx + 1} 张照片`" @click="photos.splice(idx, 1)">
-              <X class="w-4 h-4" />
-            </button>
+        <section class="tp-list">
+          <div class="tp-row">
+            <span class="tp-avatar" aria-hidden="true">{{ student.studentName.slice(0, 1) }}</span>
+            <span class="tp-row__body">
+              <p class="tp-row__title">{{ student.studentName }}</p>
+              <p class="tp-row__meta">{{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}</p>
+            </span>
+            <span v-if="isRevision" class="tp-tag tp-tag-warning">修改已推送</span>
+            <span v-else-if="!isAttended(attendanceStatus)" class="tp-tag tp-tag-muted">{{ attendanceLabel(attendanceStatus) }}</span>
           </div>
-          <div v-if="videoUrl" class="media-cell bg-black">
-            <video
-              :src="videoUrl"
-              :poster="videoPoster || undefined"
-              :preload="videoPoster ? 'none' : 'metadata'"
-              class="w-full h-full object-cover"
-              controls
-              playsinline
-            />
-            <button type="button" class="media-remove" aria-label="移除视频" @click="removeVideo">
-              <X class="w-4 h-4" />
-            </button>
+          <div class="tp-row rating-row">
+            <span class="tp-label" style="margin: 0">课堂评分</span>
+            <div class="rating" role="radiogroup" aria-label="课堂评分">
+              <button
+                v-for="n in 5"
+                :key="n"
+                type="button"
+                class="star-btn"
+                role="radio"
+                :aria-checked="rating === n"
+                :aria-label="`${n} 星`"
+                @click="rating = n"
+              >
+                <Star :size="24" :class="n <= rating ? 'star-on' : 'star-off'" aria-hidden="true" />
+              </button>
+            </div>
           </div>
-          <label v-if="photos.length < 9" class="media-add" :class="{ 'opacity-50 pointer-events-none': uploading }">
-            <ImagePlus class="w-6 h-6" />
-            <span class="tabular-nums">{{ uploading === 'photo' ? `上传 ${photoProgress}` : '加照片' }}</span>
-            <input type="file" accept="image/*" multiple class="sr-only" :disabled="!!uploading" @change="onPickPhotos" />
-          </label>
-          <button v-if="uploading === 'video'" type="button" class="media-add bg-transparent font-[inherit]" @click="cancelVideoUpload">
-            <span class="text-[18px] font-semibold text-st-title tabular-nums">{{ videoProgress }}%</span>
-            <span>{{ videoStage === 'compress' ? '压缩中' : '上传中' }}，点此取消</span>
-          </button>
-          <label v-else-if="!videoUrl" class="media-add" :class="{ 'opacity-50 pointer-events-none': uploading }">
-            <Video class="w-6 h-6" />
-            <span>加视频</span>
-            <input type="file" accept="video/*" class="sr-only" :disabled="!!uploading" @change="onPickVideo" />
-          </label>
-        </div>
-      </section>
+        </section>
 
-      <div class="tp-action-bar !mt-0">
-        <button type="button" class="tp-btn tp-btn-secondary" :disabled="submitting || !!uploading" @click="saveDraft">保存草稿</button>
-        <button type="button" class="tp-btn tp-btn-primary flex-1" :disabled="submitting || !!uploading" @click="submit">
+        <section class="tp-card">
+          <div class="tp-field">
+            <label class="tp-label" for="comment">专属评语 <span class="tp-required">*</span></label>
+            <textarea id="comment" v-model="comment" class="tp-input tp-input--lg" rows="5" maxlength="1000" placeholder="写下孩子这节课的表现、进步与建议" />
+            <span class="tp-help tp-num" style="text-align: right">{{ comment.length }}/1000</span>
+          </div>
+          <div class="tp-field">
+            <label class="tp-label" for="study-content">
+              学习内容与知识点 <span v-if="studyContentRequired" class="tp-required">*</span> <small>全班共享</small>
+            </label>
+            <textarea id="study-content" v-model="studyContent" class="tp-input" rows="3" maxlength="1000" placeholder="这节课学了什么、重点知识点" />
+          </div>
+        </section>
+
+        <section class="tp-card">
+          <p class="tp-label">照片与视频 <small>照片最多 9 张，视频 1 个，上传前自动压缩</small></p>
+          <div class="media-grid">
+            <div v-for="(photo, idx) in photos" :key="photo" class="media-cell">
+              <img :src="photoThumbs.get(photo) || photo" alt="课堂照片" loading="lazy" />
+              <button type="button" class="media-remove" :aria-label="`移除第 ${idx + 1} 张照片`" @click="photos.splice(idx, 1)">
+                <X :size="16" aria-hidden="true" />
+              </button>
+            </div>
+            <div v-if="videoUrl" class="media-cell media-cell--video">
+              <video :src="videoUrl" :poster="videoPoster || undefined" :preload="videoPoster ? 'none' : 'metadata'" controls playsinline />
+              <button type="button" class="media-remove" aria-label="移除视频" @click="removeVideo">
+                <X :size="16" aria-hidden="true" />
+              </button>
+            </div>
+            <label v-if="photos.length < 9" class="media-add" :class="{ 'is-disabled': uploading }">
+              <ImagePlus :size="22" aria-hidden="true" />
+              <span class="tp-num">{{ uploading === 'photo' ? `上传 ${photoProgress}` : '加照片' }}</span>
+              <input type="file" accept="image/*" multiple class="sr-only" :disabled="!!uploading" @change="onPickPhotos" />
+            </label>
+            <button v-if="uploading === 'video'" type="button" class="media-add" @click="cancelVideoUpload">
+              <span class="media-add__progress tp-num">{{ videoProgress }}%</span>
+              <span>{{ videoStage === 'compress' ? '压缩中' : '上传中' }}，点此取消</span>
+            </button>
+            <label v-else-if="!videoUrl" class="media-add" :class="{ 'is-disabled': uploading }">
+              <Video :size="22" aria-hidden="true" />
+              <span>加视频</span>
+              <input type="file" accept="video/*" class="sr-only" :disabled="!!uploading" @change="onPickVideo" />
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <div class="tp-action-bar">
+        <button type="button" class="tp-btn tp-btn-secondary" :disabled="submitting || !!uploading" @click="saveDraft">存草稿</button>
+        <button type="button" class="tp-btn tp-btn-primary" style="flex: 1" :disabled="submitting || !!uploading" @click="submit">
           {{ submitting ? '提交中…' : isRevision ? '保存并更新' : '推送给家长' }}
         </button>
       </div>
-    </div>
+    </template>
   </LoadState>
 </template>
 
@@ -429,16 +411,19 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.field-label {
-  display: block;
-  margin: 0 0 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--st-color-title);
+.rating-row {
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding-top: var(--tp-space-1);
+  padding-bottom: var(--tp-space-1);
+}
+.rating {
+  display: flex;
+  margin-right: calc(-1 * var(--tp-space-2));
 }
 .star-btn {
-  width: 44px;
-  height: 44px;
+  width: var(--tp-control);
+  height: var(--tp-control);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -447,27 +432,60 @@ onBeforeUnmount(() => {
   background: transparent;
   cursor: pointer;
 }
+.star-on {
+  color: #d97706;
+  fill: #f59e0b;
+}
+.star-off {
+  color: var(--tp-line-strong);
+}
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--tp-space-2);
+}
+@media (min-width: 768px) {
+  .media-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
 .media-cell {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 8px;
+  border-radius: var(--tp-radius-sm);
   overflow: hidden;
-  background: #f1f5f9;
+  background: var(--tp-surface-sunken);
+}
+.media-cell--video {
+  background: #000;
+}
+.media-cell img,
+.media-cell video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .media-remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 28px;
-  height: 28px;
+  top: 0;
+  right: 0;
+  width: var(--tp-control);
+  height: var(--tp-control);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: var(--tp-space-1);
   border: 0;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.65);
+  background: transparent;
   color: #fff;
   cursor: pointer;
+}
+.media-remove svg {
+  box-sizing: content-box;
+  padding: 3px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.7);
 }
 .media-add {
   aspect-ratio: 1;
@@ -475,11 +493,35 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  border: 1px dashed var(--st-color-border-dark);
-  border-radius: 8px;
-  color: var(--st-color-secondary);
-  font-size: 13px;
+  gap: var(--tp-space-1);
+  padding: var(--tp-space-1);
+  border: 1px dashed var(--tp-line-strong);
+  border-radius: var(--tp-radius-sm);
+  background: transparent;
+  color: var(--tp-text-2);
+  font-size: var(--tp-fs-small);
+  font-family: inherit;
+  text-align: center;
   cursor: pointer;
+  transition: background var(--tp-motion);
+}
+.media-add:hover {
+  background: var(--tp-surface-hover);
+}
+.media-add.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.media-add__progress {
+  font-size: var(--tp-fs-title);
+  font-weight: 600;
+  color: var(--tp-text-1);
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 </style>

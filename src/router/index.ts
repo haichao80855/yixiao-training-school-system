@@ -151,37 +151,37 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'TeacherHome',
         component: () => import('@/views/teacher/TeacherHome.vue'),
-        meta: { title: '教师端', teacherTab: 'home' }
+        meta: { title: '首页', teacherTab: 'home', teacherWide: true, teacherNoHeader: true }
       },
       {
         path: 'schedule',
         name: 'TeacherSchedule',
         component: () => import('@/views/teacher/TeacherSchedule.vue'),
-        meta: { title: '我的课表', teacherTab: 'schedule' }
+        meta: { title: '课表', teacherTab: 'schedule', teacherWide: true }
       },
       {
         path: 'evaluations',
         name: 'TeacherEvaluations',
         component: () => import('@/views/teacher/TeacherEvaluations.vue'),
-        meta: { title: '课评管理', teacherTab: 'evaluations' }
+        meta: { title: '课评', teacherTab: 'evaluations' }
       },
       {
         path: 'students',
         name: 'TeacherStudents',
         component: () => import('@/views/teacher/TeacherStudents.vue'),
-        meta: { title: '我的学员', teacherTab: 'students' }
+        meta: { title: '学员', teacherTab: 'students' }
       },
       {
         path: 'classes',
         name: 'TeacherClasses',
         component: () => import('@/views/teacher/TeacherClasses.vue'),
-        meta: { title: '我的班级', teacherTab: 'students' }
+        meta: { title: '学员', teacherTab: 'students' }
       },
       {
         path: 'warnings',
         name: 'TeacherWarnings',
         component: () => import('@/views/teacher/TeacherWarnings.vue'),
-        meta: { title: '学员预警', teacherTab: 'students' }
+        meta: { title: '学员', teacherTab: 'students' }
       },
       {
         path: 'me',
@@ -193,7 +193,7 @@ const routes: RouteRecordRaw[] = [
         path: 'lessons/:id',
         name: 'TeacherLesson',
         component: () => import('@/views/teacher/TeacherLesson.vue'),
-        meta: { title: '课次详情' }
+        meta: { title: '课次详情', teacherWide: true }
       },
       {
         path: 'lessons/:id/evaluate/:studentId',

@@ -1,78 +1,91 @@
 <template>
   <div
-    class="teacher-portal tp-shell flex flex-col bg-st-bg select-text"
-    :class="{ 'tp-keyboard-open': keyboardOpen }"
+    class="teacher-portal tp-shell"
+    :class="{ 'tp-keyboard-open': keyboardOpen, 'tp-shell--wide': route.meta.teacherWide }"
     :style="shellHeight ? { height: `${shellHeight}px` } : undefined"
   >
-    <header class="shrink-0 bg-white border-b border-st-border pt-[env(safe-area-inset-top)]">
-      <div class="tp-container flex items-center gap-1 h-[50px]">
-        <button v-if="!isTabPage" type="button" class="tp-back" aria-label="返回" @click="goBack">
-          <ChevronLeft class="w-6 h-6" />
-        </button>
-        <h1 class="m-0 text-[17px] font-semibold text-st-title truncate">{{ route.meta.title }}</h1>
-        <nav class="hidden md:flex items-center gap-1 ml-auto" aria-label="教师端导航">
-          <RouterLink
-            v-for="tab in tabs"
-            :key="tab.key"
-            :to="tab.to"
-            class="px-3 h-[40px] inline-flex items-center gap-1.5 rounded-lg text-[14px] no-underline"
-            :class="currentTab === tab.key ? 'bg-st-primary-light text-st-primary font-medium' : 'text-st-secondary hover:bg-st-header'"
-            @click="onTabClick(tab.to)"
-          >
-            <component :is="tab.icon" class="w-4 h-4" />{{ tab.label }}
-          </RouterLink>
-        </nav>
+    <aside class="tp-sidebar">
+      <div class="tp-sidebar__brand">
+        <span class="tp-brand-mark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2 2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+        </span>
+        <span class="tp-sidebar__brand-name">一校教师端</span>
       </div>
-    </header>
-
-    <p v-if="offline" class="tp-offline" role="status">
-      <WifiOff class="w-4 h-4 shrink-0" />网络已断开，修改暂时无法保存到服务器
-    </p>
-
-    <div class="relative flex-1 min-h-0">
-      <div
-        v-if="pullDistance > 0"
-        class="tp-pull-indicator"
-        :style="{ height: `${pullDistance}px` }"
-        role="status"
-      >
-        <Loader2 v-if="pullRefreshing" class="w-4 h-4 animate-spin" />
-        <ArrowDown v-else class="w-4 h-4 transition-transform" :class="{ 'rotate-180': pullDistance >= pullTrigger }" />
-        {{ pullRefreshing ? '刷新中…' : pullDistance >= pullTrigger ? '松开刷新' : '下拉刷新' }}
-      </div>
-      <main ref="mainEl" class="h-full overflow-y-auto overscroll-contain">
-        <div
-          ref="pageEl"
-          class="tp-container tp-page py-3"
-          :style="pullDistance > 0 ? { transform: `translateY(${pullDistance}px)` } : undefined"
+      <nav class="tp-sidebar__nav" aria-label="教师端导航">
+        <RouterLink
+          v-for="tab in tabs"
+          :key="tab.key"
+          :to="tab.to"
+          class="tp-nav-item"
+          :class="{ 'is-active': activeSection === tab.key }"
+          :aria-current="activeSection === tab.key ? 'page' : undefined"
+          @click="onTabClick(tab.to)"
         >
-          <RouterView v-slot="{ Component, route: viewRoute }">
-            <!-- 列表页缓存：从详情返回时保留日期、筛选、搜索和已加载的数据 -->
-            <KeepAlive :include="CACHED_PAGES" :max="10">
-              <component :is="Component" :key="viewRoute.fullPath" />
-            </KeepAlive>
-          </RouterView>
-        </div>
-      </main>
-    </div>
+          <component :is="tab.icon" aria-hidden="true" />
+          {{ tab.label }}
+        </RouterLink>
+      </nav>
+      <div class="tp-sidebar__user">
+        <p class="tp-sidebar__user-name">{{ authStore.user?.realName }}</p>
+        <p class="tp-sidebar__user-meta">{{ authStore.user?.campusName }}</p>
+      </div>
+    </aside>
 
-    <nav
-      v-if="isTabPage && !keyboardOpen"
-      class="tp-tabbar md:hidden shrink-0 bg-white border-t border-st-border flex"
-      aria-label="教师端导航"
-    >
-      <RouterLink
-        v-for="tab in tabs"
-        :key="tab.key"
-        :to="tab.to"
-        class="tp-tabbar-item flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] no-underline"
-        :class="currentTab === tab.key ? 'text-st-primary font-medium' : 'text-st-muted'"
-        @click="onTabClick(tab.to)"
-      >
-        <component :is="tab.icon" class="w-[22px] h-[22px]" />
-        <span class="tp-tabbar-label">{{ tab.label }}</span>
-      </RouterLink>
-    </nav>
+    <div class="tp-workspace">
+      <!-- 首页的问候语已经说明了页面，不再重复「首页」标题 -->
+      <div v-if="route.meta.teacherNoHeader" class="tp-header-spacer" />
+      <header v-else class="tp-header">
+        <div class="tp-container tp-header__inner">
+          <button v-if="!isTabPage" type="button" class="tp-back" aria-label="返回" @click="goBack">
+            <ChevronLeft :size="24" />
+          </button>
+          <h1 class="tp-header__title">{{ route.meta.title }}</h1>
+        </div>
+      </header>
+
+      <p v-if="offline" class="tp-offline" role="status">
+        <WifiOff aria-hidden="true" />网络已断开，修改暂时无法保存到服务器
+      </p>
+
+      <div class="tp-scroll-area">
+        <div v-if="pullDistance > 0" class="tp-pull-indicator" :style="{ height: `${pullDistance}px` }" role="status">
+          <Loader2 v-if="pullRefreshing" class="tp-spin" aria-hidden="true" />
+          <ArrowDown v-else :style="{ transform: pullDistance >= pullTrigger ? 'rotate(180deg)' : undefined }" aria-hidden="true" />
+          {{ pullRefreshing ? '刷新中…' : pullDistance >= pullTrigger ? '松开刷新' : '下拉刷新' }}
+        </div>
+        <main ref="mainEl" class="tp-main">
+          <div
+            ref="pageEl"
+            class="tp-container tp-page"
+            :style="pullDistance > 0 ? { transform: `translateY(${pullDistance}px)` } : undefined"
+          >
+            <RouterView v-slot="{ Component, route: viewRoute }">
+              <!-- 列表页缓存：从详情返回时保留日期、筛选、搜索和已加载的数据 -->
+              <KeepAlive :include="CACHED_PAGES" :max="10">
+                <component :is="Component" :key="viewRoute.fullPath" />
+              </KeepAlive>
+            </RouterView>
+          </div>
+        </main>
+      </div>
+
+      <nav v-if="isTabPage && !keyboardOpen" class="tp-tabbar" aria-label="教师端导航">
+        <RouterLink
+          v-for="tab in tabs"
+          :key="tab.key"
+          :to="tab.to"
+          class="tp-tabbar__item"
+          :class="{ 'is-active': currentTab === tab.key }"
+          :aria-current="currentTab === tab.key ? 'page' : undefined"
+          @click="onTabClick(tab.to)"
+        >
+          <component :is="tab.icon" aria-hidden="true" />
+          <span class="tp-tabbar__label">{{ tab.label }}</span>
+        </RouterLink>
+      </nav>
+    </div>
   </div>
 </template>
 
@@ -80,6 +93,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, shallowRef } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowDown, CalendarDays, ChevronLeft, House, Loader2, MessageSquareText, UserRound, Users, WifiOff } from 'lucide-vue-next'
+import { useAuthStore } from '@/stores/authStore'
 import { PAGE_REFRESH_KEY, type PageRefreshFn } from '@/views/teacher/utils/pageRefresh'
 import { useKeyboardViewport } from '@/views/teacher/utils/useKeyboardViewport'
 import { usePullToRefresh } from '@/views/teacher/utils/usePullToRefresh'
@@ -101,6 +115,7 @@ const SCROLL_RESTORE_TIMEOUT_MS = 2000
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 const mainEl = ref<HTMLElement | null>(null)
 const pageEl = ref<HTMLElement | null>(null)
 const offline = ref(typeof navigator !== 'undefined' && navigator.onLine === false)
@@ -115,6 +130,13 @@ const tabs = [
 
 const currentTab = computed(() => route.meta.teacherTab as string | undefined)
 const isTabPage = computed(() => !!currentTab.value)
+/** 详情页没有自己的标签，侧边栏高亮它所属的模块 */
+const activeSection = computed(() => {
+  if (currentTab.value) return currentTab.value
+  if (route.path.startsWith('/teacher/lessons')) return 'schedule'
+  if (route.path.startsWith('/teacher/classes') || route.path.startsWith('/teacher/students')) return 'students'
+  return 'home'
+})
 
 const { keyboardOpen, shellHeight } = useKeyboardViewport()
 

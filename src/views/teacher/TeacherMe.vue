@@ -1,59 +1,57 @@
 <template>
-  <div class="grid gap-3">
-    <section class="tp-card flex items-center gap-3">
-      <span class="w-12 h-12 rounded-full bg-st-primary-light text-st-primary flex items-center justify-center shrink-0">
-        <UserRound class="w-6 h-6" />
-      </span>
-      <div class="min-w-0">
-        <p class="m-0 text-[16px] font-semibold text-st-title break-words">{{ authStore.user?.realName }}</p>
-        <p class="m-0 mt-0.5 text-[13px] text-st-muted break-words">{{ authStore.user?.roleName }} · {{ authStore.user?.account }}</p>
+  <div class="tp-stack tp-stack--loose">
+    <section class="tp-card profile">
+      <span class="tp-avatar profile__avatar" aria-hidden="true">{{ authStore.user?.realName?.slice(0, 1) }}</span>
+      <div style="min-width: 0">
+        <h2 class="profile__name">{{ authStore.user?.realName }}</h2>
+        <p class="tp-text-meta" style="margin: 2px 0 0">{{ authStore.user?.roleName }} · {{ authStore.user?.account }}</p>
       </div>
     </section>
 
-    <section class="tp-card !p-0 overflow-hidden">
-      <label v-if="tenantStore.canSwitchCampus" class="menu-row">
-        <Building2 class="w-5 h-5 text-st-muted shrink-0" />
-        <span class="flex-1">当前校区</span>
+    <section class="tp-list">
+      <label v-if="tenantStore.canSwitchCampus" class="tp-row">
+        <Building2 class="menu-icon" aria-hidden="true" />
+        <span class="tp-row__body">当前校区</span>
         <select class="campus-select" :value="tenantStore.currentCampusId" aria-label="切换校区" @change="onCampusChange">
           <option v-for="c in tenantStore.campuses" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </label>
-      <div v-else class="menu-row">
-        <Building2 class="w-5 h-5 text-st-muted shrink-0" />
-        <span class="flex-1">当前校区</span>
-        <span class="text-[14px] text-st-muted break-words text-right">{{ authStore.user?.campusName }}</span>
+      <div v-else class="tp-row">
+        <Building2 class="menu-icon" aria-hidden="true" />
+        <span class="tp-row__body">当前校区</span>
+        <span class="tp-text-meta" style="text-align: right">{{ authStore.user?.campusName }}</span>
       </div>
-      <button type="button" class="menu-row" @click="passwordVisible = true">
-        <KeyRound class="w-5 h-5 text-st-muted shrink-0" />
-        <span class="flex-1 text-left">修改密码</span>
-        <ChevronRight class="w-4 h-4 text-st-placeholder" />
+      <button type="button" class="tp-row menu-button" @click="passwordVisible = true">
+        <KeyRound class="menu-icon" aria-hidden="true" />
+        <span class="tp-row__body">修改密码</span>
+        <ChevronRight class="tp-row__chevron" aria-hidden="true" />
       </button>
-      <RouterLink to="/educational/workbench" class="menu-row no-underline">
-        <Monitor class="w-5 h-5 text-st-muted shrink-0" />
-        <span class="flex-1 text-left">进入电脑版后台</span>
-        <ChevronRight class="w-4 h-4 text-st-placeholder" />
+      <RouterLink to="/educational/workbench" class="tp-row">
+        <Monitor class="menu-icon" aria-hidden="true" />
+        <span class="tp-row__body">进入电脑版后台</span>
+        <ChevronRight class="tp-row__chevron" aria-hidden="true" />
       </RouterLink>
     </section>
 
-    <button type="button" class="tp-btn tp-btn-secondary w-full !text-st-danger-deep" @click="handleLogout">退出登录</button>
+    <button type="button" class="tp-btn tp-btn-danger tp-btn-block" @click="handleLogout">退出登录</button>
 
     <el-dialog v-model="passwordVisible" title="修改密码" width="min(92vw, 420px)" top="6vh" append-to-body @closed="resetPasswordForm">
-      <form class="grid gap-3" @submit.prevent="submitPassword">
-        <label class="grid gap-1 text-[14px] text-st-title">
-          原密码
+      <form @submit.prevent="submitPassword">
+        <label class="tp-field">
+          <span class="tp-label">原密码</span>
           <input v-model="passwordForm.oldPassword" class="tp-input" type="password" autocomplete="current-password" />
         </label>
-        <label class="grid gap-1 text-[14px] text-st-title">
-          新密码
+        <label class="tp-field">
+          <span class="tp-label">新密码</span>
           <input v-model="passwordForm.newPassword" class="tp-input" type="password" autocomplete="new-password" />
-          <span class="text-[12px] text-st-muted">8-20 位，包含大小写字母和数字</span>
+          <span class="tp-help">8-20 位，包含大小写字母和数字</span>
         </label>
-        <label class="grid gap-1 text-[14px] text-st-title">
-          确认新密码
+        <label class="tp-field">
+          <span class="tp-label">确认新密码</span>
           <input v-model="passwordForm.confirmPassword" class="tp-input" type="password" autocomplete="new-password" />
         </label>
-        <p v-if="passwordError" class="m-0 text-[13px] text-st-danger" role="alert">{{ passwordError }}</p>
-        <button type="submit" class="tp-btn tp-btn-primary w-full" :disabled="passwordSubmitting">
+        <p v-if="passwordError" class="tp-text-small" style="margin: 12px 0 0; color: var(--tp-danger)" role="alert">{{ passwordError }}</p>
+        <button type="submit" class="tp-btn tp-btn-primary tp-btn-block" style="margin-top: 16px" :disabled="passwordSubmitting">
           {{ passwordSubmitting ? '提交中…' : '确认修改' }}
         </button>
       </form>
@@ -136,30 +134,46 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.menu-row {
+.profile {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  padding: 8px 14px;
-  border: 0;
-  border-bottom: 1px solid var(--st-color-border);
-  background: transparent;
-  color: var(--st-color-title);
-  font-size: 15px;
-  font-family: inherit;
-  cursor: pointer;
-  box-sizing: border-box;
+  gap: var(--tp-space-3);
 }
-.menu-row:last-child {
-  border-bottom: 0;
+.profile__avatar {
+  width: 48px;
+  height: 48px;
+  font-size: var(--tp-fs-title);
+}
+.profile__name {
+  margin: 0;
+  font-size: var(--tp-fs-title);
+  font-weight: 600;
+  line-height: var(--tp-lh-tight);
+  overflow-wrap: anywhere;
+}
+.menu-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--tp-text-3);
+}
+.menu-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--tp-motion);
+}
+.menu-button:hover {
+  background: var(--tp-surface-hover);
 }
 .campus-select {
   max-width: 55%;
   border: 0;
   background: transparent;
-  color: var(--st-color-muted);
+  color: var(--tp-text-2);
   font-size: 16px;
   font-family: inherit;
   text-align: right;

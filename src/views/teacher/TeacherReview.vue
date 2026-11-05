@@ -1,34 +1,37 @@
 <template>
   <LoadState :loading="workbench.loading.value" :error="workbench.error.value" :has-data="!!workbench.data.value" @retry="workbench.load">
-    <p v-if="workbench.data.value && !student" class="tp-card text-center text-st-muted m-0">该学员不在本课次名单中</p>
-    <div v-if="student && schedule" class="grid gap-3">
-      <section class="tp-card">
-        <div class="flex items-center justify-between gap-2">
-          <p class="m-0 text-[16px] font-medium text-st-title break-words">{{ student.studentName }}</p>
+    <p v-if="workbench.data.value && !student" class="tp-card tp-state" style="margin: 0">该学员不在本课次名单中</p>
+    <div v-if="student && schedule" class="tp-stack">
+      <section class="tp-list">
+        <div class="tp-row">
+          <span class="tp-avatar" aria-hidden="true">{{ student.studentName.slice(0, 1) }}</span>
+          <span class="tp-row__body">
+            <p class="tp-row__title">{{ student.studentName }}</p>
+            <p class="tp-row__meta">{{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}</p>
+          </span>
           <span class="tp-tag" :class="isPublished ? 'tp-tag-success' : 'tp-tag-muted'">{{ isPublished ? '家长可见' : '未推送' }}</span>
         </div>
-        <p class="m-0 mt-1 text-[13px] text-st-muted break-words">
-          {{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}
-        </p>
-        <div class="flex items-center gap-1 mt-2" :aria-label="`课堂评分 ${rating} 星`">
-          <Star v-for="n in 5" :key="n" class="w-4 h-4" :class="n <= rating ? 'fill-amber-400 text-amber-400' : 'text-st-border-dark'" />
-          <span class="ml-2 text-[13px] text-st-muted">{{ attendanceLabel(student.recordedStatus || student.defaultStatus) }}</span>
+        <div class="tp-row">
+          <span class="tp-row__body tp-text-meta">{{ attendanceLabel(student.recordedStatus || student.defaultStatus) }}</span>
+          <span class="review-stars" role="img" :aria-label="`课堂评分 ${rating} 星`">
+            <Star v-for="n in 5" :key="n" :size="16" :class="n <= rating ? 'star-on' : 'star-off'" aria-hidden="true" />
+          </span>
         </div>
       </section>
 
       <section class="tp-card">
-        <h2 class="m-0 mb-1.5 text-[14px] font-semibold text-st-title">专属评语</h2>
-        <p class="m-0 text-[15px] text-st-regular whitespace-pre-wrap break-words">{{ student.currentComment || '未填写' }}</p>
+        <h2 class="tp-label">专属评语</h2>
+        <p class="review-text">{{ student.currentComment || '未填写' }}</p>
       </section>
 
       <section v-if="studyContent" class="tp-card">
-        <h2 class="m-0 mb-1.5 text-[14px] font-semibold text-st-title">学习内容与知识点</h2>
-        <p class="m-0 text-[14px] text-st-secondary whitespace-pre-wrap break-words">{{ studyContent }}</p>
+        <h2 class="tp-label">学习内容与知识点</h2>
+        <p class="review-text tp-text-small">{{ studyContent }}</p>
       </section>
 
       <section v-if="(student.photos?.length || 0) > 0 || student.videoUrl" class="tp-card">
-        <h2 class="m-0 mb-2 text-[14px] font-semibold text-st-title">照片与视频</h2>
-        <div v-if="student.photos?.length" class="grid grid-cols-3 gap-2">
+        <h2 class="tp-label">照片与视频</h2>
+        <div v-if="student.photos?.length" class="review-grid">
           <el-image
             v-for="(photo, idx) in student.photos"
             :key="photo"
@@ -37,7 +40,7 @@
             :initial-index="idx"
             preview-teleported
             fit="cover"
-            class="aspect-square w-full rounded-lg"
+            class="review-photo"
             alt="课堂照片"
           />
         </div>
@@ -46,13 +49,13 @@
           :src="student.videoUrl"
           :poster="student.videoPoster || undefined"
           :preload="student.videoPoster ? 'none' : 'metadata'"
-          class="w-full mt-2 rounded-lg bg-black"
+          class="review-video"
           controls
           playsinline
         />
       </section>
 
-      <RouterLink :to="`/teacher/lessons/${lessonId}/evaluate/${studentId}`" class="tp-btn tp-btn-primary w-full">修改课评</RouterLink>
+      <RouterLink :to="`/teacher/lessons/${lessonId}/evaluate/${studentId}`" class="tp-btn tp-btn-secondary tp-btn-block">修改课评</RouterLink>
     </div>
   </LoadState>
 </template>
@@ -84,3 +87,40 @@ const studyContent = computed(() => {
 usePageRefresh(workbench.load)
 onMounted(workbench.load)
 </script>
+
+<style scoped>
+.review-stars {
+  display: inline-flex;
+  gap: 2px;
+}
+.star-on {
+  color: #d97706;
+  fill: #f59e0b;
+}
+.star-off {
+  color: var(--tp-line-strong);
+}
+.review-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.review-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--tp-space-2);
+}
+.review-photo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--tp-radius-sm);
+}
+.review-video {
+  display: block;
+  width: 100%;
+  margin-top: var(--tp-space-2);
+  border-radius: var(--tp-radius-sm);
+  background: #000;
+}
+</style>
