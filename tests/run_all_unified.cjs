@@ -94,6 +94,7 @@ async function main() {
     execSync('node test-org-admin-persistence.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-admin-reset-pwd-flow.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-teacher-portal.js', { stdio: 'inherit', cwd: serverDir });
+    execSync('node test-stats-health-access.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-lesson-settlement-engine.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-student-enrollment-coordinator.js', { stdio: 'inherit', cwd: serverDir });
     execSync('node test-course-delivery-engine.js', { stdio: 'inherit', cwd: serverDir });

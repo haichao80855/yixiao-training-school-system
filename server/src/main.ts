@@ -24,7 +24,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
   console.log(`\n🚀 拓视未来教育「一校教培系统」NestJS 后端微服务已成功启动: http://localhost:${port}`);
-  console.log(`📊 运行环境状态监控: http://localhost:${port}/api/stats/overview`);
+  console.log(`📊 运行环境存活探针: http://localhost:${port}/api/health`);
   console.log(`🗄️  媒体存储引擎: ${process.env.STORAGE_ENGINE || 'local'}\n`);
 }
 bootstrap();

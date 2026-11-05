@@ -213,11 +213,12 @@
 | `POST` | `/api/upload/photos` | 公开 (`@Public`) | 必须在 Header 或 Body 传 | `multipart/form-data`: `files` (1~9 张, 单张<=10MB), `scheduleEventId`, `campusId` | `{ successCount, persistedUrls: string[], items: [...] }` |
 | `POST` | `/api/upload/video` | 公开 (`@Public`) | 必须在 Header 或 Body 传 | `multipart/form-data`: `file` (1 个视频, <=100MB), `scheduleEventId`, `campusId` | `{ videoUrl: string, filename, sizeBytes, sha256 }` |
 
-#### 8. 系统状态监控域 (`AppController` — `/` & `/api/stats/overview`)
+#### 8. 系统状态监控域 (`AppController` — `/`, `/api/health` & `/api/stats/overview`)
 | 方法 | 路径 | 鉴权要求 | 主要用途 | 出参结构 |
 | :--- | :--- | :--- | :--- | :--- |
 | `GET` | `/` | 公开 (`@Public`) | 探活健康检查 | `{ status: 'ok', system: '拓视未来教育...', version: '1.0.0' }` |
-| `GET` | `/api/stats/overview` | 公开 (`@Public`) | 移动端首页数据大盘底层基准指标 | `{ code: 200, data: { campusCount, studentCount, courseCount, classCount, scheduleCount, orderCount } }` |
+| `GET` | `/api/health` | 公开 (`@Public`) | 部署冒烟与容器存活探针，不含业务数据 | `{ code: 200, data: { status: 'ok' } }`；数据库不可用时 503 |
+| `GET` | `/api/stats/overview` | Bearer Token (家长令牌 403) | 经营数据基准指标 | `{ code: 200, data: { campusCount, studentCount, courseCount, classCount, scheduleCount, orderCount } }` |
 
 ---
 
