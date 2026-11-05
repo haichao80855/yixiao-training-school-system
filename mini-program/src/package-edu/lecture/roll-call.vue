@@ -11,6 +11,9 @@
       </view>
     </view>
 
+    <LoadErrorState v-if="loadError" :kind="loadError" subject="该课次" @retry="loadRollCallData(activeScheduleId)" />
+
+    <template v-else>
     <!-- 1. 课次基础信息卡片 (对齐截图 016 头部) -->
     <view class="schedule-summary-card">
       <view class="tags-time-row">
@@ -109,6 +112,7 @@
       :class-name="schedule.className"
       @close="growthDrawerVisible = false"
     />
+    </template>
   </view>
 </template>
 
@@ -118,6 +122,8 @@ import { onShow } from '@dcloudio/uni-app';
 import { eduApi, ScheduleEventModel, StudentRollCallModel } from '../../api/edu';
 import { fulfillmentCoordinator, type FulfillmentSession } from '../../coordinators/fulfillment';
 import AppIcon from '../../components/AppIcon.vue';
+import LoadErrorState from '../../components/LoadErrorState.vue';
+import { classifyLoadError, type LoadErrorKind } from '../../utils/loadError';
 import LessonGrowthReviewDrawer from '../../components/LessonGrowthReviewDrawer.vue';
 
 const statusBarHeight = ref(20);
@@ -130,27 +136,28 @@ const activeGrowthStudentName = ref('');
 
 // 课次信息 (对齐截图 016)
 const schedule = ref<ScheduleEventModel>({
-  id: 'sch-qmyy-12',
-  campusId: 'campus-bj-hq',
-  classId: 'cls-qmyy-002',
-  className: '周二18.30周六10.00班-12',
-  courseId: 'crs-qmyy',
-  courseName: '启蒙英语',
-  teacherId: 'teacher-feng',
-  teacherName: '冯老师',
-  advisorName: '冯老师',
-  classroomId: 'cr-002',
-  classroomName: '启蒙英语-002班',
-  date: '2026-10-13',
-  startTime: '18:30:00',
-  endTime: '20:30:00',
-  timeRange: '2026-10-13 18:30:00-20:30:00',
-  semanticType: 'completed',
+  id: '',
+  campusId: '',
+  classId: '',
+  className: '--',
+  courseId: '',
+  courseName: '--',
+  teacherId: '',
+  teacherName: '--',
+  advisorName: '--',
+  classroomId: '',
+  classroomName: '--',
+  date: '',
+  startTime: '',
+  endTime: '',
+  timeRange: '--',
+  semanticType: 'regular',
   classType: '线下课',
-  status: 'completed',
+  status: 'scheduled',
   expectedCount: 0,
   actualCount: 0,
 });
+const loadError = ref<LoadErrorKind | null>(null);
 
 // 参课学员名单 (根据实际班级花名册水化)
 const students = ref<StudentRollCallModel[]>([]);
@@ -200,20 +207,10 @@ const loadRollCallData = async (scheduleId: string) => {
     } else {
       students.value = [];
     }
+    loadError.value = null;
   } catch (e) {
-    const wb = await eduApi.getFulfillmentWorkbench(scheduleId);
-    if (wb) {
-      schedule.value = wb.schedule;
-      if (wb.students) {
-        students.value = wb.students.map((s: any) => ({
-          ...s,
-          name: s.studentName || s.name,
-          evaluated: Boolean(s.isEvaluated || s.evaluated),
-        }));
-      } else {
-        students.value = [];
-      }
-    }
+    console.warn('[roll-call] 加载课次失败:', e);
+    loadError.value = classifyLoadError(e);
   }
 };
 

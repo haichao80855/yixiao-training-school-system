@@ -58,6 +58,18 @@ export interface ApprovalTimelineView {
   flowId: string;
   orderId: string;
   orderNo?: string;
+  order?: {
+    id: string;
+    orderNo: string;
+    orderType: string;
+    actualAmount: number;
+    createdAt: Date;
+    remark: string | null;
+    campusId: string;
+    campus: { id: string; name: string };
+    student: { id: string; name: string };
+    package: { course: { name: string } } | null;
+  } | null;
   businessType: string;
   status: 'pending' | 'approved' | 'rejected';
   currentStep: number;

@@ -23,17 +23,17 @@
       </view>
       <view class="board-metrics-row">
         <view class="metric-block">
-          <text class="metric-num-highlight">¥{{ summary.todayPaidAmount.toFixed(2) }}</text>
+          <text class="metric-num-highlight">{{ summary ? '¥' + summary.todayPaidAmount.toFixed(2) : '--' }}</text>
           <text class="metric-desc">今日实收</text>
         </view>
         <view class="metric-vertical-line"></view>
         <view class="metric-block">
-          <text class="metric-num">{{ summary.monthOrderCount }}</text>
+          <text class="metric-num">{{ summary ? summary.monthOrderCount : '--' }}</text>
           <text class="metric-desc">本月订单(笔)</text>
         </view>
         <view class="metric-vertical-line"></view>
         <view class="metric-block">
-          <text class="metric-num text-orange">{{ summary.pendingOrderCount }}</text>
+          <text class="metric-num text-orange">{{ summary ? summary.pendingOrderCount : '--' }}</text>
           <text class="metric-desc">待支付</text>
         </view>
       </view>
@@ -84,7 +84,9 @@
 
     <!-- 4. 订单卡片列表 -->
     <scroll-view class="orders-scroll-list" scroll-y>
-      <view v-if="orderList.length > 0" class="cards-flow">
+      <LoadErrorState v-if="loadError" :kind="loadError" subject="订单" @retry="reloadAll" />
+
+      <view v-else-if="orderList.length > 0" class="cards-flow">
         <view
           class="order-record-card"
           v-for="item in orderList"
@@ -163,6 +165,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { financeApi, OrderItemModel, OrderSummaryModel } from '../../api/finance';
 import AppIcon from '../../components/AppIcon.vue';
+import LoadErrorState from '../../components/LoadErrorState.vue';
+import { classifyLoadError, type LoadErrorKind } from '../../utils/loadError';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -181,23 +185,21 @@ const typeFilters = [
   { key: 'refund', label: '退费单' },
 ];
 
-const summary = ref<OrderSummaryModel>({
-  todayPaidAmount: 4992,
-  monthOrderCount: 12,
-  pendingOrderCount: 1,
-  totalRefundAmount: 1200,
-});
+const summary = ref<OrderSummaryModel | null>(null);
 
 const orderList = ref<OrderItemModel[]>([]);
+const loadError = ref<LoadErrorKind | null>(null);
 
 const totalPaidInList = computed(() => {
   return orderList.value.reduce((acc, cur) => acc + (cur.status === 'paid' ? cur.paidAmount : 0), 0);
 });
 
-const handleCampusChanged = () => {
+const reloadAll = () => {
   fetchSummary();
   fetchOrders();
 };
+
+const handleCampusChanged = reloadAll;
 
 onMounted(() => {
   try {
@@ -213,8 +215,7 @@ onMounted(() => {
     console.warn('获取系统信息异常:', err);
   }
 
-  fetchSummary();
-  fetchOrders();
+  reloadAll();
 
   uni.$on('campus-changed', handleCampusChanged);
 });
@@ -228,7 +229,7 @@ const fetchSummary = async () => {
     summary.value = await financeApi.getOrderSummary({ campusId: campusStore.currentCampusId });
   } catch (e: any) {
     console.warn('[orders/index] 获取汇总失败:', e);
-    uni.showToast({ title: e?.message || '获取财务汇总失败', icon: 'none' });
+    summary.value = null;
   }
 };
 
@@ -241,9 +242,11 @@ const fetchOrders = async () => {
       campusId: campusStore.currentCampusId,
     });
     orderList.value = res.list;
+    loadError.value = null;
   } catch (e: any) {
     console.warn('[orders/index] 获取订单列表失败:', e);
-    uni.showToast({ title: e?.message || '获取订单列表失败', icon: 'none' });
+    orderList.value = [];
+    loadError.value = classifyLoadError(e);
   }
 };
 

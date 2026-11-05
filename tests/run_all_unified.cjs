@@ -125,6 +125,7 @@ async function main() {
     execSync('node tests/test_mp_phase3_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase4_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_phase5_contracts.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_mp_no_mock_fallback.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_parent_h5_build.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_login_error_toast.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_rollcall_evaluation_state.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });

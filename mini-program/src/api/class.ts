@@ -63,63 +63,6 @@ export interface ClassDetailModel {
   students: ClassStudentItemModel[];
 }
 
-const MOCK_CLASSES: ClassListItemModel[] = [
-  {
-    id: 'cls-01',
-    name: '少儿书法-001班',
-    status: 'active',
-    statusText: '已开班',
-    startDateText: '2026-09-01',
-    courseId: 'crs-sf',
-    courseName: '少儿书法',
-    classType: '常规班',
-    completedLessons: 0,
-    totalLessons: 0,
-    currentStudentCount: 1,
-    capacity: 50,
-    teacherId: 't-01',
-    teacherName: '冯老师',
-    advisorName: '冯老师',
-    schedulePatternText: '--',
-  },
-  {
-    id: 'cls-02',
-    name: '启蒙英语-002班',
-    status: 'active',
-    statusText: '已开班',
-    startDateText: '2026-09-01',
-    courseId: 'crs-qm',
-    courseName: '启蒙英语',
-    classType: '常规班',
-    completedLessons: 0,
-    totalLessons: 100,
-    currentStudentCount: 10,
-    capacity: 10,
-    teacherId: 't-01',
-    teacherName: '冯老师',
-    advisorName: '冯老师',
-    schedulePatternText: '2026.10.17 周六 10:00 ~ 12:00',
-  },
-  {
-    id: 'cls-03',
-    name: '启蒙英语-001班',
-    status: 'active',
-    statusText: '已开班',
-    startDateText: '2026-09-01',
-    courseId: 'crs-qm',
-    courseName: '启蒙英语',
-    classType: '常规班',
-    completedLessons: 0,
-    totalLessons: 100,
-    currentStudentCount: 5,
-    capacity: 20,
-    teacherId: 't-01',
-    teacherName: '冯老师',
-    advisorName: '冯老师',
-    schedulePatternText: '2026.10.18 周日 10:00 ~ 12:00',
-  },
-];
-
 export const classApi = {
   // 1. 获取班级列表 (019 & 051)
   async getClasses(params?: {
@@ -266,36 +209,10 @@ export const classApi = {
       }
     } catch (e) {
       console.warn('[classApi] 获取班级详情失败:', e);
+      throw e;
     }
 
-    return {
-      id: id || 'cls-01',
-      name: id === 'cls-01' ? '启蒙英语-001班' : '少儿书法-001班',
-      status: 'active',
-      statusText: '已开班',
-      startDateText: '2026-09-01',
-      courseName: id === 'cls-01' ? '启蒙英语' : '少儿书法',
-      classroomName: '启蒙一教室',
-      classType: '常规班',
-      capacity: 20,
-      currentStudentCount: 5,
-      teacherName: '冯老师',
-      advisorName: '冯老师',
-      schedulePatternText: '2026.10.18 周日 10:00 ~ 12:00',
-      completedLessons: 0,
-      totalLessons: 100,
-      schedules: [],
-      students: [
-        {
-          studentId: 's-01',
-          name: '董御',
-          studentNo: 'S950014',
-          phone: '13460475611',
-          availableLessons: 78,
-          joinDateText: '2026-09-01',
-        },
-      ],
-    };
+    throw new Error('未找到该班级');
   },
 
   // 3. 班级添加学员

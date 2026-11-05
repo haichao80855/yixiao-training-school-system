@@ -232,14 +232,9 @@ async function runAllProbes() {
     assert.strictEqual(wb.evaluationSummary.templateName, '创客代码模版');
   });
 
-  await probe('2.2 getFulfillmentWorkbench gracefully falls back to high-fidelity mock on network failure', async () => {
+  await probe('2.2 getFulfillmentWorkbench rejects on network failure instead of returning mock data', async () => {
     capturedRequests = [];
-    const wb = await eduApi.getFulfillmentWorkbench('sch-offline-nonexistent');
-    assert.ok(wb && wb.schedule);
-    assert.strictEqual(wb.schedule.id, 'sch-offline-nonexistent');
-    assert.strictEqual(wb.schedule.className, '周二18.30周六10.00班-12');
-    assert.strictEqual(wb.students.length, 10);
-    assert.strictEqual(wb.students[0].name, '董御');
+    await assert.rejects(eduApi.getFulfillmentWorkbench('sch-offline-nonexistent'));
   });
 
   // ---------------------------------------------------------------------------

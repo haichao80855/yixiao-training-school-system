@@ -65,7 +65,7 @@ const mockStorage = {
 };
 
 let currentRequestImpl = (opts) => {
-  // 默认网络断开，触发回退
+  // 默认网络断开，读接口应抛错
   if (opts.fail) opts.fail({ errMsg: 'request:fail offline test probe' });
   else opts.success({ statusCode: 500, data: { message: 'offline test probe' } });
 };
@@ -264,69 +264,54 @@ async function main() {
   });
 
   // ================================================================================
-  // 【TEST SECTION 3】离线回退与查询筛选健壮性 (Offline Fallback & Query Resiliency)
+  // 【TEST SECTION 3】读接口失败不回落内置数据 (No Mock Fallback)
   // ================================================================================
   console.log('\n----------------------------------------------------------------');
-  console.log('【领域 3】financeApi 离线容灾回退与多维过滤健壮性实测 (编译产物与源码双轨)');
+  console.log('【领域 3】financeApi 读接口失败时抛错，后端响应原样规整');
   console.log('----------------------------------------------------------------');
 
-  await runAsyncTest('3.1 getOrders: 关键字模糊检索、订单类型与状态筛选有效', async () => {
-    // 1. 无参全量
-    const resAll = await compiledFinance.getOrders();
-    assert.ok(resAll.list.length >= 4, '离线回退订单数应至少为 4 条');
-
-    // 2. 关键字检索 "董御"
-    const resDong = await compiledFinance.getOrders({ keyword: '董御' });
-    assert.strictEqual(resDong.list.length, 1);
-    assert.strictEqual(resDong.list[0].studentName, '董御');
-
-    // 3. 关键字检索订单号 "ORD20261014002"
-    const resOrderNo = await compiledFinance.getOrders({ keyword: 'ORD20261014002' });
-    assert.strictEqual(resOrderNo.list.length, 1);
-    assert.strictEqual(resOrderNo.list[0].id, 'ord-02');
-
-    // 4. 类型筛选 "recharge"
-    const resRecharge = await compiledFinance.getOrders({ orderType: 'recharge' });
-    assert.strictEqual(resRecharge.list.length, 1);
-    assert.strictEqual(resRecharge.list[0].orderType, 'recharge');
-
-    // 5. 状态筛选 "refunded"
-    const resRefunded = await compiledFinance.getOrders({ status: 'refunded' });
-    assert.strictEqual(resRefunded.list.length, 1);
-    assert.strictEqual(resRefunded.list[0].status, 'refunded');
-
-    // 6. 查不存在的关键字
-    const resEmpty = await compiledFinance.getOrders({ keyword: 'NON_EXISTENT_NAME_XYZ' });
-    assert.strictEqual(resEmpty.list.length, 0);
-    assert.strictEqual(resEmpty.total, 0);
+  await runAsyncTest('3.1 getOrders / getOrderSummary / getOrderById: 断网时抛错，不返回内置订单', async () => {
+    await assert.rejects(compiledFinance.getOrders());
+    await assert.rejects(compiledFinance.getOrders({ keyword: '董御' }));
+    await assert.rejects(compiledFinance.getOrderSummary({ campusId: 'campus-bj-hq' }));
+    await assert.rejects(compiledFinance.getOrderById('ord-01'));
   });
 
-  await runAsyncTest('3.2 getOrderSummary: 汇总指标数据类型健全且非负', async () => {
-    const summary = await compiledFinance.getOrderSummary({ campusId: 'campus-bj-hq' });
-    assert.ok(typeof summary.todayPaidAmount === 'number' && summary.todayPaidAmount >= 0);
-    assert.ok(typeof summary.monthOrderCount === 'number' && summary.monthOrderCount >= 0);
-    assert.ok(typeof summary.pendingOrderCount === 'number' && summary.pendingOrderCount >= 0);
-    assert.ok(typeof summary.totalRefundAmount === 'number' && summary.totalRefundAmount >= 0);
+  await runAsyncTest('3.2 getOrders: 403 时保留状态码供页面显示无权限', async () => {
+    const previous = currentRequestImpl;
+    currentRequestImpl = (opts) => opts.success({ statusCode: 403, data: { message: '缺少功能权限' } });
+    try {
+      await assert.rejects(compiledFinance.getOrders(), (e) => e.statusCode === 403);
+      await assert.rejects(compiledFinance.getApprovals(), (e) => e.statusCode === 403);
+    } finally {
+      currentRequestImpl = previous;
+    }
   });
 
-  await runAsyncTest('3.3 getApprovals & getApprovalTimeline: 审批分类与垂直流转节点契约', async () => {
-    // 1. 退费审批
-    const refundApprovals = await compiledFinance.getApprovals({ businessType: 'refund' });
-    assert.ok(refundApprovals.list.length >= 1);
-    assert.ok(refundApprovals.list.every(a => a.businessType === 'refund'));
+  await runAsyncTest('3.3 getApprovals & getApprovalTimeline: 断网抛错，成功时按后端节点生成时间线', async () => {
+    await assert.rejects(compiledFinance.getApprovals({ businessType: 'refund' }));
+    await assert.rejects(compiledFinance.getApprovalTimeline('appr-01'));
 
-    // 2. 收款特批
-    const receiptApprovals = await compiledFinance.getApprovals({ businessType: 'receipt' });
-    assert.ok(receiptApprovals.list.length >= 1);
-    assert.ok(receiptApprovals.list.every(a => a.businessType === 'receipt'));
-
-    // 3. 审批时间线 (appr-01)
-    const timelineData = await compiledFinance.getApprovalTimeline('appr-01');
-    assert.ok(Array.isArray(timelineData.timeline), '缺少 timeline 数组');
-    assert.ok(timelineData.timeline.length >= 3, 'timeline 节点数应 >= 3');
-    assert.strictEqual(timelineData.timeline[0].nodeName, '发起退费申请');
-    assert.strictEqual(timelineData.timeline[1].nodeName, '财务核验课耗');
-    assert.strictEqual(timelineData.timeline[2].nodeName, '校长终审签批');
+    const previous = currentRequestImpl;
+    currentRequestImpl = (opts) => opts.success({
+      statusCode: 200,
+      data: {
+        flowId: 'flow-1',
+        businessType: 'refund',
+        status: 'pending',
+        nodes: [{ step: 1, stepName: '教学主管核实', reviewerName: '审批人甲', action: 'pass', comment: '同意' }],
+      },
+    });
+    try {
+      const timelineData = await compiledFinance.getApprovalTimeline('flow-1');
+      assert.strictEqual(timelineData.id, 'flow-1');
+      assert.strictEqual(timelineData.timeline.length, 1);
+      assert.strictEqual(timelineData.timeline[0].nodeName, '教学主管核实');
+      assert.strictEqual(timelineData.timeline[0].approverName, '审批人甲');
+      assert.strictEqual(timelineData.timeline[0].status, 'approved');
+    } finally {
+      currentRequestImpl = previous;
+    }
   });
 
   // ================================================================================
@@ -475,11 +460,12 @@ async function main() {
     }
   });
 
-  runTest('5.3 检查 Phase 4 页面错误处理均透出 e?.message 真实报错', () => {
+  runTest('5.3 检查 Phase 4 页面错误处理透出真实报错或加载失败状态', () => {
     for (const fp of phase4VueFiles) {
       const content = fs.readFileSync(fp, 'utf8');
       const relName = path.relative(repoRoot, fp);
-      assert.ok(content.includes('e?.message'), `❌ ${relName} 缺少 e?.message 真实错误反馈`);
+      // 读接口失败由 request 弹出后端原因并由页面显示 LoadErrorState；写操作用 e?.message 提示
+      assert.ok(content.includes('e?.message') || content.includes('classifyLoadError(e)'), `❌ ${relName} 缺少真实错误反馈`);
     }
   });
 

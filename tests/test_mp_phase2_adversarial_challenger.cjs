@@ -204,15 +204,10 @@ async function run() {
     assert.strictEqual(res.evaluationSummary.studyContent, '<p>齿轮传动比实验</p>');
   });
 
-  await runChallenge('1.2 Offline Fallback: Graceful degradation with standard benchmark dataset when network down', async () => {
+  await runChallenge('1.2 Network failure: rejects instead of returning a built-in dataset', async () => {
     mockRequestBehavior = 'network_error';
 
-    const fallbackWb = await eduApi.getFulfillmentWorkbench('sch-offline-test');
-    assert.ok(fallbackWb, 'Fallback returned null');
-    assert.ok(fallbackWb.schedule, 'Fallback schedule is missing');
-    assert.strictEqual(fallbackWb.schedule.className, '周二18.30周六10.00班-12');
-    assert.ok(Array.isArray(fallbackWb.students) && fallbackWb.students.length >= 10, 'Expected at least 10 fallback students');
-    assert.strictEqual(fallbackWb.students[0].name, '董御');
+    await assert.rejects(eduApi.getFulfillmentWorkbench('sch-offline-test'));
   });
 
   // =========================================================================

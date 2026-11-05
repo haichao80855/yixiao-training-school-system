@@ -197,7 +197,7 @@ export const eduApi = {
       }
       return [];
     } catch (e) {
-      console.warn('[EduApi] 获取后端排课失败，使用默认高保真数据:', e);
+      console.warn('[EduApi] 获取后端排课失败:', e);
       return [];
     }
   },
@@ -296,46 +296,11 @@ export const eduApi = {
         };
       }
     } catch (e) {
-      console.warn('[EduApi] 水化履约工作台失败，使用内置高保真数据:', e);
+      console.warn('[EduApi] 水化履约工作台失败:', e);
+      throw e;
     }
 
-    // 默认高保真回退（对齐截图 016 与 ADR-0009 契约测试）
-    return {
-      schedule: {
-        id: scheduleEventId || 'sch-mock-001',
-        campusId: 'campus-bj-hq',
-        classId: 'cls-qm-002',
-        className: '周二18.30周六10.00班-12',
-        courseId: 'crs-qm',
-        courseName: '启蒙英语',
-        teacherId: 'teacher-feng',
-        teacherName: '冯老师',
-        advisorName: '冯老师',
-        classroomId: 'cr-101',
-        classroomName: '启蒙英语-002班教室',
-        date: '2026-10-13',
-        startTime: '18:30:00',
-        endTime: '20:30:00',
-        timeRange: '2026-10-13 18:30:00-20:30:00',
-        semanticType: 'completed',
-        classType: '线下课',
-        status: 'completed',
-        expectedCount: 10,
-        actualCount: 10,
-      },
-      students: [
-        { studentId: 's-01', studentNo: 'S950014', name: '董御', status: 'present', deductLessons: 1, remainingLessons: 84, tag: '正', evaluated: false },
-        { studentId: 's-02', studentNo: 'S950007', name: '张景恒', status: 'present', deductLessons: 1, remainingLessons: 72, tag: '正', evaluated: false },
-        { studentId: 's-03', studentNo: 'S950006', name: '吴炳润', status: 'present', deductLessons: 1, remainingLessons: 60, tag: '正', evaluated: false },
-        { studentId: 's-04', studentNo: 'S950003', name: '郑扶摇', status: 'present', deductLessons: 1, remainingLessons: 55, tag: '正', evaluated: false },
-        { studentId: 's-05', studentNo: 'S950005', name: '孙佳音', status: 'present', deductLessons: 1, remainingLessons: 48, tag: '正', evaluated: false },
-        { studentId: 's-06', studentNo: 'S950009', name: '赵梓涵', status: 'present', deductLessons: 1, remainingLessons: 42, tag: '正', evaluated: false },
-        { studentId: 's-07', studentNo: 'S950010', name: '周子程', status: 'present', deductLessons: 1, remainingLessons: 36, tag: '正', evaluated: false },
-        { studentId: 's-08', studentNo: 'S950011', name: '钱思睿', status: 'present', deductLessons: 1, remainingLessons: 30, tag: '正', evaluated: false },
-        { studentId: 's-09', studentNo: 'S950012', name: '李浩轩', status: 'present', deductLessons: 1, remainingLessons: 24, tag: '正', evaluated: false },
-        { studentId: 's-10', studentNo: 'S950013', name: '陈楚河', status: 'present', deductLessons: 1, remainingLessons: 18, tag: '正', evaluated: false },
-      ],
-    };
+    throw new Error('未找到该课次');
   },
 
   // 3. 执行单原子结课履约 (ADR-0009)

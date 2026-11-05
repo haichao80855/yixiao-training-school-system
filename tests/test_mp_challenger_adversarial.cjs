@@ -235,7 +235,7 @@ async function main() {
   console.log('【维度 3】移动端 API 客户端 5 大模块方法契约全量覆盖性校验');
   console.log('----------------------------------------------------------------');
 
-  await runTest('3.1 eduApi: 7 大方法实体签名与离线回退数据完整性', async () => {
+  await runTest('3.1 eduApi: 7 大方法实体签名，履约工作台请求失败时抛错', async () => {
     const compiledEduPath = path.resolve(miniProgRoot, 'dist/build/mp-weixin/api/edu.js');
     assert.ok(fs.existsSync(compiledEduPath), 'compiled edu.js 不存在');
     const { eduApi } = require(compiledEduPath);
@@ -253,11 +253,8 @@ async function main() {
       assert.strictEqual(typeof eduApi[m], 'function', `eduApi.${m} 不是可调用函数`);
     }
 
-    // 验证离线回退数据结构 (ADR-0009 教学履约工作台)
-    const wb = await eduApi.getFulfillmentWorkbench('sch-test');
-    assert.ok(wb && wb.schedule, '履约工作台缺少 schedule 实体');
-    assert.ok(Array.isArray(wb.students) && wb.students.length >= 10, '履约工作台学员清单未达到 10 名基准');
-    assert.strictEqual(wb.schedule.className, '周二18.30周六10.00班-12', '案例班级名称不一致');
+    // 请求失败时不得回落到内置数据
+    await assert.rejects(eduApi.getFulfillmentWorkbench('sch-test'));
   });
 
   await runTest('3.2 studentApi: 7 大方法实体签名与档案详情完整性', async () => {
@@ -293,22 +290,20 @@ async function main() {
       assert.strictEqual(typeof classApi[m], 'function', `classApi.${m} 不是函数`);
     });
 
-    const classDetail = await classApi.getClassDetail('cls-01');
-    assert.ok(classDetail.name.includes('启蒙英语'), '班级详情课程不符');
-    assert.ok(Array.isArray(classDetail.students) && classDetail.students.length > 0, '班级学员缺少');
+    // 请求失败时不得回落到内置数据
+    await assert.rejects(classApi.getClassDetail('cls-01'));
 
     const compiledCatalogPath = path.resolve(miniProgRoot, 'dist/build/mp-weixin/api/catalog.js');
     const { catalogApi } = require(compiledCatalogPath);
     ['getCourses', 'getGoods'].forEach(m => {
       assert.strictEqual(typeof catalogApi[m], 'function', `catalogApi.${m} 不是函数`);
     });
-    const courses = await catalogApi.getCourses();
-    assert.ok(courses.length >= 4, '课程目录数量不足');
-    const goods = await catalogApi.getGoods();
-    assert.ok(goods.length >= 3, '教具物品目录数量不足');
+    await assert.rejects(catalogApi.getCourses());
+    // 后端没有物品目录接口，不展示虚构商品
+    assert.deepStrictEqual(await catalogApi.getGoods(), []);
   });
 
-  await runTest('3.4 financeApi: 10 大方法实体签名与多级审批流时间线', async () => {
+  await runTest('3.4 financeApi: 10 大方法实体签名，审批时间线请求失败时抛错', async () => {
     const compiledFinancePath = path.resolve(miniProgRoot, 'dist/build/mp-weixin/api/finance.js');
     const { financeApi } = require(compiledFinancePath);
     const methods = [
@@ -327,11 +322,8 @@ async function main() {
       assert.strictEqual(typeof financeApi[m], 'function', `financeApi.${m} 不是函数`);
     }
 
-    const timelineData = await financeApi.getApprovalTimeline('appr-01');
-    assert.ok(Array.isArray(timelineData.timeline) && timelineData.timeline.length >= 3, '审批流时间线节点不足 3 个');
-    assert.strictEqual(timelineData.timeline[0].nodeName, '发起退费申请');
-    assert.strictEqual(timelineData.timeline[1].nodeName, '财务核验课耗');
-    assert.strictEqual(timelineData.timeline[2].nodeName, '校长终审签批');
+    // 请求失败时不得回落到内置审批数据
+    await assert.rejects(financeApi.getApprovalTimeline('appr-01'));
   });
 
   // -----------------------------------------------------------------------------

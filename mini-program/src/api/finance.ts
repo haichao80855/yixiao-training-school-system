@@ -280,157 +280,6 @@ export function normalizeApprovalItem(item: any): ApprovalItemModel {
   };
 }
 
-const MOCK_ORDERS: OrderItemModel[] = [
-  {
-    id: 'ord-01',
-    orderNo: 'ORD20261015001',
-    studentId: 's-01',
-    studentName: '董御',
-    studentPhone: '13460475611',
-    studentNo: 'S950014',
-    orderType: 'enroll',
-    orderTypeText: '新签报读',
-    status: 'paid',
-    statusText: '已支付',
-    totalAmount: 6400,
-    paidAmount: 4992,
-    discountAmount: 1408,
-    paymentMethod: '微信支付',
-    createdAtText: '2026-10-15 16:32:10',
-    operatorName: '冯老师',
-    items: [
-      { id: 'item-01', itemName: '启蒙英语 (100课次)', itemType: 'course', quantity: 1, unitPrice: 6400, subtotal: 6400 },
-    ],
-  },
-  {
-    id: 'ord-02',
-    orderNo: 'ORD20261014002',
-    studentId: 's-02',
-    studentName: '陈梓澄',
-    studentPhone: '13812345678',
-    studentNo: 'S950013',
-    orderType: 'enroll',
-    orderTypeText: '新签报读',
-    status: 'paid',
-    statusText: '已支付',
-    totalAmount: 5184,
-    paidAmount: 4864,
-    discountAmount: 320,
-    paymentMethod: '微信支付',
-    createdAtText: '2026-10-14 11:20:45',
-    operatorName: '冯老师',
-    items: [
-      { id: 'item-02', itemName: '少儿书法 (48课次)', itemType: 'course', quantity: 1, unitPrice: 2592, subtotal: 2592 },
-      { id: 'item-03', itemName: '启蒙英语 (48课次)', itemType: 'course', quantity: 1, unitPrice: 2592, subtotal: 2592 },
-    ],
-  },
-  {
-    id: 'ord-03',
-    orderNo: 'ORD20261013003',
-    studentId: 's-03',
-    studentName: '韦千寻',
-    studentPhone: '15993080680',
-    studentNo: 'S950012',
-    orderType: 'recharge',
-    orderTypeText: '钱包充值',
-    status: 'paid',
-    statusText: '已支付',
-    totalAmount: 2000,
-    paidAmount: 2000,
-    discountAmount: 0,
-    paymentMethod: '刷卡支付',
-    createdAtText: '2026-10-13 09:15:00',
-    operatorName: '王财务',
-    items: [
-      { id: 'item-04', itemName: '学员电子钱包充值', itemType: 'goods', quantity: 1, unitPrice: 2000, subtotal: 2000 },
-    ],
-  },
-  {
-    id: 'ord-04',
-    orderNo: 'ORD20261012004',
-    studentId: 's-04',
-    studentName: '娄栩歌',
-    studentPhone: '18236139606',
-    studentNo: 'S950011',
-    orderType: 'refund',
-    orderTypeText: '退费单',
-    status: 'refunded',
-    statusText: '已退费',
-    totalAmount: 1200,
-    paidAmount: 1200,
-    discountAmount: 0,
-    paymentMethod: '原路返还',
-    createdAtText: '2026-10-12 15:40:22',
-    operatorName: '李校长',
-    items: [
-      { id: 'item-05', itemName: '少儿书法课程退费 (20课次)', itemType: 'course', quantity: 1, unitPrice: 1200, subtotal: 1200 },
-    ],
-  },
-];
-
-const MOCK_APPROVALS: ApprovalItemModel[] = [
-  {
-    id: 'appr-01',
-    approvalNo: 'APPR-20261015-001',
-    businessType: 'refund',
-    businessTypeText: '退费审批',
-    status: 'pending',
-    statusText: '待我审批',
-    currentStep: 2,
-    totalSteps: 2,
-    applicantName: '冯老师',
-    applicantRole: '教务顾问',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    createdAtText: '2026-10-15 10:30',
-    studentName: '郑扶摇',
-    courseName: '启蒙英语',
-    amount: 3200,
-    reason: '学员家庭因工作变动搬家迁往外地，无法继续参加线下课程。',
-    currentNodeName: '等待【校长-李总】终审',
-  },
-  {
-    id: 'appr-02',
-    approvalNo: 'APPR-20261015-002',
-    businessType: 'receipt',
-    businessTypeText: '收款审批',
-    status: 'pending',
-    statusText: '待我审批',
-    currentStep: 1,
-    totalSteps: 1,
-    applicantName: '张销售',
-    applicantRole: '课程顾问',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    createdAtText: '2026-10-15 14:15',
-    studentName: '赵梓涵',
-    courseName: 'C++编程集训课',
-    amount: 20000,
-    reason: '家长申请一次性报读2年制连读班，申请特惠折扣85折特批。',
-    currentNodeName: '等待【财务主管】审核',
-  },
-  {
-    id: 'appr-03',
-    approvalNo: 'APPR-20261014-003',
-    businessType: 'transfer',
-    businessTypeText: '异动审批',
-    status: 'approved',
-    statusText: '已通过',
-    currentStep: 2,
-    totalSteps: 2,
-    applicantName: '冯老师',
-    applicantRole: '教务顾问',
-    campusId: 'campus-bj-hq',
-    campusName: '拓视未来-原阳校区',
-    createdAtText: '2026-10-14 16:50',
-    studentName: '孙佳音',
-    courseName: '少儿书法',
-    amount: 0,
-    reason: '学员因时间冲突申请转至周日同一科目平行班级。',
-    currentNodeName: '审批已通过并归档',
-  },
-];
-
 export const financeApi = {
   // 1. 获取订单账本列表
   async getOrders(params?: {
@@ -453,72 +302,36 @@ export const financeApi = {
     else if (query.status === 'voided') query.status = 'void';
     else if (query.status === 'all') delete query.status;
 
-    try {
-      const res = await request<any>({
-        url: '/api/financial/orders',
-        method: 'GET',
-        data: query,
-      });
-      const rawList = Array.isArray(res?.list) ? res.list : (Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
-      const list = rawList.map((item: any) => normalizeOrderItem(item));
-      return { list, total: Number(res?.total ?? list.length) };
-    } catch (e) {
-      console.warn('[financeApi] 获取后端订单列表失败，使用离线容灾数据:', e);
-      let list = [...MOCK_ORDERS];
-      if (params?.keyword) {
-        const kw = params.keyword.trim().toLowerCase();
-        list = list.filter((o) => o.orderNo.toLowerCase().includes(kw) || o.studentName.toLowerCase().includes(kw) || o.studentPhone.includes(kw));
-      }
-      if (params?.orderType && params.orderType !== 'all') {
-        list = list.filter((o) => o.orderType === params.orderType);
-      }
-      if (params?.status && params.status !== 'all') {
-        list = list.filter((o) => o.status === params.status);
-      }
-      return { list, total: list.length };
-    }
+    const res = await request<any>({
+      url: '/api/financial/orders',
+      method: 'GET',
+      data: query,
+    });
+    const rawList = Array.isArray(res?.list) ? res.list : (Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+    const list = rawList.map((item: any) => normalizeOrderItem(item));
+    return { list, total: Number(res?.total ?? list.length) };
   },
 
   // 2. 获取财务汇总统计
   async getOrderSummary(params?: { campusId?: string; month?: string }): Promise<OrderSummaryModel> {
-    try {
-      const res = await request<any>({
-        url: '/api/financial/orders/summary',
-        method: 'GET',
-        data: params,
-      });
-      if (res && (res.todayPaidAmount !== undefined || res.totalActualAmount !== undefined || res.totalOrders !== undefined)) {
-        return normalizeOrderSummary(res);
-      }
-    } catch (e) {
-      console.warn('[financeApi] 获取财务汇总失败，回退内置数据:', e);
-    }
-
-    return {
-      todayPaidAmount: 4992.0,
-      monthOrderCount: 12,
-      pendingOrderCount: 1,
-      totalRefundAmount: 1200.0,
-    };
+    const res = await request<any>({
+      url: '/api/financial/orders/summary',
+      method: 'GET',
+      data: params,
+    });
+    return normalizeOrderSummary(res ?? {});
   },
 
   // 3. 获取单笔订单详情
   async getOrderById(id: string): Promise<OrderItemModel> {
-    try {
-      const res = await request<any>({
-        url: `/api/financial/orders/${id}`,
-        method: 'GET',
-      });
-      if (res && (res.id || res.orderNo)) {
-        return normalizeOrderItem(res);
-      }
-    } catch (e) {
-      console.warn('[financeApi] 获取单笔订单失败，使用回退数据:', e);
+    const res = await request<any>({
+      url: `/api/financial/orders/${id}`,
+      method: 'GET',
+    });
+    if (!res || !(res.id || res.orderNo)) {
+      throw new Error('未找到该订单');
     }
-
-    return (
-      MOCK_ORDERS.find((o) => o.id === id) || MOCK_ORDERS[0]
-    );
+    return normalizeOrderItem(res);
   },
 
   // 4. 作废订单
@@ -568,142 +381,48 @@ export const financeApi = {
       delete query.status;
     }
 
-    try {
-      const res = await request<any>({
-        url: '/api/financial/approvals',
-        method: 'GET',
-        data: query,
-      });
-      const rawList = Array.isArray(res?.list) ? res.list : (Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
-      const list = rawList.map((item: any) => normalizeApprovalItem(item));
-      return { list, total: Number(res?.total ?? list.length) };
-    } catch (e) {
-      console.warn('[financeApi] 获取审批列表失败，使用离线容灾数据:', e);
-      let list = [...MOCK_APPROVALS];
-      if (params?.businessType && params.businessType !== 'all') {
-        list = list.filter((a) => a.businessType === params.businessType);
-      }
-      if (params?.status && params.status !== 'all') {
-        list = list.filter((a) => a.status === params.status);
-      }
-      return { list, total: list.length };
-    }
+    const res = await request<any>({
+      url: '/api/financial/approvals',
+      method: 'GET',
+      data: query,
+    });
+    const rawList = Array.isArray(res?.list) ? res.list : (Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+    const list = rawList.map((item: any) => normalizeApprovalItem(item));
+    return { list, total: Number(res?.total ?? list.length) };
   },
 
   // 8. 获取审批详情与时间线
   async getApprovalDetail(id: string): Promise<ApprovalDetailModel> {
-    const base = MOCK_APPROVALS.find((a) => a.id === id) || MOCK_APPROVALS[0];
-
-    const fallbackDetail: ApprovalDetailModel = {
-      ...base,
-      accountName: '郑** (学员母亲)',
-      accountNo: '622202******8899',
-      bankName: '招商银行北京分行',
-      remainingLessons: 50,
-      refundLessons: 50,
-      serviceFee: 0,
-      nodes: [
-        {
-          nodeId: 'node-1',
-          nodeName: '发起退费申请',
-          approverName: base.applicantName,
-          approverRole: '教务顾问',
-          status: 'approved',
-          statusText: '已提交',
-          actionTimeText: '2026-10-15 10:30',
-          comment: base.reason,
-        },
-        {
-          nodeId: 'node-2',
-          nodeName: '财务核验课耗',
-          approverName: '王财务',
-          approverRole: '财务主管',
-          status: 'approved',
-          statusText: '已通过',
-          actionTimeText: '2026-10-15 11:15',
-          comment: '已核查学员剩余50课次无误，合规退款金额计算正确，同意推进。',
-        },
-        {
-          nodeId: 'node-3',
-          nodeName: '校长终审签批',
-          approverName: '李校长',
-          approverRole: '校区负责人',
-          status: base.status,
-          statusText: base.status === 'approved' ? '已批准' : '待审批',
-          actionTimeText: base.status === 'approved' ? '2026-10-15 14:00' : undefined,
-          comment: base.status === 'approved' ? '同意退费出账。' : undefined,
-        },
-      ],
-      timeline: [
-        {
-          nodeId: 'node-1',
-          nodeName: '发起退费申请',
-          approverName: base.applicantName,
-          approverRole: '教务顾问',
-          status: 'approved',
-          statusText: '已提交',
-          actionTimeText: '2026-10-15 10:30',
-          comment: base.reason,
-        },
-        {
-          nodeId: 'node-2',
-          nodeName: '财务核验课耗',
-          approverName: '王财务',
-          approverRole: '财务主管',
-          status: 'approved',
-          statusText: '已通过',
-          actionTimeText: '2026-10-15 11:15',
-          comment: '已核查学员剩余50课次无误，合规退款金额计算正确，同意推进。',
-        },
-        {
-          nodeId: 'node-3',
-          nodeName: '校长终审签批',
-          approverName: '李校长',
-          approverRole: '校区负责人',
-          status: base.status,
-          statusText: base.status === 'approved' ? '已批准' : '待审批',
-          actionTimeText: base.status === 'approved' ? '2026-10-15 14:00' : undefined,
-          comment: base.status === 'approved' ? '同意退费出账。' : undefined,
-        },
-      ],
-    };
-
-    try {
-      const res = await request<any>({
-        url: `/api/financial/approvals/${id}/timeline`,
-        method: 'GET',
-      });
-      const rawNodes = Array.isArray(res?.nodes) ? res.nodes : (Array.isArray(res?.timeline) ? res.timeline : []);
-      if (rawNodes.length > 0) {
-        const normalizedTimeline: ApprovalTimelineNode[] = rawNodes.map((n: any, idx: number) => ({
-          nodeId: n.id || n.nodeId || `node-${idx + 1}`,
-          nodeName: n.nodeName || n.stepName || (idx === 0 ? '发起退费申请' : (idx === 1 ? '财务核验课耗' : '校长终审签批')),
-          approverName: n.reviewer?.realName || n.reviewerName || n.approverName || '审核人',
-          approverRole: n.approverRole || (n.step === 1 ? '教务顾问' : (n.step === 2 ? '财务主管' : '校区校长')),
-          status: (n.action === 'pass' ? 'approved' : (n.action === 'reject' ? 'rejected' : 'pending')) as 'approved' | 'rejected' | 'pending',
-          statusText: n.statusText || (n.action === 'pass' ? '已核准' : (n.action === 'reject' ? '已驳回' : '待审批')),
-          actionTimeText: n.createdAt ? (typeof n.createdAt === 'string' ? n.createdAt.slice(0, 16).replace('T', ' ') : '') : (n.actionTimeText || ''),
-          comment: n.comment || '',
-        }));
-
-        const mergedBase = normalizeApprovalItem({ ...base, ...res });
-        return {
-          ...mergedBase,
-          accountName: res.accountName || fallbackDetail.accountName,
-          accountNo: res.accountNo || fallbackDetail.accountNo,
-          bankName: res.bankName || fallbackDetail.bankName,
-          remainingLessons: res.remainingLessons ?? fallbackDetail.remainingLessons,
-          refundLessons: res.refundLessons ?? fallbackDetail.refundLessons,
-          serviceFee: res.serviceFee ?? fallbackDetail.serviceFee,
-          timeline: normalizedTimeline,
-          nodes: normalizedTimeline,
-        };
-      }
-    } catch (e) {
-      console.warn('[financeApi] 获取审批时间线失败，使用内置时间线:', e);
+    const res = await request<any>({
+      url: `/api/financial/approvals/${id}/timeline`,
+      method: 'GET',
+    });
+    if (!res) {
+      throw new Error('未找到该审批单');
     }
+    const rawNodes = Array.isArray(res.nodes) ? res.nodes : (Array.isArray(res.timeline) ? res.timeline : []);
+    const timeline: ApprovalTimelineNode[] = rawNodes.map((n: any, idx: number) => ({
+      nodeId: n.id || n.nodeId || `node-${idx + 1}`,
+      nodeName: n.nodeName || n.stepName || (idx === 0 ? '发起退费申请' : (idx === 1 ? '财务核验课耗' : '校长终审签批')),
+      approverName: n.reviewer?.realName || n.reviewerName || n.approverName || '审核人',
+      approverRole: n.approverRole || (n.step === 1 ? '教务顾问' : (n.step === 2 ? '财务主管' : '校区校长')),
+      status: (n.action === 'pass' ? 'approved' : (n.action === 'reject' ? 'rejected' : 'pending')) as 'approved' | 'rejected' | 'pending',
+      statusText: n.statusText || (n.action === 'pass' ? '已核准' : (n.action === 'reject' ? '已驳回' : '待审批')),
+      actionTimeText: n.createdAt ? (typeof n.createdAt === 'string' ? n.createdAt.slice(0, 16).replace('T', ' ') : '') : (n.actionTimeText || ''),
+      comment: n.comment || '',
+    }));
 
-    return fallbackDetail;
+    return {
+      ...normalizeApprovalItem({ ...res, id: res.id || res.flowId || id }),
+      accountName: res.accountName,
+      accountNo: res.accountNo,
+      bankName: res.bankName,
+      remainingLessons: res.remainingLessons,
+      refundLessons: res.refundLessons,
+      serviceFee: res.serviceFee,
+      timeline,
+      nodes: timeline,
+    };
   },
 
   // 8.1 兼容后端路由命名

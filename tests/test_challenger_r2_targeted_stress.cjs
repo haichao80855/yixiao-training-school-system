@@ -210,7 +210,7 @@ runTest('3.1 审批列表页静态审查：接口失败阻断状态修改与假�
   assert.ok(approveBlock.includes('uni.showToast({ title: e?.message'), '❌ catch 必须提示真实错误');
 });
 
-runTest('3.2 审批详情页静态审查：通过与驳回在报错时均不修改 detail.status 与时间线', () => {
+runTest('3.2 审批详情页静态审查：通过与驳回只在成功后刷新 detail', () => {
   assert.strictEqual(approvalDetailContent.includes('catch (e) {}'), false, '❌ approval/detail.vue 严禁出现空 catch');
 
   // 检查 handleApproveAction
@@ -220,11 +220,12 @@ runTest('3.2 审批详情页静态审查：通过与驳回在报错时均不修�
   );
 
   const auditCallIdx = approveActionBlock.indexOf('await financeApi.auditApproval');
-  const statusAssignIdx = approveActionBlock.indexOf("detail.value.status = 'approved'");
+  // 审批成功后从服务端重新加载，页面不自行拼接状态与时间线
+  const statusAssignIdx = approveActionBlock.indexOf('await fetchDetail()');
   const catchIdx = approveActionBlock.indexOf('catch');
 
-  assert.ok(statusAssignIdx > auditCallIdx, '❌ detail.status 变更必须在 await 成功后');
-  assert.ok(catchIdx > statusAssignIdx, '❌ detail.status 变更必须位于 try 块内');
+  assert.ok(statusAssignIdx > auditCallIdx, '❌ 刷新详情必须在 await 成功后');
+  assert.ok(catchIdx > statusAssignIdx, '❌ 刷新详情必须位于 try 块内');
 
   // 检查 handleRejectAction
   const rejStart = approvalDetailContent.indexOf('const handleRejectAction =');
@@ -232,11 +233,11 @@ runTest('3.2 审批详情页静态审查：通过与驳回在报错时均不修�
   const rejectActionBlock = approvalDetailContent.substring(rejStart, rejEnd);
 
   const rejCallIdx = rejectActionBlock.indexOf('await financeApi.auditApproval');
-  const rejStatusAssignIdx = rejectActionBlock.indexOf("detail.value.status = 'rejected'");
+  const rejStatusAssignIdx = rejectActionBlock.indexOf('await fetchDetail()');
   const rejCatchIdx = rejectActionBlock.indexOf('catch');
 
-  assert.ok(rejStatusAssignIdx > rejCallIdx, '❌ detail.status 驳回变更必须在 await 成功后');
-  assert.ok(rejCatchIdx > rejStatusAssignIdx, '❌ detail.status 驳回变更必须位于 try 块内');
+  assert.ok(rejStatusAssignIdx > rejCallIdx, '❌ 驳回后刷新详情必须在 await 成功后');
+  assert.ok(rejCatchIdx > rejStatusAssignIdx, '❌ 驳回后刷新详情必须位于 try 块内');
 });
 
 runTest('3.3 运行时断言：审批 API 报错时状态百分之百冻结原值', async () => {

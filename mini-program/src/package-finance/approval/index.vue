@@ -70,7 +70,9 @@
 
     <!-- 3. 审批单卡片列表 -->
     <scroll-view class="approvals-scroll-body" scroll-y>
-      <view v-if="approvalList.length > 0" class="cards-flow">
+      <LoadErrorState v-if="loadError" :kind="loadError" subject="审批单" @retry="fetchApprovals" />
+
+      <view v-else-if="approvalList.length > 0" class="cards-flow">
         <view
           class="approval-card"
           v-for="item in approvalList"
@@ -149,6 +151,8 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { financeApi, ApprovalItemModel } from '../../api/finance';
 import AppIcon from '../../components/AppIcon.vue';
+import LoadErrorState from '../../components/LoadErrorState.vue';
+import { classifyLoadError, type LoadErrorKind } from '../../utils/loadError';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
@@ -157,6 +161,7 @@ const capsuleRightWidth = ref(96);
 const currentBizType = ref<'refund' | 'receipt' | 'transfer'>('refund');
 const currentStatus = ref<'pending' | 'my' | 'approved'>('pending');
 const approvalList = ref<ApprovalItemModel[]>([]);
+const loadError = ref<LoadErrorKind | null>(null);
 
 const handleCampusChanged = () => {
   fetchApprovals();
@@ -205,9 +210,11 @@ const fetchApprovals = async () => {
       status: currentStatus.value === 'approved' ? 'approved' : 'pending',
     });
     approvalList.value = res.list;
+    loadError.value = null;
   } catch (e: any) {
     console.warn('[approval/index] 获取审批列表异常:', e);
-    uni.showToast({ title: e?.message || '获取审批列表失败', icon: 'none' });
+    approvalList.value = [];
+    loadError.value = classifyLoadError(e);
   }
 };
 
