@@ -53,25 +53,12 @@
 
     <section class="schedule__list tp-stack">
       <h2 class="tp-section-title">{{ friendlyDate(selectedDate) }}</h2>
-      <div class="tp-segment" role="group" aria-label="课次状态筛选">
-        <button
-          v-for="f in FILTERS"
-          :key="f.key"
-          type="button"
-          class="tp-segment-item"
-          :class="{ 'is-active': statusFilter === f.key }"
-          :aria-pressed="statusFilter === f.key"
-          @click="statusFilter = f.key"
-        >
-          {{ f.label }}
-        </button>
-      </div>
       <LoadState
         :loading="lessons.loading.value"
         :error="lessons.error.value"
         :has-data="!!lessons.data.value"
         :is-empty="dayLessons.length === 0"
-        :empty-text="statusFilter === 'all' ? '这天没有课' : '这天没有符合条件的课次'"
+        empty-text="这天没有课"
         @retry="lessons.load"
       >
         <div class="tp-list">
@@ -95,11 +82,6 @@ import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const WEEK_NAMES = ['日', '一', '二', '三', '四', '五', '六']
-const FILTERS = [
-  { key: 'all', label: '全部' },
-  { key: 'pending', label: '未上' },
-  { key: 'completed', label: '已结课' },
-] as const
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -111,7 +93,6 @@ const overdueMode = route.query.filter === 'overdue'
 const selectedDate = ref(today.value)
 // 电脑屏幕空间充足，默认显示整月
 const expanded = ref(window.matchMedia('(min-width: 1024px)').matches)
-const statusFilter = ref<(typeof FILTERS)[number]['key']>('all')
 
 function weekStart(date: string) {
   return shiftDays(date, -parseDateStr(date).getDay())
@@ -164,14 +145,7 @@ const headerText = computed(() => {
   return `${d.getFullYear()}年${d.getMonth() + 1}月`
 })
 
-const dayLessons = computed(() =>
-  (lessons.data.value || []).filter((l) => {
-    if (l.date !== selectedDate.value) return false
-    if (statusFilter.value === 'completed') return l.status === 'completed'
-    if (statusFilter.value === 'pending') return l.status !== 'completed'
-    return true
-  }),
-)
+const dayLessons = computed(() => (lessons.data.value || []).filter((l) => l.date === selectedDate.value))
 
 function selectDate(date: string) {
   selectedDate.value = date
@@ -281,8 +255,10 @@ onActivated(refresh)
   color: var(--tp-text-1);
   transition: background var(--tp-motion);
 }
-.day-cell:hover .day-num {
-  background: var(--tp-surface-sunken);
+@media (hover: hover) {
+  .day-cell:hover .day-num {
+    background: var(--tp-surface-sunken);
+  }
 }
 .day-num.is-today {
   color: var(--tp-accent);

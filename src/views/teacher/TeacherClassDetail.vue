@@ -35,7 +35,7 @@
               <p class="tp-row__title tp-num">{{ friendlyDate(s.date) }} {{ shortTime(s.startTime) }}–{{ shortTime(s.endTime) }}</p>
               <p class="tp-row__meta">{{ s.teacherName }} · {{ s.classroomName }}<template v-if="s.recordedCount"> · 到课 {{ s.attendedCount }}/{{ s.recordedCount }}</template></p>
             </span>
-            <span class="tp-tag" :class="s.status === 'completed' ? 'tp-tag-success' : 'tp-tag-muted'">{{ lessonStatusLabel(s.status) }}</span>
+            <span v-if="s.status !== 'scheduled'" class="tp-tag" :class="s.status === 'in_progress' ? 'tp-tag-primary' : 'tp-tag-muted'">{{ lessonStatusLabel(s.status) }}</span>
             <ChevronRight v-if="s.canOperate" class="tp-row__chevron" aria-hidden="true" />
           </component>
         </div>

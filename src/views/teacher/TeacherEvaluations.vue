@@ -35,7 +35,7 @@
       :error="roster.error.value"
       :has-data="!!roster.data.value"
       :is-empty="roster.data.value?.items.length === 0"
-      :empty-text="status === 'pending' ? '这段时间的课评都写完了' : '这段时间没有已结课的到课记录'"
+      :empty-text="status === 'pending' ? '这段时间没有待写的课评' : '这段时间没有已结课的到课记录'"
       @retry="roster.load"
     >
       <!-- 按课次分组：老师是一节课一节课地写课评 -->

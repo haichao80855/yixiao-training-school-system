@@ -166,8 +166,13 @@ onMounted(() => {
   cursor: pointer;
   transition: background var(--tp-motion);
 }
-.menu-button:hover {
-  background: var(--tp-surface-hover);
+@media (hover: hover) {
+  .menu-button:hover {
+    background: var(--tp-surface-hover);
+  }
+}
+.menu-button:active {
+  background: var(--tp-surface-sunken);
 }
 .campus-select {
   max-width: 55%;

@@ -433,8 +433,8 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .star-on {
-  color: #d97706;
-  fill: #f59e0b;
+  color: var(--tp-rating);
+  fill: var(--tp-rating);
 }
 .star-off {
   color: var(--tp-line-strong);

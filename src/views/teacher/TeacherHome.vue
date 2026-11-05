@@ -10,7 +10,7 @@
         <!-- 今天最重要的一件事：下一节课 -->
         <section v-if="nextLesson" class="tp-card next-lesson" aria-label="下一节课">
           <div class="next-lesson__head">
-            <span class="tp-tag" :class="isHappeningNow ? 'tp-tag-primary' : 'tp-tag-muted'">{{ isHappeningNow ? '正在上课' : '下一节' }}</span>
+            <span class="tp-tag" :class="lessonPhase.tagClass">{{ lessonPhase.label }}</span>
             <span class="tp-text-meta tp-num">共 {{ nextLesson.expectedCount }} 人</span>
           </div>
           <p class="next-lesson__time tp-num">{{ shortTime(nextLesson.startTime) }}–{{ shortTime(nextLesson.endTime) }}</p>
@@ -26,20 +26,11 @@
           <p class="tp-row__title">{{ todayLessons.length > 0 ? '今天的课都上完了' : '今天没有课' }}</p>
           <RouterLink to="/teacher/schedule" class="tp-link" style="margin: 4px 0 -8px -6px">查看课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
         </section>
-
-        <section v-if="todayLessons.length > 1">
-          <div class="tp-section-head">
-            <h2 class="tp-section-title">今日课程 <span class="tp-count">{{ todayLessons.length }}</span></h2>
-            <RouterLink to="/teacher/schedule" class="tp-link">课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
-          </div>
-          <div class="tp-list">
-            <LessonRow v-for="lesson in todayLessons" :key="lesson.id" :lesson="lesson" />
-          </div>
-        </section>
       </LoadState>
     </div>
 
-    <section class="home__todos">
+    <!-- 紧跟下一节课：逾期未结课不能被今天的课程列表压到首屏以下；没有待办时退到最后 -->
+    <section class="home__todos" :class="{ 'is-clear': overview.data.value && pendingTodos.length === 0 }">
       <div class="tp-section-head">
         <h2 class="tp-section-title">待处理</h2>
       </div>
@@ -60,6 +51,16 @@
           <span>都处理完了</span>
         </div>
       </LoadState>
+    </section>
+
+    <section v-if="otherLessons.length > 0" class="home__today">
+      <div class="tp-section-head">
+        <h2 class="tp-section-title">{{ nextLesson ? '今日其他课程' : '今日课程' }} <span class="tp-count">{{ otherLessons.length }}</span></h2>
+        <RouterLink to="/teacher/schedule" class="tp-link">课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
+      </div>
+      <div class="tp-list">
+        <LessonRow v-for="lesson in otherLessons" :key="lesson.id" :lesson="lesson" />
+      </div>
     </section>
   </div>
 </template>
@@ -93,12 +94,18 @@ const greeting = computed(() => {
 
 const todayLessons = computed(() => lessons.data.value || [])
 const nextLesson = computed(() => todayLessons.value.find((l) => l.status !== 'completed') || null)
-const isHappeningNow = computed(() => {
+const otherLessons = computed(() => todayLessons.value.filter((l) => l.id !== nextLesson.value?.id))
+// 下课后还没结课的课次仍排在最前，不能继续称它为「下一节」
+const lessonPhase = computed(() => {
   const l = nextLesson.value
-  if (!l) return false
+  if (!l) return { label: '', tagClass: '' }
   const now = new Date()
   const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  return l.status === 'in_progress' || (shortTime(l.startTime) <= time && time <= shortTime(l.endTime))
+  if (l.status === 'in_progress' || (shortTime(l.startTime) <= time && time <= shortTime(l.endTime))) {
+    return { label: '正在上课', tagClass: 'tp-tag-primary' }
+  }
+  if (time > shortTime(l.endTime)) return { label: '已下课，待结课', tagClass: 'tp-tag-warning' }
+  return { label: '下一节', tagClass: 'tp-tag-muted' }
 })
 
 // 只列真正要处理的事，按紧急程度排序；没有待办时不用一排 0 占位
@@ -178,19 +185,25 @@ onActivated(refresh)
   color: var(--tp-success);
   font-size: 14px;
 }
+.home__todos.is-clear {
+  order: 1;
+}
 /* 电脑上双栏：左边是今天的课，右边是待处理 */
 @media (min-width: 1024px) {
   .home {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-rows: auto auto 1fr;
     grid-template-areas:
       'intro intro'
-      'primary todos';
+      'primary todos'
+      'today todos';
     align-items: start;
     column-gap: var(--tp-space-6);
   }
   .home__intro { grid-area: intro; }
   .home__primary { grid-area: primary; }
   .home__todos { grid-area: todos; }
+  .home__today { grid-area: today; }
 }
 </style>

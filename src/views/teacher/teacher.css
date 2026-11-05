@@ -31,6 +31,7 @@
   --tp-warning-soft: #fff7e8;
   --tp-danger: #b91c1c;
   --tp-danger-soft: #fef2f2;
+  --tp-rating: #d97706;
 
   /* 字号 */
   --tp-fs-caption: 12px;
@@ -262,9 +263,6 @@
     text-decoration: none;
     transition: background var(--tp-motion);
   }
-  .tp-nav-item:hover {
-    background: var(--tp-surface-hover);
-  }
   .tp-nav-item.is-active {
     background: var(--tp-accent-soft);
     color: var(--tp-accent);
@@ -444,12 +442,6 @@
 a.tp-row {
   transition: background var(--tp-motion);
 }
-a.tp-row:hover {
-  background: var(--tp-surface-hover);
-}
-a.tp-row:active {
-  background: var(--tp-surface-sunken);
-}
 .tp-row__body {
   flex: 1;
   min-width: 0;
@@ -601,16 +593,10 @@ a.tp-row:active {
   background: var(--tp-accent);
   color: #fff;
 }
-.tp-btn-primary:not(:disabled):hover {
-  background: var(--tp-accent-hover);
-}
 .tp-btn-secondary {
   background: var(--tp-surface);
   border-color: var(--tp-line-strong);
   color: var(--tp-text-1);
-}
-.tp-btn-secondary:not(:disabled):hover {
-  background: var(--tp-surface-hover);
 }
 .tp-btn-danger {
   background: var(--tp-surface);
@@ -640,15 +626,33 @@ a.tp-row:active {
   cursor: pointer;
   transition: background var(--tp-motion);
 }
-.tp-icon-btn:hover {
-  background: var(--tp-surface-hover);
-}
 .tp-icon-btn svg {
   width: 20px;
   height: 20px;
 }
 .tp-icon-btn--accent {
   color: var(--tp-accent);
+}
+
+/* 悬停样式只给有鼠标的设备：触屏点按后 :hover 会一直留着，从详情返回时那一行还是高亮的 */
+@media (hover: hover) {
+  a.tp-row:hover,
+  .tp-nav-item:hover:not(.is-active),
+  .tp-btn-secondary:not(:disabled):hover,
+  .tp-icon-btn:hover {
+    background: var(--tp-surface-hover);
+  }
+  .tp-btn-primary:not(:disabled):hover {
+    background: var(--tp-accent-hover);
+  }
+}
+a.tp-row:active {
+  background: var(--tp-surface-sunken);
+}
+/* 列表和分段控件的容器裁切溢出，焦点框要画在元素内侧才看得见 */
+.tp-row:focus-visible,
+.tp-segment-item:focus-visible {
+  outline-offset: -2px;
 }
 
 /* 16px 以下的输入框在 iOS Safari 聚焦时会放大页面 */
@@ -768,21 +772,23 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   gap: var(--tp-space-2);
   overflow-x: auto;
   scrollbar-width: none;
-  margin: 0 calc(-1 * var(--tp-gutter-right)) 0 calc(-1 * var(--tp-gutter-left));
-  padding: 0 var(--tp-gutter-right) 0 var(--tp-gutter-left);
+  margin: -4px calc(-1 * var(--tp-gutter-right)) -4px calc(-1 * var(--tp-gutter-left));
+  padding: 4px var(--tp-gutter-right) 4px var(--tp-gutter-left);
 }
 .tp-chips::-webkit-scrollbar {
   display: none;
 }
+/* 筛选排在搜索框和分段控件之下，看起来要比它们轻：可见高度 36px，点按区域仍是 44px */
 .tp-chip {
+  position: relative;
   flex-shrink: 0;
-  min-height: var(--tp-control);
+  min-height: 36px;
   display: inline-flex;
   align-items: center;
   gap: var(--tp-space-1);
   padding: 0 var(--tp-space-3);
-  border: 1px solid var(--tp-line-strong);
-  border-radius: var(--tp-radius-md);
+  border: 1px solid var(--tp-line);
+  border-radius: var(--tp-radius-sm);
   background: var(--tp-surface);
   color: var(--tp-text-2);
   font-size: 14px;
@@ -790,8 +796,14 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   cursor: pointer;
   transition: background var(--tp-motion), border-color var(--tp-motion);
 }
+.tp-chip::after {
+  content: '';
+  position: absolute;
+  /* 相对内边距盒定位，多算 1px 边框 */
+  inset: -5px -1px;
+}
 .tp-chip.is-active {
-  border-color: var(--tp-accent);
+  border-color: transparent;
   background: var(--tp-accent-soft);
   color: var(--tp-accent);
   font-weight: 600;

@@ -77,14 +77,14 @@
             <RouterLink
               v-if="stu.isEvaluated"
               :to="`/teacher/lessons/${lessonId}/review/${stu.studentId}`"
-              class="tp-btn tp-btn-sm tp-btn-secondary roster-row__eval"
+              class="tp-link roster-row__eval roster-row__eval--done"
             >
               <CircleCheck class="eval-done" aria-hidden="true" />看学情
             </RouterLink>
             <RouterLink
               v-else
               :to="`/teacher/lessons/${lessonId}/evaluate/${stu.studentId}`"
-              class="tp-btn tp-btn-sm tp-btn-secondary roster-row__eval"
+              class="tp-link roster-row__eval"
             >
               {{ stu.hasDraft ? '继续写' : '写课评' }}
             </RouterLink>
@@ -471,14 +471,19 @@ onBeforeUnmount(() => {
   gap: var(--tp-space-2);
   min-width: 0;
 }
+/* 点名时的次要操作：做成文字，整列名单才不会被一排方框打断 */
 .roster-row__eval {
   grid-area: eval;
+  justify-content: flex-end;
+  gap: var(--tp-space-1);
+  font-size: 14px;
 }
-/* 固定列宽，让上下行的控件对齐，不随按钮文字变化 */
-@media (min-width: 768px) {
-  .roster-row__eval {
-    width: 100%;
-  }
+.roster-row__eval svg {
+  width: 16px;
+  height: 16px;
+}
+.roster-row__eval--done {
+  color: var(--tp-text-2);
 }
 .is-low {
   color: var(--tp-danger);
@@ -532,18 +537,6 @@ onBeforeUnmount(() => {
   font-family: inherit;
   cursor: pointer;
 }
-/* 最窄的手机上四个出勤按钮要占满一行，扣课时另起一行 */
-@media (max-width: 359px) {
-  .roster-row__controls {
-    flex-wrap: wrap;
-  }
-  .attendance {
-    flex-basis: 100%;
-  }
-  .deduct-select {
-    width: 100%;
-  }
-}
 /* 平板以上：一个学员一行，便于快速扫读 */
 @media (min-width: 768px) {
   .roster-row {
@@ -589,17 +582,11 @@ onBeforeUnmount(() => {
       'person eval'
       'controls controls';
   }
-  .roster-row__eval {
-    width: auto;
-  }
 }
 @media (min-width: 1280px) {
   .roster-row {
     grid-template-columns: minmax(120px, 1fr) minmax(300px, 2fr) 104px;
     grid-template-areas: 'person controls eval';
-  }
-  .roster-row__eval {
-    width: 100%;
   }
 }
 </style>
