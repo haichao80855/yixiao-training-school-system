@@ -21,7 +21,7 @@
         </section>
         <section v-else class="tp-card">
           <p class="tp-row__title">{{ todayLessons.length > 0 ? '今天的课都上完了' : '今天没有课' }}</p>
-          <RouterLink to="/teacher/schedule" class="tp-link" style="margin: 4px 0 -8px -6px">查看课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
+          <RouterLink to="/teacher/schedule" replace class="tp-link" style="margin: 4px 0 -8px -6px">查看课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
         </section>
       </LoadState>
     </div>
@@ -33,7 +33,7 @@
       </div>
       <LoadState :loading="overview.loading.value" :error="overview.error.value" :has-data="!!overview.data.value" :rows="1" @retry="overview.load">
         <div v-if="pendingTodos.length > 0" class="tp-list">
-          <RouterLink v-for="todo in pendingTodos" :key="todo.label" :to="todo.to" class="tp-row">
+          <RouterLink v-for="todo in pendingTodos" :key="todo.label" :to="todo.to" replace class="tp-row">
             <span class="todo-icon" :class="`todo-icon--${todo.tone}`"><component :is="todo.icon" :size="18" aria-hidden="true" /></span>
             <span class="tp-row__body">
               <p class="tp-row__title">{{ todo.label }}</p>
@@ -53,7 +53,7 @@
     <section v-if="otherLessons.length > 0" class="home__today">
       <div class="tp-section-head">
         <h2 class="tp-section-title">{{ nextLesson ? '今日其他课程' : '今日课程' }} <span class="tp-count">{{ otherLessons.length }}</span></h2>
-        <RouterLink to="/teacher/schedule" class="tp-link">课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
+        <RouterLink to="/teacher/schedule" replace class="tp-link">课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
       </div>
       <div class="tp-list">
         <LessonRow v-for="lesson in otherLessons" :key="lesson.id" :lesson="lesson" />

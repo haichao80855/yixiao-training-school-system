@@ -185,7 +185,8 @@ async function executeLogin(account: string, password: string) {
     ElMessage.success(`欢迎您，${res.user.realName}！已以【${res.user.roleName || '系统用户'}】身份成功登录`)
 
     // 会话失效被送回登录页的，登录后回到原页面；否则老师进入教师端、其他角色进入仪表盘
-    router.push(safeRedirectTarget() || authStore.homePath)
+    // 用 replace：登录页不留在浏览记录里，后退不会回到登录页，微信里也不会因此出现底部前进后退栏
+    router.replace(safeRedirectTarget() || authStore.homePath)
   } catch (err: any) {
     ElMessage.error(err.message || '登录失败，请检查用户名与密码是否正确')
   } finally {

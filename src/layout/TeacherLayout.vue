@@ -71,11 +71,13 @@
         </main>
       </div>
 
+      <!-- 标签切换不增加浏览记录：微信内置浏览器有可后退的记录时才显示底部前进后退栏 -->
       <nav v-if="isTabPage && !keyboardOpen" class="tp-tabbar" aria-label="教师端导航">
         <RouterLink
           v-for="tab in tabs"
           :key="tab.key"
           :to="tab.to"
+          replace
           class="tp-tabbar__item"
           :class="{ 'is-active': currentTab === tab.key }"
           :aria-current="currentTab === tab.key ? 'page' : undefined"
