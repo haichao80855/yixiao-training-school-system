@@ -368,7 +368,7 @@ model Class {
   advisorId           String?  // 班主任学管 (User)
   classroomId         String
   startDate           DateTime
-  endDate             DateTime
+  endDate             DateTime?
   status              String   @default("recruiting") // recruiting | in_progress | completed
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt

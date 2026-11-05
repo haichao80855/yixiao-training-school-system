@@ -38,9 +38,9 @@ export class CreateClassDto {
   @IsNotEmpty()
   startDate: string; // ISO 8601 或 YYYY-MM-DD
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  endDate: string;
+  endDate?: string | null; // 预计结课日期，选填
 }
 
 export class UpdateClassDto {
@@ -75,5 +75,5 @@ export class UpdateClassDto {
 
   @IsOptional()
   @IsString()
-  endDate?: string; // ISO 8601 或 YYYY-MM-DD
+  endDate?: string | null; // ISO 8601 或 YYYY-MM-DD，传 null 表示清空
 }

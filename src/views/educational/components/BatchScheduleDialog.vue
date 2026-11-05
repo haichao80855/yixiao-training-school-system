@@ -228,16 +228,15 @@ function syncFormFromClass(cls: ClassItem) {
   form.teacherId = cls.teacherId || teachers.value[0]?.id || ''
   form.classroomId = cls.classroomId || classrooms.value[0]?.id || ''
   form.startDate = computeSmartStartDate(cls)
-  form.repeatCount = Math.max(1, (cls.totalLessons || 48) - (cls.completedLessons || 0))
+  // 排课接口单次最多 48 讲；课程未设置总课次时沿用表单默认值
+  form.repeatCount = cls.totalLessons
+    ? Math.min(48, Math.max(1, cls.totalLessons - (cls.completedLessons || 0)))
+    : 16
 
-  // 尝试智能解析班级规律时间
-  if (cls.scheduleDesc) {
-    const timeMatch = cls.scheduleDesc.match(/(\d{1,2}:\d{2})\s*[-~至]\s*(\d{1,2}:\d{2})/)
-    if (timeMatch) {
-      form.startTime = timeMatch[1].padStart(5, '0')
-      form.endTime = timeMatch[2].padStart(5, '0')
-    }
-  }
+  // 沿用班级已有排课的时段；尚未排课时回到默认时段，避免残留上一个班级的时间
+  const timeMatch = cls.scheduleDesc?.match(/(\d{1,2}:\d{2})\s*[-~至]\s*(\d{1,2}:\d{2})/)
+  form.startTime = timeMatch ? timeMatch[1].padStart(5, '0') : '14:00'
+  form.endTime = timeMatch ? timeMatch[2].padStart(5, '0') : '16:00'
 }
 
 function handleSwitchClass(classId: string) {
