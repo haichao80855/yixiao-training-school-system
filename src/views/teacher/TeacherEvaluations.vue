@@ -1,5 +1,7 @@
 <template>
   <div class="tp-stack">
+    <PageTitle title="课评" :overline="friendlyDate(today)" />
+
     <div class="tp-segment" role="group" aria-label="课评状态">
       <button
         v-for="m in metricCards"
@@ -36,6 +38,7 @@
       :has-data="!!roster.data.value"
       :is-empty="roster.data.value?.items.length === 0"
       :empty-text="status === 'pending' ? '这段时间没有待写的课评' : '这段时间没有已结课的到课记录'"
+      empty-hint="结课后，到课学员会出现在这里"
       @retry="roster.load"
     >
       <!-- 按课次分组：老师是一节课一节课地写课评 -->
@@ -72,9 +75,10 @@ import { ChevronRight } from 'lucide-vue-next'
 import { teacherPortalApi, type EvaluationRosterItem } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
+import PageTitle from './components/PageTitle.vue'
 import SearchBox from './components/SearchBox.vue'
 import { readDraft } from './utils/evaluationDraft'
-import { friendlyDate, parseDateStr, shiftDays, shortTime, todayStr } from './utils/format'
+import { friendlyDate, shiftDays, shortTime, todayStr, weekStartStr } from './utils/format'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
@@ -90,17 +94,18 @@ const route = useRoute()
 const authStore = useAuthStore()
 const userId = authStore.user?.id || ''
 
+const today = ref(todayStr())
 const rangeKey = ref<RangeKey>(route.query.range === '30' ? '30' : 'week')
 // 默认看还没写的：这个页面的首要任务是把课评写完
 const status = ref<StatusKey>('pending')
 const keyword = ref('')
 
 function dateRange(key: RangeKey) {
-  const today = todayStr()
-  if (key === '30') return { startDate: shiftDays(today, -30), endDate: today }
-  const sunday = shiftDays(today, -parseDateStr(today).getDay())
-  if (key === 'lastWeek') return { startDate: shiftDays(sunday, -7), endDate: shiftDays(sunday, -1) }
-  return { startDate: sunday, endDate: today }
+  const now = todayStr()
+  if (key === '30') return { startDate: shiftDays(now, -30), endDate: now }
+  const monday = weekStartStr(now)
+  if (key === 'lastWeek') return { startDate: shiftDays(monday, -7), endDate: shiftDays(monday, -1) }
+  return { startDate: monday, endDate: now }
 }
 
 const roster = useLoad(async () => {
@@ -156,7 +161,11 @@ function setRange(next: RangeKey) {
 }
 
 usePageRefresh(roster.load)
-onActivated(roster.load)
+// 手机页面可能隔天还开着：每次回到页面都重新取「今天」
+onActivated(() => {
+  today.value = todayStr()
+  return roster.load()
+})
 </script>
 
 <style scoped>

@@ -1,4 +1,4 @@
-import type { AttendanceStatus, LessonStatus } from '@/api';
+import type { AttendanceStatus, LessonStatus, TeacherLessonItem } from '@/api';
 
 export const ATTENDANCE_OPTIONS: Array<{ value: AttendanceStatus; label: string }> = [
   { value: 'present', label: '到课' },
@@ -62,6 +62,11 @@ export function todayStr(): string {
   return formatDateStr(new Date());
 }
 
+/** 一周从周一开始，与家长端一致 */
+export function weekStartStr(s: string): string {
+  return shiftDays(s, -((parseDateStr(s).getDay() + 6) % 7));
+}
+
 const WEEK_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 
 /** 11月5日 周四 */
@@ -76,6 +81,19 @@ export function dateOnly(value: string | null | undefined): string {
 
 export function shortTime(t: string): string {
   return t ? t.slice(0, 5) : '';
+}
+
+/** 教室名最长，放最后折行；不间断空格避免「5 人」被拆到两行 */
+export function lessonMeta(l: TeacherLessonItem, showDate = false): string {
+  return [
+    showDate ? friendlyDate(l.date) : '',
+    l.lessonNumber ? `第${l.lessonNumber}讲` : '',
+    l.classType && l.classType !== 'formal' ? classTypeLabel(l.classType) : '',
+    l.status === 'completed' ? `到课 ${l.actualCount}/${l.expectedCount}` : `${l.expectedCount} 人`,
+    l.classroomName,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 }
 
 /** 课次大纲可能是 Web 端富文本：编辑与展示统一转成纯文本，不渲染 HTML */

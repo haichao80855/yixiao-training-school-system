@@ -1,5 +1,6 @@
 <template>
   <div class="tp-stack">
+    <PageTitle title="学员" :overline="classes.data.value?.length ? `共 ${classes.data.value.length} 个班级` : ''" />
     <RosterTabs />
     <SearchBox v-model="keyword" placeholder="搜索班级名称" @search="classes.load" />
 
@@ -9,6 +10,7 @@
       :has-data="!!classes.data.value"
       :is-empty="classes.data.value?.length === 0"
       :empty-text="keyword ? '没有匹配的班级' : '你还没有授课班级'"
+      :empty-hint="keyword ? '换个班级名称试试' : '校区给你排班后，班级会出现在这里'"
       @retry="classes.load"
     >
       <div class="tp-list">
@@ -45,6 +47,7 @@ import { onActivated, ref } from 'vue'
 import { ChevronRight } from 'lucide-vue-next'
 import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
+import PageTitle from './components/PageTitle.vue'
 import RosterTabs from './components/RosterTabs.vue'
 import SearchBox from './components/SearchBox.vue'
 import { usePageRefresh } from './utils/pageRefresh'

@@ -1,5 +1,6 @@
 <template>
   <div class="tp-stack">
+    <PageTitle title="学员" :overline="warnings.data.value?.summary.total ? `共 ${warnings.data.value.summary.total} 条预警` : ''" />
     <RosterTabs />
 
     <LoadState :loading="warnings.loading.value" :error="warnings.error.value" :has-data="!!warnings.data.value" @retry="warnings.load">
@@ -19,8 +20,9 @@
         </div>
 
         <div v-if="visibleItems.length === 0" class="tp-state">
-          <CircleCheck aria-hidden="true" />
-          <p>暂无需要关注的学员</p>
+          <span class="tp-state__icon"><CircleCheck aria-hidden="true" /></span>
+          <p class="tp-state__title">暂无需要关注的学员</p>
+          <p>课时不足、连续缺勤或长期未到课的学员会出现在这里</p>
         </div>
         <div v-else class="tp-list">
           <article v-for="item in visibleItems" :key="item.id" class="tp-row">
@@ -49,6 +51,7 @@ import { computed, onActivated, ref } from 'vue'
 import { CircleCheck, Phone } from 'lucide-vue-next'
 import { teacherPortalApi, type WarningType } from '@/api'
 import LoadState from './components/LoadState.vue'
+import PageTitle from './components/PageTitle.vue'
 import RosterTabs from './components/RosterTabs.vue'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'

@@ -34,11 +34,11 @@
     </aside>
 
     <div class="tp-workspace">
-      <!-- 首页的问候语已经说明了页面，不再重复「首页」标题 -->
-      <div v-if="route.meta.teacherNoHeader" class="tp-header-spacer" />
+      <!-- 标签页在内容里放大标题 (PageTitle)，只有详情页需要固定的返回栏 -->
+      <div v-if="isTabPage" class="tp-header-spacer" />
       <header v-else class="tp-header">
         <div class="tp-container tp-header__inner">
-          <button v-if="!isTabPage" type="button" class="tp-back" aria-label="返回" @click="goBack">
+          <button type="button" class="tp-back" aria-label="返回" @click="goBack">
             <ChevronLeft :size="24" />
           </button>
           <h1 class="tp-header__title">{{ route.meta.title }}</h1>
@@ -232,13 +232,19 @@ function goBack() {
   else router.replace('/teacher')
 }
 
+// 手机浏览器的状态栏跟随页面底色；离开教师端时还原，后台和登录页仍是白色
+const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+const originalThemeColor = themeColorMeta?.content
+
 onMounted(() => {
+  themeColorMeta?.setAttribute('content', '#f4f6fa')
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
   document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
 onBeforeUnmount(() => {
+  if (originalThemeColor) themeColorMeta?.setAttribute('content', originalThemeColor)
   removeBeforeEach()
   removeAfterEach()
   cancelRestore?.()

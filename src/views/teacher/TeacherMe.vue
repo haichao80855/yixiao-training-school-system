@@ -1,5 +1,7 @@
 <template>
   <div class="tp-stack tp-stack--loose">
+    <PageTitle title="我的" :overline="authStore.user?.campusName" />
+
     <section class="tp-card profile">
       <span class="tp-avatar profile__avatar" aria-hidden="true">{{ authStore.user?.realName?.slice(0, 1) }}</span>
       <div style="min-width: 0">
@@ -67,6 +69,7 @@ import { Building2, ChevronRight, KeyRound, Monitor, UserRound } from 'lucide-vu
 import { authApi } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
+import PageTitle from './components/PageTitle.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()

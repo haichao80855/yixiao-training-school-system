@@ -1,7 +1,15 @@
 <template>
-  <div v-if="loading && !hasData" class="tp-state" role="status">
-    <Loader2 class="tp-spin" aria-hidden="true" />
-    <p>加载中…</p>
+  <div v-if="loading && !hasData" role="status">
+    <span class="sr-only">加载中…</span>
+    <span v-if="skeleton === 'hero'" class="tp-skeleton tp-skeleton--hero" aria-hidden="true" />
+    <div v-else class="tp-list" aria-hidden="true">
+      <div v-for="i in rows" :key="i" class="tp-row">
+        <span class="tp-row__body">
+          <span class="tp-skeleton tp-skeleton--line tp-skeleton--short" />
+          <span class="tp-skeleton tp-skeleton--line tp-skeleton--mid" />
+        </span>
+      </div>
+    </div>
   </div>
   <div v-else-if="error && !hasData" class="tp-state tp-state--error">
     <CircleAlert aria-hidden="true" />
@@ -16,15 +24,16 @@
       <strong>重试</strong>
     </button>
     <div v-if="isEmpty" class="tp-state">
-      <Inbox aria-hidden="true" />
-      <p>{{ emptyText }}</p>
+      <span class="tp-state__icon"><Inbox aria-hidden="true" /></span>
+      <p class="tp-state__title">{{ emptyText }}</p>
+      <p v-if="emptyHint">{{ emptyHint }}</p>
     </div>
     <slot v-else />
   </template>
 </template>
 
 <script setup lang="ts">
-import { CircleAlert, Inbox, Loader2 } from 'lucide-vue-next'
+import { CircleAlert, Inbox } from 'lucide-vue-next'
 
 withDefaults(
   defineProps<{
@@ -33,8 +42,12 @@ withDefaults(
     hasData?: boolean
     isEmpty?: boolean
     emptyText?: string
+    /** 说明之后这里会出现什么，或者接下来可以做什么 */
+    emptyHint?: string
+    skeleton?: 'list' | 'hero'
+    rows?: number
   }>(),
-  { emptyText: '暂无数据' },
+  { emptyText: '暂无数据', skeleton: 'list', rows: 3 },
 )
 
 defineEmits<{ retry: [] }>()
