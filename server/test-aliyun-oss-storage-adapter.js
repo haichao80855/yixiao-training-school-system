@@ -53,7 +53,8 @@ function createFakeOssClient() {
     },
     signatureUrl(name, options) {
       calls.push({ op: 'sign', name, options });
-      return `https://signed.example/${name}?expires=${options.expires}${options.process ? `&process=${options.process}` : ''}`;
+      const cache = options.response ? `&cache=${options.response['cache-control']}` : '';
+      return `https://signed.example/${name}?expires=${options.expires}${options.process ? `&process=${options.process}` : ''}${cache}`;
     },
   };
 }
@@ -100,6 +101,24 @@ async function runTests() {
   assert(adapter.signedUrl('photos/a.jpg', { variant: 'thumb' }).includes('process=image/resize'));
   assert(adapter.signedUrl('videos/a.mp4', { variant: 'thumb' }).includes('process=video/snapshot'));
   assert(adapter.signedUrl('/videos/a.mp4').includes('expires=3600'), '默认有效期 3600 秒');
+  assert(!adapter.signedUrl('/videos/a.mp4').includes('cache='), '未要求稳定链接时不带缓存响应头');
+  const previewPhoto = adapter.signedUrl('photos/a.jpg', { variant: 'preview' });
+  assert(previewPhoto.includes('resize,m_lfit,w_1280,h_1280'), '大图预览限制长边 1280');
+  assert(!adapter.signedUrl('photos/a.gif', { variant: 'preview' }).includes('process='), 'GIF 预览不处理，避免丢失动画');
+  assert(!adapter.signedUrl('videos/a.mp4', { variant: 'preview' }).includes('process='), '视频没有预览处理');
+  const { signedUrlExpiry } = require('./dist/modules/upload/domain/ports/storage-engine.port');
+  const WINDOW = 6 * 3600;
+  const opts = { expiresInSeconds: 3600, stableForSeconds: WINDOW };
+  // 窗口起点：此刻 + 1 小时最短有效期刚好越过一个对齐边界
+  const base = WINDOW * 100000 - 3600 + 1;
+  assert.strictEqual(signedUrlExpiry(opts, base), signedUrlExpiry(opts, base + WINDOW - 1), '同一时间窗口内到期时间相同');
+  assert.notStrictEqual(signedUrlExpiry(opts, base), signedUrlExpiry(opts, base + WINDOW), '进入下一窗口后链接更新');
+  for (const now of [base, base + 1000, base + WINDOW - 3600, base + WINDOW - 3599, base + WINDOW - 1]) {
+    const left = signedUrlExpiry(opts, now) - now;
+    assert(left >= 3600 && left <= 3600 + WINDOW, `稳定链接剩余有效期在 1 到 7 小时之间 (实际 ${left} 秒)`);
+  }
+  assert.strictEqual(signedUrlExpiry({ expiresInSeconds: 600 }, base), base + 600, '未要求稳定链接时到期时间不对齐');
+  assert(adapter.signedUrl('photos/a.jpg', opts).includes('cache=private, max-age=25200'), '稳定链接带固定的缓存响应头');
   console.log('  ✔ 通过');
 
   console.log('\n▶ [Case 4] deleteByPrefix：分页批量删除，空前缀拒绝执行');

@@ -424,7 +424,11 @@ export class ParentPortalService {
       months: page.map(([month, items]) => ({
         month,
         dayCount: new Set(items.map((i) => i.lessonDate)).size,
-        items: items.map((i) => ({ id: i.id, date: i.lessonDate, ...this.media.photo(i.storageKey)! })),
+        items: items.map((i) => ({
+          id: i.id,
+          date: i.lessonDate,
+          ...(mediaType === 'video' ? this.media.video(i.storageKey) : this.media.photo(i.storageKey))!,
+        })),
       })),
       nextCursor: ordered.length > monthsPerPage ? page[page.length - 1][0] : null,
     };

@@ -1,7 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SignedUrlOptions, StorageEnginePort, StoragePersistResult } from '../ports/storage-engine.port';
+import { SignedUrlOptions, StorageEnginePort, StoragePersistResult, signedUrlExpiry } from '../ports/storage-engine.port';
 import { signMediaKey } from '../media-signer';
 import { isSafeStorageKey, keyFromLocalMediaRoute } from '../media-key.util';
 
@@ -96,7 +96,7 @@ export class LocalStorageEngineAdapter implements StorageEnginePort {
   }
 
   signedUrl(key: string, options: SignedUrlOptions = {}): string {
-    const exp = Math.floor(Date.now() / 1000) + (options.expiresInSeconds ?? 3600);
+    const exp = signedUrlExpiry(options);
     const sig = signMediaKey(key, exp);
     const base = (process.env.MEDIA_PUBLIC_BASE_URL || process.env.APP_BASE_URL || '').replace(/\/+$/, '');
     const encodedKey = key.split('/').map(encodeURIComponent).join('/');

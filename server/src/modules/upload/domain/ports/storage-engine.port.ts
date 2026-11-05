@@ -3,8 +3,20 @@ import { Injectable } from '@nestjs/common';
 export interface SignedUrlOptions {
   /** 有效期 (秒)，默认 3600 */
   expiresInSeconds?: number;
-  /** thumb = 列表缩略图；original = 原图/原视频 */
-  variant?: 'original' | 'thumb';
+  /** thumb = 列表缩略图；preview = 大图预览 (限制尺寸，省流量)；original = 原图/原视频 */
+  variant?: 'original' | 'thumb' | 'preview';
+  /**
+   * 让链接在该时长内保持不变，手机才能命中缓存、不重复下载。
+   * 实际有效期为 expiresInSeconds 到 expiresInSeconds + stableForSeconds 之间。
+   */
+  stableForSeconds?: number;
+}
+
+/** 链接到期时间 (秒级时间戳)：指定 stableForSeconds 时对齐到时间窗口边界，同一窗口内结果相同 */
+export function signedUrlExpiry(options: SignedUrlOptions = {}, nowSeconds = Math.floor(Date.now() / 1000)): number {
+  const earliest = nowSeconds + (options.expiresInSeconds ?? 3600);
+  const window = options.stableForSeconds;
+  return window ? Math.ceil(earliest / window) * window : earliest;
 }
 
 export interface StoragePersistResult {
