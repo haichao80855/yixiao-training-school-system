@@ -120,25 +120,10 @@ import { ElMessage } from 'element-plus'
 import { Monitor, Zap, Shield, User, Lock } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
+import { safeLoginRedirect } from '@/utils/loginRedirect'
 
 const router = useRouter()
 const route = useRoute()
-
-/** 登录后回跳地址：只接受站内相对路径，防止被构造成跳到外部站点 */
-function safeRedirectTarget(): string | null {
-  const raw = route.query.redirect
-  const target = Array.isArray(raw) ? raw[0] : raw
-  if (
-    typeof target !== 'string' ||
-    !target.startsWith('/') ||
-    target.startsWith('//') ||
-    target.includes('\\') ||
-    target.startsWith('/login')
-  ) {
-    return null
-  }
-  return target
-}
 const authStore = useAuthStore()
 const tenantStore = useTenantStore()
 
@@ -163,7 +148,11 @@ const loginForm = reactive({
 })
 
 async function executeLogin(account: string, password: string) {
+  // 手机上连按「前往」或弱网时会重复提交：后一次完成时路由已离开登录页，回跳地址读不到，
+  // 校长等非纯教师账号会被送回仪表盘。因此只允许一个提交在途，并在提交时就锁定回跳地址
+  if (loading.value) return
   loading.value = true
+  const redirectTarget = safeLoginRedirect(route.query.redirect)
   try {
     const res = await authStore.loginAsync(account, password)
 
@@ -186,7 +175,8 @@ async function executeLogin(account: string, password: string) {
 
     // 会话失效被送回登录页的，登录后回到原页面；否则老师进入教师端、其他角色进入仪表盘
     // 用 replace：登录页不留在浏览记录里，后退不会回到登录页，微信里也不会因此出现底部前进后退栏
-    router.replace(safeRedirectTarget() || authStore.homePath)
+    // 等导航结束才解除 loading，否则路由分片加载期间还能再次提交；分片加载失败由 router.onError 处理
+    await router.replace(redirectTarget || authStore.homePath).catch(() => {})
   } catch (err: any) {
     ElMessage.error(err.message || '登录失败，请检查用户名与密码是否正确')
   } finally {
