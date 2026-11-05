@@ -56,7 +56,9 @@ export interface ClassItem {
   currentStudentCount: number;
   studentIds: string[];
   startDate: string;
-  endDate: string;
+  endDate: string | null; // 预计结课日期，选填
+  lastScheduleDate?: string | null; // 末次正式课日期，由排课记录推导
+  periodEnd?: string; // 开班周期的结束显示值：末次课 > 预计结课 > 未定
   status: ClassStatus;
   scheduleDesc?: string; // 如 "每周六 09:00-10:30"
   completedLessons?: number;

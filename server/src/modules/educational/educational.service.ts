@@ -15,6 +15,15 @@ import { WorkbenchQuery } from './domain/lesson-settlement.types';
 
 import { CourseDeliveryEngine } from '../curriculum/domain/course-delivery.engine';
 import { ClassRosterCoordinator } from './domain/class-roster.coordinator';
+import { summarizeClassSchedules } from './domain/class-schedule-summary';
+
+function parseClassDate(value: string, label: string): Date {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) {
+    throw new BadRequestException(`${label}格式不正确：${value}`);
+  }
+  return d;
+}
 
 @Injectable()
 export class EducationalService {
@@ -189,10 +198,11 @@ export class EducationalService {
         orderBy: { createdAt: 'desc' },
         include: {
           campus: { select: { id: true, name: true } },
-          course: { select: { id: true, name: true, code: true, pricePerLesson: true } },
+          course: { select: { id: true, name: true, code: true, pricePerLesson: true, totalLessons: true } },
           teacher: { select: { id: true, realName: true, phone: true } },
           advisor: { select: { id: true, realName: true, phone: true } },
           classroom: { select: { id: true, name: true, code: true, capacity: true } },
+          schedules: { select: { date: true, startTime: true, endTime: true, status: true, classType: true } },
           _count: { select: { studentPackages: true, schedules: true } },
         },
       }),
@@ -202,8 +212,10 @@ export class EducationalService {
       total,
       page,
       pageSize,
-      list: list.map((c) => ({
+      list: list.map(({ schedules, ...c }) => ({
         ...c,
+        ...summarizeClassSchedules(schedules),
+        totalLessons: c.course.totalLessons,
         enrolledCount: c._count.studentPackages,
         scheduleCount: c._count.schedules,
       })),
@@ -237,7 +249,11 @@ export class EducationalService {
     if (!cls) {
       throw new NotFoundException(`未找到班级 ID: ${id}`);
     }
-    return cls;
+    return {
+      ...cls,
+      ...summarizeClassSchedules(cls.schedules),
+      totalLessons: cls.course.totalLessons,
+    };
   }
 
   async createClass(dto: CreateClassDto) {
@@ -251,6 +267,12 @@ export class EducationalService {
       throw new BadRequestException(`班级代码 ${dto.code} 已存在`);
     }
 
+    const startDate = new Date(dto.startDate);
+    const endDate = dto.endDate ? parseClassDate(dto.endDate, '结课日期') : null;
+    if (endDate && startDate > endDate) {
+      throw new BadRequestException('结课日期不能早于开班日期');
+    }
+
     return this.prisma.class.create({
       data: {
         campusId: dto.campusId,
@@ -261,8 +283,8 @@ export class EducationalService {
         advisorId: dto.advisorId || null,
         classroomId: dto.classroomId,
         capacity: dto.capacity || 8,
-        startDate: new Date(dto.startDate),
-        endDate: new Date(dto.endDate),
+        startDate,
+        endDate,
         status: 'recruiting',
       },
       include: {
@@ -276,14 +298,6 @@ export class EducationalService {
   async updateClass(id: string, dto: UpdateClassDto) {
     // 显式白名单组装更新数据：前端日期为 YYYY-MM-DD 字符串，需与 createClass 一致转换为 Date；
     // 同时避免把请求体中的非可编辑字段原样写库（全局未启用 ValidationPipe 白名单过滤）
-    const toDate = (value: string, label: string) => {
-      const d = new Date(value);
-      if (Number.isNaN(d.getTime())) {
-        throw new BadRequestException(`${label}格式不正确：${value}`);
-      }
-      return d;
-    };
-
     const data: Prisma.ClassUncheckedUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name;
     if (dto.capacity !== undefined) data.capacity = Number(dto.capacity);
@@ -291,8 +305,10 @@ export class EducationalService {
     if (dto.teacherId) data.teacherId = dto.teacherId;
     if (dto.classroomId) data.classroomId = dto.classroomId;
     if (dto.advisorId !== undefined) data.advisorId = dto.advisorId || null;
-    if (dto.startDate) data.startDate = toDate(dto.startDate, '开班日期');
-    if (dto.endDate) data.endDate = toDate(dto.endDate, '结课日期');
+    if (dto.startDate) data.startDate = parseClassDate(dto.startDate, '开班日期');
+    if (dto.endDate !== undefined) {
+      data.endDate = dto.endDate ? parseClassDate(dto.endDate, '结课日期') : null;
+    }
 
     if (data.startDate && data.endDate && (data.startDate as Date) > (data.endDate as Date)) {
       throw new BadRequestException('结课日期不能早于开班日期');

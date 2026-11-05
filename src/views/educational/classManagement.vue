@@ -196,7 +196,7 @@
               {{ row.name }}
             </div>
             <div class="text-[11px] text-st-muted mt-0.5">
-              {{ row.scheduleDesc || '每周固定时段' }}
+              {{ row.scheduleDesc || '未排课' }}
             </div>
           </template>
         </el-table-column>
@@ -227,7 +227,7 @@
 
         <el-table-column label="开班周期" width="165">
           <template #default="{ row }">
-            <span class="font-mono text-xs text-st-muted">{{ row.startDate }} ~ {{ row.endDate }}</span>
+            <span class="font-mono text-xs text-st-muted">{{ row.startDate }} ~ {{ row.periodEnd }}</span>
           </template>
         </el-table-column>
 

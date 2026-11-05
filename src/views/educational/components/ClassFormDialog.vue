@@ -13,13 +13,14 @@
           <el-input v-model="form.name" placeholder="如：Scratch创意周末班 (周六 09:00)" />
         </el-form-item>
         <el-form-item label="班级编号" prop="code">
-          <el-input v-model="form.code" placeholder="如：CLS-HQ-SC-01" />
+          <el-input v-model="form.code" :disabled="isEdit" placeholder="如：CLS-HQ-SC-01" />
         </el-form-item>
       </div>
 
       <!-- 所属课程 -->
       <el-form-item label="关联课程" prop="courseId">
-        <el-select v-model="form.courseId" placeholder="选择所属课程" class="w-full" @change="handleCourseChange">
+        <el-input v-if="isEdit" :model-value="form.courseName" disabled />
+        <el-select v-else v-model="form.courseId" placeholder="选择所属课程" class="w-full" @change="handleCourseChange">
           <el-option
             v-for="c in courses"
             :key="c.id"
@@ -84,17 +85,15 @@
         <el-form-item label="开班日期" prop="startDate">
           <el-date-picker v-model="form.startDate" type="date" value-format="YYYY-MM-DD" placeholder="开班日期" class="!w-full" />
         </el-form-item>
-        <el-form-item label="结课日期" prop="endDate">
-          <el-date-picker v-model="form.endDate" type="date" value-format="YYYY-MM-DD" placeholder="预计结课" class="!w-full" />
+        <el-form-item v-if="lastScheduleDate" label="末次课日期">
+          <el-input :model-value="lastScheduleDate" disabled />
+        </el-form-item>
+        <el-form-item v-else label="预计结课日期" prop="endDate">
+          <el-date-picker v-model="form.endDate" type="date" value-format="YYYY-MM-DD" placeholder="选填" class="!w-full" />
         </el-form-item>
       </div>
 
       <div class="grid grid-cols-2 gap-3">
-        <!-- 规律描述 -->
-        <el-form-item label="上课规律">
-          <el-input v-model="form.scheduleDesc" placeholder="如：每周六 09:00-10:30" />
-        </el-form-item>
-
         <!-- 班级状态 -->
         <el-form-item label="班级状态" prop="status">
           <el-select v-model="form.status" class="w-full">
@@ -103,12 +102,10 @@
             <el-option label="已结业" value="completed" />
           </el-select>
         </el-form-item>
-      </div>
 
-      <div class="grid grid-cols-2 gap-3">
-        <!-- 总课次数 -->
+        <!-- 总课次数取自关联课程，不在班级上单独维护 -->
         <el-form-item label="总课次数">
-          <el-input-number v-model="form.totalLessons" :min="1" :max="120" class="!w-full" />
+          <el-input :model-value="totalLessonsLabel" disabled />
         </el-form-item>
       </div>
     </el-form>
@@ -176,6 +173,7 @@ const visible = ref(false)
 const isEdit = ref(false)
 const submitting = ref(false)
 const currentId = ref<string | null>(null)
+const lastScheduleDate = ref<string | null>(null)
 const formRef = ref<FormInstance>()
 
 // 快捷新增教室弹窗状态
@@ -265,6 +263,13 @@ async function reloadCourses() {
   }
 }
 const courses = computed(() => courseList.value.filter(c => Boolean(c && c.id)))
+const editingTotalLessons = ref<number | undefined>()
+const totalLessonsLabel = computed(() => {
+  const total = isEdit.value
+    ? editingTotalLessons.value
+    : courses.value.find(c => c.id === form.courseId)?.totalLessons
+  return total ? `${total} 讲` : '—'
+})
 
 const form = reactive({
   name: '',
@@ -279,10 +284,8 @@ const form = reactive({
   classroomName: '',
   capacity: 16,
   startDate: '2026-09-01',
-  endDate: '2027-01-31',
-  scheduleDesc: '每周六 09:00-10:30',
-  status: 'recruiting' as ClassStatus,
-  totalLessons: 48
+  endDate: null as string | null,
+  status: 'recruiting' as ClassStatus
 })
 
 const rules: FormRules = {
@@ -298,7 +301,6 @@ function handleCourseChange(courseId: string) {
   const c = courses.value.find(item => item.id === courseId)
   if (c) {
     form.courseName = c.name
-    form.totalLessons = c.totalLessons || 48
   }
 }
 
@@ -321,9 +323,9 @@ async function open(cls?: ClassItem) {
     form.capacity = cls.capacity
     form.startDate = cls.startDate
     form.endDate = cls.endDate
-    form.scheduleDesc = cls.scheduleDesc || ''
     form.status = cls.status
-    form.totalLessons = cls.totalLessons || 48
+    lastScheduleDate.value = cls.lastScheduleDate ?? null
+    editingTotalLessons.value = cls.totalLessons
   } else {
     isEdit.value = false
     currentId.value = null
@@ -339,10 +341,10 @@ async function open(cls?: ClassItem) {
     form.classroomName = classrooms.value[0]?.name || ''
     form.capacity = 16
     form.startDate = '2026-09-01'
-    form.endDate = '2027-01-31'
-    form.scheduleDesc = '每周六 09:00-10:30'
+    form.endDate = null
     form.status = 'recruiting'
-    form.totalLessons = 48
+    lastScheduleDate.value = null
+    editingTotalLessons.value = undefined
   }
 }
 
@@ -369,9 +371,11 @@ async function handleSubmit() {
           name: form.name,
           capacity: form.capacity,
           teacherId: form.teacherId,
+          advisorId: form.assistantId,
           classroomId: form.classroomId,
           startDate: form.startDate,
-          endDate: form.endDate,
+          // 已有排课时结课日期以末次课为准，不再改动预计日期
+          ...(lastScheduleDate.value ? {} : { endDate: form.endDate }),
           status: form.status,
         })
         ElMessage.success('班级信息已更新并同步落库！')
@@ -383,6 +387,7 @@ async function handleSubmit() {
           name: form.name,
           capacity: form.capacity,
           teacherId: form.teacherId,
+          advisorId: form.assistantId || undefined,
           classroomId: form.classroomId,
           startDate: form.startDate,
           endDate: form.endDate,

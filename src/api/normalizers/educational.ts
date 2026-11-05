@@ -26,7 +26,8 @@ export function normalizeClass(raw: any): ClassItem {
     : (studentIds.length || studentPackages.length || 0);
 
   const startDate = raw.startDate ? String(raw.startDate).split('T')[0] : '2026-09-01';
-  const endDate = raw.endDate ? String(raw.endDate).split('T')[0] : '2027-01-31';
+  const endDate = raw.endDate ? String(raw.endDate).split('T')[0] : null;
+  const lastScheduleDate = raw.lastScheduleDate || null;
 
   const students = studentPackages.map((p: any) => ({
     id: p.student?.id || p.studentId,
@@ -56,16 +57,18 @@ export function normalizeClass(raw: any): ClassItem {
     studentIds,
     startDate,
     endDate,
+    lastScheduleDate,
+    periodEnd: lastScheduleDate || endDate || '未定',
     status: (raw.status || 'in_progress') as ClassStatus,
-    scheduleDesc: raw.scheduleDesc || '每周六 09:00-10:30',
-    totalLessons: Number(raw.totalLessons || 48),
+    scheduleDesc: raw.scheduleDesc || '',
+    totalLessons: Number(raw.totalLessons || raw.course?.totalLessons || 0),
     completedLessons: Number(raw.completedLessons || 0),
     createdAt: raw.createdAt ? String(raw.createdAt).split('T')[0] : undefined,
     updatedAt: raw.updatedAt ? String(raw.updatedAt).split('T')[0] : undefined,
     // 兼容历史视图访问别名
     ...({
       currentCount: currentStudentCount,
-      scheduleTime: raw.scheduleDesc || '每周六 09:00-10:30',
+      scheduleTime: raw.scheduleDesc || '',
       students,
     } as any),
   };
