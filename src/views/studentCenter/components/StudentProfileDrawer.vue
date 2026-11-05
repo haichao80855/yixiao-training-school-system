@@ -788,6 +788,8 @@ async function copySingleLessonShareLink(token: string, scheduleEventId?: string
 }
 
 function calcProgress(pkg: StudentCoursePackage) {
+  // 迁移录入的已耗尽课包总课时为 0，避免 0/0 得到 NaN
+  if (!pkg.totalLessons) return 0
   const consumed = pkg.consumedLessons || (pkg.totalLessons - pkg.remainingLessons)
   return Math.min(100, Math.round((consumed / pkg.totalLessons) * 100))
 }
