@@ -107,8 +107,7 @@ async function submitPassword() {
     await authApi.changePassword({ oldPassword: passwordForm.oldPassword, newPassword: passwordForm.newPassword })
     ElMessage.success('密码已修改，请重新登录')
     passwordVisible.value = false
-    authStore.logout()
-    router.replace('/login')
+    logoutToLogin()
   } catch (err: any) {
     passwordError.value = err?.message || '修改失败，请重试'
   } finally {
@@ -127,8 +126,13 @@ async function handleLogout() {
   } catch {
     return
   }
+  logoutToLogin()
+}
+
+/** 从教师端退出后重新登录仍回到教师端：校长等兼任账号的默认首页是管理后台，不带回跳地址会进电脑版 */
+function logoutToLogin() {
   authStore.logout()
-  router.replace('/login')
+  router.replace({ path: '/login', query: { redirect: '/teacher' } })
 }
 
 onMounted(() => {

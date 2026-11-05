@@ -246,13 +246,15 @@ export const router = createRouter({
 })
 
 import { useAuthStore } from '@/stores/authStore'
+import { safeLoginRedirect } from '@/utils/loginRedirect'
 
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
   // 登录页与公开学情报告落地页免登录放行
   if (to.path === '/login' || to.path.startsWith('/public/')) {
     if (to.path === '/login' && authStore.isAuthenticated) {
-      next(authStore.homePath)
+      // 已登录再打开带回跳地址的登录页 (如另一标签页已完成登录)：仍去原本要去的页面
+      next(safeLoginRedirect(to.query.redirect) || authStore.homePath)
     } else {
       next()
     }
