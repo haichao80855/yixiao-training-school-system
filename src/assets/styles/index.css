@@ -31,6 +31,40 @@ html, body, #app {
   font-variant-numeric: tabular-nums;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* body 设了 select-none：iOS Safari 下继承 user-select: none 的输入框无法聚焦输入，必须显式放开 */
+input,
+textarea,
+select,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 手机屏幕：16px 以下的输入框在 iOS 聚焦时会放大页面；弹窗按钮放大到可触控尺寸 */
+@media (max-width: 767px) {
+  /* Element 组件样式按需加载、排在本文件之后，必须用 !important 才能覆盖 */
+  .el-input .el-input__inner,
+  .el-textarea .el-textarea__inner {
+    font-size: 16px !important;
+  }
+  .el-input--large .el-input__wrapper {
+    min-height: 44px;
+  }
+  .el-message-box .el-message-box__btns .el-button {
+    min-height: 44px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+  .el-message {
+    max-width: calc(100vw - 32px);
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--st-color-primary-hover);
   outline-offset: 2px;

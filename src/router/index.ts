@@ -274,7 +274,24 @@ router.beforeEach((to, _from, next) => {
   }
 })
 
-router.afterEach((to) => {
+// 发布新版本后，手机上开着的旧页面再加载路由分片会 404，表现为白屏：整页重载取新版本
+const CHUNK_RELOAD_KEY = 'yixiao_chunk_reload_at'
+router.onError((error, to) => {
+  if (!/dynamically imported module|Importing a module script failed|error loading dynamically/i.test(error?.message || '')) return
+  if (navigator.onLine === false) return
+  try {
+    // 重载后仍失败时不再循环刷新
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0)
+    if (Date.now() - last < 10_000) return
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()))
+  } catch {
+    return
+  }
+  window.location.assign(to.fullPath)
+})
+
+router.afterEach((to, _from, failure) => {
+  if (failure) return
   const title = (to.meta?.title as string) || '拓视未来教育'
   document.title = `${title} - 一校教培系统`
 })

@@ -8,6 +8,7 @@ import {
 import * as crypto from 'crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { OutboxNotificationDispatcher } from './notification/outbox-notification.dispatcher';
+import { mediaVariantRef } from '../../upload/domain/media-key.util';
 import {
   PrepareFulfillmentQuery,
   FulfillmentWorkbenchView,
@@ -228,7 +229,10 @@ export class LessonFulfillmentCoordinator {
         evaluatedAt: evalItem?.evaluatedAt ? evalItem.evaluatedAt.toISOString() : undefined,
         evaluatedSource: evalItem?.evaluatedSource || 'web',
         photos: studentPhotos,
+        photoThumbs: studentPhotos.map((p) => mediaVariantRef(p, 'thumb')),
+        photoPreviews: studentPhotos.map((p) => mediaVariantRef(p, 'preview')),
         videoUrl: studentVideo,
+        videoPoster: studentVideo ? mediaVariantRef(studentVideo, 'thumb') : undefined,
         currentComment: evalItem?.comment || recorded?.comment || '',
         currentRating: evalItem?.rating || recorded?.rating || 5.0,
       });

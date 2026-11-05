@@ -37,7 +37,7 @@
 
     <button type="button" class="tp-btn tp-btn-secondary w-full !text-st-danger-deep" @click="handleLogout">退出登录</button>
 
-    <el-dialog v-model="passwordVisible" title="修改密码" width="min(92vw, 420px)" append-to-body @closed="resetPasswordForm">
+    <el-dialog v-model="passwordVisible" title="修改密码" width="min(92vw, 420px)" top="6vh" append-to-body @closed="resetPasswordForm">
       <form class="grid gap-3" @submit.prevent="submitPassword">
         <label class="grid gap-1 text-[14px] text-st-title">
           原密码

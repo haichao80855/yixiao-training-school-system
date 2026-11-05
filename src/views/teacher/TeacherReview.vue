@@ -32,8 +32,8 @@
           <el-image
             v-for="(photo, idx) in student.photos"
             :key="photo"
-            :src="photo"
-            :preview-src-list="student.photos"
+            :src="student.photoThumbs?.[idx] || photo"
+            :preview-src-list="student.photoPreviews?.length ? student.photoPreviews : student.photos"
             :initial-index="idx"
             preview-teleported
             fit="cover"
@@ -41,7 +41,15 @@
             alt="课堂照片"
           />
         </div>
-        <video v-if="student.videoUrl" :src="student.videoUrl" class="w-full mt-2 rounded-lg bg-black" controls playsinline preload="metadata" />
+        <video
+          v-if="student.videoUrl"
+          :src="student.videoUrl"
+          :poster="student.videoPoster || undefined"
+          :preload="student.videoPoster ? 'none' : 'metadata'"
+          class="w-full mt-2 rounded-lg bg-black"
+          controls
+          playsinline
+        />
       </section>
 
       <RouterLink :to="`/teacher/lessons/${lessonId}/evaluate/${studentId}`" class="tp-btn tp-btn-primary w-full">修改课评</RouterLink>
@@ -56,6 +64,7 @@ import { Star } from 'lucide-vue-next'
 import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import { attendanceLabel, friendlyDate, htmlToText, shortTime } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const route = useRoute()
@@ -72,5 +81,6 @@ const studyContent = computed(() => {
   return draft?.isExisting ? htmlToText(draft.studyContentHtml) : ''
 })
 
+usePageRefresh(workbench.load)
 onMounted(workbench.load)
 </script>

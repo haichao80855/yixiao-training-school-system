@@ -22,7 +22,7 @@
         <div class="grid gap-2.5">
           <article v-for="item in visibleItems" :key="item.id" class="tp-card">
             <div class="flex items-center justify-between gap-2">
-              <RouterLink :to="`/teacher/students/${item.studentId}`" class="text-[15px] font-medium text-st-title no-underline break-words min-w-0">
+              <RouterLink :to="`/teacher/students/${item.studentId}`" class="min-h-[44px] py-2.5 -my-2.5 flex-1 text-[15px] font-medium text-st-title no-underline break-words min-w-0">
                 {{ item.studentName }}
                 <span class="text-[12px] font-normal text-st-muted tabular-nums">{{ item.studentNo }}</span>
               </RouterLink>
@@ -41,11 +41,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { Phone } from 'lucide-vue-next'
 import { teacherPortalApi, type WarningType } from '@/api'
 import LoadState from './components/LoadState.vue'
 import RosterTabs from './components/RosterTabs.vue'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const TYPE_LABELS: Record<WarningType, string> = {
@@ -71,5 +72,6 @@ const visibleItems = computed(() =>
   (warnings.data.value?.items || []).filter((i) => filter.value === 'all' || i.type === filter.value),
 )
 
-onMounted(warnings.load)
+usePageRefresh(warnings.load)
+onActivated(warnings.load)
 </script>

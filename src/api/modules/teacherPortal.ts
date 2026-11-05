@@ -45,7 +45,12 @@ export interface WorkbenchStudent {
   hasPersonalEvaluation?: boolean;
   evaluatedAt?: string;
   photos?: string[];
+  /** 与 photos 一一对应：列表缩略图 */
+  photoThumbs?: string[];
+  /** 与 photos 一一对应：大图预览 */
+  photoPreviews?: string[];
   videoUrl?: string;
+  videoPoster?: string;
   currentComment?: string;
   currentRating?: number;
 }
@@ -276,6 +281,8 @@ export const teacherPortalApi = {
   ) =>
     request('/api/educational/lesson-evaluations/commit', {
       method: 'POST',
+      // 切到后台 / 关闭页面时这个请求也要能发完
+      keepalive: true,
       body: JSON.stringify({ scheduleEventId, publish: false, payload: { studentOverrides: students } }),
     }),
 

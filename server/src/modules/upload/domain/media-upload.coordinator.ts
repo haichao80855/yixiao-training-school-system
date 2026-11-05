@@ -1,3 +1,4 @@
+import { mediaVariantRef } from './media-key.util';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { StorageEnginePort } from './ports/storage-engine.port';
@@ -45,6 +46,8 @@ export interface VideoUploadResult {
   /** 与存储介质无关的 key (推荐持久化该字段) */
   videoKey: string;
   videoUrl: string;
+  /** 视频封面 (OSS 首帧截图)，页面先显示封面，点播放才下载视频 */
+  posterUrl: string;
   filename: string;
   sizeBytes: number;
   mimeType: string;
@@ -282,6 +285,7 @@ export class MediaUploadCoordinator {
     return {
       videoKey: relativePath,
       videoUrl: resolvedUrl,
+      posterUrl: mediaVariantRef(resolvedUrl, 'thumb'),
       filename,
       sizeBytes: file.buffer.length,
       mimeType: detected.mime,

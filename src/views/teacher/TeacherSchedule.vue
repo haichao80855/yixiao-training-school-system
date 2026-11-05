@@ -20,7 +20,7 @@
     </template>
 
     <template v-else>
-      <section class="tp-card !p-3">
+      <section class="tp-card !p-3" @touchstart.passive="onSwipeStart" @touchend.passive="onSwipeEnd">
         <div class="flex items-center justify-between gap-2">
           <span class="text-[15px] font-semibold text-st-title tabular-nums">{{ headerText }}</span>
           <div class="flex items-center gap-1">
@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onActivated, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-vue-next'
 import { teacherPortalApi } from '@/api'
@@ -94,6 +94,7 @@ import { useAuthStore } from '@/stores/authStore'
 import LessonCard from './components/LessonCard.vue'
 import LoadState from './components/LoadState.vue'
 import { formatDateStr, friendlyDate, parseDateStr, shiftDays, todayStr } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const WEEK_NAMES = ['日', '一', '二', '三', '四', '五', '六']
@@ -105,11 +106,12 @@ const FILTERS = [
 
 const route = useRoute()
 const authStore = useAuthStore()
-const today = todayStr()
+const today = ref(todayStr())
 const teacherId = authStore.user?.id || ''
 
-const overdueMode = computed(() => route.query.filter === 'overdue')
-const selectedDate = ref(today)
+// 页面被缓存时 useRoute 会跟着后续路由变化，查询参数只在创建时读取一次
+const overdueMode = route.query.filter === 'overdue'
+const selectedDate = ref(today.value)
 const expanded = ref(false)
 const statusFilter = ref<(typeof FILTERS)[number]['key']>('all')
 
@@ -117,7 +119,7 @@ function weekStart(date: string) {
   return shiftDays(date, -parseDateStr(date).getDay())
 }
 
-const anchor = ref(today)
+const anchor = ref(today.value)
 
 const range = computed(() => {
   if (!expanded.value) {
@@ -136,8 +138,8 @@ const lessons = useLoad(() =>
 const overdue = useLoad(async () => {
   const list = await teacherPortalApi.getMyLessons({
     teacherId,
-    startDate: shiftDays(today, -30),
-    endDate: shiftDays(today, -1),
+    startDate: shiftDays(today.value, -30),
+    endDate: shiftDays(today.value, -1),
   })
   return list.filter((l) => l.status !== 'completed').reverse()
 })
@@ -183,14 +185,30 @@ function shift(direction: 1 | -1) {
     const d = parseDateStr(anchor.value)
     const target = new Date(d.getFullYear(), d.getMonth() + direction, 1, 12)
     // 翻到当前月时回到今天，否则默认选该月 1 号
-    selectDate(target.getMonth() === parseDateStr(today).getMonth() && target.getFullYear() === parseDateStr(today).getFullYear() ? today : formatDateStr(target))
+    const now = parseDateStr(today.value)
+    const isCurrentMonth = target.getMonth() === now.getMonth() && target.getFullYear() === now.getFullYear()
+    selectDate(isCurrentMonth ? today.value : formatDateStr(target))
   } else {
     selectDate(shiftDays(selectedDate.value, direction * 7))
   }
 }
 
 function goToday() {
-  selectDate(today)
+  today.value = todayStr()
+  selectDate(today.value)
+}
+
+// 日历区域左右滑动翻周 / 翻月
+let swipeStart: { x: number; y: number } | null = null
+function onSwipeStart(event: TouchEvent) {
+  swipeStart = { x: event.touches[0].clientX, y: event.touches[0].clientY }
+}
+function onSwipeEnd(event: TouchEvent) {
+  if (!swipeStart) return
+  const dx = event.changedTouches[0].clientX - swipeStart.x
+  const dy = event.changedTouches[0].clientY - swipeStart.y
+  swipeStart = null
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 2) shift(dx < 0 ? 1 : -1)
 }
 
 function toggleExpanded() {
@@ -201,16 +219,19 @@ function toggleExpanded() {
 // range 每次重算都是新对象：按日期值比较，同一周内切换日期不重新请求
 watch(() => `${range.value.start}|${range.value.end}`, () => lessons.load())
 
-onMounted(() => {
-  if (overdueMode.value) overdue.load()
-  else lessons.load()
-})
+function refresh() {
+  today.value = todayStr()
+  return overdueMode ? overdue.load() : lessons.load()
+}
+
+usePageRefresh(refresh)
+onActivated(refresh)
 </script>
 
 <style scoped>
 .cal-nav {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;

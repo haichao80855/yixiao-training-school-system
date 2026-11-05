@@ -3,10 +3,12 @@ import type { Request } from 'express';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { StorageEnginePort } from './domain/ports/storage-engine.port';
-import { isOwnUploadRef, isThumbnailRef, toStorageKey, toUploadRef } from './domain/media-key.util';
+import { isOwnUploadRef, isPreviewRef, isThumbnailRef, toStorageKey, toUploadRef } from './domain/media-key.util';
 
 /** 管理端 / 教师端媒体链接有效期 (秒) */
 const STAFF_LINK_TTL_SECONDS = 3600;
+/** 缩略图 / 预览图链接在这段时间内保持不变，手机才能命中缓存，刷新页面不重复下载 */
+const IMAGE_LINK_STABLE_SECONDS = 3600;
 
 /**
  * 媒体链接拦截器 (全局)
@@ -31,8 +33,12 @@ export class MediaLinkInterceptor implements NestInterceptor {
 
   private sign(value: string): string {
     if (!isOwnUploadRef(value)) return value;
-    const variant = isThumbnailRef(value) ? 'thumb' : 'original';
-    return this.storage.signedUrl(toStorageKey(value), { variant, expiresInSeconds: STAFF_LINK_TTL_SECONDS });
+    const variant = isThumbnailRef(value) ? 'thumb' : isPreviewRef(value) ? 'preview' : 'original';
+    return this.storage.signedUrl(toStorageKey(value), {
+      variant,
+      expiresInSeconds: STAFF_LINK_TTL_SECONDS,
+      ...(variant === 'original' ? {} : { stableForSeconds: IMAGE_LINK_STABLE_SECONDS }),
+    });
   }
 
   private restore(value: string): string {

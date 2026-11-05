@@ -1,10 +1,7 @@
 <template>
   <div>
     <RosterTabs class="mb-3" />
-    <div class="tp-search mb-3">
-      <Search />
-      <input v-model="keyword" class="tp-input" type="search" placeholder="搜索班级名称" aria-label="搜索班级" @input="onKeywordInput" />
-    </div>
+    <SearchBox v-model="keyword" class="mb-3" placeholder="搜索班级名称" @search="classes.load" />
 
     <LoadState
       :loading="classes.loading.value"
@@ -38,27 +35,19 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { onActivated, ref } from 'vue'
 import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import RosterTabs from './components/RosterTabs.vue'
+import SearchBox from './components/SearchBox.vue'
+import { usePageRefresh } from './utils/pageRefresh'
 import { classStatusLabel, friendlyDate, shortTime } from './utils/format'
 import { useLoad } from './utils/useLoad'
 
 const keyword = ref('')
-let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const classes = useLoad(async () => (await teacherPortalApi.getClasses({ keyword: keyword.value.trim() || undefined })).data)
 
-function onKeywordInput() {
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(classes.load, 300)
-}
-
-onBeforeUnmount(() => {
-  if (searchTimer) clearTimeout(searchTimer)
-})
-
-onMounted(classes.load)
+usePageRefresh(classes.load)
+onActivated(classes.load)
 </script>

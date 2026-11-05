@@ -19,6 +19,7 @@ export interface ClassroomPhotoBatchResult {
 
 export interface VideoUploadResult {
   videoUrl: string;
+  posterUrl?: string;
   filename: string;
   sizeBytes: number;
   mimeType: string;

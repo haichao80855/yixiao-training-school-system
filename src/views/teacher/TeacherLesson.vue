@@ -14,11 +14,12 @@
         </p>
       </section>
 
-      <div class="flex items-center justify-between gap-2 mt-4 mb-2">
+      <div class="tp-sticky-heading flex items-center justify-between gap-2 mt-2">
         <h2 class="m-0 text-[15px] font-semibold text-st-title tabular-nums">
           点名 {{ attendedCount }}/{{ students.length }}
         </h2>
-        <span class="text-[12px]" :class="syncState === 'failed' ? 'text-st-danger' : 'text-st-muted'" role="status">{{ syncText }}</span>
+        <button v-if="syncState === 'failed'" type="button" class="sync-retry" @click="flushSync">保存失败，点此重试</button>
+        <span v-else class="text-[12px] text-st-muted" role="status">{{ syncText }}</span>
       </div>
 
       <p v-if="students.length === 0" class="tp-card text-center text-st-muted text-[14px] m-0">本班暂无在读学员</p>
@@ -26,7 +27,7 @@
       <div class="grid gap-2.5">
         <article v-for="stu in students" :key="stu.studentId" class="tp-card">
           <div class="flex items-start justify-between gap-2">
-            <RouterLink :to="`/teacher/students/${stu.studentId}`" class="min-w-0 no-underline text-inherit">
+            <RouterLink :to="`/teacher/students/${stu.studentId}`" class="min-w-0 flex-1 min-h-[44px] no-underline text-inherit">
               <span class="text-[15px] font-medium text-st-title break-words">{{ stu.studentName }}</span>
               <span class="block text-[12px] text-st-muted tabular-nums">
                 {{ stu.studentNo }} · 剩余
@@ -49,7 +50,7 @@
             </RouterLink>
           </div>
 
-          <div class="flex items-center gap-2 mt-2.5">
+          <div class="roster-controls mt-2.5">
             <div class="tp-segment flex-1" role="group" :aria-label="`${stu.studentName} 出勤`">
               <button
                 v-for="opt in ATTENDANCE_OPTIONS"
@@ -115,6 +116,7 @@ import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
 import { readDraft, removeDraft } from './utils/evaluationDraft'
 import { ATTENDANCE_OPTIONS, friendlyDate, isAttended, lessonStatusLabel, shortTime, todayStr } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 interface RosterRow extends WorkbenchStudent {
@@ -152,7 +154,6 @@ const hasUnsavedChanges = computed(() => isSettled.value && changedStudents.valu
 const syncText = computed(() => {
   if (syncState.value === 'saving') return '保存中…'
   if (syncState.value === 'saved') return '点名已保存'
-  if (syncState.value === 'failed') return '保存失败，修改后会自动重试'
   return isSettled.value ? '' : '点名自动保存'
 })
 
@@ -359,27 +360,80 @@ async function flushSyncIfNeeded() {
 }
 
 onBeforeRouteLeave(async () => {
-  if (syncTimer) await flushSync()
-  if (!hasUnsavedChanges.value) return true
+  if (syncTimer || syncState.value === 'failed') await flushSync()
+  const lost = hasUnsavedChanges.value || syncState.value === 'failed'
+  if (!lost) return true
   try {
-    await ElMessageBox.confirm('考勤修改尚未保存，离开后将丢失。', '放弃修改？', {
-      confirmButtonText: '放弃修改',
-      cancelButtonText: '留在此页',
-    })
+    await ElMessageBox.confirm(
+      syncState.value === 'failed' ? '点名没能保存到服务器，请检查网络。离开后本次修改将丢失。' : '考勤修改尚未保存，离开后将丢失。',
+      '放弃修改？',
+      { confirmButtonText: '放弃修改', cancelButtonText: '留在此页' },
+    )
     return true
   } catch {
     return false
   }
 })
 
-onBeforeUnmount(() => {
-  if (syncTimer) clearTimeout(syncTimer)
+/** 接电话、切应用时立刻保存，不等防抖：页面可能随后被系统回收 */
+function onVisibilityChange() {
+  if (document.hidden && syncTimer) flushSync()
+}
+
+function onOnline() {
+  if (syncState.value === 'failed') flushSync()
+}
+
+/** 有未保存的点名时不刷新，否则服务端旧数据会覆盖老师刚点的内容 */
+function refresh() {
+  if (syncTimer || syncState.value === 'saving' || syncState.value === 'failed' || hasUnsavedChanges.value || busy.value) return
+  return reload()
+}
+
+usePageRefresh(refresh)
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  window.addEventListener('online', onOnline)
+  reload()
 })
 
-onMounted(reload)
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('online', onOnline)
+  if (syncTimer) clearTimeout(syncTimer)
+})
 </script>
 
 <style scoped>
+.roster-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 最窄的手机上四个出勤按钮要占满一行，扣课时另起一行 */
+@media (max-width: 359px) {
+  .roster-controls {
+    flex-wrap: wrap;
+  }
+  .roster-controls > .tp-segment {
+    flex-basis: 100%;
+  }
+  .deduct-select {
+    width: 100%;
+  }
+}
+.sync-retry {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--st-color-danger-light);
+  color: var(--st-color-danger-deep);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
 .deduct-select {
   flex-shrink: 0;
   min-height: 44px;

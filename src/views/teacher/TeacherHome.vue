@@ -23,7 +23,7 @@
 
     <div class="flex items-center justify-between">
       <h2 class="tp-section-title">今日课程</h2>
-      <RouterLink to="/teacher/schedule" class="mt-2.5 text-[13px] text-st-primary no-underline">查看课表</RouterLink>
+      <RouterLink to="/teacher/schedule" class="mt-2.5 -mr-2 px-2 min-h-[44px] inline-flex items-center text-[13px] text-st-primary no-underline">查看课表</RouterLink>
     </div>
     <LoadState
       :loading="lessons.loading.value"
@@ -51,21 +51,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { School, Users } from 'lucide-vue-next'
 import { teacherPortalApi } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LessonCard from './components/LessonCard.vue'
 import LoadState from './components/LoadState.vue'
 import { friendlyDate, todayStr } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const authStore = useAuthStore()
-const today = todayStr()
+const today = ref(todayStr())
 
 const overview = useLoad(async () => (await teacherPortalApi.getOverview()).data)
 const lessons = useLoad(() =>
-  teacherPortalApi.getMyLessons({ teacherId: authStore.user?.id || '', startDate: today, endDate: today }),
+  teacherPortalApi.getMyLessons({ teacherId: authStore.user?.id || '', startDate: today.value, endDate: today.value }),
 )
 
 const todos = computed(() => {
@@ -78,8 +79,12 @@ const todos = computed(() => {
   ]
 })
 
-onMounted(() => {
-  overview.load()
-  lessons.load()
-})
+// 手机页面可能隔天还开着：每次刷新都重新取「今天」
+function refresh() {
+  today.value = todayStr()
+  return Promise.all([overview.load(), lessons.load()])
+}
+
+usePageRefresh(refresh)
+onActivated(refresh)
 </script>

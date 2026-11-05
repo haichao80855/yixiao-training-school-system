@@ -1,10 +1,7 @@
 <template>
   <div>
     <RosterTabs class="mb-3" />
-    <div class="tp-search mb-3">
-      <Search />
-      <input v-model="keyword" class="tp-input" type="search" placeholder="搜索姓名、学号、手机号" aria-label="搜索学员" @input="onKeywordInput" />
-    </div>
+    <SearchBox v-model="keyword" class="mb-3" placeholder="搜索姓名、学号、手机号" @search="load(1)" />
 
     <LoadState
       :loading="loading && students.length === 0"
@@ -41,11 +38,12 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { Search } from 'lucide-vue-next'
+import { onActivated, ref } from 'vue'
 import { teacherPortalApi, type TeacherStudentItem } from '@/api'
 import LoadState from './components/LoadState.vue'
 import RosterTabs from './components/RosterTabs.vue'
+import SearchBox from './components/SearchBox.vue'
+import { usePageRefresh } from './utils/pageRefresh'
 
 const keyword = ref('')
 const students = ref<TeacherStudentItem[]>([])
@@ -54,7 +52,8 @@ const page = ref(1)
 const loading = ref(false)
 const error = ref('')
 let requestId = 0
-let searchTimer: ReturnType<typeof setTimeout> | null = null
+const PAGE_SIZE = 20
+const MAX_REFRESH_SIZE = 50
 
 async function load(targetPage: number) {
   const id = ++requestId
@@ -64,7 +63,7 @@ async function load(targetPage: number) {
     const { data } = await teacherPortalApi.getStudents({
       keyword: keyword.value.trim() || undefined,
       page: targetPage,
-      pageSize: 20,
+      pageSize: PAGE_SIZE,
     })
     if (id !== requestId) return
     students.value = targetPage === 1 ? data.list : [...students.value, ...data.list]
@@ -77,14 +76,28 @@ async function load(targetPage: number) {
   }
 }
 
-function onKeywordInput() {
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => load(1), 300)
+/** 刷新时保留已加载的条数和滚动位置，不退回第一页 */
+async function refresh() {
+  const loaded = students.value.length
+  if (loaded <= PAGE_SIZE) return load(1)
+  if (loaded > MAX_REFRESH_SIZE) return
+  const id = ++requestId
+  try {
+    const { data } = await teacherPortalApi.getStudents({
+      keyword: keyword.value.trim() || undefined,
+      page: 1,
+      pageSize: loaded,
+    })
+    if (id !== requestId) return
+    students.value = data.list
+    total.value = data.total
+    page.value = Math.ceil(data.list.length / PAGE_SIZE)
+    error.value = ''
+  } catch (err: any) {
+    if (id === requestId) error.value = err?.message || '刷新失败，请重试'
+  }
 }
 
-onBeforeUnmount(() => {
-  if (searchTimer) clearTimeout(searchTimer)
-})
-
-onMounted(() => load(1))
+usePageRefresh(refresh)
+onActivated(refresh)
 </script>

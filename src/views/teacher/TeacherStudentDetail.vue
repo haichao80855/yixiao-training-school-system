@@ -56,16 +56,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onActivated } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { Phone } from 'lucide-vue-next'
 import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import { attendanceLabel, dateOnly, friendlyDate, shortTime, studentStatusLabel } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const route = useRoute()
-const detail = useLoad(async () => (await teacherPortalApi.getStudentDetail(route.params.id as string)).data)
+// 页面被缓存时 useRoute 会跟着后续路由变化，id 只在创建时读取一次
+const studentId = route.params.id as string
+const detail = useLoad(async () => (await teacherPortalApi.getStudentDetail(studentId)).data)
 const stu = computed(() => detail.data.value)
 
 function attendanceClass(status: string) {
@@ -75,7 +78,8 @@ function attendanceClass(status: string) {
   return 'tp-tag-muted'
 }
 
-onMounted(detail.load)
+usePageRefresh(detail.load)
+onActivated(detail.load)
 </script>
 
 <style scoped>

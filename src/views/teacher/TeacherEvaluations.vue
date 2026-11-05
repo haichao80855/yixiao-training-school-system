@@ -29,10 +29,7 @@
       </button>
     </div>
 
-    <div class="tp-search mb-3">
-      <Search />
-      <input v-model="keyword" class="tp-input" type="search" placeholder="搜索学员姓名、学号" aria-label="搜索学员" @input="onKeywordInput" />
-    </div>
+    <SearchBox v-model="keyword" class="mb-3" placeholder="搜索学员姓名、学号" @search="roster.load" />
 
     <LoadState
       :loading="roster.loading.value"
@@ -66,14 +63,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { Search } from 'lucide-vue-next'
 import { teacherPortalApi, type EvaluationRosterItem } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
+import SearchBox from './components/SearchBox.vue'
 import { readDraft } from './utils/evaluationDraft'
 import { friendlyDate, parseDateStr, shiftDays, shortTime, todayStr } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const RANGES = [
@@ -91,7 +89,6 @@ const userId = authStore.user?.id || ''
 const rangeKey = ref<RangeKey>(route.query.range === '30' ? '30' : 'week')
 const status = ref<StatusKey>(route.query.status === 'pending' ? 'pending' : 'all')
 const keyword = ref('')
-let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 function dateRange(key: RangeKey) {
   const today = todayStr()
@@ -143,14 +140,6 @@ function setRange(next: RangeKey) {
   roster.load()
 }
 
-function onKeywordInput() {
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(roster.load, 300)
-}
-
-onBeforeUnmount(() => {
-  if (searchTimer) clearTimeout(searchTimer)
-})
-
-onMounted(roster.load)
+usePageRefresh(roster.load)
+onActivated(roster.load)
 </script>

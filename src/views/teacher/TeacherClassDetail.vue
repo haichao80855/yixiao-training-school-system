@@ -61,17 +61,21 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onActivated, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import { classStatusLabel, friendlyDate, lessonStatusLabel, shortTime } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const route = useRoute()
 const tab = ref<'schedules' | 'students'>('schedules')
-const detail = useLoad(async () => (await teacherPortalApi.getClassDetail(route.params.id as string)).data)
+// 页面被缓存时 useRoute 会跟着后续路由变化，id 只在创建时读取一次
+const classId = route.params.id as string
+const detail = useLoad(async () => (await teacherPortalApi.getClassDetail(classId)).data)
 const cls = computed(() => detail.data.value)
 
-onMounted(detail.load)
+usePageRefresh(detail.load)
+onActivated(detail.load)
 </script>

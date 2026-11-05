@@ -94,7 +94,13 @@ export interface FulfillmentStudentView {
   readonly evaluatedAt?: string;
   readonly evaluatedSource?: string;
   readonly photos?: string[];
+  /** 与 photos 一一对应：九宫格缩略图 */
+  readonly photoThumbs?: string[];
+  /** 与 photos 一一对应：大图预览 (长边不超过 1280) */
+  readonly photoPreviews?: string[];
   readonly videoUrl?: string;
+  /** 视频封面 (首帧截图) */
+  readonly videoPoster?: string;
 }
 
 export interface FulfillmentWorkbenchView {

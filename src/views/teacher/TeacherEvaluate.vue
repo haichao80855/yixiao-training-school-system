@@ -2,6 +2,7 @@
   <LoadState :loading="workbench.loading.value" :error="workbench.error.value" :has-data="!!student" @retry="init">
     <p v-if="workbench.data.value && !student" class="tp-card text-center text-st-muted m-0">该学员不在本课次名单中</p>
     <div v-if="student && schedule" class="grid gap-3">
+      <p v-if="restoredFromAutosave" class="tp-stale-notice !cursor-default !mb-0" role="status">已恢复你上次未保存的内容，记得保存或推送</p>
       <section class="tp-card">
         <div class="flex items-center justify-between gap-2">
           <p class="m-0 text-[16px] font-medium text-st-title break-words">{{ student.studentName }}</p>
@@ -63,25 +64,36 @@
         <p class="field-label">照片与视频 <span class="font-normal text-st-muted">（照片最多 9 张，视频 1 个）</span></p>
         <div class="grid grid-cols-3 gap-2">
           <div v-for="(photo, idx) in photos" :key="photo" class="media-cell">
-            <img :src="photo" alt="课堂照片" class="w-full h-full object-cover" loading="lazy" />
+            <img :src="photoThumbs.get(photo) || photo" alt="课堂照片" class="w-full h-full object-cover" loading="lazy" />
             <button type="button" class="media-remove" :aria-label="`移除第 ${idx + 1} 张照片`" @click="photos.splice(idx, 1)">
               <X class="w-4 h-4" />
             </button>
           </div>
           <div v-if="videoUrl" class="media-cell bg-black">
-            <video :src="videoUrl" class="w-full h-full object-cover" controls playsinline preload="metadata" />
-            <button type="button" class="media-remove" aria-label="移除视频" @click="videoUrl = ''">
+            <video
+              :src="videoUrl"
+              :poster="videoPoster || undefined"
+              :preload="videoPoster ? 'none' : 'metadata'"
+              class="w-full h-full object-cover"
+              controls
+              playsinline
+            />
+            <button type="button" class="media-remove" aria-label="移除视频" @click="removeVideo">
               <X class="w-4 h-4" />
             </button>
           </div>
           <label v-if="photos.length < 9" class="media-add" :class="{ 'opacity-50 pointer-events-none': uploading }">
             <ImagePlus class="w-6 h-6" />
-            <span>{{ uploading === 'photo' ? '上传中…' : '加照片' }}</span>
+            <span class="tabular-nums">{{ uploading === 'photo' ? `上传 ${photoProgress}` : '加照片' }}</span>
             <input type="file" accept="image/*" multiple class="sr-only" :disabled="!!uploading" @change="onPickPhotos" />
           </label>
-          <label v-if="!videoUrl" class="media-add" :class="{ 'opacity-50 pointer-events-none': uploading }">
+          <button v-if="uploading === 'video'" type="button" class="media-add bg-transparent font-[inherit]" @click="cancelVideoUpload">
+            <span class="text-[18px] font-semibold text-st-title tabular-nums">{{ videoProgress }}%</span>
+            <span>{{ videoStage === 'compress' ? '压缩中' : '上传中' }}，点此取消</span>
+          </button>
+          <label v-else-if="!videoUrl" class="media-add" :class="{ 'opacity-50 pointer-events-none': uploading }">
             <Video class="w-6 h-6" />
-            <span>{{ uploading === 'video' ? '上传中…' : '加视频' }}</span>
+            <span>加视频</span>
             <input type="file" accept="video/*" class="sr-only" :disabled="!!uploading" @change="onPickVideo" />
           </label>
         </div>
@@ -98,7 +110,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ImagePlus, Star, Video, X } from 'lucide-vue-next'
@@ -106,12 +118,18 @@ import { teacherPortalApi, uploadApi, type AttendanceStatus } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
 import { compressImage } from './utils/compressImage'
-import { readDraft, removeDraft, writeDraft } from './utils/evaluationDraft'
+import { readAutosave, readDraft, removeAutosave, removeDraft, writeAutosave, writeDraft, type EvaluationDraft } from './utils/evaluationDraft'
 import { attendanceLabel, friendlyDate, htmlToText, isAttended, shortTime } from './utils/format'
+import { compressVideo } from './utils/compressVideo'
+import { uploadVideoWithProgress } from './utils/uploadVideo'
 import { useLoad } from './utils/useLoad'
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024
+
+function formatMb(bytes: number) {
+  return `${(bytes / 1024 / 1024).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)}MB`
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -135,12 +153,56 @@ const videoUrl = ref('')
 const uploading = ref<'' | 'photo' | 'video'>('')
 const submitting = ref(false)
 const isDirty = ref(false)
+const restoredFromAutosave = ref(false)
+const photoProgress = ref('')
+const videoProgress = ref(0)
+const videoStage = ref<'compress' | 'upload'>('compress')
+const videoPoster = ref('')
+/** 缩略图只用于显示；保存课评时仍提交原始链接 */
+const photoThumbs = new Map<string, string>()
+let cancelVideoTask: (() => void) | null = null
 let serverStudyContent = ''
 let hydrated = false
+let autosaveTimer: ReturnType<typeof setTimeout> | null = null
+
+function currentContent(): EvaluationDraft {
+  return {
+    comment: comment.value,
+    studyContent: studyContent.value,
+    rating: rating.value,
+    photos: [...photos.value],
+    videoUrl: videoUrl.value,
+    savedAt: new Date().toISOString(),
+  }
+}
+
+function flushAutosave() {
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer)
+    autosaveTimer = null
+  }
+  if (isDirty.value) writeAutosave(userId, lessonId, studentId, currentContent())
+}
+
+function clearAutosave() {
+  if (autosaveTimer) {
+    clearTimeout(autosaveTimer)
+    autosaveTimer = null
+  }
+  removeAutosave(userId, lessonId, studentId)
+}
 
 watch([comment, studyContent, rating, videoUrl, () => photos.value.length], () => {
-  if (hydrated) isDirty.value = true
+  if (!hydrated) return
+  isDirty.value = true
+  if (autosaveTimer) clearTimeout(autosaveTimer)
+  autosaveTimer = setTimeout(flushAutosave, 800)
 })
+
+/** 接电话、切应用时立刻暂存：页面可能随后被系统回收 */
+function onVisibilityChange() {
+  if (document.hidden) flushAutosave()
+}
 
 async function init() {
   hydrated = false
@@ -151,8 +213,13 @@ async function init() {
 
   // 服务端在尚无课评时返回教研模板文案作占位：不能当成老师写的内容预填
   serverStudyContent = data.evaluationDraft.isExisting ? htmlToText(data.evaluationDraft.studyContentHtml) : ''
-  const draft = readDraft(userId, lessonId, studentId)
+  const savedDraft = readDraft(userId, lessonId, studentId)
+  const autosave = readAutosave(userId, lessonId, studentId)
+  const useAutosave = !!autosave && (!savedDraft || autosave.savedAt > savedDraft.savedAt)
+  const draft = useAutosave ? autosave : savedDraft
   const isDraftUsable = draft && !(stu.evaluatedAt && draft.savedAt < stu.evaluatedAt)
+  const isRestoring = useAutosave && !!isDraftUsable
+  restoredFromAutosave.value = isRestoring
 
   studyContent.value = (isDraftUsable && draft.studyContent) || serverStudyContent
   // 只回显老师对该学员写过的评语；没有专属课评时 currentComment 可能是考勤记录上的模板文案
@@ -160,11 +227,16 @@ async function init() {
   rating.value = (isDraftUsable && draft.rating) || (stu.hasPersonalEvaluation ? stu.currentRating || 5 : 5)
   photos.value = isDraftUsable ? [...draft.photos] : [...(stu.photos || [])]
   videoUrl.value = isDraftUsable ? draft.videoUrl : stu.videoUrl || ''
+  ;(stu.photos || []).forEach((photo, i) => {
+    const thumb = stu.photoThumbs?.[i]
+    if (thumb) photoThumbs.set(photo, thumb)
+  })
+  videoPoster.value = videoUrl.value && videoUrl.value === stu.videoUrl ? stu.videoPoster || '' : ''
 
   // 等上面的赋值触发完 watch 再开始记录修改
   queueMicrotask(() => {
     hydrated = true
-    isDirty.value = false
+    isDirty.value = isRestoring
   })
 }
 
@@ -178,20 +250,32 @@ async function onPickPhotos(event: Event) {
   if (picked.length > room) ElMessage.warning(`最多 9 张，已取前 ${room} 张`)
 
   uploading.value = 'photo'
-  try {
-    const files = await Promise.all(picked.slice(0, room).map(compressImage))
-    const oversized = files.filter((f) => f.size > MAX_PHOTO_BYTES)
-    const valid = files.filter((f) => f.size <= MAX_PHOTO_BYTES)
-    if (oversized.length > 0) ElMessage.warning(`${oversized.length} 张照片超过 10MB，已跳过`)
-    if (valid.length === 0) return
-    const res = await uploadApi.uploadClassroomPhotos({ files: valid, scheduleEventId: lessonId })
-    photos.value.push(...(res.data.persistedUrls || []))
-    if (res.data.failureCount > 0) ElMessage.warning(`${res.data.failureCount} 张照片上传失败`)
-  } catch (err: any) {
-    ElMessage.error(err?.message || '照片上传失败，请重试')
-  } finally {
-    uploading.value = ''
+  const queue = picked.slice(0, room)
+  let oversized = 0
+  const failures: string[] = []
+  // 逐张压缩上传：同时解码多张手机原图容易让低端机内存不足导致页面崩溃；弱网下也能保住已传成功的照片
+  for (let i = 0; i < queue.length; i++) {
+    photoProgress.value = `${i + 1}/${queue.length}`
+    try {
+      const file = await compressImage(queue[i])
+      if (file.size > MAX_PHOTO_BYTES) {
+        oversized += 1
+        continue
+      }
+      const res = await uploadApi.uploadClassroomPhotos({ files: [file], scheduleEventId: lessonId })
+      res.data.persistedUrls?.forEach((url, index) => {
+        const thumb = res.data.items?.[index]?.thumbnailUrl
+        if (thumb) photoThumbs.set(url, thumb)
+      })
+      photos.value.push(...(res.data.persistedUrls || []))
+      if (res.data.failureCount > 0) failures.push(res.data.errors?.[0]?.reason || '上传失败')
+    } catch (err: any) {
+      failures.push(err?.message || '上传失败')
+    }
   }
+  uploading.value = ''
+  if (oversized > 0) ElMessage.warning(`${oversized} 张照片超过 10MB，已跳过`)
+  if (failures.length > 0) ElMessage.error(`${failures.length} 张照片未上传：${failures[0]}`)
 }
 
 async function onPickVideo(event: Event) {
@@ -199,35 +283,58 @@ async function onPickVideo(event: Event) {
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
-  if (file.size > MAX_VIDEO_BYTES) {
-    ElMessage.warning('视频不能超过 100MB')
-    return
-  }
+
   uploading.value = 'video'
   try {
-    const res = await uploadApi.uploadClassroomVideo({ file, scheduleEventId: lessonId })
-    videoUrl.value = res.data.videoUrl
+    videoStage.value = 'compress'
+    videoProgress.value = 0
+    const compression = compressVideo(file, (percent) => {
+      videoProgress.value = percent
+    })
+    cancelVideoTask = compression.cancel
+    const { file: output, compressed } = await compression.promise
+
+    if (output.size > MAX_VIDEO_BYTES) {
+      ElMessage.error(`视频压缩后仍有 ${formatMb(output.size)}，超过 100MB 上限，请剪短后重试`)
+      return
+    }
+
+    videoStage.value = 'upload'
+    videoProgress.value = 0
+    const upload = uploadVideoWithProgress(output, lessonId, (percent) => {
+      videoProgress.value = percent
+    })
+    cancelVideoTask = upload.abort
+    const uploaded = await upload.promise
+    videoPoster.value = uploaded.posterUrl
+    videoUrl.value = uploaded.videoUrl
+    if (compressed) ElMessage.success(`视频已压缩：${formatMb(file.size)} → ${formatMb(output.size)}`)
   } catch (err: any) {
-    ElMessage.error(err?.message || '视频上传失败，请重试')
+    if (err?.name !== 'AbortError') ElMessage.error(err?.message || '视频上传失败，请重试')
   } finally {
+    cancelVideoTask = null
     uploading.value = ''
   }
 }
 
+function cancelVideoUpload() {
+  cancelVideoTask?.()
+}
+
+function removeVideo() {
+  videoUrl.value = ''
+  videoPoster.value = ''
+}
+
 function saveDraft() {
-  const saved = writeDraft(userId, lessonId, studentId, {
-    comment: comment.value,
-    studyContent: studyContent.value,
-    rating: rating.value,
-    photos: [...photos.value],
-    videoUrl: videoUrl.value,
-    savedAt: new Date().toISOString(),
-  })
+  const saved = writeDraft(userId, lessonId, studentId, currentContent())
   if (!saved) {
     ElMessage.error('当前浏览器无法保存草稿，请直接推送或关闭隐私模式')
     return
   }
+  clearAutosave()
   isDirty.value = false
+  restoredFromAutosave.value = false
   ElMessage.success('草稿已保存在本机，尚未推送')
 }
 
@@ -272,6 +379,7 @@ async function submit() {
       lessonTitle: `${sch.className} ${sch.date} 随堂课评`,
     })
     removeDraft(userId, lessonId, studentId)
+    clearAutosave()
     isDirty.value = false
     ElMessage.success(isRevision.value ? '课评已更新' : '已推送给家长')
     router.back()
@@ -283,19 +391,41 @@ async function submit() {
 }
 
 onBeforeRouteLeave(async () => {
+  if (uploading.value === 'video') {
+    try {
+      await ElMessageBox.confirm('视频还在压缩或上传，离开后会中断。', '离开此页？', {
+        confirmButtonText: '离开',
+        cancelButtonText: '继续等待',
+      })
+      cancelVideoTask?.()
+    } catch {
+      return false
+    }
+  }
   if (!isDirty.value) return true
   try {
     await ElMessageBox.confirm('内容尚未保存，离开后将丢失。', '离开此页？', {
       confirmButtonText: '离开',
       cancelButtonText: '继续编辑',
     })
+    clearAutosave()
     return true
   } catch {
     return false
   }
 })
 
-onMounted(init)
+onMounted(() => {
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  window.addEventListener('pagehide', flushAutosave)
+  init()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('pagehide', flushAutosave)
+  if (autosaveTimer) clearTimeout(autosaveTimer)
+})
 </script>
 
 <style scoped>
