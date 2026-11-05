@@ -1,74 +1,88 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Campus } from '@/types'
-import { systemApi } from '@/api'
-
-const DEFAULT_CAMPUSES: Campus[] = [
-  {
-    id: 'campus-bj-hq',
-    code: 'HQ001',
-    name: '拓视未来-原阳校区',
-    isHeadquarter: true,
-    address: '河南省新乡市原阳县乐博学习中心',
-    phone: '0373-7558888'
-  }
-]
+import { authApi } from '@/api'
+import { useAuthStore } from './authStore'
 
 const LOCAL_STORAGE_CAMPUS_KEY = 'yixiao_current_campus_id'
 
+function persistCampusId(campusId: string) {
+  if (typeof localStorage === 'undefined') return
+  if (campusId) {
+    localStorage.setItem(LOCAL_STORAGE_CAMPUS_KEY, campusId)
+  } else {
+    localStorage.removeItem(LOCAL_STORAGE_CAMPUS_KEY)
+  }
+}
+
 export const useTenantStore = defineStore('tenant', () => {
+  const authStore = useAuthStore()
+
   const companyId = ref('COMP-ST-002599')
   const companyName = ref('北京拓视未来教育科技集团股份有限公司')
   const stockCode = ref('002599')
-  const campuses = ref<Campus[]>(DEFAULT_CAMPUSES)
 
-  // 默认拓视未来-原阳校区
-  const savedCampusId = localStorage.getItem(LOCAL_STORAGE_CAMPUS_KEY)
-  const initialCampusId = savedCampusId && DEFAULT_CAMPUSES.some(c => c.id === savedCampusId)
-    ? savedCampusId
-    : DEFAULT_CAMPUSES[0].id
+  // 当前账号可切换的校区，由服务端按权限下发
+  const campuses = ref<Campus[]>([])
 
-  const currentCampusId = ref<string>(initialCampusId)
+  // 列表返回前先沿用上次的工作校区，加载完成后再按授权范围校验
+  const savedCampusId = typeof localStorage !== 'undefined' ? localStorage.getItem(LOCAL_STORAGE_CAMPUS_KEY) : ''
+  const currentCampusId = ref<string>(savedCampusId || authStore.user?.campusId || '')
 
   const currentCampus = computed<Campus>(() => {
-    return campuses.value.find(c => c.id === currentCampusId.value) || campuses.value[0]
+    return (
+      campuses.value.find(c => c.id === currentCampusId.value) || {
+        id: currentCampusId.value,
+        code: '',
+        name: authStore.user?.campusId === currentCampusId.value ? authStore.user?.campusName || '' : '',
+        isHeadquarter: false
+      }
+    )
   })
+
+  const canSwitchCampus = computed(() => campuses.value.length > 1)
 
   function setCampus(campusId: string) {
     const target = campuses.value.find(c => c.id === campusId)
     if (target) {
       currentCampusId.value = campusId
-      localStorage.setItem(LOCAL_STORAGE_CAMPUS_KEY, campusId)
+      persistCampusId(campusId)
     }
   }
 
   async function loadCampuses() {
+    if (!authStore.token) return
     try {
-      const res = await systemApi.getCampuses(DEFAULT_CAMPUSES)
-      if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-        const found = res.data.find((c: any) => c.name?.includes('原阳') || c.id === 'campus-bj-hq')
-        campuses.value = [
-          {
-            id: found?.id || 'campus-bj-hq',
-            code: found?.code || 'HQ001',
-            name: '拓视未来-原阳校区',
-            isHeadquarter: true,
-            address: found?.address || '河南省新乡市原阳县乐博学习中心',
-            phone: found?.phone || '0373-7558888'
-          }
-        ]
-        currentCampusId.value = campuses.value[0].id
-      } else {
-        campuses.value = DEFAULT_CAMPUSES
-        currentCampusId.value = DEFAULT_CAMPUSES[0].id
+      const res = await authApi.getProfile()
+      const list: Campus[] = res?.data?.authorizedCampuses
+      if (!Array.isArray(list) || list.length === 0) return
+
+      campuses.value = list
+      if (!list.some(c => c.id === currentCampusId.value)) {
+        const homeCampusId = res.data.campusId
+        const fallback = list.find(c => c.id === homeCampusId) || list[0]
+        setCampus(fallback.id)
       }
-    } catch {
-      campuses.value = DEFAULT_CAMPUSES
-      currentCampusId.value = DEFAULT_CAMPUSES[0].id
+    } catch (err) {
+      console.warn('[tenantStore] 校区列表加载失败', err)
     }
   }
 
-  if (typeof window !== 'undefined') {
+  /** 登录成功后进入本人所属校区，避免沿用上一个账号的工作校区 */
+  async function enterCampus(homeCampusId: string) {
+    currentCampusId.value = homeCampusId
+    persistCampusId(homeCampusId)
+    await loadCampuses()
+  }
+
+  /** 退出登录时清除校区上下文 */
+  function reset() {
+    campuses.value = []
+    currentCampusId.value = ''
+    persistCampusId('')
+  }
+
+  if (typeof window !== 'undefined' && authStore.token) {
     loadCampuses()
   }
 
@@ -79,7 +93,10 @@ export const useTenantStore = defineStore('tenant', () => {
     campuses,
     currentCampusId,
     currentCampus,
+    canSwitchCampus,
     setCampus,
-    loadCampuses
+    loadCampuses,
+    enterCampus,
+    reset
   }
 })

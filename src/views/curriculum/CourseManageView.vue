@@ -615,7 +615,7 @@ function handleBatchOperation() {
 }
 
 function handleBatchAuthorize() {
-  batchSelectedCampuses.value = ['campus-bj-hq']
+  batchSelectedCampuses.value = [tenantStore.currentCampusId]
   batchAuthVisible.value = true
 }
 

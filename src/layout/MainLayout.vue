@@ -18,7 +18,8 @@
         <div class="flex-1 overflow-y-auto bg-st-bg">
           <router-view v-slot="{ Component }">
             <transition name="fade-transform" mode="out-in">
-              <component :is="Component" />
+              <!-- 切换校区时重建当前页面，保证所有页面按新校区重载，旧页面的迟到响应也不会再显示 -->
+              <component :is="Component" :key="tenantStore.currentCampusId" />
             </transition>
           </router-view>
         </div>
@@ -32,7 +33,9 @@ import { ref } from 'vue'
 import TopHeader from './TopHeader.vue'
 import AppSidebar from './AppSidebar.vue'
 import Breadcrumb from './Breadcrumb.vue'
+import { useTenantStore } from '@/stores/tenantStore'
 
+const tenantStore = useTenantStore()
 const collapsed = ref(false)
 </script>
 

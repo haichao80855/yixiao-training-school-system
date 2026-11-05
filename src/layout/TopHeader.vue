@@ -197,6 +197,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Database, LogOut, Settings, Info } from 'lucide-vue-next'
 import { Fold, Bell, FullScreen, ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/authStore'
+import { useTenantStore } from '@/stores/tenantStore'
 import { DIALOG_SIZE } from '@/constants/ui'
 import CampusSelector from './CampusSelector.vue'
 
@@ -204,6 +205,7 @@ defineEmits(['toggle-sidebar'])
 
 const router = useRouter()
 const authStore = useAuthStore()
+const tenantStore = useTenantStore()
 
 const currentUserName = computed(() => authStore.user?.realName || authStore.user?.account || '冬海潮')
 const currentUserRole = computed(() => authStore.user?.roleName || '超级管理员')
@@ -338,6 +340,7 @@ function handleUserCommand(command: string) {
       type: 'warning'
     }).then(() => {
       authStore.logout()
+      tenantStore.reset()
       ElMessage.success('已安全退出登录')
       router.push('/login')
     }).catch(() => {})

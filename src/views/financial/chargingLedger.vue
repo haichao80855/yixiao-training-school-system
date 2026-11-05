@@ -83,7 +83,8 @@
     <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border flex flex-wrap items-center justify-between gap-2.5">
       <div class="flex flex-wrap items-center gap-2">
         <el-select v-model="filterCampus" placeholder="归属校区" size="small" class="!w-36" clearable>
-          <el-option label="拓视未来-原阳校区" value="campus-bj-hq" />
+          <el-option label="全部校区" value="all" />
+          <el-option v-for="c in tenantStore.campuses" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
 
         <el-select v-model="filterMethod" placeholder="结算通道" size="small" class="!w-36" clearable>
@@ -297,7 +298,7 @@ import type { LedgerRecord } from '@/types/financial'
 
 const tenantStore = useTenantStore()
 
-const filterCampus = ref('all')
+const filterCampus = ref(tenantStore.currentCampusId || 'all')
 const filterMethod = ref('all')
 const filterType = ref('all')
 const filterDateRange = ref<string[] | null>(null)
@@ -308,7 +309,7 @@ const remoteLedgers = ref<LedgerRecord[]>([])
 async function loadLedgers() {
   try {
     const res = await financialApi.getLedgers({
-      campusId: filterCampus.value === 'all' ? undefined : filterCampus.value,
+      campusId: filterCampus.value || 'all',
       pageSize: 200
     })
     if (res && res.success && res.data) {
@@ -409,7 +410,7 @@ function handleFilter() {
 }
 
 function resetFilter() {
-  filterCampus.value = 'all'
+  filterCampus.value = tenantStore.currentCampusId || 'all'
   filterMethod.value = 'all'
   filterType.value = 'all'
   filterDateRange.value = null
@@ -426,7 +427,7 @@ onMounted(async () => {
   await loadLedgers()
 })
 
-watch(() => tenantStore.currentCampusId, () => {
+watch(filterCampus, () => {
   loadLedgers()
 })
 

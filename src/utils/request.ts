@@ -72,12 +72,12 @@ export async function request<T = any>(
 
   // 2. 获取当前的校区租户 ID 与本人登录的 Token (无有效 Token 时不携带 Authorization)
   const token = readAuthToken()
-  const campusId = localStorage.getItem('yixiao_current_campus_id') || 'campus-bj-hq'
+  const campusId = localStorage.getItem('yixiao_current_campus_id')
 
   const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData
 
   const headers: Record<string, string> = {
-    'X-Campus-Id': campusId,
+    ...(campusId ? { 'X-Campus-Id': campusId } : {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(customHeaders as Record<string, string>),
   }

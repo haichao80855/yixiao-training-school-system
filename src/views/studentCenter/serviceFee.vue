@@ -274,6 +274,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CheckCircle2, Trophy, Link2, Clock } from 'lucide-vue-next'
 import { studentApi } from '@/api'
+import { useTenantStore } from '@/stores/tenantStore'
 import SummaryStrip from '@/components/SummaryStrip.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
 import { DIALOG_SIZE } from '@/constants/ui'
@@ -289,6 +290,7 @@ const filteredFeeSum = computed(() => {
   return filteredRecords.value.reduce((sum, item) => sum + (item.fee || 0), 0).toFixed(2)
 })
 
+const tenantStore = useTenantStore()
 const studentsList = ref<Student[]>([])
 const feeRecords = ref<ServiceFeeRecordItem[]>([])
 
@@ -385,7 +387,7 @@ const newRecordForm = reactive({
   studentId: 'std-001',
   studentName: '张小萌',
   studentNo: 'S948918',
-  campusId: 'campus-bj-hq',
+  campusId: tenantStore.currentCampusId,
   category: 'certification' as 'certification' | 'competition',
   examType: '',
   fee: 450,
@@ -411,7 +413,7 @@ async function handleConfirmAdd() {
     studentName: newRecordForm.studentName,
     studentNo: newRecordForm.studentNo,
     campusId: newRecordForm.campusId,
-    campusName: '拓视未来-原阳校区',
+    campusName: tenantStore.campuses.find(c => c.id === newRecordForm.campusId)?.name || tenantStore.currentCampus.name,
     examType: newRecordForm.examType,
     category: newRecordForm.category,
     fee: newRecordForm.fee,

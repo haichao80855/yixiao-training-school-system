@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
+import { isSuperAdminUser } from '../../common/campus-scope.policy';
 
 @Injectable()
 export class AuthService {
@@ -169,16 +170,28 @@ export class AuthService {
       }
     }
 
-    // 查询该操作员有权限管辖的校区列表 (如果是超管则返回全量校区)
-    const isSuper = user.userRoles.some((ur) => ur.role.code === 'super_admin');
-    const allCampuses = await this.prisma.campus.findMany({
-      where: { status: 'active' },
-      select: { id: true, code: true, name: true, isHeadquarter: true },
+    // 可切换校区：与校区作用域同一判定规则。全校区权限账号返回全部启用校区，其他账号固定为所属校区
+    const canAccessAllCampuses = isSuperAdminUser({
+      dataScope: effectiveDataScope,
+      roles: user.userRoles.map((ur) => ur.role),
+      permissions: Array.from(permissions),
     });
-
-    const authorizedCampuses = isSuper
-      ? allCampuses
-      : allCampuses.filter((c) => c.id === user.campusId);
+    const authorizedCampuses = canAccessAllCampuses
+      ? await this.prisma.campus.findMany({
+          where: { status: 'active' },
+          select: { id: true, code: true, name: true, isHeadquarter: true, address: true, phone: true },
+          orderBy: [{ isHeadquarter: 'desc' }, { createdAt: 'asc' }],
+        })
+      : [
+          {
+            id: user.campus.id,
+            code: user.campus.code,
+            name: user.campus.name,
+            isHeadquarter: user.campus.isHeadquarter,
+            address: user.campus.address,
+            phone: user.campus.phone,
+          },
+        ];
 
     return {
       id: user.id,

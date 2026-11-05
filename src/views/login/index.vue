@@ -173,7 +173,7 @@ async function executeLogin(account: string, password: string) {
 
     // 联动校区
     if (res.user.campusId) {
-      tenantStore.setCampus(res.user.campusId)
+      await tenantStore.enterCampus(res.user.campusId)
     }
 
     ElMessage.success(`欢迎您，${res.user.realName}！已以【${res.user.roleName || '系统用户'}】身份成功登录`)
