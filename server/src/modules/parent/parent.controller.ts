@@ -128,6 +128,18 @@ export class ParentController {
   }
 
   @ParentRoute()
+  @Get('students/:sid/archive')
+  archive(
+    @CurrentParent() parent: ParentPrincipal,
+    @Param('sid') sid: string,
+    @Query('cursor') cursor?: string,
+    @Query('type') type?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.portal.archive(parent, sid, cursor, type, limit);
+  }
+
+  @ParentRoute()
   @Get('students/:sid/growth/summary')
   growthSummary(@CurrentParent() parent: ParentPrincipal, @Param('sid') sid: string) {
     return this.portal.growthSummary(parent, sid);

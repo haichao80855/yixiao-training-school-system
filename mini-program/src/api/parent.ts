@@ -143,6 +143,13 @@ export interface GrowthSummary {
   evaluations: number;
   photos: number;
   videos: number;
+  archive: { photos: number; videos: number; earliestDate: string | null; latestDate: string | null };
+}
+
+export interface ArchiveMonth {
+  month: string;
+  dayCount: number;
+  items: Array<PhotoLink & { id: string; date: string }>;
 }
 
 /** 后端未配置 MEDIA_PUBLIC_BASE_URL 时返回相对路径，这里补全为可访问的完整地址 */
@@ -196,6 +203,12 @@ export const parentApi = {
   album(studentId: string, params: { cursor?: string | null; type?: 'photo' | 'video'; limit?: number } = {}) {
     return request<{ weeks: AlbumWeek[]; nextCursor: string | null }>({
       url: `${s(studentId)}/album`,
+      data: { cursor: params.cursor || undefined, type: params.type, limit: params.limit },
+    });
+  },
+  archive(studentId: string, params: { cursor?: string | null; type?: 'photo' | 'video'; limit?: number } = {}) {
+    return request<{ months: ArchiveMonth[]; nextCursor: string | null }>({
+      url: `${s(studentId)}/archive`,
       data: { cursor: params.cursor || undefined, type: params.type, limit: params.limit },
     });
   },

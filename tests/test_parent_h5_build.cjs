@@ -20,6 +20,7 @@ const PARENT_ROUTES = [
   '/package-parent/courses/index',
   '/package-parent/courses/usage',
   '/package-parent/growth/index',
+  '/package-parent/growth/archive',
   '/package-parent/me/index',
 ];
 
@@ -60,7 +61,7 @@ const entrySrc = fs.readFileSync(path.join(h5Dist, 'assets', entry), 'utf8');
 const routes = [...new Set([...entrySrc.matchAll(/path:"(\/[^"]*)"/g)].map((m) => m[1]))].sort();
 check(
   JSON.stringify(routes) === JSON.stringify(['/', ...PARENT_ROUTES].sort()),
-  `注册路由为登录页 (/) + 7 个家长端页面 (实际: ${routes.join(', ')})`,
+  `注册路由为登录页 (/) + 8 个家长端页面 (实际: ${routes.join(', ')})`,
 );
 const allJs = jsFiles.map((f) => fs.readFileSync(path.join(h5Dist, 'assets', f), 'utf8')).join('\n');
 for (const staff of ['package-edu/', 'package-finance/', 'package-student/', 'pages/workbench/', 'pages/todo/']) {

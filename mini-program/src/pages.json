@@ -241,6 +241,16 @@
           }
         },
         {
+          "path": "growth/archive",
+          "style": {
+            "navigationBarTitleText": "历史档案",
+            "navigationStyle": "custom",
+            "backgroundColor": "#F5F3EF",
+            "backgroundColorTop": "#F5F3EF",
+            "backgroundTextStyle": "dark"
+          }
+        },
+        {
           "path": "me/index",
           "style": {
             "navigationBarTitleText": "我的",

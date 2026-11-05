@@ -190,6 +190,7 @@ async function setupFixtures() {
 
 async function cleanup() {
   await prisma.parentReadState.deleteMany({ where: { studentId: { in: ids.students } } });
+  await prisma.studentArchiveMedia.deleteMany({ where: { studentId: { in: ids.students } } });
   await prisma.lessonEvaluation.deleteMany({ where: { id: { in: ids.evaluations } } });
   await prisma.attendanceRecord.deleteMany({ where: { scheduleEventId: { in: ids.events } } });
   await prisma.scheduleEvent.deleteMany({ where: { id: { in: ids.events } } });
@@ -278,6 +279,41 @@ async function run() {
   assert(weeks[0]?.lessonCount === 2 && weeks[0]?.photos?.[0]?.isOwn === true, '周相册内本人照片排在班级照片之前');
   const summary = await request('GET', `/api/parent/students/${f.s1.id}/growth/summary`, null, auth(tokenA1));
   assert(summary.body?.lessonsAttended === 3 && summary.body?.evaluations === 2, '成长概览：出勤 3 次、已发布课评 2 篇');
+
+  console.log('— 历史成长档案');
+  const archiveRows = [
+    ['2025-07-22', 'photo', 'a1'], ['2025-07-22', 'photo', 'a2'], ['2025-07-29', 'video', 'a3'],
+    ['2025-03-04', 'photo', 'a4'], ['2024-12-01', 'photo', 'a5'], ['2024-11-01', 'photo', 'a6'],
+  ];
+  await prisma.studentArchiveMedia.createMany({
+    data: archiveRows.map(([lessonDate, type, name], sortOrder) => ({
+      studentId: f.s1.id, lessonDate, type, sortOrder, storageKey: `archive/${RUN}/${name}.${type === 'video' ? 'mp4' : 'jpg'}`,
+    })),
+  });
+  const archive = await request('GET', `/api/parent/students/${f.s1.id}/archive?limit=2`, null, auth(tokenA1));
+  assert(archive.status === 200 && archive.body?.months?.map((m) => m.month).join() === '2025-07,2025-03', '历史档案按月倒序分页');
+  assert(archive.body?.months?.[0]?.items?.length === 2 && archive.body?.months?.[0]?.dayCount === 1, '默认只返回照片，并统计上课天数');
+  assert(archive.body?.nextCursor === '2025-03', '还有更早月份时返回 nextCursor');
+  assert(archive.body?.months?.[0]?.items?.[0]?.url?.includes('/api/media/') && !archive.body.months[0].items[0].storageKey, '历史档案只输出签名链接，不输出存储 key');
+  const archiveNext = await request('GET', `/api/parent/students/${f.s1.id}/archive?limit=2&cursor=2025-03`, null, auth(tokenA1));
+  assert(archiveNext.body?.months?.map((m) => m.month).join() === '2024-12,2024-11' && archiveNext.body?.nextCursor === null, '按 cursor 翻到最后一页');
+  const archiveVideo = await request('GET', `/api/parent/students/${f.s1.id}/archive?type=video`, null, auth(tokenA1));
+  assert(archiveVideo.body?.months?.length === 1 && archiveVideo.body.months[0].items.length === 1, '视频分类只返回视频');
+  const archiveBadCursor = await request('GET', `/api/parent/students/${f.s1.id}/archive?cursor=abc`, null, auth(tokenA1));
+  assert(archiveBadCursor.status === 400, 'cursor 格式错误返回 400');
+  const summaryWithArchive = await request('GET', `/api/parent/students/${f.s1.id}/growth/summary`, null, auth(tokenA1));
+  assert(
+    summaryWithArchive.body?.archive?.photos === 5 && summaryWithArchive.body?.archive?.videos === 1
+      && summaryWithArchive.body?.archive?.earliestDate === '2024-11-01' && summaryWithArchive.body?.archive?.latestDate === '2025-07-29',
+    '成长概览返回历史档案数量与时间范围',
+  );
+  const albumAfterArchive = await request('GET', `/api/parent/students/${f.s1.id}/album`, null, auth(tokenA1));
+  assert(albumAfterArchive.body?.weeks?.length === 1 && summaryWithArchive.body?.lessonsAttended === 3, '历史档案不混入课评相册，也不增加上课次数');
+  const archiveLoginB = await login(PHONE_B, PHONE_B.slice(-6));
+  const archiveOther = await request('GET', `/api/parent/students/${f.s1.id}/archive`, null, auth(archiveLoginB.body?.accessToken));
+  assert(archiveOther.status === 403 || archiveOther.status === 404, `其他家庭不能查看该学员的历史档案 (${archiveOther.status})`);
+  const archiveAnon = await request('GET', `/api/parent/students/${f.s1.id}/archive`);
+  assert(archiveAnon.status === 401, '未登录不能查看历史档案');
 
   console.log('— 课表与课程');
   const schedule = await request('GET', `/api/parent/students/${f.s1.id}/schedule?from=2026-10-12&to=2026-10-18`, null, auth(tokenA1));
