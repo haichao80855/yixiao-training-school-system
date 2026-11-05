@@ -27,9 +27,9 @@
           <div><span class="text-st-muted">主讲讲师：</span><span class="font-bold text-st-title">{{ classItem.teacherName }}</span></div>
           <div><span class="text-st-muted">班主任：</span><span class="font-medium text-st-title">{{ classItem.assistantName || '张学管' }}</span></div>
           <div><span class="text-st-muted">固定教室：</span><span class="font-medium text-st-title">{{ classItem.classroomName }}</span></div>
-          <div><span class="text-st-muted">开班周期：</span><span class="font-mono text-st-title">{{ classItem.startDate }} ~ {{ classItem.endDate }}</span></div>
-          <div><span class="text-st-muted">固定规律：</span><span class="font-medium text-st-title">{{ classItem.scheduleDesc || '每周六 09:00-10:30' }}</span></div>
-          <div><span class="text-st-muted">课次进度：</span><span class="font-bold text-st-primary">{{ classItem.completedLessons || 0 }} / {{ classItem.totalLessons || 48 }} 讲</span></div>
+          <div><span class="text-st-muted">开班周期：</span><span class="font-mono text-st-title">{{ classItem.startDate }} ~ {{ classItem.periodEnd }}</span></div>
+          <div><span class="text-st-muted">固定规律：</span><span class="font-medium text-st-title">{{ classItem.scheduleDesc || '未排课' }}</span></div>
+          <div><span class="text-st-muted">课次进度：</span><span class="font-bold text-st-primary">{{ classItem.completedLessons || 0 }} / {{ classItem.totalLessons || '—' }} 讲</span></div>
         </div>
 
         <!-- 满班率进度条 -->
