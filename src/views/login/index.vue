@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen w-full flex bg-st-bg text-st-title">
+  <!-- body 不滚动：横屏或键盘弹出时必须能滚到登录按钮 -->
+  <div class="h-full overflow-y-auto w-full flex bg-st-bg text-st-title">
     <!-- 左侧品牌面板（大屏显示） -->
     <aside class="login-brand hidden lg:flex lg:w-[44%] xl:w-[42%] flex-col justify-between p-12 text-white relative overflow-hidden">
       <div class="flex items-center gap-3 relative z-10">
@@ -39,7 +40,7 @@
     </aside>
 
     <!-- 右侧登录区 -->
-    <main class="flex-1 flex flex-col items-center justify-center px-6 py-10">
+    <main class="flex-1 min-h-full h-fit my-auto flex flex-col items-center justify-center px-6 py-10">
       <div class="w-full max-w-[380px]">
         <!-- 小屏品牌 -->
         <div class="flex lg:hidden items-center gap-2.5 mb-8">
@@ -63,6 +64,10 @@
               size="large"
               clearable
               autocomplete="username"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              enterkeyhint="next"
             >
               <template #prefix>
                 <User class="w-4 h-4 text-st-placeholder" />
@@ -78,6 +83,7 @@
               show-password
               size="large"
               autocomplete="current-password"
+              enterkeyhint="go"
               @keyup.enter="handleFormLogin"
             >
               <template #prefix>
@@ -95,7 +101,7 @@
             type="primary"
             size="large"
             :loading="loading"
-            class="w-full !h-11 !text-[15px] !mt-6"
+            class="w-full !h-[46px] !text-[15px] !mt-6"
             @click="handleFormLogin"
           >
             登录

@@ -1,107 +1,112 @@
 <template>
   <LoadState :loading="workbench.loading.value" :error="workbench.error.value" :has-data="!!schedule" @retry="reload">
-    <template v-if="schedule">
-      <section class="tp-card">
-        <div class="flex items-center justify-between gap-3">
-          <span class="text-[15px] font-semibold text-st-title tabular-nums">
-            {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}–{{ shortTime(schedule.endTime) }}
-          </span>
+    <div v-if="schedule" class="lesson">
+      <section class="tp-card lesson__summary">
+        <div class="lesson__summary-head">
+          <span class="tp-text-meta tp-num">{{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}–{{ shortTime(schedule.endTime) }}</span>
           <span class="tp-tag" :class="isSettled ? 'tp-tag-success' : 'tp-tag-muted'">{{ lessonStatusLabel(schedule.status) }}</span>
         </div>
-        <p class="m-0 mt-1.5 text-[16px] font-medium text-st-title break-words">{{ schedule.className }}</p>
-        <p class="m-0 mt-1 text-[13px] text-st-muted break-words">
-          {{ schedule.courseName }} · {{ schedule.classroomName }} · {{ schedule.teacherName }}
-        </p>
+        <h2 class="lesson__class">{{ schedule.className }}</h2>
+        <p class="tp-text-meta" style="margin: 4px 0 0">{{ schedule.courseName }} · {{ schedule.classroomName }}</p>
+        <div class="tp-metrics">
+          <div class="tp-metric">
+            <span class="tp-metric__value">{{ attendedCount }}<small>/{{ students.length }}</small></span>
+            <span class="tp-metric__label">到课</span>
+          </div>
+          <div class="tp-metric">
+            <span class="tp-metric__value">{{ totalDeduct }}</span>
+            <span class="tp-metric__label">{{ isSettled ? '已扣课时' : '将扣课时' }}</span>
+          </div>
+          <div class="tp-metric">
+            <span class="tp-metric__value">{{ evaluatedCount }}<small>/{{ attendedCount }}</small></span>
+            <span class="tp-metric__label">已推送课评</span>
+          </div>
+        </div>
       </section>
 
-      <div class="flex items-center justify-between gap-2 mt-4 mb-2">
-        <h2 class="m-0 text-[15px] font-semibold text-st-title tabular-nums">
-          点名 {{ attendedCount }}/{{ students.length }}
-        </h2>
-        <span class="text-[12px]" :class="syncState === 'failed' ? 'text-st-danger' : 'text-st-muted'" role="status">{{ syncText }}</span>
-      </div>
+      <section class="lesson__roster">
+        <div class="tp-section-head tp-sticky-heading">
+          <div class="roster-heading">
+            <h2 class="tp-section-title">点名</h2>
+            <button v-if="syncState === 'failed'" type="button" class="sync-retry" @click="flushSync">保存失败，点此重试</button>
+            <span v-else-if="syncText" class="tp-text-meta" role="status">{{ syncText }}</span>
+          </div>
+          <button v-if="!isSettled && attendedCount < students.length" type="button" class="tp-link" @click="markAllPresent">全部到课</button>
+        </div>
 
-      <p v-if="students.length === 0" class="tp-card text-center text-st-muted text-[14px] m-0">本班暂无在读学员</p>
-
-      <div class="grid gap-2.5">
-        <article v-for="stu in students" :key="stu.studentId" class="tp-card">
-          <div class="flex items-start justify-between gap-2">
-            <RouterLink :to="`/teacher/students/${stu.studentId}`" class="min-w-0 no-underline text-inherit">
-              <span class="text-[15px] font-medium text-st-title break-words">{{ stu.studentName }}</span>
-              <span class="block text-[12px] text-st-muted tabular-nums">
-                {{ stu.studentNo }} · 剩余
-                <span :class="stu.isLowBalance ? 'text-st-danger font-medium' : ''">{{ stu.remainingLessons }}</span> 课时
+        <p v-if="students.length === 0" class="tp-card tp-state" style="margin: 0">本班暂无在读学员</p>
+        <div v-else class="tp-list">
+          <article v-for="stu in students" :key="stu.studentId" class="roster-row" :class="`is-${stu.status}`">
+            <RouterLink :to="`/teacher/students/${stu.studentId}`" class="roster-row__person">
+              <span class="tp-avatar" aria-hidden="true">{{ stu.studentName.slice(0, 1) }}</span>
+              <span class="tp-row__body">
+                <span class="tp-row__title" style="display: block">{{ stu.studentName }}</span>
+                <span class="tp-row__meta tp-num" style="display: block">
+                  剩余 <span :class="{ 'is-low': stu.isLowBalance }">{{ stu.remainingLessons }}</span> 课时
+                </span>
               </span>
             </RouterLink>
+
+            <div class="roster-row__controls">
+              <div class="tp-segment attendance" role="group" :aria-label="`${stu.studentName} 出勤`">
+                <button
+                  v-for="opt in ATTENDANCE_OPTIONS"
+                  :key="opt.value"
+                  type="button"
+                  class="tp-segment-item"
+                  :class="[`attendance--${opt.value}`, { 'is-active': stu.status === opt.value }]"
+                  :aria-pressed="stu.status === opt.value"
+                  @click="setStatus(stu, opt.value)"
+                >
+                  {{ opt.label }}
+                </button>
+              </div>
+              <select
+                class="deduct-select tp-num"
+                :value="stu.deduct"
+                :disabled="!isAttended(stu.status)"
+                :aria-label="`${stu.studentName} 扣减课时`"
+                @change="setDeduct(stu, Number(($event.target as HTMLSelectElement).value))"
+              >
+                <option :value="0">免扣</option>
+                <option :value="1">扣1</option>
+                <option :value="2">扣2</option>
+              </select>
+            </div>
+
             <RouterLink
               v-if="stu.isEvaluated"
               :to="`/teacher/lessons/${lessonId}/review/${stu.studentId}`"
-              class="tp-btn tp-btn-secondary tp-btn-sm shrink-0"
+              class="tp-link roster-row__eval roster-row__eval--done"
             >
-              <CircleCheck class="w-4 h-4 text-st-success" />看学情
+              <CircleCheck class="eval-done" aria-hidden="true" />看学情
             </RouterLink>
             <RouterLink
               v-else
               :to="`/teacher/lessons/${lessonId}/evaluate/${stu.studentId}`"
-              class="tp-btn tp-btn-secondary tp-btn-sm shrink-0"
+              class="tp-link roster-row__eval"
             >
-              {{ stu.hasDraft ? '继续写课评' : '写课评' }}
+              {{ stu.hasDraft ? '继续写' : '写课评' }}
             </RouterLink>
-          </div>
+          </article>
+        </div>
+      </section>
 
-          <div class="flex items-center gap-2 mt-2.5">
-            <div class="tp-segment flex-1" role="group" :aria-label="`${stu.studentName} 出勤`">
-              <button
-                v-for="opt in ATTENDANCE_OPTIONS"
-                :key="opt.value"
-                type="button"
-                class="tp-segment-item"
-                :class="{ 'is-active': stu.status === opt.value }"
-                :aria-pressed="stu.status === opt.value"
-                @click="setStatus(stu, opt.value)"
-              >
-                {{ opt.label }}
-              </button>
-            </div>
-            <select
-              class="deduct-select"
-              :value="stu.deduct"
-              :disabled="!isAttended(stu.status)"
-              :aria-label="`${stu.studentName} 扣减课时`"
-              @change="setDeduct(stu, Number(($event.target as HTMLSelectElement).value))"
-            >
-              <option :value="0">免扣</option>
-              <option :value="1">扣1</option>
-              <option :value="2">扣2</option>
-            </select>
-          </div>
-        </article>
-      </div>
-
-      <div v-if="students.length > 0" class="tp-action-bar flex-wrap">
-        <template v-if="!isSettled">
-          <button type="button" class="tp-btn tp-btn-secondary" @click="markAllPresent">全部到课</button>
-          <button type="button" class="tp-btn tp-btn-primary flex-1" :disabled="isFuture || busy" @click="settle">
-            {{ isFuture ? '未到上课日期' : '结课消课' }}
-          </button>
-        </template>
-        <button
-          v-else-if="hasUnsavedChanges"
-          type="button"
-          class="tp-btn tp-btn-primary flex-1"
-          :disabled="busy"
-          @click="saveSettledChanges"
-        >
+      <div v-if="students.length > 0" class="tp-action-bar lesson__actions">
+        <button v-if="!isSettled" type="button" class="tp-btn tp-btn-primary" style="flex: 1" :disabled="isFuture || busy" @click="settle">
+          {{ isFuture ? '未到上课日期' : '结课消课' }}
+        </button>
+        <button v-else-if="hasUnsavedChanges" type="button" class="tp-btn tp-btn-primary" style="flex: 1" :disabled="busy" @click="saveSettledChanges">
           保存考勤修改
         </button>
-        <button v-if="draftStudents.length > 0" type="button" class="tp-btn tp-btn-secondary flex-1" :disabled="busy" @click="pushDrafts">
-          <Send class="w-4 h-4" />推送草稿 ({{ draftStudents.length }})
+        <button v-if="draftStudents.length > 0" type="button" class="tp-btn tp-btn-secondary" style="flex: 1" :disabled="busy" @click="pushDrafts">
+          <Send aria-hidden="true" />推送草稿 ({{ draftStudents.length }})
         </button>
-        <p v-if="isSettled && !hasUnsavedChanges && draftStudents.length === 0" class="m-0 py-1 text-[13px] text-st-muted">
+        <p v-if="isSettled && !hasUnsavedChanges && draftStudents.length === 0" class="tp-text-meta" style="margin: 4px 0">
           已结课。修改出勤会按差额调整学员课时。
         </p>
       </div>
-    </template>
+    </div>
   </LoadState>
 </template>
 
@@ -115,6 +120,7 @@ import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
 import { readDraft, removeDraft } from './utils/evaluationDraft'
 import { ATTENDANCE_OPTIONS, friendlyDate, isAttended, lessonStatusLabel, shortTime, todayStr } from './utils/format'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 interface RosterRow extends WorkbenchStudent {
@@ -140,6 +146,8 @@ const schedule = computed(() => workbench.data.value?.schedule)
 const isSettled = computed(() => schedule.value?.status === 'completed')
 const isFuture = computed(() => !!schedule.value && schedule.value.date > todayStr())
 const attendedCount = computed(() => students.value.filter((s) => isAttended(s.status)).length)
+const totalDeduct = computed(() => students.value.reduce((sum, s) => sum + (isAttended(s.status) ? s.deduct : 0), 0))
+const evaluatedCount = computed(() => students.value.filter((s) => s.isEvaluated).length)
 const draftStudents = computed(() => students.value.filter((s) => s.hasDraft && !s.isEvaluated))
 const changedStudents = computed(() =>
   students.value.filter((s) => {
@@ -152,7 +160,6 @@ const hasUnsavedChanges = computed(() => isSettled.value && changedStudents.valu
 const syncText = computed(() => {
   if (syncState.value === 'saving') return '保存中…'
   if (syncState.value === 'saved') return '点名已保存'
-  if (syncState.value === 'failed') return '保存失败，修改后会自动重试'
   return isSettled.value ? '' : '点名自动保存'
 })
 
@@ -359,40 +366,227 @@ async function flushSyncIfNeeded() {
 }
 
 onBeforeRouteLeave(async () => {
-  if (syncTimer) await flushSync()
-  if (!hasUnsavedChanges.value) return true
+  if (syncTimer || syncState.value === 'failed') await flushSync()
+  const lost = hasUnsavedChanges.value || syncState.value === 'failed'
+  if (!lost) return true
   try {
-    await ElMessageBox.confirm('考勤修改尚未保存，离开后将丢失。', '放弃修改？', {
-      confirmButtonText: '放弃修改',
-      cancelButtonText: '留在此页',
-    })
+    await ElMessageBox.confirm(
+      syncState.value === 'failed' ? '点名没能保存到服务器，请检查网络。离开后本次修改将丢失。' : '考勤修改尚未保存，离开后将丢失。',
+      '放弃修改？',
+      { confirmButtonText: '放弃修改', cancelButtonText: '留在此页' },
+    )
     return true
   } catch {
     return false
   }
 })
 
-onBeforeUnmount(() => {
-  if (syncTimer) clearTimeout(syncTimer)
+/** 接电话、切应用时立刻保存，不等防抖：页面可能随后被系统回收 */
+function onVisibilityChange() {
+  if (document.hidden && syncTimer) flushSync()
+}
+
+function onOnline() {
+  if (syncState.value === 'failed') flushSync()
+}
+
+/** 有未保存的点名时不刷新，否则服务端旧数据会覆盖老师刚点的内容 */
+function refresh() {
+  if (syncTimer || syncState.value === 'saving' || syncState.value === 'failed' || hasUnsavedChanges.value || busy.value) return
+  return reload()
+}
+
+usePageRefresh(refresh)
+
+onMounted(() => {
+  document.addEventListener('visibilitychange', onVisibilityChange)
+  window.addEventListener('online', onOnline)
+  reload()
 })
 
-onMounted(reload)
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('online', onOnline)
+  if (syncTimer) clearTimeout(syncTimer)
+})
 </script>
 
 <style scoped>
+.lesson {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--tp-space-3);
+}
+.lesson__summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tp-space-2);
+}
+.lesson__class {
+  margin: var(--tp-space-1) 0 0;
+  font-size: var(--tp-fs-title);
+  font-weight: 600;
+  line-height: var(--tp-lh-tight);
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+}
+.tp-metric__value small {
+  font-size: var(--tp-fs-small);
+  font-weight: 400;
+  color: var(--tp-text-3);
+}
+
+.roster-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2);
+  min-width: 0;
+}
+.roster-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'person eval'
+    'controls controls';
+  align-items: center;
+  gap: var(--tp-space-2) var(--tp-space-3);
+  padding: var(--tp-space-3) var(--tp-space-4);
+}
+.roster-row__person {
+  grid-area: person;
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3);
+  min-width: 0;
+  min-height: var(--tp-control);
+  color: inherit;
+  text-decoration: none;
+}
+.roster-row__controls {
+  grid-area: controls;
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2);
+  min-width: 0;
+}
+/* 点名时的次要操作：做成文字，整列名单才不会被一排方框打断 */
+.roster-row__eval {
+  grid-area: eval;
+  justify-content: flex-end;
+  gap: var(--tp-space-1);
+  font-size: 14px;
+}
+.roster-row__eval svg {
+  width: 16px;
+  height: 16px;
+}
+.roster-row__eval--done {
+  color: var(--tp-text-2);
+}
+.is-low {
+  color: var(--tp-danger);
+  font-weight: 600;
+}
+.eval-done {
+  color: var(--tp-success);
+}
+.attendance {
+  flex: 1;
+  min-width: 0;
+}
+/* 到课是常态，保持中性；迟到、请假、缺勤这些异常才显色，全班扫一眼就能找到 */
+.attendance--late.is-active {
+  background: var(--tp-warning-soft);
+  color: var(--tp-warning);
+}
+.attendance--leave.is-active {
+  background: var(--tp-accent-soft);
+  color: var(--tp-accent);
+}
+.attendance--absent.is-active {
+  background: var(--tp-danger-soft);
+  color: var(--tp-danger);
+}
 .deduct-select {
   flex-shrink: 0;
-  min-height: 44px;
-  padding: 0 6px;
-  border: 1px solid var(--st-color-border-dark);
-  border-radius: 10px;
-  background: #fff;
-  color: var(--st-color-title);
+  min-height: 48px;
+  padding: 0 var(--tp-space-1);
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--tp-radius-md);
+  background: var(--tp-surface);
+  color: var(--tp-text-1);
   font-size: 16px;
   font-family: inherit;
 }
 .deduct-select:disabled {
-  background: #f1f5f9;
-  color: var(--st-color-placeholder);
+  background: var(--tp-surface-sunken);
+  border-color: transparent;
+  color: var(--tp-text-3);
+  opacity: 1;
+}
+.sync-retry {
+  min-height: 32px;
+  padding: 0 var(--tp-space-3);
+  border: 0;
+  border-radius: var(--tp-radius-sm);
+  background: var(--tp-danger-soft);
+  color: var(--tp-danger);
+  font-size: var(--tp-fs-small);
+  font-family: inherit;
+  cursor: pointer;
+}
+/* 平板以上：一个学员一行，便于快速扫读 */
+@media (min-width: 768px) {
+  .roster-row {
+    grid-template-columns: minmax(120px, 1fr) minmax(320px, 2fr) 104px;
+    grid-template-areas: 'person controls eval';
+  }
+}
+/* 电脑：左边是课次概览和主操作，右边是名单 */
+@media (min-width: 1024px) {
+  .lesson {
+    display: grid;
+    grid-template-columns: 320px minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'summary roster'
+      'actions roster'
+      '. roster';
+    align-items: start;
+    column-gap: var(--tp-space-6);
+  }
+  .lesson__summary {
+    grid-area: summary;
+  }
+  .lesson__roster {
+    grid-area: roster;
+    min-width: 0;
+  }
+  .lesson__actions {
+    grid-area: actions;
+    position: static;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .tp-sticky-heading {
+    margin: 0;
+    padding: 0;
+  }
+  .roster-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'person eval'
+      'controls controls';
+  }
+}
+@media (min-width: 1280px) {
+  .roster-row {
+    grid-template-columns: minmax(120px, 1fr) minmax(300px, 2fr) 104px;
+    grid-template-areas: 'person controls eval';
+  }
 }
 </style>

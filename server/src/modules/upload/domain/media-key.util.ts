@@ -51,6 +51,22 @@ const OWN_UPLOAD_REF = /^(?:https?:\/\/[^/\s]+)?\/uploads\/(?:photos|videos)\/[^
 /** 缩略图 / 视频封面派生参数 (MediaUploadCoordinator 与 MediaStoragePort 生成) */
 const THUMB_HINT = /[?&#](?:w=|x-oss-process=|poster)/;
 
+/** 大图预览派生参数：教师端点开大图时用，长边不超过 1280 */
+const PREVIEW_HINT = /[?&#]preview=/;
+
+export function isPreviewRef(value: string): boolean {
+  return PREVIEW_HINT.test(value);
+}
+
+/**
+ * 给本系统媒体引用加派生参数，由 MediaLinkInterceptor 签发成缩略图 / 预览图 / 视频封面链接。
+ * 不改变存储 key；第三方外链和已带参数的引用原样返回。
+ */
+export function mediaVariantRef(ref: string, variant: 'thumb' | 'preview'): string {
+  if (!isOwnUploadRef(ref) || /[?#]/.test(ref)) return ref;
+  return `${ref}?${variant === 'thumb' ? 'w=300' : 'preview=1'}`;
+}
+
 export function isOwnUploadRef(value: string): boolean {
   return OWN_UPLOAD_REF.test(value);
 }

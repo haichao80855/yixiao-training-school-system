@@ -1,37 +1,41 @@
 <template>
-  <div>
-    <RosterTabs class="mb-3" />
+  <div class="tp-stack">
+    <RosterTabs />
 
     <LoadState :loading="warnings.loading.value" :error="warnings.error.value" :has-data="!!warnings.data.value" @retry="warnings.load">
       <template v-if="warnings.data.value">
-        <div class="flex gap-2 overflow-x-auto pb-1 mb-2" role="group" aria-label="预警类型筛选">
+        <div class="tp-chips" role="group" aria-label="预警类型筛选">
           <button
             v-for="f in filters"
             :key="f.key"
             type="button"
-            class="tp-btn tp-btn-sm shrink-0"
-            :class="filter === f.key ? 'tp-btn-primary' : 'tp-btn-secondary'"
+            class="tp-chip"
+            :class="{ 'is-active': filter === f.key }"
             :aria-pressed="filter === f.key"
             @click="filter = f.key"
           >
-            {{ f.label }} {{ f.count }}
+            {{ f.label }} <span class="tp-count">{{ f.count }}</span>
           </button>
         </div>
 
-        <div v-if="visibleItems.length === 0" class="py-12 text-center text-st-muted text-[14px]">暂无需要关注的学员</div>
-        <div class="grid gap-2.5">
-          <article v-for="item in visibleItems" :key="item.id" class="tp-card">
-            <div class="flex items-center justify-between gap-2">
-              <RouterLink :to="`/teacher/students/${item.studentId}`" class="text-[15px] font-medium text-st-title no-underline break-words min-w-0">
-                {{ item.studentName }}
-                <span class="text-[12px] font-normal text-st-muted tabular-nums">{{ item.studentNo }}</span>
-              </RouterLink>
-              <span class="tp-tag" :class="item.level === 'urgent' ? 'tp-tag-danger' : 'tp-tag-warning'">{{ TYPE_LABELS[item.type] }}</span>
-            </div>
-            <p class="m-0 mt-1.5 text-[14px] text-st-regular">{{ item.reason }}</p>
-            <p class="m-0 mt-0.5 text-[13px] text-st-muted break-words">{{ item.classNames.join('、') }}</p>
-            <a :href="`tel:${item.phone}`" class="tp-btn tp-btn-secondary tp-btn-sm mt-2.5">
-              <Phone class="w-4 h-4" />联系{{ item.parentName || '家长' }}
+        <div v-if="visibleItems.length === 0" class="tp-state">
+          <CircleCheck aria-hidden="true" />
+          <p>暂无需要关注的学员</p>
+        </div>
+        <div v-else class="tp-list">
+          <article v-for="item in visibleItems" :key="item.id" class="tp-row">
+            <RouterLink :to="`/teacher/students/${item.studentId}`" class="warning-person">
+              <span class="tp-avatar" aria-hidden="true">{{ item.studentName.slice(0, 1) }}</span>
+              <span class="tp-row__body">
+                <span class="warning-title">
+                  <span class="tp-row__title">{{ item.studentName }}</span>
+                  <span class="tp-tag" :class="item.level === 'urgent' ? 'tp-tag-danger' : 'tp-tag-warning'">{{ TYPE_LABELS[item.type] }}</span>
+                </span>
+                <span class="tp-row__meta" style="display: block">{{ item.reason }} · {{ item.classNames.join('、') }}</span>
+              </span>
+            </RouterLink>
+            <a :href="`tel:${item.phone}`" class="tp-icon-btn tp-icon-btn--accent" :aria-label="`联系${item.parentName || '家长'}`">
+              <Phone aria-hidden="true" />
             </a>
           </article>
         </div>
@@ -41,11 +45,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { Phone } from 'lucide-vue-next'
+import { computed, onActivated, ref } from 'vue'
+import { CircleCheck, Phone } from 'lucide-vue-next'
 import { teacherPortalApi, type WarningType } from '@/api'
 import LoadState from './components/LoadState.vue'
 import RosterTabs from './components/RosterTabs.vue'
+import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
 const TYPE_LABELS: Record<WarningType, string> = {
@@ -71,5 +76,25 @@ const visibleItems = computed(() =>
   (warnings.data.value?.items || []).filter((i) => filter.value === 'all' || i.type === filter.value),
 )
 
-onMounted(warnings.load)
+usePageRefresh(warnings.load)
+onActivated(warnings.load)
 </script>
+
+<style scoped>
+.warning-person {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tp-control);
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3);
+  color: inherit;
+  text-decoration: none;
+}
+.warning-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--tp-space-1) var(--tp-space-2);
+}
+</style>

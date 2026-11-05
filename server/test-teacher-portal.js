@@ -5,6 +5,7 @@
 const assert = require('assert');
 const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
+const { of, lastValueFrom } = require('rxjs');
 
 const BASE_URL = `http://127.0.0.1:${process.env.PORT || 3001}`;
 const prisma = new PrismaClient();
@@ -254,6 +255,62 @@ async function run() {
   assert.strictEqual(pushed.data.metrics.pushedCount, 1);
   assert.strictEqual(pushed.data.metrics.pendingCount, 0);
   ok('课评管理统计同步');
+
+  console.log('\n--- 教师端查看用缩略图 / 预览图，保存仍用原图 ---');
+  const mediaRes = await call('POST', '/api/educational/fulfillment/fulfill', tokenA, {
+    scheduleEventId: lessonToday.id,
+    mode: 'PUBLISH_EVALUATION',
+    targetStudentId: absent.student.id,
+    anomalyOverrides: [
+      {
+        studentId: absent.student.id,
+        status: 'absent',
+        deductLessons: 0,
+        personalizedComment: '带媒体的课评',
+        rating: 5,
+        photos: ['/uploads/photos/tp-test/a.jpg'],
+        videoUrl: '/uploads/videos/tp-test/a.mp4',
+        isEvaluated: true,
+      },
+    ],
+  });
+  assert.ok([200, 201].includes(mediaRes.status), JSON.stringify(mediaRes.raw));
+  const mediaBench = await call('GET', `/api/educational/fulfillment/workbench/${lessonToday.id}`, tokenA);
+  const mediaRow = mediaBench.data.students.find((s) => s.studentId === absent.student.id);
+  const signed = (url) => /\/api\/media\/.*[?&]sig=/.test(url);
+  assert.strictEqual(mediaRow.photoThumbs.length, 1);
+  assert.strictEqual(mediaRow.photoPreviews.length, 1);
+  assert.ok(signed(mediaRow.photos[0]) && signed(mediaRow.photoThumbs[0]) && signed(mediaRow.photoPreviews[0]));
+  assert.ok(signed(mediaRow.videoPoster));
+  const storedItem = await prisma.lessonEvaluationStudentItem.findFirst({
+    where: { studentId: absent.student.id, evaluation: { scheduleEventId: lessonToday.id } },
+  });
+  assert.deepStrictEqual(JSON.parse(storedItem.photos), ['/uploads/photos/tp-test/a.jpg'], '数据库只存原图引用');
+  ok('工作台返回签名的缩略图、预览图和视频封面，数据库只存原图引用');
+
+  const { MediaLinkInterceptor } = require('./dist/modules/upload/media-link.interceptor');
+  const { AliyunOssStorageAdapter } = require('./dist/modules/upload/domain/adapters/aliyun-oss-storage.adapter');
+  const OSS = require('ali-oss');
+  const signClient = new OSS({ region: 'oss-cn-beijing', bucket: 'tp-test', accessKeyId: 'test-id', accessKeySecret: 'test-secret' });
+  const interceptor = new MediaLinkInterceptor(new AliyunOssStorageAdapter(undefined, { write: signClient, sign: signClient }));
+  const signOutput = async (value) => {
+    const ctx = { getType: () => 'http', switchToHttp: () => ({ getRequest: () => ({}) }) };
+    return lastValueFrom(interceptor.intercept(ctx, { handle: () => of(value) }));
+  };
+  const process = (url) => new URL(url).searchParams.get('x-oss-process') || '';
+  const [thumb, preview, poster, original] = await signOutput([
+    '/uploads/photos/a.jpg?w=300',
+    '/uploads/photos/a.jpg?preview=1',
+    '/uploads/videos/a.mp4?w=300',
+    '/uploads/photos/a.jpg',
+  ]);
+  assert.ok(process(thumb).includes('w_300'), thumb);
+  assert.ok(process(preview).includes('w_1280'), preview);
+  assert.ok(process(poster).startsWith('video/snapshot'), poster);
+  assert.strictEqual(process(original), '');
+  const [thumbAgain] = await signOutput(['/uploads/photos/a.jpg?w=300']);
+  assert.strictEqual(thumbAgain, thumb, '缩略图链接要保持稳定才能命中缓存');
+  ok('OSS 下缩略图、预览图、视频封面的处理参数正确，缩略图链接稳定可缓存');
 
   console.log('\n--- 已结课后修改考勤：按差额调整课时 ---');
   await call('POST', '/api/educational/lesson-evaluations/commit', tokenA, {
