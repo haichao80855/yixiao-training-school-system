@@ -99,7 +99,9 @@ async function runTests() {
   const original = adapter.signedUrl('photos/a.jpg', { expiresInSeconds: 3600 });
   assert(!original.includes('process='), '原图不应携带处理参数');
   assert(adapter.signedUrl('photos/a.jpg', { variant: 'thumb' }).includes('process=image/resize'));
-  assert(adapter.signedUrl('videos/a.mp4', { variant: 'thumb' }).includes('process=video/snapshot'));
+  const videoCover = adapter.signedUrl('videos/a.mp4', { variant: 'thumb' });
+  assert(videoCover.includes('process=video/snapshot'));
+  assert(videoCover.includes('w_480') && !/[,/]h_\d/.test(videoCover), '视频封面只限宽度，否则会被拉伸变形');
   assert(adapter.signedUrl('/videos/a.mp4').includes('expires=3600'), '默认有效期 3600 秒');
   assert(!adapter.signedUrl('/videos/a.mp4').includes('cache='), '未要求稳定链接时不带缓存响应头');
   const previewPhoto = adapter.signedUrl('photos/a.jpg', { variant: 'preview' });

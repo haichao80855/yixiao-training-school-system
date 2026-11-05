@@ -39,7 +39,8 @@ const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
 
 /** 九宫格方形缩略图 / 视频首帧封面 (OSS 数据处理参数，随签名一起生效) */
 const IMAGE_THUMB_PROCESS = 'image/resize,m_fill,w_300,h_300/quality,q_80';
-const VIDEO_THUMB_PROCESS = 'video/snapshot,t_1000,f_jpg,w_300,h_300,m_fast';
+/** 视频截帧同时指定宽高会直接拉伸变形，只限宽度以保持原比例；ar_auto 按旋转信息摆正竖拍视频 */
+const VIDEO_THUMB_PROCESS = 'video/snapshot,t_1000,f_jpg,w_480,m_fast,ar_auto';
 /** 大图预览：长边不超过 1280 (不放大)，手机上看不出差别但流量小得多。GIF 不处理，避免丢失动画 */
 const IMAGE_PREVIEW_PROCESS = 'image/auto-orient,1/resize,m_lfit,w_1280,h_1280/quality,q_80';
 const PREVIEWABLE_IMAGE_EXT = /\.(jpe?g|png|webp)$/i;

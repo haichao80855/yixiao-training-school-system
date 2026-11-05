@@ -29,7 +29,8 @@
 
         <view v-else class="video-grid">
           <view v-for="v in m.items" :key="v.id" class="video-cell" @click="playVideo(v.url)">
-            <image class="video-cover" :src="mediaUrl(v.thumbUrl)" mode="aspectFill" lazy-load />
+            <!-- 横屏和竖屏视频混排，完整显示画面，避免裁掉孩子 -->
+            <image class="video-cover" :src="mediaUrl(v.thumbUrl)" mode="aspectFit" lazy-load />
             <view class="play">
               <AppIcon name="play-circle" size="56rpx" color="#FFFFFF" />
             </view>
@@ -225,7 +226,7 @@ onReachBottom(() => load(false));
 
 .video-cell {
   position: relative;
-  height: 200rpx;
+  height: 280rpx;
   border-radius: 20rpx;
   overflow: hidden;
   background: linear-gradient(135deg, #1E293B, #0F172A);
