@@ -10,6 +10,7 @@ import { EducationalModule } from './modules/educational/educational.module';
 import { FinancialModule } from './modules/financial/financial.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { ParentModule } from './modules/parent/parent.module';
+import { TeacherPortalModule } from './modules/teacher-portal/teacher-portal.module';
 import { ParentBoundaryGuard } from './modules/parent/guards/parent-boundary.guard';
 import { DataScopeModule } from './modules/data-scope/data-scope.module';
 import { AppController } from './app.controller';
@@ -34,6 +35,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     FinancialModule,
     UploadModule,
     ParentModule,
+    TeacherPortalModule,
   ],
   controllers: [AppController],
   providers: [

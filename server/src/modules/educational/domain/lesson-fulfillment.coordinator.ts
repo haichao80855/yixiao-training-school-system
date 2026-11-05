@@ -502,7 +502,9 @@ export class LessonFulfillmentCoordinator {
             ratingStr = 'B';
           }
 
-          const studentComment = override?.personalizedComment || teacherComment;
+          // 仅消课 (ATTENDANCE_ONLY) 不产生课评内容：不写入教研模板文案，否则会被学情档案当作老师评语展示给家长
+          const studentComment =
+            override?.personalizedComment || (mode === 'ATTENDANCE_ONLY' ? undefined : teacherComment);
 
           // Upsert AttendanceRecord
           const existingAtt = await tx.attendanceRecord.findFirst({

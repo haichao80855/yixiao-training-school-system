@@ -8,6 +8,11 @@ export class LoginDto {
   password: string;
 }
 
+export class ChangePasswordDto {
+  oldPassword: string;
+  newPassword: string;
+}
+
 @Controller('api/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -22,5 +27,11 @@ export class AuthController {
   @Get('profile')
   async getProfile(@CurrentUser('id') userId: string) {
     return this.authService.getProfile(userId);
+  }
+
+  /** 修改本人密码：须校验原密码，不依赖 system:user:resetPwd 管理权限 */
+  @Post('change-password')
+  async changePassword(@CurrentUser('id') userId: string, @Body() body: ChangePasswordDto) {
+    return this.authService.changeOwnPassword(userId, body?.oldPassword, body?.newPassword);
   }
 }

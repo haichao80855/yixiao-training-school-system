@@ -6,3 +6,4 @@ export * from './modules/financial';
 export * from './modules/curriculum';
 export * from './modules/system';
 export * from './modules/upload';
+export * from './modules/teacherPortal';

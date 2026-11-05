@@ -7,4 +7,9 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
   getProfile: () => request('/api/auth/profile'),
+  changePassword: (data: { oldPassword: string; newPassword: string }) =>
+    request('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

@@ -143,6 +143,85 @@ const routes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: '/teacher',
+    component: () => import('@/layout/TeacherLayout.vue'),
+    meta: { requiresPermission: 'educational:workbench' },
+    children: [
+      {
+        path: '',
+        name: 'TeacherHome',
+        component: () => import('@/views/teacher/TeacherHome.vue'),
+        meta: { title: '教师端', teacherTab: 'home' }
+      },
+      {
+        path: 'schedule',
+        name: 'TeacherSchedule',
+        component: () => import('@/views/teacher/TeacherSchedule.vue'),
+        meta: { title: '我的课表', teacherTab: 'schedule' }
+      },
+      {
+        path: 'evaluations',
+        name: 'TeacherEvaluations',
+        component: () => import('@/views/teacher/TeacherEvaluations.vue'),
+        meta: { title: '课评管理', teacherTab: 'evaluations' }
+      },
+      {
+        path: 'students',
+        name: 'TeacherStudents',
+        component: () => import('@/views/teacher/TeacherStudents.vue'),
+        meta: { title: '我的学员', teacherTab: 'students' }
+      },
+      {
+        path: 'classes',
+        name: 'TeacherClasses',
+        component: () => import('@/views/teacher/TeacherClasses.vue'),
+        meta: { title: '我的班级', teacherTab: 'students' }
+      },
+      {
+        path: 'warnings',
+        name: 'TeacherWarnings',
+        component: () => import('@/views/teacher/TeacherWarnings.vue'),
+        meta: { title: '学员预警', teacherTab: 'students' }
+      },
+      {
+        path: 'me',
+        name: 'TeacherMe',
+        component: () => import('@/views/teacher/TeacherMe.vue'),
+        meta: { title: '我的', teacherTab: 'me' }
+      },
+      {
+        path: 'lessons/:id',
+        name: 'TeacherLesson',
+        component: () => import('@/views/teacher/TeacherLesson.vue'),
+        meta: { title: '课次详情' }
+      },
+      {
+        path: 'lessons/:id/evaluate/:studentId',
+        name: 'TeacherEvaluate',
+        component: () => import('@/views/teacher/TeacherEvaluate.vue'),
+        meta: { title: '写课评' }
+      },
+      {
+        path: 'lessons/:id/review/:studentId',
+        name: 'TeacherReview',
+        component: () => import('@/views/teacher/TeacherReview.vue'),
+        meta: { title: '看学情' }
+      },
+      {
+        path: 'classes/:id',
+        name: 'TeacherClassDetail',
+        component: () => import('@/views/teacher/TeacherClassDetail.vue'),
+        meta: { title: '班级详情' }
+      },
+      {
+        path: 'students/:id',
+        name: 'TeacherStudentDetail',
+        component: () => import('@/views/teacher/TeacherStudentDetail.vue'),
+        meta: { title: '学员详情' }
+      }
+    ]
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/login/index.vue'),
@@ -173,7 +252,7 @@ router.beforeEach((to, _from, next) => {
   // 登录页与公开学情报告落地页免登录放行
   if (to.path === '/login' || to.path.startsWith('/public/')) {
     if (to.path === '/login' && authStore.isAuthenticated) {
-      next(authStore.isTeacher ? '/educational/workbench' : '/dashboard')
+      next(authStore.homePath)
     } else {
       next()
     }
@@ -181,8 +260,16 @@ router.beforeEach((to, _from, next) => {
     if (!authStore.isAuthenticated) {
       // 未登录一律回登录页，并记住原本要去的页面
       next({ path: '/login', query: { redirect: to.fullPath } })
+    } else if (to.path === '/dashboard' && authStore.isTeacherOnly) {
+      // 默认入口 (含 / 与未知路径) 对纯教师账号落到教师端
+      next('/teacher')
     } else {
-      next()
+      const requiredPermission = to.matched.find((r) => r.meta.requiresPermission)?.meta.requiresPermission as string | undefined
+      if (requiredPermission && !authStore.hasPermission(requiredPermission)) {
+        next('/dashboard')
+      } else {
+        next()
+      }
     }
   }
 })
