@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
@@ -14,6 +15,55 @@ import { OrgHierarchyEngine, OrgNodeEntity } from './services/org-hierarchy.engi
 import { PermissionTreeEngine } from './permission-tree.engine';
 import { DictCacheManager } from './services/dict-cache.manager';
 import { normalizeCnMobile } from '../../common/phone.util';
+import { isSuperAdminUser } from '../../common/campus-scope.policy';
+
+/** 发起员工管理操作的当前登录员工，字段来自 JwtStrategy 每次请求从数据库解析的结果 */
+export interface StaffOperator {
+  id: string;
+  campusId: string;
+  dataScope: string;
+  roles: { id: string; code: string; dataScope?: string | null }[];
+  permissions: string[];
+}
+
+type ScopedRole = { id: string; code: string; dataScope?: string | null };
+
+const DATA_SCOPE_RANK = new Map<string, number>([
+  ['self', 0],
+  ['department', 1],
+  ['campus', 2],
+  ['all', 3],
+]);
+const CAMPUS_SCOPE_RANK = 2;
+const ALL_SCOPE_RANK = 3;
+
+/** 判定口径与 PermissionsGuard 的超管放行保持一致 */
+function isSuperAdminRole(role: ScopedRole): boolean {
+  return role.code === 'super_admin' || role.code === 'admin' || role.id === 'r1';
+}
+
+function isSuperAdminOperator(operator: StaffOperator): boolean {
+  return (
+    operator.roles.some(isSuperAdminRole) ||
+    operator.permissions.includes('*') ||
+    operator.permissions.includes('admin:all')
+  );
+}
+
+function operatorScopeRank(operator: StaffOperator): number {
+  if (isSuperAdminUser(operator)) return ALL_SCOPE_RANK;
+  return DATA_SCOPE_RANK.get(operator.dataScope) ?? CAMPUS_SCOPE_RANK;
+}
+
+/**
+ * 账号的有效数据范围，与 JwtStrategy 的计算一致：个人覆写优先，未覆写时取角色中的最高范围。
+ * 持有全校区角色时 isSuperAdminUser 视其为全校区，个人覆写无法压低。
+ */
+function effectiveScopeRank(dataScope: string | null | undefined, roles: ScopedRole[]): number {
+  if (dataScope === 'all' || roles.some((role) => role.dataScope === 'all')) return ALL_SCOPE_RANK;
+  if (dataScope) return DATA_SCOPE_RANK.get(dataScope) ?? CAMPUS_SCOPE_RANK;
+  return Math.max(0, ...roles.map((role) => DATA_SCOPE_RANK.get(role.dataScope || 'campus') ?? CAMPUS_SCOPE_RANK));
+}
 
 @Injectable()
 export class SystemService {
@@ -826,7 +876,15 @@ export class SystemService {
   }
 
   // 15. 创建员工账号 (统一默认初始密码 123456)
-  async createUser(dto: CreateUserDto) {
+  async createUser(dto: CreateUserDto, operator: StaffOperator) {
+    const targetRole = dto.roleId ? await this.findRoleByIdOrCode(dto.roleId) : null;
+    await this.assertCanAssignAccess(operator, {
+      campusId: dto.campusId,
+      orgNodeId: dto.orgNodeId,
+      dataScope: dto.dataScope,
+      roles: targetRole ? [targetRole] : [],
+    });
+
     const trimmedAccount = dto.account ? dto.account.trim() : '';
     if (!trimmedAccount) {
       throw new BadRequestException('员工登录工号/账号不能为空');
@@ -873,20 +931,13 @@ export class SystemService {
       },
     });
 
-    if (dto.roleId) {
-      const targetRole = await this.prisma.role.findFirst({
-        where: {
-          OR: [{ id: dto.roleId }, { code: dto.roleId }],
+    if (targetRole) {
+      await this.prisma.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: targetRole.id,
         },
       });
-      if (targetRole) {
-        await this.prisma.userRole.create({
-          data: {
-            userId: user.id,
-            roleId: targetRole.id,
-          },
-        });
-      }
     }
 
     return {
@@ -896,6 +947,101 @@ export class SystemService {
       phone: user.phone,
       message: '员工账号创建成功，默认初始密码为 123456',
     };
+  }
+
+  private findRoleByIdOrCode(roleIdOrCode: string) {
+    return this.prisma.role.findFirst({
+      where: {
+        OR: [{ id: roleIdOrCode }, { code: roleIdOrCode }],
+      },
+    });
+  }
+
+  /**
+   * 目标账号是否在操作者的管辖范围内。重置密码等于接管账号，因此超管账号和
+   * 数据范围高于操作者的账号一律不可操作，否则可绕过授予环节的限制。
+   */
+  private async assertCanManageUser(
+    operator: StaffOperator,
+    target: { id: string; campusId: string; dataScope: string | null },
+  ): Promise<ScopedRole[]> {
+    const targetRoles = await this.prisma.userRole.findMany({
+      where: { userId: target.id },
+      select: { role: { select: { id: true, code: true, dataScope: true } } },
+    });
+    const roles = targetRoles.map((ur) => ur.role);
+    if (isSuperAdminOperator(operator)) {
+      return roles;
+    }
+
+    if (roles.some(isSuperAdminRole)) {
+      throw new ForbiddenException('操作权限受限：仅超级管理员可操作超级管理员账号');
+    }
+    const operatorRank = operatorScopeRank(operator);
+    if (effectiveScopeRank(target.dataScope, roles) > operatorRank) {
+      throw new ForbiddenException('操作权限受限：不可操作数据范围高于自身的员工账号');
+    }
+    if (operatorRank < ALL_SCOPE_RANK && target.campusId !== operator.campusId) {
+      throw new ForbiddenException('操作权限受限：不可操作其他校区的员工账号');
+    }
+    return roles;
+  }
+
+  /** 新的角色、数据范围、校区与组织节点是否在操作者的授权范围内，须在任何写库之前调用 */
+  private async assertCanAssignAccess(
+    operator: StaffOperator,
+    next: {
+      campusId?: string;
+      orgNodeId?: string | null;
+      dataScope?: string | null;
+      roles: ScopedRole[];
+    },
+  ) {
+    if (isSuperAdminOperator(operator)) {
+      return;
+    }
+
+    if (next.roles.some(isSuperAdminRole)) {
+      throw new ForbiddenException('操作权限受限：仅超级管理员可授予超级管理员角色');
+    }
+    if (next.dataScope && !DATA_SCOPE_RANK.has(next.dataScope)) {
+      throw new BadRequestException(`数据范围 [${next.dataScope}] 不合法`);
+    }
+    const operatorRank = operatorScopeRank(operator);
+    if (effectiveScopeRank(next.dataScope, next.roles) > operatorRank) {
+      throw new ForbiddenException('操作权限受限：不可将员工的数据范围设置为超出自身的范围');
+    }
+
+    if (operatorRank === ALL_SCOPE_RANK) {
+      return;
+    }
+    if (next.campusId && next.campusId !== operator.campusId) {
+      throw new ForbiddenException('操作权限受限：不可将员工安排到其他校区');
+    }
+    if (next.orgNodeId) {
+      const nodeCampusId = await this.findOrgNodeCampusId(next.orgNodeId);
+      if (nodeCampusId && nodeCampusId !== operator.campusId) {
+        throw new ForbiddenException('操作权限受限：不可将员工安排到其他校区的组织节点');
+      }
+    }
+  }
+
+  /** 沿组织树向上查找节点所属校区；集团、大区等校区以上的节点没有所属校区 */
+  private async findOrgNodeCampusId(orgNodeId: string): Promise<string | undefined> {
+    const visited = new Set<string>();
+    let currentId: string | null = orgNodeId;
+    while (currentId && !visited.has(currentId)) {
+      visited.add(currentId);
+      const node: { parentId: string | null; campus: { id: string } | null } | null =
+        await this.prisma.orgNode.findUnique({
+          where: { id: currentId },
+          select: { parentId: true, campus: { select: { id: true } } },
+        });
+      if (!node) return undefined;
+      if (node.campus) return node.campus.id;
+      currentId = node.parentId;
+    }
+    return undefined;
   }
 
   /** 校验员工所属校区与组织节点真实存在，避免外键报错把数据库原始异常抛给前端 */
@@ -924,11 +1070,21 @@ export class SystemService {
   }
 
   // 16. 编辑员工账号
-  async updateUser(id: string, dto: UpdateUserDto) {
+  async updateUser(id: string, dto: UpdateUserDto, operator: StaffOperator) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('员工账号不存在');
     }
+
+    const currentRoles = await this.assertCanManageUser(operator, user);
+    const targetRole = dto.roleId ? await this.findRoleByIdOrCode(dto.roleId) : null;
+    await this.assertCanAssignAccess(operator, {
+      campusId: dto.campusId,
+      // 未变更的组织节点不校验：历史数据的节点归属不应阻塞其他字段的保存
+      orgNodeId: dto.orgNodeId !== user.orgNodeId ? dto.orgNodeId : undefined,
+      dataScope: dto.dataScope !== undefined ? dto.dataScope : user.dataScope,
+      roles: targetRole ? [targetRole] : currentRoles,
+    });
 
     let trimmedPhone: string | null | undefined = undefined;
     if (dto.phone !== undefined) {
@@ -965,28 +1121,21 @@ export class SystemService {
       },
     });
 
-    if (dto.roleId) {
-      const targetRole = await this.prisma.role.findFirst({
-        where: {
-          OR: [{ id: dto.roleId }, { code: dto.roleId }],
+    if (targetRole) {
+      await this.prisma.userRole.deleteMany({ where: { userId: id } });
+      await this.prisma.userRole.create({
+        data: {
+          userId: id,
+          roleId: targetRole.id,
         },
       });
-      if (targetRole) {
-        await this.prisma.userRole.deleteMany({ where: { userId: id } });
-        await this.prisma.userRole.create({
-          data: {
-            userId: id,
-            roleId: targetRole.id,
-          },
-        });
-      }
     }
 
     return updatedUser;
   }
 
   // 17. 删除员工账号
-  async deleteUser(id: string) {
+  async deleteUser(id: string, operator: StaffOperator) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
@@ -997,6 +1146,7 @@ export class SystemService {
     if (!user) {
       throw new NotFoundException('员工账号不存在');
     }
+    await this.assertCanManageUser(operator, user);
     if (user.account === 'donghaichao' || user.account === 'admin') {
       throw new BadRequestException('系统根超级管理员账号禁止删除');
     }
@@ -1011,11 +1161,12 @@ export class SystemService {
   }
 
   // 18. 重置员工密码为初始密码 123456
-  async resetUserPassword(id: string, newPassword?: string) {
+  async resetUserPassword(id: string, operator: StaffOperator, newPassword?: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('员工账号不存在');
     }
+    await this.assertCanManageUser(operator, user);
 
     const targetPassword = newPassword?.trim() || '123456';
     const hashedPassword = await bcrypt.hash(targetPassword, 10);
@@ -1033,11 +1184,12 @@ export class SystemService {
   }
 
   // 19. 启停员工账号
-  async toggleUserStatus(id: string, targetStatus?: string) {
+  async toggleUserStatus(id: string, operator: StaffOperator, targetStatus?: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
       throw new NotFoundException('员工账号不存在');
     }
+    await this.assertCanManageUser(operator, user);
     if (user.account === 'donghaichao' && (targetStatus === 'disabled' || user.status === 'active')) {
       throw new BadRequestException('超级管理员账号禁止停用');
     }

@@ -9,7 +9,7 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
-import { SystemService } from './system.service';
+import { StaffOperator, SystemService } from './system.service';
 import { CreateOrgNodeDto, UpdateOrgNodeDto, CreateCampusDto, UpdateCampusDto } from './dto/create-org-node.dto';
 import { CreateRoleDto, UpdateRoleDto, AssignPermissionsDto } from './dto/update-role.dto';
 import { CreateUserDto, UpdateUserDto, ResetPasswordDto } from './dto/create-user.dto';
@@ -163,20 +163,24 @@ export class SystemController {
 
   @Post('users')
   @RequirePermissions('system:user:add')
-  createUser(@Body() dto: CreateUserDto) {
-    return this.systemService.createUser(dto);
+  createUser(@Body() dto: CreateUserDto, @CurrentUser() operator: StaffOperator) {
+    return this.systemService.createUser(dto, operator);
   }
 
   @Put('users/:id')
   @RequirePermissions('system:user:edit')
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.systemService.updateUser(id, dto);
+  updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser() operator: StaffOperator,
+  ) {
+    return this.systemService.updateUser(id, dto, operator);
   }
 
   @Delete('users/:id')
   @RequirePermissions('system:user:delete')
-  deleteUser(@Param('id') id: string) {
-    return this.systemService.deleteUser(id);
+  deleteUser(@Param('id') id: string, @CurrentUser() operator: StaffOperator) {
+    return this.systemService.deleteUser(id, operator);
   }
 
   @Patch('users/:id/password')
@@ -184,17 +188,19 @@ export class SystemController {
   resetUserPassword(
     @Param('id') id: string,
     @Body() dto: ResetPasswordDto,
+    @CurrentUser() operator: StaffOperator,
   ) {
-    return this.systemService.resetUserPassword(id, dto?.password);
+    return this.systemService.resetUserPassword(id, operator, dto?.password);
   }
 
   @Patch('users/:id/status')
   @RequirePermissions('system:user:status')
   toggleUserStatus(
     @Param('id') id: string,
+    @CurrentUser() operator: StaffOperator,
     @Body('status') status?: string,
   ) {
-    return this.systemService.toggleUserStatus(id, status);
+    return this.systemService.toggleUserStatus(id, operator, status);
   }
 
   // 7. 业务字典 (开放已登录操作员安全读取公共业务枚举与参数)
