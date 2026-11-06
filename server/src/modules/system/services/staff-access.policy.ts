@@ -9,6 +9,11 @@ import { isSuperAdminUser } from "../../../common/campus-scope.policy";
  * - 只能分配权限和数据范围不超过自己的角色，超管角色一律不可分配；
  * - 不能修改自己的角色和数据范围。
  * 同校区同级别的账号（如另一位校长）可以互相管理。
+ *
+ * 角色全局生效，同样受限。非超管操作者：
+ * - 不能修改或删除超管角色、自己持有的角色，以及权限或数据范围高于自己的角色；
+ * - 赋予角色的权限和数据范围不能超出自己；
+ * - 不能新建使用超管编码的角色（isSuperAdminUser 仅凭编码就放行跨校区）。
  */
 
 /** JwtStrategy 写入 request.user 的操作者信息 */
@@ -50,6 +55,7 @@ const DATA_SCOPE_RANK: Record<string, number> = {
   all: 3,
 };
 const WILDCARD_PERMISSIONS = ["*", "admin:all"];
+const SUPER_ROLE_CODES = ["super_admin", "admin"];
 
 /** 校验数据范围取值：空值表示继承角色默认范围，未知取值直接拒绝 */
 export function parseDataScope(raw: unknown): string | null {
@@ -69,8 +75,7 @@ export function isFullAdmin(actor: StaffActor): boolean {
 
 function isSuperRole(role: RoleWithPermissions): boolean {
   return (
-    role.code === "super_admin" ||
-    role.code === "admin" ||
+    SUPER_ROLE_CODES.includes(role.code) ||
     role.id === "r1" ||
     role.permissions.some((rp) =>
       WILDCARD_PERMISSIONS.includes(rp.permission.code),
@@ -227,5 +232,69 @@ export function assertCanUpdateUser(
     throw new ForbiddenException(
       "权限不足，缺少必要权限码: [system:user:status]",
     );
+  }
+}
+
+function assertRoleScopeAllowed(actor: StaffActor, dataScope: string): void {
+  if (exceedsScope(dataScope, actorScope(actor))) {
+    throw new ForbiddenException("不能把角色数据范围设置为超出自己的范围");
+  }
+}
+
+export function assertCanCreateRole(
+  actor: StaffActor,
+  code: string,
+  dataScope: string,
+): void {
+  if (isFullAdmin(actor)) {
+    return;
+  }
+  if (SUPER_ROLE_CODES.includes(code)) {
+    throw new ForbiddenException("只有超级管理员才能创建超级管理员角色");
+  }
+  assertRoleScopeAllowed(actor, dataScope);
+}
+
+/** 修改、删除角色前都必须通过：防止给自己提权，或削弱权限更高的角色 */
+export function assertCanManageRole(
+  actor: StaffActor,
+  role: RoleWithPermissions,
+): void {
+  if (isFullAdmin(actor)) {
+    return;
+  }
+  if (isSuperRole(role)) {
+    throw new ForbiddenException("只有超级管理员才能修改超级管理员角色");
+  }
+  if (actor.roles?.some((held) => held.id === role.id)) {
+    throw new ForbiddenException("不能修改自己持有的角色，请联系超级管理员");
+  }
+  if (
+    exceedsPermissions(actor, role) ||
+    exceedsScope(role.dataScope, actorScope(actor))
+  ) {
+    throw new ForbiddenException("无权修改权限或数据范围高于自己的角色");
+  }
+}
+
+export function assertCanSetRoleScope(
+  actor: StaffActor,
+  dataScope: string,
+): void {
+  if (!isFullAdmin(actor)) {
+    assertRoleScopeAllowed(actor, dataScope);
+  }
+}
+
+/** permissionCodes 传最终要写入的权限码（通配符已展开），未知编码不会落库因此无需校验 */
+export function assertCanAssignRolePermissions(
+  actor: StaffActor,
+  permissionCodes: string[],
+): void {
+  if (
+    !isFullAdmin(actor) &&
+    permissionCodes.some((code) => !actor.permissions.includes(code))
+  ) {
+    throw new ForbiddenException("不能给角色分配超出自己的权限");
   }
 }

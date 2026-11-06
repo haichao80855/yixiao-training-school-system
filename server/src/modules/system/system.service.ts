@@ -17,8 +17,12 @@ import { DictCacheManager } from './services/dict-cache.manager';
 import { normalizeCnMobile } from '../../common/phone.util';
 import {
   StaffActor,
+  assertCanAssignRolePermissions,
+  assertCanCreateRole,
   assertCanCreateUser,
+  assertCanManageRole,
   assertCanManageUser,
+  assertCanSetRoleScope,
   assertCanUpdateUser,
   canAccessAllCampuses,
   isFullAdmin,
@@ -625,7 +629,10 @@ export class SystemService {
   }
 
   // 9. 角色新建
-  async createRole(dto: CreateRoleDto) {
+  async createRole(actor: StaffActor, dto: CreateRoleDto) {
+    const dataScope = parseDataScope(dto.dataScope) ?? 'campus';
+    assertCanCreateRole(actor, dto.code, dataScope);
+
     const exist = await this.prisma.role.findUnique({
       where: { code: dto.code },
     });
@@ -638,23 +645,25 @@ export class SystemService {
         code: dto.code,
         name: dto.name,
         description: dto.description,
-        dataScope: dto.dataScope || 'campus',
+        dataScope,
       },
     });
   }
 
   // 10. 为角色分配权限 (全量覆盖式保存)
-  async assignRolePermissions(roleId: string, dto: AssignPermissionsDto) {
-    const role = await this.prisma.role.findUnique({ where: { id: roleId } });
+  async assignRolePermissions(actor: StaffActor, roleId: string, dto: AssignPermissionsDto) {
+    const role = await this.prisma.role.findUnique({ where: { id: roleId }, include: ROLE_WITH_PERMISSIONS });
     if (!role) {
       throw new NotFoundException('角色不存在');
     }
+    assertCanManageRole(actor, role);
 
     // 查询传入权限码对应的有效实体 (支持通配符 * 一键全选所有权限)
     const isAll = dto.permissionCodes.includes('*') || dto.permissionCodes.includes('admin:all');
     const validPerms = await this.prisma.permission.findMany({
       where: isAll ? {} : { code: { in: dto.permissionCodes } },
     });
+    assertCanAssignRolePermissions(actor, validPerms.map((p) => p.code));
 
     // 开启事务：删除旧关联并重建新绑定
     await this.prisma.$transaction(async (tx) => {
@@ -693,10 +702,15 @@ export class SystemService {
   }
 
   // 12. 角色更新 (更新名称、描述、数据范围 dataScope)
-  async updateRole(id: string, dto: UpdateRoleDto) {
-    const role = await this.prisma.role.findUnique({ where: { id } });
+  async updateRole(actor: StaffActor, id: string, dto: UpdateRoleDto) {
+    const role = await this.prisma.role.findUnique({ where: { id }, include: ROLE_WITH_PERMISSIONS });
     if (!role) {
       throw new NotFoundException('角色不存在');
+    }
+    assertCanManageRole(actor, role);
+    const dataScope = parseDataScope(dto.dataScope);
+    if (dataScope) {
+      assertCanSetRoleScope(actor, dataScope);
     }
 
     return this.prisma.role.update({
@@ -704,20 +718,21 @@ export class SystemService {
       data: {
         ...(dto.name ? { name: dto.name } : {}),
         ...(dto.description !== undefined ? { description: dto.description } : {}),
-        ...(dto.dataScope ? { dataScope: dto.dataScope } : {}),
+        ...(dataScope ? { dataScope } : {}),
       },
     });
   }
 
   // 13. 角色删除 (校验系统内置角色与绑定员工保护)
-  async deleteRole(id: string) {
+  async deleteRole(actor: StaffActor, id: string) {
     const role = await this.prisma.role.findUnique({
       where: { id },
-      include: { _count: { select: { userRoles: true } } },
+      include: { ...ROLE_WITH_PERMISSIONS, _count: { select: { userRoles: true } } },
     });
     if (!role) {
       throw new NotFoundException('角色不存在');
     }
+    assertCanManageRole(actor, role);
     if (role.isSystem || ['super_admin', 'principal', 'teacher', 'r1', 'r2', 'r3', 'r4'].includes(role.code)) {
       throw new BadRequestException(`系统内置核心角色 [${role.name}] 禁止删除`);
     }

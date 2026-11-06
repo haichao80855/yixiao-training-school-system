@@ -111,29 +111,34 @@ export class SystemController {
 
   @Post('roles')
   @RequirePermissions('system:role:add')
-  createRole(@Body() dto: CreateRoleDto) {
-    return this.systemService.createRole(dto);
+  createRole(@CurrentUser() actor: StaffActor, @Body() dto: CreateRoleDto) {
+    return this.systemService.createRole(actor, dto);
   }
 
   @Post('roles/:id/permissions')
   @RequirePermissions('system:role:edit')
   assignRolePermissions(
+    @CurrentUser() actor: StaffActor,
     @Param('id') id: string,
     @Body() dto: AssignPermissionsDto,
   ) {
-    return this.systemService.assignRolePermissions(id, dto);
+    return this.systemService.assignRolePermissions(actor, id, dto);
   }
 
   @Put('roles/:id')
   @RequirePermissions('system:role:edit')
-  updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-    return this.systemService.updateRole(id, dto);
+  updateRole(
+    @CurrentUser() actor: StaffActor,
+    @Param('id') id: string,
+    @Body() dto: UpdateRoleDto,
+  ) {
+    return this.systemService.updateRole(actor, id, dto);
   }
 
   @Delete('roles/:id')
   @RequirePermissions('system:role:delete')
-  deleteRole(@Param('id') id: string) {
-    return this.systemService.deleteRole(id);
+  deleteRole(@CurrentUser() actor: StaffActor, @Param('id') id: string) {
+    return this.systemService.deleteRole(actor, id);
   }
 
   // 6. 员工档案管理
