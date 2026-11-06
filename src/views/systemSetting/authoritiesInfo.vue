@@ -195,7 +195,9 @@ async function loadData() {
   try {
     const [treeRes, usersRes, rolesRes, companyRes, campusRes] = await Promise.all([
       systemApi.getOrgTree(),
-      systemApi.getUsers({ pageSize: 200 }),
+      // 组织树跨校区展示，点击节点时在这份名单里筛选，因此不能只加载当前工作校区的员工。
+      // 校区账号传 all 时，后端仍限定在其所属校区。
+      systemApi.getUsers({ pageSize: 200, campusId: 'all' }),
       systemApi.getRoles(),
       systemApi.getCompanyInfo(),
       systemApi.getCampuses(),
