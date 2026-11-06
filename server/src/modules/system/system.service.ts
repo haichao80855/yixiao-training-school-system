@@ -13,6 +13,7 @@ import { UpdateCompanyDto, TransferAdminDto } from './dto/update-company.dto';
 import { OrgHierarchyEngine, OrgNodeEntity } from './services/org-hierarchy.engine';
 import { PermissionTreeEngine } from './permission-tree.engine';
 import { DictCacheManager } from './services/dict-cache.manager';
+import { normalizeCnMobile } from '../../common/phone.util';
 
 @Injectable()
 export class SystemService {
@@ -838,7 +839,7 @@ export class SystemService {
       throw new BadRequestException(`员工登录账号 [${trimmedAccount}] 已存在，请更换`);
     }
 
-    const trimmedPhone = dto.phone ? dto.phone.trim() : null;
+    const trimmedPhone = dto.phone?.trim() ? this.parseEmployeePhone(dto.phone) : null;
     if (trimmedPhone) {
       const phoneExist = await this.prisma.user.findFirst({
         where: { phone: trimmedPhone },
@@ -913,6 +914,15 @@ export class SystemService {
     }
   }
 
+  /** 员工手机号同时是登录凭据，录错会导致登录提示“账号不存在”，因此入库前必须校验 */
+  private parseEmployeePhone(raw: string): string {
+    const phone = normalizeCnMobile(raw);
+    if (!phone) {
+      throw new BadRequestException(`手机号码 [${raw.trim()}] 格式不正确，请填写 11 位手机号码`);
+    }
+    return phone;
+  }
+
   // 16. 编辑员工账号
   async updateUser(id: string, dto: UpdateUserDto) {
     const user = await this.prisma.user.findUnique({ where: { id } });
@@ -922,7 +932,9 @@ export class SystemService {
 
     let trimmedPhone: string | null | undefined = undefined;
     if (dto.phone !== undefined) {
-      trimmedPhone = dto.phone ? dto.phone.trim() : null;
+      const rawPhone = dto.phone ? dto.phone.trim() : '';
+      // 号码未变化时不校验格式：历史不规范号码不应阻塞其他字段的保存
+      trimmedPhone = !rawPhone ? null : rawPhone === user.phone ? rawPhone : this.parseEmployeePhone(rawPhone);
       if (trimmedPhone) {
         const phoneExist = await this.prisma.user.findFirst({
           where: {

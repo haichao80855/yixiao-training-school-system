@@ -165,6 +165,10 @@ function handleSubmit() {
     ElMessage.warning('请补全员工姓名、账号和手机号')
     return
   }
+  if (!/^1\d{10}$/.test(form.phone.trim())) {
+    ElMessage.warning('手机号码格式不正确，请填写 11 位手机号码')
+    return
+  }
   if (!form.campusId || !form.departmentId || !form.roleId) {
     ElMessage.warning('请选择管辖校区、归属部门/岗位和角色')
     return

@@ -319,13 +319,14 @@ function openUserAuthDrawer(user: SystemUser) {
   showAuthDrawer.value = true
 }
 
-async function saveUserAuth(payload: { userId: string; roleId: string; campusId: string; dataScope: DataScope }) {
+async function saveUserAuth(payload: { userId: string; roleId: string; campusId: string; dataScope: DataScope; phone?: string }) {
   savingAuth.value = true
   try {
     await systemApi.updateUser(payload.userId, {
       roleId: payload.roleId,
       campusId: payload.campusId,
       dataScope: payload.dataScope,
+      ...(payload.phone !== undefined ? { phone: payload.phone } : {}),
     })
     if (authStore.user?.id === payload.userId) {
       authStore.updateUserDataScope(payload.dataScope)

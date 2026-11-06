@@ -199,8 +199,67 @@ async function runTests() {
       `错误提示准确提示账号不存在: "${nonexistentRes.body.message}"`,
     );
 
-    // 8. 数据清理
-    console.log('\n👉 测试 8: 测试现场环境安全清理');
+    // 8. 手机号格式校验：多一位、少一位都不能入库
+    console.log('\n👉 测试 8: 录入与修改手机号的格式校验');
+    const authHeaders = { Authorization: `Bearer ${adminToken}` };
+    const badCreateRes = await request(
+      'POST',
+      '/api/system/users',
+      {
+        account: `${testAccount}_bad`,
+        realName: '错号员工',
+        phone: `${testPhone}2`,
+        campusId: 'campus-bj-hq',
+        roleId: 'r4',
+      },
+      authHeaders,
+    );
+    assert(badCreateRes.statusCode === 400, '录入 12 位手机号被拦截 (HTTP 400)');
+    assert(
+      (badCreateRes.body.message || '').includes('格式不正确'),
+      `录入错误提示说明格式问题: "${badCreateRes.body.message}"`,
+    );
+
+    const badUpdateRes = await request(
+      'PUT',
+      `/api/system/users/${testUserId}`,
+      { phone: testPhone.slice(0, 10) },
+      authHeaders,
+    );
+    assert(badUpdateRes.statusCode === 400, '修改为 10 位手机号被拦截 (HTTP 400)');
+
+    // 9. 改手机号后：新号可登录，旧号提示账号不存在，工号不受影响
+    console.log('\n👉 测试 9: 修改手机号后的登录行为');
+    const newPhone = `138${Math.floor(10000000 + Math.random() * 90000000)}`;
+    const updatePhoneRes = await request(
+      'PUT',
+      `/api/system/users/${testUserId}`,
+      { phone: newPhone },
+      authHeaders,
+    );
+    assert(updatePhoneRes.statusCode === 200, '修改为合法手机号成功');
+
+    const loginNewPhoneRes = await request('POST', '/api/auth/login', { account: newPhone, password: '123456' });
+    assert(
+      (loginNewPhoneRes.statusCode === 200 || loginNewPhoneRes.statusCode === 201) &&
+        loginNewPhoneRes.body.user?.account === testAccount,
+      '新手机号可登录并识别到原账号',
+    );
+    const loginOldPhoneRes = await request('POST', '/api/auth/login', { account: testPhone, password: '123456' });
+    assert(loginOldPhoneRes.statusCode === 401, '旧手机号不再可用于登录');
+
+    // 10. 号码未变化时不校验格式：历史不规范号码不阻塞改角色
+    console.log('\n👉 测试 10: 提交未变化的手机号不被格式校验拦截');
+    const samePhoneRes = await request(
+      'PUT',
+      `/api/system/users/${testUserId}`,
+      { phone: newPhone, dataScope: 'campus' },
+      authHeaders,
+    );
+    assert(samePhoneRes.statusCode === 200, '提交未变化的手机号时可正常保存其他字段');
+
+    // 11. 数据清理
+    console.log('\n👉 测试 11: 测试现场环境安全清理');
     if (testUserId) {
       const delRes = await request('DELETE', `/api/system/users/${testUserId}`, null, {
         Authorization: `Bearer ${adminToken}`,

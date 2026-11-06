@@ -17,6 +17,11 @@
       </div>
 
       <div>
+        <label class="block font-medium text-st-title mb-2">手机号码 (可用于登录)</label>
+        <el-input v-model="localUser.phone" size="small" placeholder="11位手机号码" maxlength="20" />
+      </div>
+
+      <div>
         <label class="block font-medium text-st-title mb-2">绑定系统角色组</label>
         <el-select v-model="localUser.roleId" class="w-full" size="small" @change="onRoleChange">
           <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
@@ -56,6 +61,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { ElMessage } from 'element-plus'
 import type { SystemUser, RoleItem, DataScope } from '@/types/system'
 
 const props = defineProps<{
@@ -67,7 +73,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', val: boolean): void
-  (e: 'save', payload: { userId: string; roleId: string; campusId: string; dataScope: DataScope }): void
+  (e: 'save', payload: { userId: string; roleId: string; campusId: string; dataScope: DataScope; phone?: string }): void
 }>()
 
 const localUser = ref<SystemUser | null>(null)
@@ -102,11 +108,19 @@ function onRoleChange(rId: string) {
 
 function handleSave() {
   if (!localUser.value) return
+  const phone = (localUser.value.phone || '').trim()
+  // 只提交改动过的号码，历史不规范号码不阻塞角色与数据范围的保存
+  const phoneChanged = phone !== (props.user?.phone || '').trim()
+  if (phoneChanged && !/^1\d{10}$/.test(phone)) {
+    ElMessage.warning('手机号码格式不正确，请填写 11 位手机号码')
+    return
+  }
   emit('save', {
     userId: localUser.value.id,
     roleId: localUser.value.roleId,
     campusId: localUser.value.campusId,
     dataScope: localUser.value.dataScope,
+    ...(phoneChanged ? { phone } : {}),
   })
 }
 </script>
