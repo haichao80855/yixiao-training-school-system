@@ -11,6 +11,9 @@
       </view>
     </view>
 
+    <LoadErrorState v-if="loadError" :kind="loadError" subject="该班级" @retry="fetchClassDetail" />
+
+    <template v-else>
     <!-- 1. 班级核心信息卡片 (对齐截图 020 头部) -->
     <view class="class-header-card">
       <view class="header-status-date-row">
@@ -206,6 +209,7 @@
 
       <view class="bottom-safe-space"></view>
     </scroll-view>
+    </template>
   </view>
 </template>
 
@@ -213,8 +217,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import AppIcon from '../../components/AppIcon.vue';
+import LoadErrorState from '../../components/LoadErrorState.vue';
+import { classifyLoadError, type LoadErrorKind } from '../../utils/loadError';
 import { classCoordinator } from '../../coordinators/class';
-import { classApi, ClassDetailModel, ClassScheduleItemModel, ClassStudentItemModel } from '../../api/class';
+import { ClassDetailModel, ClassScheduleItemModel, ClassStudentItemModel } from '../../api/class';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
@@ -244,6 +250,7 @@ const classData = ref<ClassDetailModel>({
 });
 
 const isSubmitting = ref(false);
+const loadError = ref<LoadErrorKind | null>(null);
 
 const scheduledCount = computed(() => {
   return (classData.value.schedules || []).filter((s) => s.status === 'scheduled').length;
@@ -260,9 +267,10 @@ const fetchClassDetail = async () => {
     if (data) {
       classData.value = data;
     }
+    loadError.value = null;
   } catch (e) {
-    console.warn('[detail.vue] loadClassWorkspace fallback to classApi:', e);
-    classData.value = await classApi.getClassDetail(classId.value);
+    console.warn('[class/detail] 获取班级详情失败:', e);
+    loadError.value = classifyLoadError(e);
   }
 };
 

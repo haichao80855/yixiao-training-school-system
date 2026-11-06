@@ -232,14 +232,9 @@ async function runAllProbes() {
     assert.strictEqual(wb.evaluationSummary.templateName, '创客代码模版');
   });
 
-  await probe('2.2 getFulfillmentWorkbench gracefully falls back to high-fidelity mock on network failure', async () => {
+  await probe('2.2 getFulfillmentWorkbench rejects on network failure instead of returning mock data', async () => {
     capturedRequests = [];
-    const wb = await eduApi.getFulfillmentWorkbench('sch-offline-nonexistent');
-    assert.ok(wb && wb.schedule);
-    assert.strictEqual(wb.schedule.id, 'sch-offline-nonexistent');
-    assert.strictEqual(wb.schedule.className, '周二18.30周六10.00班-12');
-    assert.strictEqual(wb.students.length, 10);
-    assert.strictEqual(wb.students[0].name, '董御');
+    await assert.rejects(eduApi.getFulfillmentWorkbench('sch-offline-nonexistent'));
   });
 
   // ---------------------------------------------------------------------------
@@ -315,10 +310,10 @@ async function runAllProbes() {
     // CRITICAL: Coordinator destructures { payload, publish } = command;
     // Must assert sent.payload exists!
     assert.ok(sent.payload, 'sent.payload must be defined to prevent coordinator TypeError');
-    assert.strictEqual(sent.payload.lessonTitle, '随堂课评与素养分析');
+    assert.strictEqual(sent.payload.lessonTitle, undefined);
     assert.strictEqual(sent.payload.studyContentHtml, payload.studyContent);
     assert.strictEqual(sent.payload.teacherComment, payload.teacherComment);
-    assert.strictEqual(sent.payload.overallRating, 5.0);
+    assert.strictEqual(sent.payload.overallRating, undefined);
     assert.deepStrictEqual(sent.payload.photoList, payload.photoList);
     assert.strictEqual(sent.payload.videoUrl, payload.videoUrl);
 

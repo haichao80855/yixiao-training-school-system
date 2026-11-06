@@ -11,6 +11,9 @@
       </view>
     </view>
 
+    <LoadErrorState v-if="loadError" :kind="loadError" subject="该审批单" @retry="fetchDetail" />
+
+    <template v-else-if="detail">
     <!-- 顶部状态大横幅 -->
     <view class="status-banner" :class="'banner-' + detail.status">
       <view class="banner-icon-box">
@@ -49,7 +52,7 @@
           </view>
           <view class="detail-item">
             <text class="lbl">经办发起人：</text>
-            <text class="val">{{ detail.applicantName }} ({{ detail.applicantRole }})</text>
+            <text class="val">{{ detail.applicantName }}{{ detail.applicantRole ? ' (' + detail.applicantRole + ')' : '' }}</text>
           </view>
           <view class="detail-item">
             <text class="lbl">申请发起时间：</text>
@@ -102,7 +105,7 @@
                 </text>
               </view>
               <view class="approver-info">
-                {{ node.approverName }} ({{ node.approverRole }})
+                {{ node.approverName }}{{ node.approverRole ? ' (' + node.approverRole + ')' : '' }}
               </view>
               <view class="node-time" v-if="node.actionTimeText">
                 {{ node.actionTimeText }}
@@ -129,6 +132,7 @@
         同意签批
       </view>
     </view>
+    </template>
   </view>
 </template>
 
@@ -136,39 +140,15 @@
 import { ref, onMounted } from 'vue';
 import { financeApi, ApprovalDetailModel } from '../../api/finance';
 import AppIcon from '../../components/AppIcon.vue';
+import LoadErrorState from '../../components/LoadErrorState.vue';
+import { classifyLoadError, type LoadErrorKind } from '../../utils/loadError';
 
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
 
-const approvalId = ref('appr-01');
-
-const detail = ref<ApprovalDetailModel>({
-  id: 'appr-01',
-  approvalNo: 'APPR-20261015-001',
-  businessType: 'refund',
-  businessTypeText: '退费审批',
-  status: 'pending',
-  statusText: '待我审批',
-  currentStep: 2,
-  totalSteps: 2,
-  applicantName: '冯老师',
-  applicantRole: '教务顾问',
-  campusId: 'campus-bj-hq',
-  campusName: '拓视未来-原阳校区',
-  createdAtText: '2026-10-15 10:30',
-  studentName: '郑扶摇',
-  courseName: '启蒙英语',
-  amount: 3200,
-  reason: '学员家庭因工作变动搬家迁往外地，无法继续参加线下课程。',
-  currentNodeName: '等待【校长】终审',
-  accountName: '郑** (学员母亲)',
-  accountNo: '622202******8899',
-  bankName: '招商银行北京分行',
-  remainingLessons: 50,
-  refundLessons: 50,
-  serviceFee: 0,
-  timeline: [],
-});
+const approvalId = ref('');
+const detail = ref<ApprovalDetailModel | null>(null);
+const loadError = ref<LoadErrorKind | null>(null);
 
 onMounted(() => {
   try {
@@ -195,9 +175,11 @@ onMounted(() => {
 const fetchDetail = async () => {
   try {
     detail.value = await financeApi.getApprovalDetail(approvalId.value);
+    loadError.value = null;
   } catch (e: any) {
     console.warn('[approval/detail] 获取审批详情异常:', e);
-    uni.showToast({ title: e?.message || '获取审批详情失败', icon: 'none' });
+    detail.value = null;
+    loadError.value = classifyLoadError(e);
   }
 };
 
@@ -217,6 +199,8 @@ const handleGoBack = () => {
 };
 
 const handleApproveAction = () => {
+  const approvalIdToAudit = detail.value?.id;
+  if (!approvalIdToAudit) return;
   uni.showModal({
     title: '终审签批通过',
     editable: true,
@@ -225,23 +209,12 @@ const handleApproveAction = () => {
     success: async (res) => {
       if (res.confirm) {
         try {
-          await financeApi.auditApproval(detail.value.id, {
+          await financeApi.auditApproval(approvalIdToAudit, {
             action: 'pass',
             comment: res.content || '校长核准，同意退费出账。',
           });
 
-          detail.value.status = 'approved';
-          detail.value.statusText = '已通过';
-          detail.value.timeline.push({
-            nodeId: `node-done-${Date.now()}`,
-            nodeName: '校长终审签批',
-            approverName: '李校长',
-            approverRole: '校区负责人',
-            status: 'approved',
-            statusText: '已批准',
-            actionTimeText: '刚刚',
-            comment: res.content || '校长核准，同意退费出账。',
-          });
+          await fetchDetail();
           uni.showToast({ title: '已成功签批通过！', icon: 'success' });
         } catch (e: any) {
           uni.showToast({ title: e?.message || '签批通过处理失败', icon: 'none' });
@@ -252,6 +225,8 @@ const handleApproveAction = () => {
 };
 
 const handleRejectAction = () => {
+  const approvalIdToAudit = detail.value?.id;
+  if (!approvalIdToAudit) return;
   uni.showModal({
     title: '终审驳回',
     editable: true,
@@ -265,23 +240,12 @@ const handleRejectAction = () => {
           return;
         }
         try {
-          await financeApi.auditApproval(detail.value.id, {
+          await financeApi.auditApproval(approvalIdToAudit, {
             action: 'reject',
             comment: res.content.trim(),
           });
 
-          detail.value.status = 'rejected';
-          detail.value.statusText = '已驳回';
-          detail.value.timeline.push({
-            nodeId: `node-rej-${Date.now()}`,
-            nodeName: '校长终审签批',
-            approverName: '李校长',
-            approverRole: '校区负责人',
-            status: 'rejected',
-            statusText: '已驳回',
-            actionTimeText: '刚刚',
-            comment: res.content.trim(),
-          });
+          await fetchDetail();
           uni.showToast({ title: '已驳回审批单', icon: 'none' });
         } catch (e: any) {
           uni.showToast({ title: e?.message || '审批驳回处理失败', icon: 'none' });

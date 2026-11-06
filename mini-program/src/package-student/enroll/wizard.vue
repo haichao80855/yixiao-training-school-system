@@ -773,6 +773,7 @@ const fetchCourses = async () => {
     courseCatalogList.value = list;
   } catch (e) {
     console.warn('[wizard] 获取课程目录失败:', e);
+    courseCatalogList.value = [];
   }
 };
 

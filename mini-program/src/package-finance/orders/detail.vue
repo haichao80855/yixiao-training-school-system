@@ -11,6 +11,9 @@
       </view>
     </view>
 
+    <LoadErrorState v-if="loadError" :kind="loadError" subject="该订单" @retry="fetchOrderDetail" />
+
+    <template v-else-if="order">
     <!-- 顶部状态大横幅 -->
     <view class="status-banner" :class="'banner-' + order.status">
       <view class="banner-icon-circle">
@@ -133,6 +136,7 @@
 
       <view class="safe-padding-bottom"></view>
     </scroll-view>
+    </template>
   </view>
 </template>
 
@@ -141,34 +145,16 @@ import { ref, onMounted } from 'vue';
 import { useCampusStore } from '../../stores/campusStore';
 import { financeApi, OrderItemModel } from '../../api/finance';
 import AppIcon from '../../components/AppIcon.vue';
+import LoadErrorState from '../../components/LoadErrorState.vue';
+import { classifyLoadError, type LoadErrorKind } from '../../utils/loadError';
 
 const campusStore = useCampusStore();
 const statusBarHeight = ref(20);
 const capsuleRightWidth = ref(96);
 
-const orderId = ref('ord-01');
-
-const order = ref<OrderItemModel>({
-  id: 'ord-01',
-  orderNo: 'ORD20261015001',
-  studentId: 's-01',
-  studentName: '董御',
-  studentPhone: '13460475611',
-  studentNo: 'S950014',
-  orderType: 'enroll',
-  orderTypeText: '新签报读',
-  status: 'paid',
-  statusText: '交易成功',
-  totalAmount: 6400,
-  paidAmount: 4992,
-  discountAmount: 1408,
-  paymentMethod: '微信支付',
-  createdAtText: '2026-10-15 16:32:10',
-  operatorName: '冯老师',
-  items: [
-    { id: 'item-01', itemName: '启蒙英语 (100课次)', itemType: 'course', quantity: 1, unitPrice: 6400, subtotal: 6400 },
-  ],
-});
+const orderId = ref('');
+const order = ref<OrderItemModel | null>(null);
+const loadError = ref<LoadErrorKind | null>(null);
 
 const digitUppercase = (n: number) => {
   const fraction = ['角', '分'];
@@ -220,9 +206,11 @@ onMounted(() => {
 const fetchOrderDetail = async () => {
   try {
     order.value = await financeApi.getOrderById(orderId.value);
+    loadError.value = null;
   } catch (e: any) {
     console.warn('[orders/detail] 获取详情失败:', e);
-    uni.showToast({ title: e?.message || '获取订单详情失败', icon: 'none' });
+    order.value = null;
+    loadError.value = classifyLoadError(e);
   }
 };
 
@@ -236,16 +224,18 @@ const handleGoBack = () => {
 };
 
 const handleVoidOrder = () => {
+  const current = order.value;
+  if (!current) return;
   uni.showModal({
     title: '作废提醒',
-    content: `确定要将订单【${order.value.orderNo}】作废吗？作废后不可恢复。`,
+    content: `确定要将订单【${current.orderNo}】作废吗？作废后不可恢复。`,
     confirmColor: '#EF4444',
     success: async (res) => {
       if (res.confirm) {
         try {
-          await financeApi.voidOrder(order.value.id);
-          order.value.status = 'voided';
-          order.value.statusText = '已作废';
+          await financeApi.voidOrder(current.id);
+          current.status = 'voided';
+          current.statusText = '已作废';
           uni.showToast({ title: '订单已作废', icon: 'none' });
         } catch (e: any) {
           uni.showToast({ title: e?.message || '作废订单失败', icon: 'none' });

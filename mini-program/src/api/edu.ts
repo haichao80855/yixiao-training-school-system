@@ -172,14 +172,14 @@ export const eduApi = {
             id: item.id,
             campusId: item.campusId,
             classId: item.classId,
-            className: item.class?.name || item.className || '周二18.30周六10.00班-12',
-            courseId: item.class?.courseId || item.courseId || 'crs-default',
-            courseName: item.class?.course?.name || item.courseName || '启蒙英语',
+            className: item.class?.name || item.className || '--',
+            courseId: item.class?.courseId || item.courseId || '',
+            courseName: item.class?.course?.name || item.courseName || '--',
             teacherId: item.teacherId,
-            teacherName: item.teacher?.realName || item.teacherName || '冯老师',
-            advisorName: item.class?.advisor?.realName || item.advisorName || item.teacher?.realName || '冯老师',
+            teacherName: item.teacher?.realName || item.teacherName || '--',
+            advisorName: item.class?.advisor?.realName || item.advisorName || item.teacher?.realName || '--',
             classroomId: item.classroomId,
-            classroomName: item.classroom?.name || item.classroomName || '启蒙英语教室',
+            classroomName: item.classroom?.name || item.classroomName || '--',
             date: item.date,
             startTime: item.startTime,
             endTime: item.endTime,
@@ -197,7 +197,7 @@ export const eduApi = {
       }
       return [];
     } catch (e) {
-      console.warn('[EduApi] 获取后端排课失败，使用默认高保真数据:', e);
+      console.warn('[EduApi] 获取后端排课失败:', e);
       return [];
     }
   },
@@ -215,14 +215,14 @@ export const eduApi = {
             id: res.schedule.id,
             campusId: res.schedule.campusId || uni.getStorageSync('currentCampusId') || 'campus-bj-hq',
             classId: res.schedule.classId,
-            className: res.schedule.className || '周二18.30周六10.00班-12',
-            courseId: res.schedule.courseId || 'crs-default',
-            courseName: res.schedule.courseName || '标准课程',
+            className: res.schedule.className || '--',
+            courseId: res.schedule.courseId || '',
+            courseName: res.schedule.courseName || '--',
             teacherId: res.schedule.teacherId,
-            teacherName: res.schedule.teacherName || '冯老师',
-            advisorName: res.schedule.advisorName || res.schedule.teacherName || '冯老师',
+            teacherName: res.schedule.teacherName || '--',
+            advisorName: res.schedule.advisorName || res.schedule.teacherName || '--',
             classroomId: res.schedule.classroomId,
-            classroomName: res.schedule.classroomName || '标准教室',
+            classroomName: res.schedule.classroomName || '--',
             date: res.schedule.date,
             startTime: res.schedule.startTime,
             endTime: res.schedule.endTime,
@@ -296,46 +296,11 @@ export const eduApi = {
         };
       }
     } catch (e) {
-      console.warn('[EduApi] 水化履约工作台失败，使用内置高保真数据:', e);
+      console.warn('[EduApi] 水化履约工作台失败:', e);
+      throw e;
     }
 
-    // 默认高保真回退（对齐截图 016 与 ADR-0009 契约测试）
-    return {
-      schedule: {
-        id: scheduleEventId || 'sch-mock-001',
-        campusId: 'campus-bj-hq',
-        classId: 'cls-qm-002',
-        className: '周二18.30周六10.00班-12',
-        courseId: 'crs-qm',
-        courseName: '启蒙英语',
-        teacherId: 'teacher-feng',
-        teacherName: '冯老师',
-        advisorName: '冯老师',
-        classroomId: 'cr-101',
-        classroomName: '启蒙英语-002班教室',
-        date: '2026-10-13',
-        startTime: '18:30:00',
-        endTime: '20:30:00',
-        timeRange: '2026-10-13 18:30:00-20:30:00',
-        semanticType: 'completed',
-        classType: '线下课',
-        status: 'completed',
-        expectedCount: 10,
-        actualCount: 10,
-      },
-      students: [
-        { studentId: 's-01', studentNo: 'S950014', name: '董御', status: 'present', deductLessons: 1, remainingLessons: 84, tag: '正', evaluated: false },
-        { studentId: 's-02', studentNo: 'S950007', name: '张景恒', status: 'present', deductLessons: 1, remainingLessons: 72, tag: '正', evaluated: false },
-        { studentId: 's-03', studentNo: 'S950006', name: '吴炳润', status: 'present', deductLessons: 1, remainingLessons: 60, tag: '正', evaluated: false },
-        { studentId: 's-04', studentNo: 'S950003', name: '郑扶摇', status: 'present', deductLessons: 1, remainingLessons: 55, tag: '正', evaluated: false },
-        { studentId: 's-05', studentNo: 'S950005', name: '孙佳音', status: 'present', deductLessons: 1, remainingLessons: 48, tag: '正', evaluated: false },
-        { studentId: 's-06', studentNo: 'S950009', name: '赵梓涵', status: 'present', deductLessons: 1, remainingLessons: 42, tag: '正', evaluated: false },
-        { studentId: 's-07', studentNo: 'S950010', name: '周子程', status: 'present', deductLessons: 1, remainingLessons: 36, tag: '正', evaluated: false },
-        { studentId: 's-08', studentNo: 'S950011', name: '钱思睿', status: 'present', deductLessons: 1, remainingLessons: 30, tag: '正', evaluated: false },
-        { studentId: 's-09', studentNo: 'S950012', name: '李浩轩', status: 'present', deductLessons: 1, remainingLessons: 24, tag: '正', evaluated: false },
-        { studentId: 's-10', studentNo: 'S950013', name: '陈楚河', status: 'present', deductLessons: 1, remainingLessons: 18, tag: '正', evaluated: false },
-      ],
-    };
+    throw new Error('未找到该课次');
   },
 
   // 3. 执行单原子结课履约 (ADR-0009)
@@ -419,11 +384,11 @@ export const eduApi = {
   // 5. 提交随堂课评与微信通知 (ADR-0008)
   async commitEvaluation(payload: CommitEvaluationPayload) {
     const rawPayload = payload.payload;
-    const studyContentHtml = rawPayload?.studyContentHtml || payload.studyContent || '本堂课学生专注投入，知识点掌握扎实。';
-    const teacherComment = rawPayload?.teacherComment || payload.teacherComment || '课堂表现专注，互动积极，学习状态良好！';
-    const overallRating = rawPayload?.overallRating ?? payload.overallRating ?? 5.0;
-    const lessonTitle = rawPayload?.lessonTitle || payload.lessonTitle || '随堂课评与素养分析';
-    const templateName = rawPayload?.templateName || payload.templateName || '通用课评模板';
+    const studyContentHtml = rawPayload?.studyContentHtml || payload.studyContent;
+    const teacherComment = rawPayload?.teacherComment || payload.teacherComment;
+    const overallRating = rawPayload?.overallRating ?? payload.overallRating;
+    const lessonTitle = rawPayload?.lessonTitle || payload.lessonTitle;
+    const templateName = rawPayload?.templateName || payload.templateName;
     const templateId = rawPayload?.templateId || payload.templateId;
     const photoList = rawPayload?.photoList || payload.photoList || [];
     const videoUrl = rawPayload?.videoUrl || payload.videoUrl;
