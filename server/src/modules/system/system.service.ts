@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
@@ -85,13 +86,19 @@ export class SystemService {
       throw new NotFoundException('当前操作用户不存在');
     }
 
-    // 2. 验证当前超管登录密码
+    // 2. 只有超管本人可以转让：校长等角色也持有 system:company:edit，路由权限不足以判定。
+    //    先于密码比对，避免把本接口变成非超管的密码探测入口。
+    if (!currentUser.userRoles.some((ur) => ur.role.code === 'super_admin')) {
+      throw new ForbiddenException('仅超级管理员可以转让超级管理员权限');
+    }
+
+    // 3. 验证当前超管登录密码
     const isPasswordValid = await bcrypt.compare(dto.password, currentUser.password);
     if (!isPasswordValid) {
       throw new BadRequestException('安全校验失败：超级管理员密码不正确');
     }
 
-    // 3. 目标员工校验
+    // 4. 目标员工校验
     const targetUser = await this.prisma.user.findUnique({
       where: { id: dto.targetUserId },
     });
@@ -105,16 +112,16 @@ export class SystemService {
       throw new BadRequestException('目标员工不可为当前超级管理员本人');
     }
 
-    // 4. 角色查找：super_admin 与 principal
+    // 5. 角色查找：super_admin 与 principal
     const superRole = await this.prisma.role.findUnique({ where: { code: 'super_admin' } });
     const principalRole = await this.prisma.role.findUnique({ where: { code: 'principal' } });
     if (!superRole || !principalRole) {
       throw new BadRequestException('系统内置角色 (super_admin / principal) 缺失');
     }
 
-    // 5. 原子事务执行权限移交
+    // 6. 原子事务执行权限移交
     await this.prisma.$transaction(async (tx) => {
-      // 5.1 移除当前超管的 super_admin 角色，赋予 principal 角色
+      // 6.1 移除当前超管的 super_admin 角色，赋予 principal 角色
       await tx.userRole.deleteMany({
         where: { userId: currentUser.id, roleId: superRole.id },
       });
@@ -124,7 +131,7 @@ export class SystemService {
         create: { userId: currentUser.id, roleId: principalRole.id },
       });
 
-      // 5.2 赋予目标员工 super_admin 角色，并将数据范围调整为 all
+      // 6.2 赋予目标员工 super_admin 角色，并将数据范围调整为 all
       await tx.userRole.deleteMany({
         where: { userId: targetUser.id },
       });
@@ -136,7 +143,7 @@ export class SystemService {
         data: { dataScope: 'all' },
       });
 
-      // 5.3 更新机构 Company 的超管姓名与 ID
+      // 6.3 更新机构 Company 的超管姓名与 ID
       const company = await tx.company.findFirst();
       if (company) {
         await tx.company.update({

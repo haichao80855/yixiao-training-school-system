@@ -200,6 +200,62 @@ async function runTests() {
   assert.strictEqual(teacherTransferRes.status, 403, '无权限员工调用超管转让应返回 403');
   logPass('【越权拦截】普通讲师越权转让超管被 PermissionsGuard 拦截 (403 Forbidden)');
 
+  // 4.5 校长持有 system:company:edit，但不是超管：输对自己的密码也不能转让
+  const principalAccount = userList.find((u) => u.account === 'zhengli');
+  const receiverAccount = userList.find((u) => u.account === 'fengkai');
+  assert.ok(principalAccount && receiverAccount, '必须存在校长 [zhengli] 与目标员工 [fengkai]');
+
+  const companyBeforeRes = await request('/api/system/company', { headers: authHeaders });
+  const companyBefore = companyBeforeRes.data.data || companyBeforeRes.data;
+
+  const principalToken = await login('zhengli', '123456');
+  const principalHeaders = { Authorization: `Bearer ${principalToken}` };
+  const principalTransferRes = await request('/api/system/company/transfer-admin', {
+    method: 'POST',
+    headers: principalHeaders,
+    body: JSON.stringify({ targetUserId: receiverAccount.id, password: '123456' }),
+  });
+  assert.strictEqual(principalTransferRes.status, 403, '校长输入正确密码转让超管应返回 403');
+  logPass('【越权拦截】校长输入本人正确密码转让超管被拒绝 (403 Forbidden)');
+
+  // 4.6 权限校验先于密码比对：校长输错密码也是 403，接口不能当作校长密码的探测器
+  const principalWrongPwdRes = await request('/api/system/company/transfer-admin', {
+    method: 'POST',
+    headers: principalHeaders,
+    body: JSON.stringify({ targetUserId: receiverAccount.id, password: 'wrong_password_999' }),
+  });
+  assert.strictEqual(principalWrongPwdRes.status, 403, '校长输错密码转让超管同样应返回 403');
+  logPass('【顺序校验】校长输错密码同样返回 403，超管校验先于密码比对');
+
+  // 4.7 校长通过机构信息入口夹带超管字段，不得改写超管归属
+  const principalPutRes = await request('/api/system/company', {
+    method: 'PUT',
+    headers: principalHeaders,
+    body: JSON.stringify({ adminUserId: principalAccount.id, adminName: '越权校长' }),
+  });
+  assert.strictEqual(principalPutRes.status, 200, '机构信息接口对校长仍应可用');
+
+  // 4.8 上述尝试之后，超管归属与双方角色都没有变化
+  const companyAfterRes = await request('/api/system/company', { headers: authHeaders });
+  const companyAfter = companyAfterRes.data.data || companyAfterRes.data;
+  assert.strictEqual(companyAfter.adminUserId, companyBefore.adminUserId, '机构 adminUserId 不应被改写');
+  assert.strictEqual(companyAfter.adminName, companyBefore.adminName, '机构 adminName 不应被改写');
+  logPass('【字段防护】校长提交 adminUserId / adminName 被忽略，机构超管归属未变');
+
+  const roleCodesOf = async (account) => {
+    const token = await login(account, '123456');
+    const profile = await request('/api/auth/profile', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    assert.strictEqual(profile.status, 200, `[${account}] 获取个人资料应返回 200`);
+    const roles = profile.data?.data?.roles || profile.data?.roles || [];
+    return roles.map((r) => r.code);
+  };
+  assert.ok(!(await roleCodesOf('fengkai')).includes('super_admin'), '目标员工不应获得 super_admin');
+  assert.ok((await roleCodesOf('zhengli')).includes('principal'), '校长角色不应被降级或移除');
+  assert.ok((await roleCodesOf('donghaichao')).includes('super_admin'), '真实超管角色不应受影响');
+  logPass('【角色不变】被拒绝的转让没有改动目标员工、校长和真实超管的角色');
+
   // --- 测试集 5: 超管转让原子化事务执行与权限切换验证 ---
   console.log('\n--- 5. 超管转让原子化事务执行与权限双向交接验证 ---');
   const validTransferRes = await request('/api/system/company/transfer-admin', {
