@@ -18,6 +18,7 @@ import { UpdateCompanyDto, TransferAdminDto } from './dto/update-company.dto';
 import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy';
 import { RequirePermissions, RequireAnyPermissions } from '../../common/decorators/permissions.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { StaffActor } from './services/staff-access.policy';
 
 @Controller('api/system')
 export class SystemController {
@@ -39,10 +40,10 @@ export class SystemController {
   @Post('company/transfer-admin')
   @RequirePermissions('system:company:edit')
   transferSuperAdmin(
-    @CurrentUser('id') currentUserId: string,
+    @CurrentUser() actor: StaffActor,
     @Body() dto: TransferAdminDto,
   ) {
-    return this.systemService.transferSuperAdmin(currentUserId, dto);
+    return this.systemService.transferSuperAdmin(actor, dto);
   }
 
   // 2. 校区列表 (支持多校区切换浮标，已登录用户基础功能)
@@ -163,38 +164,44 @@ export class SystemController {
 
   @Post('users')
   @RequirePermissions('system:user:add')
-  createUser(@Body() dto: CreateUserDto) {
-    return this.systemService.createUser(dto);
+  createUser(@CurrentUser() actor: StaffActor, @Body() dto: CreateUserDto) {
+    return this.systemService.createUser(actor, dto);
   }
 
   @Put('users/:id')
   @RequirePermissions('system:user:edit')
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.systemService.updateUser(id, dto);
+  updateUser(
+    @CurrentUser() actor: StaffActor,
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ) {
+    return this.systemService.updateUser(actor, id, dto);
   }
 
   @Delete('users/:id')
   @RequirePermissions('system:user:delete')
-  deleteUser(@Param('id') id: string) {
-    return this.systemService.deleteUser(id);
+  deleteUser(@CurrentUser() actor: StaffActor, @Param('id') id: string) {
+    return this.systemService.deleteUser(actor, id);
   }
 
   @Patch('users/:id/password')
   @RequirePermissions('system:user:resetPwd')
   resetUserPassword(
+    @CurrentUser() actor: StaffActor,
     @Param('id') id: string,
     @Body() dto: ResetPasswordDto,
   ) {
-    return this.systemService.resetUserPassword(id, dto?.password);
+    return this.systemService.resetUserPassword(actor, id, dto?.password);
   }
 
   @Patch('users/:id/status')
   @RequirePermissions('system:user:status')
   toggleUserStatus(
+    @CurrentUser() actor: StaffActor,
     @Param('id') id: string,
     @Body('status') status?: string,
   ) {
-    return this.systemService.toggleUserStatus(id, status);
+    return this.systemService.toggleUserStatus(actor, id, status);
   }
 
   // 7. 业务字典 (开放已登录操作员安全读取公共业务枚举与参数)
