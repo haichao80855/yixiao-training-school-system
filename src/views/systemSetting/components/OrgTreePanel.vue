@@ -5,7 +5,7 @@
         <h3 class="text-sm font-bold text-st-title">5 级组织架构树</h3>
         <p class="text-[11px] text-st-muted mt-0.5">集团 > 大区 > 校区 > 部门 > 岗位职务</p>
       </div>
-      <div class="space-x-1">
+      <div v-if="loadState !== 'forbidden'" class="space-x-1">
         <el-button link type="primary" size="small" @click="expandAll = !expandAll">
           {{ expandAll ? '全部折叠' : '全部展开' }}
         </el-button>
@@ -20,6 +20,7 @@
       <el-tree
         ref="treeRef"
         :data="orgTree"
+        :empty-text="emptyText"
         node-key="id"
         :default-expand-all="expandAll"
         :expand-on-click-node="false"
@@ -93,7 +94,10 @@
     </div>
 
     <!-- 底部提示 -->
-    <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-st-muted flex items-center justify-between">
+    <div
+      v-if="loadState !== 'forbidden'"
+      class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-st-muted flex items-center justify-between"
+    >
       <span>点击节点联动右侧人员</span>
       <span class="text-amber-600 font-medium">根节点/含下级/含在职员工严禁删除</span>
     </div>
@@ -101,16 +105,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import type { OrgNode } from '@/types/system'
+import type { OrgNode, SectionLoadState } from '@/types/system'
 import { RBACEngine } from '@/utils/rbacEngine'
 
 const props = defineProps<{
   orgTree: OrgNode[]
   selectedNodeId: string
+  loadState: SectionLoadState
 }>()
+
+const emptyText = computed(() => {
+  switch (props.loadState) {
+    case 'loading': return '加载中…'
+    case 'forbidden': return '当前账号无权查看组织架构，如需查看请联系超级管理员'
+    case 'error': return '组织架构加载失败，请刷新页面重试'
+    default: return '暂无组织节点'
+  }
+})
 
 const emit = defineEmits<{
   (e: 'selectNode', node: OrgNode | null): void

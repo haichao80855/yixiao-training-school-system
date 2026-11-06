@@ -60,6 +60,9 @@ export interface PermissionNode {
 // --- 3. 角色与多校区数据透视范围模型 ---
 export type DataScope = 'all' | 'campus' | 'department' | 'self'
 
+/** 页面区块的数据加载结果：forbidden 表示账号无权限 (403)，error 表示其他失败 */
+export type SectionLoadState = 'loading' | 'ready' | 'forbidden' | 'error'
+
 export interface RoleItem {
   id: string
   name: string

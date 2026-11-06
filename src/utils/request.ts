@@ -104,7 +104,8 @@ export async function request<T = any>(
       const errorMsg = Array.isArray(errorJson.message)
         ? errorJson.message.join('; ')
         : (errorJson.message || errorJson.error || `HTTP ${res.status}: ${res.statusText}`)
-      throw new Error(errorMsg)
+      // 带上状态码，调用方才能区分“无权限 (403)”和其他失败
+      throw Object.assign(new Error(errorMsg), { status: res.status })
     }
 
     const responseData = await res.json()

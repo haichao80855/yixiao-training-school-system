@@ -23,9 +23,24 @@
 
       <div>
         <label class="block font-medium text-st-title mb-2">绑定系统角色组</label>
-        <el-select v-model="localUser.roleId" class="w-full" size="small" @change="onRoleChange">
+        <el-select
+          v-model="localUser.roleId"
+          class="w-full"
+          size="small"
+          :disabled="roles.length === 0"
+          @change="onRoleChange"
+        >
           <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
+          <!-- 拿不到角色列表时，仍显示角色名称而不是内部 ID -->
+          <el-option
+            v-if="roles.length === 0"
+            :label="localUser.roleName"
+            :value="localUser.roleId"
+          />
         </el-select>
+        <p v-if="roles.length === 0" class="text-[11px] text-st-muted mt-1">
+          当前账号无法查看角色列表，不能更换角色，其他配置可正常保存
+        </p>
       </div>
 
       <div>
