@@ -242,11 +242,12 @@ export const eduApi = {
               : typeof s.photos === 'string'
                 ? JSON.parse(s.photos || '[]')
                 : [];
-            // 【写课评 / 看学情】【已推送】只认服务端 isPublished (课评已发布且家长可见)；
+            // 【写课评 / 看学情】【已推送】要求课评已发布 (isPublished) 且该学员有专属课评内容 (hasPersonalEvaluation)：
+            // isPublished 是课次级结果，同班一人推送后全班到课学员都为 true，不能单独使用；
             // 有评语 / 媒体但尚未发布的草稿、重开 / 反结课后的课评都不算已推送
             // 旧版服务端无 isPublished 字段时沿用原口径 (有评定标记 / 评语 / 媒体即视为已评)
             const isStudentEvaluated = typeof s.isPublished === 'boolean'
-              ? s.isPublished
+              ? Boolean(s.isPublished && s.hasPersonalEvaluation)
               : Boolean(
                 s.isEvaluated ||
                 s.evaluated ||

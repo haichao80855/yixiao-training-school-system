@@ -131,6 +131,7 @@ async function main() {
     execSync('node tests/test_parent_h5_build.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_login_error_toast.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_mp_rollcall_evaluation_state.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
+    execSync('node tests/test_evaluation_override_payload.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_student_evaluation_isolation.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_evaluation_media_lifecycle.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });
     execSync('node tests/test_evaluation_attendance_draft_lifecycle.cjs', { stdio: 'inherit', cwd: path.resolve(__dirname, '..') });

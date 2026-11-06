@@ -185,9 +185,12 @@ export class LessonFulfillmentCoordinator {
       }
       const studentVideo = evalItem?.videoUrl || undefined;
       const isExempt = defaultStatus === 'leave' || defaultStatus === 'absent';
-      const hasPersonalEvaluation = Boolean(evalItem);
+      // 专属课评以内容为准：条目可能没有任何内容 (如 Web 课评弹窗保存草稿时为全班写入的默认评分)，
+      // 空条目不算老师写过，否则同班一人推送后其他人也会显示为已推送
+      const hasPersonalEvaluation = Boolean(evalItem?.comment || studentPhotos.length > 0 || studentVideo);
       // 家长端可见 = 课评已发布 且 (学员到课 或 有专属课评内容)；与家长端可见规则一致，
-      // 课评重开 (draft) / 反结课 (revoked) 后回到 false。小程序据此显示【看学情】/【已推送】
+      // 课评重开 (draft) / 反结课 (revoked) 后回到 false。
+      // 这是课次级结果，同班到课学员会同时为 true；判断「已推送给该学员」须同时满足 hasPersonalEvaluation
       const isPublished = Boolean(
         existingEval?.status === 'published' &&
           (recordedStatus === 'present' ||

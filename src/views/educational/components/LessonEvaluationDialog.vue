@@ -543,6 +543,7 @@ import {
 import { educationalApi, uploadApi } from '@/api'
 import { getEvaluationTemplates } from '@/constants/evaluation'
 import { DIALOG_SIZE } from '@/constants/ui'
+import { buildEvaluationOverride } from './lessonEvaluationOverride'
 import type { WorkbenchLessonCard, EvaluationTemplate } from '@/types/educational'
 
 const emit = defineEmits<{
@@ -988,17 +989,7 @@ async function handleSaveAll(publish: boolean) {
   }
 
   // 组装所有学员的专属数据 (studentOverrides)
-  const studentOverrides = rosterList.value.map((s) => ({
-    studentId: s.studentId,
-    attendanceStatus: s.attendanceStatus,
-    deductLessons: s.deductLessons,
-    personalizedComment: s.comment,
-    rating: s.rating,
-    performanceTag: s.performanceTag,
-    photos: s.photos,
-    videoUrl: s.videoUrl,
-    isEvaluated: s.isEvaluated || Boolean(s.comment || s.photos.length > 0 || s.videoUrl),
-  }))
+  const studentOverrides = rosterList.value.map(buildEvaluationOverride)
 
   saving.value = true
   try {
