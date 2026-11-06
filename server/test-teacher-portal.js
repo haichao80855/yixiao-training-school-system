@@ -256,6 +256,83 @@ async function run() {
   assert.strictEqual(pushed.data.metrics.pendingCount, 0);
   ok('课评管理统计同步');
 
+  console.log('\n--- 单学员推送：全班到课且有空课评条目时，其他学员不算已推送 ---');
+  const reviewClass = await makeClass(teacherA.id, 'R');
+  created.classes.push(reviewClass.id);
+  const reviewA = await createStudentWithPackage(campus.id, course, reviewClass, '已写课评', 15);
+  const reviewB = await createStudentWithPackage(campus.id, course, reviewClass, '空条目甲', 15);
+  const reviewC = await createStudentWithPackage(campus.id, course, reviewClass, '空条目乙', 15);
+  const reviewLesson = await createLesson(reviewClass, teacherA.id, classroom.id, today, '11:00');
+  const reviewIds = [reviewA, reviewB, reviewC].map((s) => s.student.id);
+  const presentOverrides = reviewIds.map((id) => ({ studentId: id, attendanceStatus: 'present', deductLessons: 1 }));
+
+  // 课评弹窗此前保存草稿时写入的历史数据形态：全班都有条目，只有默认评分，没有内容
+  const reviewDraft = await call('POST', '/api/educational/lesson-evaluations/commit', tokenA, {
+    scheduleEventId: reviewLesson.id,
+    publish: false,
+    payload: {
+      studyContentHtml: '本节课学习条件判断',
+      studentOverrides: presentOverrides.map((ov) => ({
+        ...ov,
+        personalizedComment: '',
+        rating: 5,
+        performanceTag: '',
+        photos: [],
+        videoUrl: '',
+        isEvaluated: false,
+      })),
+    },
+  });
+  assert.ok([200, 201].includes(reviewDraft.status), JSON.stringify(reviewDraft.raw));
+  assert.strictEqual(
+    await prisma.lessonEvaluationStudentItem.count({ where: { evaluation: { scheduleEventId: reviewLesson.id } } }),
+    3,
+    '前置条件：全班都有空条目',
+  );
+
+  const reviewRows = async () => {
+    const res = await call('GET', `/api/educational/fulfillment/workbench/${reviewLesson.id}`, tokenA);
+    return new Map(res.data.students.map((s) => [s.studentId, s]));
+  };
+  // 与 TeacherLesson.vue、小程序 api/edu.ts 的【看学情】判定一致
+  const isPushed = (s) => Boolean(s.isPublished && s.hasPersonalEvaluation);
+
+  const beforePush = await reviewRows();
+  assert.ok(reviewIds.every((id) => !isPushed(beforePush.get(id))));
+  ok('推送前全班都显示写课评');
+
+  const pushTo = (studentId, comment, photos = []) =>
+    call('POST', '/api/educational/fulfillment/fulfill', tokenA, {
+      scheduleEventId: reviewLesson.id,
+      mode: 'PUBLISH_EVALUATION',
+      targetStudentId: studentId,
+      teacherComment: '老师已完成本节课的课堂点评',
+      photoList: [],
+      overallRating: 5,
+      anomalyOverrides: [
+        { studentId, status: 'present', deductLessons: 1, personalizedComment: comment, rating: 5, photos, videoUrl: '', isEvaluated: true },
+      ],
+    });
+
+  const pushA = await pushTo(reviewA.student.id, '进步很大');
+  assert.ok([200, 201].includes(pushA.status), JSON.stringify(pushA.raw));
+  const afterPushA = await reviewRows();
+  assert.strictEqual(isPushed(afterPushA.get(reviewA.student.id)), true);
+  for (const s of [reviewB, reviewC]) {
+    const row = afterPushA.get(s.student.id);
+    assert.strictEqual(row.isPublished, true, '前置条件：课次已发布且学员到课');
+    assert.strictEqual(row.hasPersonalEvaluation, false, '空条目不算专属课评');
+    assert.strictEqual(isPushed(row), false, `${s.student.name} 不应显示为已推送`);
+  }
+  ok('推送一人后只有该学员变为看学情，有空条目的同班到课学员仍是写课评');
+
+  const pushC = await pushTo(reviewC.student.id, '', ['/uploads/photos/tp-test/c.jpg']);
+  assert.ok([200, 201].includes(pushC.status), JSON.stringify(pushC.raw));
+  const afterPushC = await reviewRows();
+  assert.strictEqual(isPushed(afterPushC.get(reviewC.student.id)), true, '只有照片也算专属课评');
+  assert.strictEqual(isPushed(afterPushC.get(reviewB.student.id)), false);
+  ok('之后再推送其他学员，状态各自独立');
+
   console.log('\n--- 教师端查看用缩略图 / 预览图，保存仍用原图 ---');
   const mediaRes = await call('POST', '/api/educational/fulfillment/fulfill', tokenA, {
     scheduleEventId: lessonToday.id,
