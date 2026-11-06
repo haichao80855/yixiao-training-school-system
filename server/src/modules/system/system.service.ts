@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
@@ -14,6 +15,18 @@ import { OrgHierarchyEngine, OrgNodeEntity } from './services/org-hierarchy.engi
 import { PermissionTreeEngine } from './permission-tree.engine';
 import { DictCacheManager } from './services/dict-cache.manager';
 import { normalizeCnMobile } from '../../common/phone.util';
+import {
+  StaffActor,
+  assertCanCreateUser,
+  assertCanManageUser,
+  assertCanUpdateUser,
+  canAccessAllCampuses,
+  isFullAdmin,
+  parseDataScope,
+} from './services/staff-access.policy';
+
+const ROLE_WITH_PERMISSIONS = { permissions: { include: { permission: true } } };
+const USER_ROLES_WITH_PERMISSIONS = { userRoles: { include: { role: { include: ROLE_WITH_PERMISSIONS } } } };
 
 @Injectable()
 export class SystemService {
@@ -64,7 +77,12 @@ export class SystemService {
   }
 
   // 1.2 转让超级管理员最高权限 (密码校验 + 角色原子移交)
-  async transferSuperAdmin(currentUserId: string, dto: TransferAdminDto) {
+  async transferSuperAdmin(actor: StaffActor, dto: TransferAdminDto) {
+    // system:company:edit 校长也持有，转让必须限定为现任超管本人
+    if (!isFullAdmin(actor)) {
+      throw new ForbiddenException('只有超级管理员才能转让超级管理员权限');
+    }
+    const currentUserId = actor.id;
     if (!dto.targetUserId) {
       throw new BadRequestException('必须指定接收超级管理员权限的目标员工');
     }
@@ -826,7 +844,7 @@ export class SystemService {
   }
 
   // 15. 创建员工账号 (统一默认初始密码 123456)
-  async createUser(dto: CreateUserDto) {
+  async createUser(actor: StaffActor, dto: CreateUserDto) {
     const trimmedAccount = dto.account ? dto.account.trim() : '';
     if (!trimmedAccount) {
       throw new BadRequestException('员工登录工号/账号不能为空');
@@ -856,6 +874,13 @@ export class SystemService {
     }
     await this.assertUserPlacement(dto.campusId, dto.orgNodeId);
 
+    const dataScope = parseDataScope(dto.dataScope);
+    const targetRole = dto.roleId ? await this.findRoleWithPermissions(dto.roleId) : null;
+    assertCanCreateUser(actor, dto.campusId, targetRole, dataScope);
+    if (dto.orgNodeId) {
+      await this.assertOrgNodeInCampus(actor, dto.orgNodeId, dto.campusId);
+    }
+
     const plainPassword = dto.password?.trim() || '123456';
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
@@ -869,24 +894,17 @@ export class SystemService {
         campusId: dto.campusId,
         orgNodeId: dto.orgNodeId || null,
         status: dto.status || 'active',
-        dataScope: dto.dataScope || null,
+        dataScope,
       },
     });
 
-    if (dto.roleId) {
-      const targetRole = await this.prisma.role.findFirst({
-        where: {
-          OR: [{ id: dto.roleId }, { code: dto.roleId }],
+    if (targetRole) {
+      await this.prisma.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: targetRole.id,
         },
       });
-      if (targetRole) {
-        await this.prisma.userRole.create({
-          data: {
-            userId: user.id,
-            roleId: targetRole.id,
-          },
-        });
-      }
     }
 
     return {
@@ -914,6 +932,32 @@ export class SystemService {
     }
   }
 
+  private findRoleWithPermissions(idOrCode: string) {
+    return this.prisma.role.findFirst({
+      where: { OR: [{ id: idOrCode }, { code: idOrCode }] },
+      include: ROLE_WITH_PERMISSIONS,
+    });
+  }
+
+  /** 非跨校区操作者不能把员工挂到其他校区的组织节点下 */
+  private async assertOrgNodeInCampus(actor: StaffActor, orgNodeId: string, campusId: string) {
+    if (canAccessAllCampuses(actor)) {
+      return;
+    }
+    let nodeId: string | null = orgNodeId;
+    while (nodeId) {
+      const node = await this.prisma.orgNode.findUnique({
+        where: { id: nodeId },
+        select: { parentId: true, campus: { select: { id: true } } },
+      });
+      if (node?.campus?.id === campusId) {
+        return;
+      }
+      nodeId = node?.campus ? null : node?.parentId ?? null;
+    }
+    throw new ForbiddenException('不能把员工归属到本校区以外的组织节点');
+  }
+
   /** 员工手机号同时是登录凭据，录错会导致登录提示“账号不存在”，因此入库前必须校验 */
   private parseEmployeePhone(raw: string): string {
     const phone = normalizeCnMobile(raw);
@@ -924,10 +968,26 @@ export class SystemService {
   }
 
   // 16. 编辑员工账号
-  async updateUser(id: string, dto: UpdateUserDto) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+  async updateUser(actor: StaffActor, id: string, dto: UpdateUserDto) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: USER_ROLES_WITH_PERMISSIONS,
+    });
     if (!user) {
       throw new NotFoundException('员工账号不存在');
+    }
+    assertCanManageUser(actor, user);
+
+    const dataScope = dto.dataScope !== undefined ? parseDataScope(dto.dataScope) : undefined;
+    const targetRole = dto.roleId ? await this.findRoleWithPermissions(dto.roleId) : null;
+    assertCanUpdateUser(actor, user, {
+      role: targetRole,
+      dataScope,
+      campusId: dto.campusId,
+      status: dto.status,
+    });
+    if (user.account === 'donghaichao' && dto.status && dto.status !== 'active') {
+      throw new BadRequestException('超级管理员账号禁止停用');
     }
 
     let trimmedPhone: string | null | undefined = undefined;
@@ -951,6 +1011,9 @@ export class SystemService {
     }
 
     await this.assertUserPlacement(dto.campusId || undefined, dto.orgNodeId || undefined);
+    if (dto.orgNodeId && dto.orgNodeId !== user.orgNodeId) {
+      await this.assertOrgNodeInCampus(actor, dto.orgNodeId, dto.campusId || user.campusId);
+    }
 
     const updatedUser = await this.prisma.user.update({
       where: { id },
@@ -961,42 +1024,37 @@ export class SystemService {
         ...(dto.campusId ? { campusId: dto.campusId } : {}),
         ...(dto.orgNodeId !== undefined ? { orgNodeId: dto.orgNodeId } : {}),
         ...(dto.status ? { status: dto.status } : {}),
-        ...(dto.dataScope !== undefined ? { dataScope: dto.dataScope } : {}),
+        ...(dataScope !== undefined ? { dataScope } : {}),
       },
     });
 
-    if (dto.roleId) {
-      const targetRole = await this.prisma.role.findFirst({
-        where: {
-          OR: [{ id: dto.roleId }, { code: dto.roleId }],
+    if (targetRole) {
+      await this.prisma.userRole.deleteMany({ where: { userId: id } });
+      await this.prisma.userRole.create({
+        data: {
+          userId: id,
+          roleId: targetRole.id,
         },
       });
-      if (targetRole) {
-        await this.prisma.userRole.deleteMany({ where: { userId: id } });
-        await this.prisma.userRole.create({
-          data: {
-            userId: id,
-            roleId: targetRole.id,
-          },
-        });
-      }
     }
 
     return updatedUser;
   }
 
   // 17. 删除员工账号
-  async deleteUser(id: string) {
+  async deleteUser(actor: StaffActor, id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
         classesTaught: true,
         schedules: true,
+        ...USER_ROLES_WITH_PERMISSIONS,
       },
     });
     if (!user) {
       throw new NotFoundException('员工账号不存在');
     }
+    assertCanManageUser(actor, user);
     if (user.account === 'donghaichao' || user.account === 'admin') {
       throw new BadRequestException('系统根超级管理员账号禁止删除');
     }
@@ -1011,11 +1069,15 @@ export class SystemService {
   }
 
   // 18. 重置员工密码为初始密码 123456
-  async resetUserPassword(id: string, newPassword?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+  async resetUserPassword(actor: StaffActor, id: string, newPassword?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: USER_ROLES_WITH_PERMISSIONS,
+    });
     if (!user) {
       throw new NotFoundException('员工账号不存在');
     }
+    assertCanManageUser(actor, user);
 
     const targetPassword = newPassword?.trim() || '123456';
     const hashedPassword = await bcrypt.hash(targetPassword, 10);
@@ -1033,11 +1095,15 @@ export class SystemService {
   }
 
   // 19. 启停员工账号
-  async toggleUserStatus(id: string, targetStatus?: string) {
-    const user = await this.prisma.user.findUnique({ where: { id } });
+  async toggleUserStatus(actor: StaffActor, id: string, targetStatus?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: USER_ROLES_WITH_PERMISSIONS,
+    });
     if (!user) {
       throw new NotFoundException('员工账号不存在');
     }
+    assertCanManageUser(actor, user);
     if (user.account === 'donghaichao' && (targetStatus === 'disabled' || user.status === 'active')) {
       throw new BadRequestException('超级管理员账号禁止停用');
     }

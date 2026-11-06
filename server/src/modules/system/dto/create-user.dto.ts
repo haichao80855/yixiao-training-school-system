@@ -19,7 +19,7 @@ export class UpdateUserDto {
   orgNodeId?: string;
   roleId?: string;
   status?: string;
-  dataScope?: string;
+  dataScope?: string | null;
 }
 
 export class ResetPasswordDto {
