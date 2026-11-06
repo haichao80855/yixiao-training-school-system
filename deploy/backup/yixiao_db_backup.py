@@ -36,7 +36,6 @@ LOCAL_KEEP = 7
 STALE_SECONDS = 26 * 3600
 ALERT_INTERVAL_SECONDS = 6 * 3600
 OSS_KEYS = (
-    "BACKUP_OSS_ENDPOINT",
     "BACKUP_OSS_BUCKET",
     "BACKUP_OSS_ACCESS_KEY_ID",
     "BACKUP_OSS_ACCESS_KEY_SECRET",
@@ -65,6 +64,9 @@ def load_config():
     for key, value in os.environ.items():
         if key.startswith(("BACKUP_", "ALERT_")):
             config[key] = value
+    config["BACKUP_OSS_ENDPOINT"] = (
+        config.get("BACKUP_OSS_ENDPOINT") or "oss-cn-beijing-internal.aliyuncs.com"
+    )
     config.setdefault("BACKUP_DB_PATH", "/opt/yixiao/server/prisma/dev.db")
     config.setdefault("BACKUP_LOCAL_DIR", "/opt/yixiao/db-backups")
     config.setdefault("BACKUP_SERVICE_NAME", "yixiao-server")
@@ -286,7 +288,7 @@ def create_local_backup(config):
 
 
 def command_backup(config):
-    enabled = oss_enabled(config)
+    # 先做本机备份：OSS 配置写错不能连累本机副本
     path, sha256, counts = create_local_backup(config)
     size = os.path.getsize(path)
     log("本机备份完成 %s（%d 字节），核心表行数 %s" % (path, size, counts))
@@ -301,7 +303,7 @@ def command_backup(config):
     write_state(config, state)
     prune_local(config)
 
-    if not enabled:
+    if not oss_enabled(config):
         log("未配置 OSS，本次只保留本机副本")
         return 0
     upload_backup(config, path, sha256, "daily")

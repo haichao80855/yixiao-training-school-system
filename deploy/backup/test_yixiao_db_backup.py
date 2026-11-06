@@ -214,12 +214,22 @@ class BackupCommandTest(BackupTestCase):
         self.assertNotIn("last_upload_ts", self.state())
         self.assertNotIn("last_monthly", self.state())
 
-    def test_partial_oss_config_fails_before_doing_anything(self):
+    def test_partial_oss_config_alerts_but_still_keeps_local_copy(self):
         self.env["BACKUP_OSS_BUCKET"] = "bk"
         result = self.run_tool("backup")
         self.assertEqual(result.returncode, 1)
-        self.assertEqual(self.backups(), [])
+        self.assertEqual(len(self.backups()), 1)
         self.assertIn("OSS 配置不完整", self.server.alerts()[0])
+
+    def test_unfilled_env_template_means_local_only(self):
+        template = os.path.join(HERE, "db-backup.env.example")
+        self.env["BACKUP_ENV_FILE"] = template
+        self.env.pop("ALERT_WEBHOOK_URL")
+        result = self.run_tool("backup")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(len(self.backups()), 1)
+        self.assertIn("未配置 OSS", result.stdout)
+        self.assertEqual(self.run_tool("check").returncode, 0)
 
     def test_empty_core_table_rejected_and_old_backups_kept(self):
         self.assertEqual(self.run_tool("backup").returncode, 0)
