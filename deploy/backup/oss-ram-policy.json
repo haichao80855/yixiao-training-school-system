@@ -1,0 +1,10 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["oss:PutObject"],
+      "Resource": ["acs:oss:*:*:替换为备份Bucket名称/*"]
+    }
+  ]
+}

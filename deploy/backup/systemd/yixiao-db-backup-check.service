@@ -1,0 +1,6 @@
+[Unit]
+Description=Alert when the Yixiao database backup is stale
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/yixiao/ops/db-backup/yixiao_db_backup.py check

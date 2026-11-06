@@ -1,0 +1,8 @@
+[Unit]
+Description=Yixiao daily database backup
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/yixiao/ops/db-backup/yixiao_db_backup.py backup
+Nice=10
+IOSchedulingClass=idle
