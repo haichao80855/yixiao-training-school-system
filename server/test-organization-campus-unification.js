@@ -263,6 +263,52 @@ async function runTests() {
   const deletedStillExists = finalCampusesRes.body.data.some((c) => c.code === newCampusCode);
   assert(!deletedStillExists, '物理校区表中亦庄校区已完成联动安全清理，零残留！');
 
+  // 7. 组织架构页的员工名单不受当前工作校区限制，校区账号也不会因此越权
+  console.log('\n--- 7. 员工名单跨校区查询与校区隔离验证 ---');
+  const listCampusIds = async (headers, query) => {
+    const res = await request({
+      hostname: HOST,
+      port: PORT,
+      path: `/api/system/users${query}`,
+      method: 'GET',
+      headers: { ...headers, 'X-Campus-Id': 'campus-bj-hq' },
+    });
+    const list = Array.isArray(res.body.data) ? res.body.data : res.body.data.list;
+    return list.map((u) => u.campusId);
+  };
+
+  const scopedCampusIds = await listCampusIds(authHeaders, '');
+  assert(
+    scopedCampusIds.length > 0 && scopedCampusIds.every((id) => id === 'campus-bj-hq'),
+    '超管不带参数时，员工列表限定在当前工作校区',
+  );
+
+  const allCampusIds = await listCampusIds(authHeaders, '?campusId=all');
+  assert(
+    new Set(allCampusIds).size > 1 && allCampusIds.length > scopedCampusIds.length,
+    `超管传 campusId=all 时可查看全部校区员工 (${allCampusIds.length} 人)`,
+  );
+
+  const principalLoginRes = await request(
+    {
+      hostname: HOST,
+      port: PORT,
+      path: '/api/auth/login',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    },
+    { account: 'zhangjh', password: '123456' },
+  );
+  const principal = principalLoginRes.body.data;
+  const principalCampusIds = await listCampusIds(
+    { Authorization: `Bearer ${principal.accessToken}` },
+    '?campusId=all',
+  );
+  assert(
+    principalCampusIds.length > 0 && principalCampusIds.every((id) => id === principal.user.campusId),
+    '校区校长传 campusId=all 时仍只能看到本校区员工',
+  );
+
   console.log('\n================================================================================');
   console.log(`🎉 全部 ${total} 项组织架构树与物理校区统一验证断言 100% 成功通过！`);
   console.log('================================================================================\n');
