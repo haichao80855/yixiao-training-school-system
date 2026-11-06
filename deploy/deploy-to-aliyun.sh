@@ -49,7 +49,15 @@ ssh "$REMOTE_HOST" "bash -s" << 'EOF'
   fi
   if [ -f "/opt/yixiao/server/prisma/dev.db" ]; then
     mkdir -p "$BACKUP_PATH/prisma"
-    cp /opt/yixiao/server/prisma/dev.db "$BACKUP_PATH/prisma/dev.db" 2>/dev/null || true
+    # 服务运行中直接 cp 可能得到不一致的副本。备份失败就中止部署，不在没有备份时继续
+    python3 - "$BACKUP_PATH/prisma/dev.db" <<'PY' || { echo "数据库备份失败，中止部署"; exit 1; }
+import sqlite3, sys
+source = sqlite3.connect("file:/opt/yixiao/server/prisma/dev.db?mode=ro", uri=True, timeout=30)
+target = sqlite3.connect(sys.argv[1])
+source.backup(target)
+target.close()
+source.close()
+PY
   fi
   if [ -d "/opt/yixiao/server/dist" ]; then
     cp -r /opt/yixiao/server/dist "$BACKUP_PATH/dist" 2>/dev/null || true
@@ -108,6 +116,10 @@ rsync -avz \
   --exclude="._*" \
   --exclude=".DS_Store" \
   server/package-lock.json "${REMOTE_HOST}:${REMOTE_DIR}/server/package-lock.json"
+
+echo "-> 同步数据库备份工具 ..."
+ssh "$REMOTE_HOST" "mkdir -p ${REMOTE_DIR}/ops/db-backup"
+rsync -avz deploy/backup/yixiao_db_backup.py "${REMOTE_HOST}:${REMOTE_DIR}/ops/db-backup/yixiao_db_backup.py"
 
 echo -e "${GREEN}✓ 资源文件同步完成！${NC}"
 

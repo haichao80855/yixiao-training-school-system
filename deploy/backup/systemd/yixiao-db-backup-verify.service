@@ -1,0 +1,8 @@
+[Unit]
+Description=Yixiao database backup restore drill (does not touch the live database)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/yixiao/ops/db-backup/yixiao_db_backup.py verify
+Nice=10
+IOSchedulingClass=idle
