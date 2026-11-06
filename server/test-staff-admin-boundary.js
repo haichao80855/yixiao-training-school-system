@@ -1,5 +1,5 @@
 /**
- * 员工账号管理的越权回归：校长等非超管不能提权、不能跨校区、不能接管更高权限的账号。
+ * 员工账号和角色管理的越权回归：校长等非超管不能提权、不能跨校区、不能接管更高权限的账号或角色。
  * 所有夹具都是临时创建的一次性账号和角色，结束后清理。
  * 需要后端已运行：PORT=3187 node test-staff-admin-boundary.js
  */
@@ -88,15 +88,23 @@ async function main() {
     return { id: res.data.id, account };
   }
 
-  async function fixtureRole(suffix, permissionCodes) {
+  async function fixtureRole(suffix, permissionCodes, dataScope = 'campus') {
     const role = await api(adminToken, 'POST', '/api/system/roles', {
       code: `bnd_${suffix}_${stamp}`,
       name: `bnd_${suffix}_${stamp}`,
-      dataScope: 'campus',
+      dataScope,
     });
     createdRoles.push(role.data.id);
-    await api(adminToken, 'POST', `/api/system/roles/${role.data.id}/permissions`, { permissionCodes });
+    const assigned = await api(adminToken, 'POST', `/api/system/roles/${role.data.id}/permissions`, { permissionCodes });
+    if (!assigned.data || assigned.data.assignedCount !== permissionCodes.length) {
+      throw new Error(`夹具角色 ${suffix} 权限码不存在: ${JSON.stringify(assigned.body)}`);
+    }
     return role.data;
+  }
+
+  async function fetchRole(id) {
+    const list = await api(adminToken, 'GET', '/api/system/roles');
+    return list.data.find((role) => role.id === id);
   }
 
   try {
@@ -254,6 +262,152 @@ async function main() {
     check(res.status === 200, '超管可撤销上述授权', res.body);
     res = await api(adminToken, 'PATCH', `/api/system/users/${other.id}/password`, { password: PASSWORD });
     check(res.status === 200, '超管可跨校区重置密码', res.body);
+
+    console.log('\n[11] 角色管理员不能给自己持有的角色提权');
+    const managerPerms = [
+      'system:role:view',
+      'system:role:add',
+      'system:role:edit',
+      'system:role:delete',
+    ];
+    const managerRole = await fixtureRole('rolemgr', managerPerms);
+    const manager = await fixtureUser('rolemgr', campusA.id, managerRole.id);
+    const selfScoped = await fixtureUser('rolemgrself', campusA.id, managerRole.id, 'self');
+    const mToken = await login(manager.account);
+
+    const selfAttacks = [
+      ['加权限', 'POST', 'permissions', { permissionCodes: [...managerPerms, 'system:user:edit'] }],
+      ['通配符全选', 'POST', 'permissions', { permissionCodes: ['*'] }],
+      ['减权限', 'POST', 'permissions', { permissionCodes: ['system:role:view'] }],
+      ['改数据范围为 all', 'PUT', '', { dataScope: 'all' }],
+      ['改名称', 'PUT', '', { name: `renamed_${stamp}` }],
+    ];
+    for (const [label, method, sub, payload] of selfAttacks) {
+      const path = `/api/system/roles/${managerRole.id}${sub ? `/${sub}` : ''}`;
+      res = await api(mToken, method, path, payload);
+      check(res.status === 403, `自己的角色：${label}被拒`, res.status);
+    }
+    res = await api(mToken, 'DELETE', `/api/system/roles/${managerRole.id}`);
+    check(res.status === 403, '自己的角色：删除被拒', res.status);
+    const managerAfter = await fetchRole(managerRole.id);
+    check(
+      [...managerAfter.permissions].sort().join() === [...managerPerms].sort().join(),
+      '自己的角色：权限未被改动',
+      managerAfter.permissions,
+    );
+    check(managerAfter.dataScope === 'campus', '自己的角色：数据范围未被改动', managerAfter.dataScope);
+    check(managerAfter.name === managerRole.name, '自己的角色：名称未被改动', managerAfter.name);
+    res = await api(await login(manager.account), 'GET', '/api/auth/profile');
+    check(res.data && res.data.dataScope === 'campus', '重新登录后数据范围仍为 campus', res.data && res.data.dataScope);
+
+    // 在未修复的后端上，上面的攻击会削掉操作者的权限；恢复后再测，避免后续用例被权限守卫拦下而假通过
+    await api(adminToken, 'POST', `/api/system/roles/${managerRole.id}/permissions`, { permissionCodes: managerPerms });
+    await api(adminToken, 'PUT', `/api/system/roles/${managerRole.id}`, { name: managerRole.name, dataScope: 'campus' });
+
+    console.log('\n[12] 角色管理员不能动超管角色');
+    // 只发原值：即使跑在未修复的后端上也不会改掉超管角色
+    const superBefore = await fetchRole(superRole.id);
+    res = await api(mToken, 'POST', `/api/system/roles/${superRole.id}/permissions`, {
+      permissionCodes: superBefore.permissions,
+    });
+    check(res.status === 403, '超管角色：分配权限被拒', res.status);
+    res = await api(mToken, 'PUT', `/api/system/roles/${superRole.id}`, { name: superBefore.name });
+    check(res.status === 403, '超管角色：编辑被拒', res.status);
+    res = await api(mToken, 'DELETE', `/api/system/roles/${superRole.id}`);
+    check(res.status === 403, '超管角色：删除被拒', res.status);
+
+    console.log('\n[13] 角色管理员不能动权限或范围高于自己的角色');
+    const permHigher = await fixtureRole('permhigher', ['system:role:view', 'system:user:edit']);
+    const scopeHigher = await fixtureRole('scopehigher', ['system:role:view'], 'all');
+    for (const [label, role] of [['权限更高的角色', permHigher], ['范围更高的角色', scopeHigher]]) {
+      res = await api(mToken, 'POST', `/api/system/roles/${role.id}/permissions`, {
+        permissionCodes: ['system:role:view'],
+      });
+      check(res.status === 403, `${label}：分配权限被拒`, res.status);
+      res = await api(mToken, 'PUT', `/api/system/roles/${role.id}`, { name: `renamed_${stamp}` });
+      check(res.status === 403, `${label}：编辑被拒`, res.status);
+      res = await api(mToken, 'DELETE', `/api/system/roles/${role.id}`);
+      check(res.status === 403, `${label}：删除被拒`, res.status);
+    }
+    const permHigherAfter = await fetchRole(permHigher.id);
+    check(
+      permHigherAfter && permHigherAfter.permissions.includes('system:user:edit'),
+      '权限更高的角色没有被削权',
+      permHigherAfter,
+    );
+    const scopeHigherAfter = await fetchRole(scopeHigher.id);
+    check(scopeHigherAfter && scopeHigherAfter.dataScope === 'all', '范围更高的角色未被改动', scopeHigherAfter);
+
+    console.log('\n[14] 赋予其他角色的权限和范围不能超出自己');
+    const lower = await fixtureRole('lower', ['system:role:view']);
+    res = await api(mToken, 'POST', `/api/system/roles/${lower.id}/permissions`, {
+      permissionCodes: ['system:role:view', 'system:user:edit'],
+    });
+    check(res.status === 403, '分配自己没有的权限被拒', res.status);
+    for (const code of ['*', 'admin:all']) {
+      res = await api(mToken, 'POST', `/api/system/roles/${lower.id}/permissions`, { permissionCodes: [code] });
+      check(res.status === 403, `分配通配符 ${code} 被拒`, res.status);
+    }
+    res = await api(mToken, 'PUT', `/api/system/roles/${lower.id}`, { dataScope: 'all' });
+    check(res.status === 403, '把角色数据范围改成 all 被拒', res.status);
+    const lowerAfter = await fetchRole(lower.id);
+    check(lowerAfter.permissions.join() === 'system:role:view', '被拒后角色权限未变', lowerAfter.permissions);
+    check(lowerAfter.dataScope === 'campus', '被拒后角色数据范围未变', lowerAfter.dataScope);
+
+    console.log('\n[15] 新建角色同样受限');
+    const createRoleCases = [
+      ['all 数据范围', { code: `bnd_newall_${stamp}`, dataScope: 'all' }],
+      ['超管编码 admin', { code: 'admin', dataScope: 'campus' }],
+      ['超管编码 super_admin', { code: 'super_admin', dataScope: 'campus' }],
+    ];
+    for (const [label, payload] of createRoleCases) {
+      res = await api(mToken, 'POST', '/api/system/roles', { name: `bnd_x_${stamp}`, ...payload });
+      check(res.status === 403, `新建角色：${label}被拒`, res.status);
+      if (res.data && res.data.id) createdRoles.push(res.data.id);
+    }
+    const selfToken = await login(selfScoped.account);
+    res = await api(selfToken, 'POST', '/api/system/roles', { code: `bnd_newdef_${stamp}`, name: `bnd_newdef_${stamp}` });
+    check(res.status === 403, '仅本人范围的操作者：不传范围时默认 campus 同样超出自身，被拒', res.status);
+    if (res.data && res.data.id) createdRoles.push(res.data.id);
+    res = await api(selfToken, 'PUT', `/api/system/roles/${lower.id}`, { name: `renamed_${stamp}` });
+    check(res.status === 403, '仅本人范围的操作者：编辑 campus 范围的角色被拒', res.status);
+
+    console.log('\n[16] 角色管理员的正常操作不受影响');
+    const newCode = `bnd_newok_${stamp}`;
+    res = await api(mToken, 'POST', '/api/system/roles', { code: newCode, name: newCode, dataScope: 'department' });
+    check([200, 201].includes(res.status), '新建不超出自身范围的角色成功', res.body);
+    const newRoleId = res.data && res.data.id;
+    if (newRoleId) createdRoles.push(newRoleId);
+    res = await api(mToken, 'POST', `/api/system/roles/${newRoleId}/permissions`, {
+      permissionCodes: ['system:role:view', 'system:role:edit'],
+    });
+    check(res.status === 200 || res.status === 201, '分配自己持有的权限成功', res.body);
+    res = await api(mToken, 'PUT', `/api/system/roles/${newRoleId}`, { description: 'ok', dataScope: 'campus' });
+    check(res.status === 200, '编辑角色并把范围调整为不超过自身成功', res.body);
+    res = await api(mToken, 'POST', `/api/system/roles/${newRoleId}/permissions`, {
+      permissionCodes: ['system:role:view'],
+    });
+    check(res.status === 200 || res.status === 201, '收回下级角色的权限成功', res.body);
+    res = await api(mToken, 'DELETE', `/api/system/roles/${newRoleId}`);
+    check(res.status === 200, '删除下级角色成功', res.body);
+    if (res.status === 200) createdRoles.splice(createdRoles.indexOf(newRoleId), 1);
+
+    console.log('\n[17] 超管不受角色限制，数据范围取值仍要合法');
+    res = await api(adminToken, 'PUT', `/api/system/roles/${superRole.id}`, { name: superBefore.name });
+    check(res.status === 200, '超管可编辑超管角色', res.body);
+    res = await api(adminToken, 'POST', `/api/system/roles/${lower.id}/permissions`, { permissionCodes: ['*'] });
+    check([200, 201].includes(res.status) && res.data.assignedCount > 1, '超管可用通配符全选权限', res.body);
+    res = await api(adminToken, 'PUT', `/api/system/roles/${lower.id}`, { dataScope: 'all' });
+    check(res.status === 200, '超管可把角色范围改成 all', res.body);
+    res = await api(adminToken, 'PUT', `/api/system/roles/${lower.id}`, { dataScope: 'everything' });
+    check(res.status === 400, '编辑角色：未知的数据范围被拒', res.status);
+    res = await api(adminToken, 'POST', '/api/system/roles', {
+      code: `bnd_badscope_${stamp}`,
+      name: `bnd_badscope_${stamp}`,
+      dataScope: 'everything',
+    });
+    check(res.status === 400, '新建角色：未知的数据范围被拒', res.status);
+    if (res.data && res.data.id) createdRoles.push(res.data.id);
   } finally {
     for (const id of createdUsers) {
       await api(adminToken, 'PUT', `/api/system/users/${id}`, { roleId: roleByCode.teacher.id });
