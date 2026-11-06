@@ -105,7 +105,8 @@ watch(
     if (val) {
       form.name = ''
       form.account = `user_${Math.floor(Math.random() * 9000 + 1000)}`
-      form.phone = '138' + Math.floor(Math.random() * 90000000 + 10000000)
+      // 手机号是登录凭据，不能预填：随机号码格式合法，未改动就会绑定到陌生号码上
+      form.phone = ''
       form.email = ''
       const initialCampus = props.campuses.find(c => c.id === props.defaultCampusId || c.code === props.defaultCampusId) || props.campuses[0]
       form.campusId = initialCampus ? (initialCampus.id || initialCampus.code) : ''
@@ -163,6 +164,10 @@ function onRoleChange(rId: string) {
 function handleSubmit() {
   if (!form.name.trim() || !form.account.trim() || !form.phone.trim()) {
     ElMessage.warning('请补全员工姓名、账号和手机号')
+    return
+  }
+  if (!/^1\d{10}$/.test(form.phone.trim())) {
+    ElMessage.warning('手机号码格式不正确，请填写 11 位手机号码')
     return
   }
   if (!form.campusId || !form.departmentId || !form.roleId) {
