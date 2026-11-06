@@ -309,6 +309,22 @@ async function runTests() {
     '校区校长传 campusId=all 时仍只能看到本校区员工',
   );
 
+  // 组织架构页按区块容错依赖这组接口权限：校长拿不到组织树和角色，其余区块照常加载
+  const principalStatus = async (path) => {
+    const res = await request({
+      hostname: HOST,
+      port: PORT,
+      path,
+      method: 'GET',
+      headers: { Authorization: `Bearer ${principal.accessToken}` },
+    });
+    return res.status;
+  };
+  assert((await principalStatus('/api/system/org-tree')) === 403, '校长无权查看组织架构树 (403)');
+  assert((await principalStatus('/api/system/roles')) === 403, '校长无权查看角色列表 (403)');
+  assert((await principalStatus('/api/system/company')) === 200, '校长可以查看机构信息 (200)');
+  assert((await principalStatus('/api/system/campuses')) === 200, '校长可以查看校区列表 (200)');
+
   console.log('\n================================================================================');
   console.log(`🎉 全部 ${total} 项组织架构树与物理校区统一验证断言 100% 成功通过！`);
   console.log('================================================================================\n');

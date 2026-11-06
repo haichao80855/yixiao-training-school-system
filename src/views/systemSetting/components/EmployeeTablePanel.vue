@@ -5,23 +5,33 @@
       <div>
         <div class="flex items-center space-x-2">
           <h3 class="text-sm font-bold text-st-title">
-            {{ selectedNode ? selectedNode.name : '全集团' }} - 人员管理
+            {{ selectedNode ? selectedNode.name : scopeName }} - 人员管理
           </h3>
           <span class="px-2 py-0.5 text-xs rounded bg-blue-50 text-st-primary font-medium">
             共 {{ filteredUsers.length }} 名员工
           </span>
         </div>
         <p class="text-[11px] text-st-muted mt-0.5">
-          当前筛选范围：{{ selectedNode ? `${getLevelName(selectedNode.level)} [${selectedNode.name}] 及其直属岗位人员` : '全集团在职人员' }}
+          当前筛选范围：{{ selectedNode ? `${getLevelName(selectedNode.level)} [${selectedNode.name}] 及其直属岗位人员` : `${scopeName}在职人员` }}
         </p>
       </div>
       <div class="flex items-center space-x-2">
         <el-button v-if="selectedNode" size="small" @click="$emit('resetNodeSelection')">
           重置查看全员
         </el-button>
-        <el-button type="primary" size="small" @click="$emit('openAddUser')">
-          + 新增员工
-        </el-button>
+        <el-tooltip :content="addUserBlockedReason" :disabled="!addUserBlockedReason">
+          <!-- 禁用的按钮不触发鼠标事件，需要外层元素承接提示 -->
+          <span>
+            <el-button
+              type="primary"
+              size="small"
+              :disabled="!!addUserBlockedReason"
+              @click="$emit('openAddUser')"
+            >
+              + 新增员工
+            </el-button>
+          </span>
+        </el-tooltip>
       </div>
     </div>
 
@@ -44,7 +54,14 @@
           :value="c.id || c.code"
         />
       </el-select>
-      <el-select v-model="filterRoleId" placeholder="角色组" size="small" clearable class="!w-32">
+      <el-select
+        v-model="filterRoleId"
+        placeholder="角色组"
+        size="small"
+        clearable
+        :disabled="roles.length === 0"
+        class="!w-32"
+      >
         <el-option label="全部角色" value="" />
         <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
       </el-select>
@@ -59,6 +76,7 @@
     <div class="flex-1 overflow-x-auto">
       <el-table
         :data="filteredUsers"
+        :empty-text="emptyText"
         style="width: 100%"
         stripe
         size="small"
@@ -134,14 +152,26 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { SystemUser, OrgNode, RoleItem, DataScope } from '@/types/system'
+import type { SystemUser, OrgNode, RoleItem, DataScope, SectionLoadState } from '@/types/system'
 
 const props = defineProps<{
   users: SystemUser[]
   campuses: any[]
   roles: RoleItem[]
   selectedNode: OrgNode | null
+  loadState: SectionLoadState
+  scopeName: string
+  addUserBlockedReason: string
 }>()
+
+const emptyText = computed(() => {
+  switch (props.loadState) {
+    case 'loading': return '加载中…'
+    case 'forbidden': return '当前账号无权查看员工列表'
+    case 'error': return '员工列表加载失败，请刷新页面重试'
+    default: return '暂无员工'
+  }
+})
 
 defineEmits<{
   resetNodeSelection: []

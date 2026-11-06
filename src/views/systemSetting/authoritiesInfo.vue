@@ -38,6 +38,7 @@
           <OrgTreePanel
             ref="orgTreePanelRef"
             :org-tree="orgTree"
+            :load-state="orgTreeState"
             :selected-node-id="selectedNode?.id || ''"
             @select-node="handleSelectNode"
             @open-add-node="openAddNodeDialog"
@@ -49,9 +50,12 @@
         <div class="lg:col-span-7">
           <EmployeeTablePanel
             :users="systemUsers"
-            :campuses="campuses"
+            :campuses="staffFilterCampuses"
             :roles="roles"
             :selected-node="selectedNode"
+            :load-state="usersState"
+            :scope-name="staffScopeName"
+            :add-user-blocked-reason="addUserBlockedReason"
             @reset-node-selection="resetNodeSelection"
             @open-add-user="showAddUserDialog = true"
             @reset-password="openResetPassword"
@@ -120,11 +124,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/authStore'
 import { systemApi } from '@/api'
-import type { OrgNode, SystemUser, RoleItem, CompanyInfo, DataScope } from '@/types/system'
+import type { OrgNode, SystemUser, RoleItem, CompanyInfo, DataScope, SectionLoadState } from '@/types/system'
 
 // 子组件引入
 import OrgHeaderCard from './components/OrgHeaderCard.vue'
@@ -152,6 +156,30 @@ const orgTree = ref<OrgNode[]>([])
 const systemUsers = ref<SystemUser[]>([])
 const roles = ref<RoleItem[]>([])
 const campuses = ref<any[]>([])
+
+// 按权限可能缺失的区块各自记录加载结果
+const orgTreeState = ref<SectionLoadState>('loading')
+const usersState = ref<SectionLoadState>('loading')
+const rolesState = ref<SectionLoadState>('loading')
+
+// 新增员工必须选择组织节点和角色，缺任一权限时表单无法提交
+const addUserBlockedReason = computed(() => {
+  if (orgTreeState.value === 'forbidden' || rolesState.value === 'forbidden') {
+    return '当前账号无权查看组织架构或角色列表，无法新增员工，请联系超级管理员'
+  }
+  return ''
+})
+
+// 校区账号的员工名单由后端限定在所属校区，页面文案和校区筛选要与之一致
+const isCampusScoped = computed(() => !authStore.isDataScopeAll)
+const staffScopeName = computed(() =>
+  isCampusScoped.value ? authStore.user?.campusName || '本校区' : '全集团',
+)
+const staffFilterCampuses = computed(() =>
+  isCampusScoped.value
+    ? campuses.value.filter((c) => c.id === authStore.user?.campusId)
+    : campuses.value,
+)
 
 // 机构工商元数据
 const orgMeta = reactive<CompanyInfo>({
@@ -191,35 +219,56 @@ const savingOrg = ref(false)
 const savingLogo = ref(false)
 
 // --- 数据加载编排 ---
-async function loadData() {
-  try {
-    const [treeRes, usersRes, rolesRes, companyRes, campusRes] = await Promise.all([
-      systemApi.getOrgTree(),
-      // 组织树跨校区展示，点击节点时在这份名单里筛选，因此不能只加载当前工作校区的员工。
-      // 校区账号传 all 时，后端仍限定在其所属校区。
-      systemApi.getUsers({ pageSize: 200, campusId: 'all' }),
-      systemApi.getRoles(),
-      systemApi.getCompanyInfo(),
-      systemApi.getCampuses(),
-    ])
+function toLoadState(result: PromiseSettledResult<unknown>): SectionLoadState {
+  if (result.status === 'fulfilled') return 'ready'
+  return (result.reason as { status?: number } | undefined)?.status === 403 ? 'forbidden' : 'error'
+}
 
-    if (treeRes && treeRes.data && Array.isArray(treeRes.data)) {
-      orgTree.value = treeRes.data
-    }
-    if (usersRes && usersRes.data) {
-      systemUsers.value = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data.list || [])
-    }
-    if (rolesRes && rolesRes.data && Array.isArray(rolesRes.data)) {
-      roles.value = rolesRes.data
-    }
-    if (companyRes && companyRes.data) {
-      Object.assign(orgMeta, companyRes.data)
-    }
-    if (campusRes && campusRes.data && Array.isArray(campusRes.data)) {
-      campuses.value = campusRes.data
-    }
-  } catch (err: any) {
-    ElMessage.error(err.message || '加载系统组织与员工数据失败')
+async function loadData() {
+  // 各接口的权限要求不同 (校长没有组织树和角色列表权限)，单个接口失败不能影响其他区块
+  const [treeRes, usersRes, rolesRes, companyRes, campusRes] = await Promise.allSettled([
+    systemApi.getOrgTree(),
+    // 组织树跨校区展示，点击节点时在这份名单里筛选，因此不能只加载当前工作校区的员工。
+    // 校区账号传 all 时，后端仍限定在其所属校区。
+    systemApi.getUsers({ pageSize: 200, campusId: 'all' }),
+    systemApi.getRoles(),
+    systemApi.getCompanyInfo(),
+    systemApi.getCampuses(),
+  ])
+
+  if (treeRes.status === 'fulfilled' && Array.isArray(treeRes.value?.data)) {
+    orgTree.value = treeRes.value.data
+  }
+  if (usersRes.status === 'fulfilled' && usersRes.value?.data) {
+    const data = usersRes.value.data
+    systemUsers.value = Array.isArray(data) ? data : (data.list || [])
+  }
+  if (rolesRes.status === 'fulfilled' && Array.isArray(rolesRes.value?.data)) {
+    roles.value = rolesRes.value.data
+  }
+  if (companyRes.status === 'fulfilled' && companyRes.value?.data) {
+    Object.assign(orgMeta, companyRes.value.data)
+  }
+  if (campusRes.status === 'fulfilled' && Array.isArray(campusRes.value?.data)) {
+    campuses.value = campusRes.value.data
+  }
+
+  orgTreeState.value = toLoadState(treeRes)
+  usersState.value = toLoadState(usersRes)
+  rolesState.value = toLoadState(rolesRes)
+
+  // 无权限是预期状态，由各区块就地说明；其他失败才需要提醒用户重试
+  const failedSections = ([
+    ['组织架构', treeRes],
+    ['员工列表', usersRes],
+    ['角色列表', rolesRes],
+    ['机构信息', companyRes],
+    ['校区列表', campusRes],
+  ] as const)
+    .filter(([, result]) => toLoadState(result) === 'error')
+    .map(([name]) => name)
+  if (failedSections.length > 0) {
+    ElMessage.error(`${failedSections.join('、')}加载失败，请刷新页面重试`)
   }
 }
 
