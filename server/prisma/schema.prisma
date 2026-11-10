@@ -252,6 +252,7 @@ model Student {
   status        String   @default("normal") // normal | suspended | transferred | dropped_out
   birthday      String?
   school        String?
+  grade         String?  // 公立学校在读年级, 如 小学三年级
   address       String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

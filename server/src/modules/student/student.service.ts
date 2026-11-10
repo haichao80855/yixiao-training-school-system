@@ -24,6 +24,17 @@ import { LearningGrowthProjector } from '../educational/domain/learning-growth.p
 import { StudentMovementIntentDto } from './dto/student-movement.dto';
 import { RENEWAL_RISK_CONSTANTS } from './domain/lesson-renewal.types';
 
+/**
+ * 按出生日期的年份推算年龄 (当前年份 - 出生年份)。
+ * 后台表单只录入年龄，保存时换算成出生日期，按年份差还原才能与录入值一致。
+ */
+export function ageFromBirthday(birthday?: string | null, now: Date = new Date()): number | null {
+  const year = Number(String(birthday || '').slice(0, 4));
+  if (!Number.isInteger(year) || year < 1900) return null;
+  const age = now.getFullYear() - year;
+  return age >= 0 && age <= 150 ? age : null;
+}
+
 @Injectable()
 export class StudentService {
   constructor(
@@ -164,6 +175,9 @@ export class StudentService {
         phone: stu.phone,
         parentName: stu.parentName,
         school: stu.school,
+        grade: stu.grade,
+        birthday: stu.birthday,
+        age: ageFromBirthday(stu.birthday),
         status: stu.status,
         isEnrolled: (packageCountMap.get(stu.id) || 0) > 0,
         campusId: stu.campusId,
@@ -262,6 +276,7 @@ export class StudentService {
           phoneNormalized,
           parentName: dto.parentName,
           school: dto.school,
+          grade: dto.grade,
           birthday: dto.birthday,
           address: dto.address,
           campusId: dto.campusId,
@@ -408,7 +423,9 @@ export class StudentService {
         phone: student.phone,
         parentName: student.parentName,
         school: student.school,
+        grade: student.grade,
         birthday: student.birthday,
+        age: ageFromBirthday(student.birthday),
         address: student.address,
         status: student.status,
         campus: student.campus,

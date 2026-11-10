@@ -1138,7 +1138,7 @@ export function getStudents(filters?: {
 
   if (filters?.grade) {
     const g = filters.grade.trim()
-    result = result.filter(s => s.grade.includes(g))
+    result = result.filter(s => (s.grade || '').includes(g))
   }
 
   return result

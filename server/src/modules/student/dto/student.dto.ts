@@ -27,6 +27,10 @@ export class CreateStudentDto {
 
   @IsOptional()
   @IsString()
+  grade?: string;
+
+  @IsOptional()
+  @IsString()
   birthday?: string;
 
   @IsOptional()
@@ -54,6 +58,10 @@ export class UpdateStudentDto {
   @IsOptional()
   @IsString()
   school?: string;
+
+  @IsOptional()
+  @IsString()
+  grade?: string;
 
   @IsOptional()
   @IsString()
