@@ -26,9 +26,9 @@
               </div>
 
               <div class="text-xs text-st-secondary mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
-                <span>性别/年龄: <b class="text-st-title">{{ student.gender === 'male' ? '男' : '女' }} / {{ student.age || 10 }}岁</b></span>
+                <span>性别/年龄: <b class="text-st-title">{{ student.gender === 'male' ? '男' : '女' }}{{ student.age ? ` / ${student.age}岁` : '' }}</b></span>
                 <span>归属校区: <b class="text-st-primary">{{ student.campusName }}</b></span>
-                <span>公立学校: <b class="text-st-title">{{ student.school || student.publicSchool || '未录入' }} ({{ student.grade }})</b></span>
+                <span>公立学校: <b class="text-st-title">{{ student.school || student.publicSchool || '未录入' }}{{ student.grade ? ` (${student.grade})` : '' }}</b></span>
                 <span>联系电话: <b class="text-st-title font-mono">{{ student.phone }}</b></span>
                 <span>家长: <b class="text-st-title">{{ student.parentName }} ({{ student.parentPhone }})</b></span>
               </div>

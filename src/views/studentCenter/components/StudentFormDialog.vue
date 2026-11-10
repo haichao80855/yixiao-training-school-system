@@ -138,12 +138,18 @@ const visible = computed({
 const isEdit = computed(() => !!props.student)
 const editingNotEnrolled = computed(() => !!props.student && !isStudentEnrolled(props.student))
 const submitting = ref(false)
+// 编辑时只有年龄改动过才回写出生日期，避免覆盖已录入的真实生日
+const initialAge = ref<number | undefined>(undefined)
+
+function birthdayFromAge(age?: number) {
+  return age ? `${new Date().getFullYear() - age}-06-01` : undefined
+}
 
 const form = reactive({
   name: '',
   studentNo: '',
   gender: 'male' as 'male' | 'female',
-  age: 9,
+  age: 9 as number | undefined,
   phone: '',
   campusId: tenantStore.currentCampusId,
   school: '',
@@ -167,11 +173,12 @@ function initStudentForm() {
     form.name = st.name
     form.studentNo = st.studentNo
     form.gender = st.gender
-    form.age = st.age || 9
+    form.age = st.age ?? undefined
+    initialAge.value = form.age
     form.phone = st.phone
     form.campusId = st.campusId
     form.school = st.school || st.publicSchool || ''
-    form.grade = st.grade
+    form.grade = st.grade || ''
     form.parentName = st.parentName || ''
     form.parentPhone = st.parentPhone || ''
     form.parentWechat = st.parentWechat || st.boundWechat || ''
@@ -182,6 +189,7 @@ function initStudentForm() {
     form.studentNo = `S${Math.floor(100000 + Math.random() * 900000)}`
     form.gender = 'male'
     form.age = 9
+    initialAge.value = undefined
     form.phone = ''
     form.campusId = tenantStore.currentCampusId
     form.school = ''
@@ -227,6 +235,8 @@ async function handleSubmit() {
           campusId: form.campusId,
           parentName: form.parentName,
           school: form.school,
+          grade: form.grade || undefined,
+          ...(form.age && form.age !== initialAge.value ? { birthday: birthdayFromAge(form.age) } : {}),
           status: form.status,
         })
 
@@ -241,7 +251,8 @@ async function handleSubmit() {
           campusId: form.campusId,
           parentName: form.parentName,
           school: form.school,
-          birthday: form.age ? `${2026 - form.age}-06-01` : undefined,
+          grade: form.grade || undefined,
+          birthday: birthdayFromAge(form.age),
         })
 
         const createdStudentNo = apiRes.data?.studentNo || form.studentNo

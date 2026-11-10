@@ -147,7 +147,7 @@
                 <div>
                   <div class="font-bold text-st-primary hover:underline text-xs flex items-center space-x-1">
                     <span>{{ row.name }}</span>
-                    <span class="text-[10px] text-st-secondary font-normal">({{ row.gender === 'male' ? '男' : '女' }}/{{ row.age || 9 }}岁)</span>
+                    <span class="text-[10px] text-st-secondary font-normal">({{ row.gender === 'male' ? '男' : '女' }}{{ row.age ? `/${row.age}岁` : '' }})</span>
                   </div>
                   <div class="text-[11px] text-st-muted font-mono font-semibold">{{ row.studentNo }}</div>
                 </div>
@@ -196,7 +196,7 @@
         <el-table-column label="公立学校与年级" min-width="150">
           <template #default="{ row }">
             <div class="text-xs">
-              <div class="font-medium text-st-title">{{ row.grade }}</div>
+              <div class="font-medium text-st-title">{{ row.grade || '年级未录入' }}</div>
               <div class="text-[11px] text-st-muted truncate max-w-[130px]">{{ row.school || row.publicSchool || '未录入' }}</div>
             </div>
           </template>
@@ -583,7 +583,7 @@ const filteredStudents = computed(() => {
     }
 
     // 年级
-    if (selectedGrade.value && !s.grade.includes(selectedGrade.value)) {
+    if (selectedGrade.value && !(s.grade || '').includes(selectedGrade.value)) {
       return false
     }
 

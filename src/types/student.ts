@@ -190,7 +190,7 @@ export interface Student {
   avatar?: string;
   campusId: string;
   campusName: string;
-  grade: string;
+  grade?: string | null;
   school?: string;
   publicSchool?: string;
   parentName?: string;
