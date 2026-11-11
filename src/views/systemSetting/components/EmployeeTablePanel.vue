@@ -40,7 +40,7 @@
       <el-input
         v-model="searchKeyword"
         placeholder="搜索姓名、账号或手机号"
-        prefix-icon="Search"
+        :prefix-icon="Search"
         size="small"
         clearable
         class="!w-48"
@@ -151,6 +151,7 @@
 </template>
 
 <script setup lang="ts">
+import { Search } from '@element-plus/icons-vue'
 import { ref, computed } from 'vue'
 import type { SystemUser, OrgNode, RoleItem, DataScope, SectionLoadState } from '@/types/system'
 

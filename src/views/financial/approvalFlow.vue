@@ -353,7 +353,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, Close, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
@@ -634,7 +634,5 @@ onMounted(async () => {
   await loadApprovals()
 })
 
-watch(() => tenantStore.currentCampusId, () => {
-  loadApprovals()
-})
+// 切换校区时 MainLayout 会按校区重建整个页面并重新加载，不再在页面里重复监听校区
 </script>

@@ -54,11 +54,16 @@ export class StudentService {
     keyword?: string;
     status?: string;
     campusId?: string;
-    warningLevel?: string; // urgent: <=4, warning: <=8, normal: >8
+    warningLevel?: string; // critical|urgent: <=4, warning: <=8, normal: >8 且有剩余课时, dormant: 暂无数据口径
+    grade?: string;
+    createdFrom?: string; // YYYY-MM-DD，含当天
+    createdTo?: string; // YYYY-MM-DD，含当天
   }) {
-    const page = Number(query.page) || 1;
-    const pageSize = Number(query.pageSize) || 10;
+    const page = Math.max(Number(query.page) || 1, 1);
+    const pageSize = Math.min(Math.max(Number(query.pageSize) || 10, 1), 500);
     const skip = (page - 1) * pageSize;
+    const isSet = (v?: string) => Boolean(v && v.trim() && v !== 'all' && v !== 'undefined' && v !== 'null');
+    const warningLevel = isSet(query.warningLevel) ? query.warningLevel!.trim() : undefined;
 
     const where: any = {};
 
@@ -88,12 +93,30 @@ export class StudentService {
       ];
     }
 
+    if (isSet(query.grade)) {
+      where.grade = { contains: query.grade!.trim() };
+    }
+
+    const dayStart = (d?: string) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T00:00:00`) : undefined);
+    const createdFrom = dayStart(query.createdFrom);
+    const createdToStart = dayStart(query.createdTo);
+    if (createdFrom || createdToStart) {
+      where.createdAt = {
+        ...(createdFrom ? { gte: createdFrom } : {}),
+        // 结束日期含当天：小于结束日期的次日零点
+        ...(createdToStart ? { lt: new Date(createdToStart.getTime() + 24 * 3600 * 1000) } : {}),
+      };
+    }
+
+    // 课消风控是按课包余量计算出来的派生指标，无法写进数据库条件：
+    // 指定风控等级时先取全部符合其他条件的学员，计算后过滤，再在内存里分页，保证 total 与页码正确
+    const pageInDb = !warningLevel;
+
     const [total, students] = await Promise.all([
       this.prisma.student.count({ where }),
       this.prisma.student.findMany({
         where,
-        skip,
-        take: pageSize,
+        ...(pageInDb ? { skip, take: pageSize } : {}),
         orderBy: { createdAt: 'desc' },
         include: {
           campus: {
@@ -216,22 +239,54 @@ export class StudentService {
       };
     });
 
-    // 如果指定了消课预警级别过滤
-    const filteredList = query.warningLevel
-      ? list.filter((s) => {
-          if (query.warningLevel === 'critical' || query.warningLevel === 'urgent') {
-            return s.warningLevel === 'urgent' || s.riskLevel === 'critical';
-          }
-          return s.warningLevel === query.warningLevel || s.riskLevel === query.warningLevel;
-        })
-      : list;
+    if (pageInDb) {
+      return { total, page, pageSize, list };
+    }
+
+    // 指定了消课预警级别：与管理端原有的前端筛选同一口径
+    const filteredList = list.filter((s) => {
+      switch (warningLevel) {
+        case 'critical':
+        case 'urgent':
+          return s.warningLevel === 'urgent';
+        case 'warning':
+          return s.warningLevel === 'warning';
+        case 'normal':
+          return s.warningLevel === 'normal' && s.totalRemainingLessons > 0;
+        default:
+          // dormant 等列表接口没有计算的指标：不匹配任何学员 (与原前端行为一致)
+          return false;
+      }
+    });
 
     return {
-      total: query.warningLevel ? filteredList.length : total,
+      total: filteredList.length,
       page,
       pageSize,
-      list: filteredList,
+      list: filteredList.slice(skip, skip + pageSize),
     };
+  }
+
+  /**
+   * 学员列表顶部统计：总数 / 正常在读 / 未报读 / 停课休学 / 待分班
+   * 口径与列表状态筛选一致；待分班 = 有在读课包未编班且仍有剩余课时
+   */
+  async getStudentStats(query: { campusId?: string }) {
+    const base: any = {};
+    if (query.campusId && query.campusId !== 'all') base.campusId = query.campusId;
+    const enrolled = { some: { status: { not: 'refunded' } } };
+    const [total, normal, notEnrolled, suspended, unassigned] = await Promise.all([
+      this.prisma.student.count({ where: base }),
+      this.prisma.student.count({ where: { ...base, status: { in: ['normal', 'in_class'] }, packages: enrolled } }),
+      this.prisma.student.count({
+        where: { ...base, status: { in: ['normal', 'in_class'] }, packages: { none: { status: { not: 'refunded' } } } },
+      }),
+      this.prisma.student.count({ where: { ...base, status: 'suspended' } }),
+      this.prisma.student.count({
+        where: { ...base, packages: { some: { status: 'active', classId: null, remainingLessons: { gt: 0 } } } },
+      }),
+    ]);
+    return { total, normal, notEnrolled, suspended, unassigned };
   }
 
   /**

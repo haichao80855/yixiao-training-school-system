@@ -52,7 +52,7 @@
           <el-input
             v-model="keyword"
             placeholder="搜索课程名称或别名..."
-            prefix-icon="Search"
+            :prefix-icon="Search"
             size="small"
             clearable
             class="!w-64"
@@ -202,6 +202,7 @@
 </template>
 
 <script setup lang="ts">
+import { Search } from '@element-plus/icons-vue'
 import { ref, computed } from 'vue'
 import { platformData } from '@/constants/platformCourse'
 import AppPagination from '@/components/AppPagination.vue'

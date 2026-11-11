@@ -43,6 +43,9 @@ export class StudentController {
     @Query('keyword') keyword?: string,
     @Query('status') status?: string,
     @Query('warningLevel') warningLevel?: string,
+    @Query('grade') grade?: string,
+    @Query('createdFrom') createdFrom?: string,
+    @Query('createdTo') createdTo?: string,
     @CampusScope() scope?: CampusScopeResult,
   ) {
     return this.studentService.getStudents({
@@ -52,7 +55,16 @@ export class StudentController {
       status,
       campusId: scope?.targetCampusId,
       warningLevel,
+      grade,
+      createdFrom,
+      createdTo,
     });
+  }
+
+  @Get('stats')
+  @RequirePermissions('student:allStudent')
+  async getStudentStats(@CampusScope() scope?: CampusScopeResult) {
+    return this.studentService.getStudentStats({ campusId: scope?.targetCampusId });
   }
 
   @Post()

@@ -123,9 +123,9 @@ export interface EvaluationDetail {
     comment: string | null;
     homework: string | null;
     photos: PhotoLink[];
-    video: { url: string } | null;
+    video: { url: string; thumbUrl?: string } | null;
   };
-  classMedia: { photos: PhotoLink[]; video: { url: string } | null };
+  classMedia: { photos: PhotoLink[]; video: { url: string; thumbUrl?: string } | null };
   publishedAt: string | null;
   revision: number;
 }

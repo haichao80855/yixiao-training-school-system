@@ -8,5 +8,5 @@
     "allowSyntheticDefaultImports": true,
     "strict": true
   },
-  "include": ["vite.config.ts", "tailwind.config.ts", "postcss.config.js"]
+  "include": ["vite.config.ts", "build/**/*.ts", "tailwind.config.ts", "postcss.config.js"]
 }

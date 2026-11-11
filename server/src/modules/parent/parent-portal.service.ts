@@ -286,12 +286,13 @@ export class ParentPortalService {
             comment: own.comment || null,
             homework: own.homeworkTask || null,
             photos: media.ownPhotos,
-            video: media.ownVideo ? { url: this.media.file(media.ownVideo) } : null,
+            // 带封面缩略图：家长端视频不预加载，先显示封面
+            video: media.ownVideo ? this.media.video(media.ownVideo) : null,
           }
         : null,
       classMedia: {
         photos: media.classPhotos,
-        video: media.classVideo ? { url: this.media.file(media.classVideo) } : null,
+        video: media.classVideo ? this.media.video(media.classVideo) : null,
       },
       publishedAt: ev.publishedAt ? ev.publishedAt.toISOString() : null,
       revision: ev.currentRevision,

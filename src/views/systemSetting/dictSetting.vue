@@ -38,7 +38,7 @@
           <el-input
             v-model="searchQuery"
             placeholder="搜索字典键 (Key) 或显示标签 (Label)"
-            prefix-icon="Search"
+            :prefix-icon="Search"
             size="small"
             clearable
             class="!w-64"
@@ -180,6 +180,7 @@
 </template>
 
 <script setup lang="ts">
+import { Search } from '@element-plus/icons-vue'
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'

@@ -85,7 +85,7 @@
       <!-- 底部操作与统计联动 -->
       <template #footer>
         <div class="text-xs text-st-muted flex items-center space-x-2">
-          <span>匹配结果：共 <b class="text-st-primary font-bold">{{ filteredStudents.length }}</b> 位学员档案</span>
+          <span>匹配结果：共 <b class="text-st-primary font-bold">{{ totalCount }}</b> 位学员档案</span>
           <span v-if="selectedRows.length > 0" class="text-indigo-600 font-semibold">
             (已勾选 {{ selectedRows.length }} 项)
           </span>
@@ -99,7 +99,7 @@
 
     <!-- 3. 数据小计与操作栏 (SummaryStrip 集成) -->
     <SummaryStrip
-      :total-count="filteredStudents.length"
+      :total-count="totalCount"
       unit="名学员"
       :summary-text="`当前校区学员：共计 ${campusStats.total} 名，其中正常在读 ${campusStats.normal} 名，未报读 ${campusStats.notEnrolled} 名，停课休学 ${campusStats.suspended} 名，待分班 ${campusStats.unassigned} 名`"
     >
@@ -124,7 +124,7 @@
       <div class="overflow-x-auto w-full min-w-0">
         <el-table
           v-loading="loading"
-          :data="paginatedStudents"
+          :data="studentList"
           style="width: 100%"
           stripe
           @selection-change="handleSelectionChange"
@@ -358,7 +358,7 @@
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          :total="filteredStudents.length"
+          :total="totalCount"
         >
           <template #left>
             <div class="flex items-center space-x-2">
@@ -407,7 +407,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Phone } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
@@ -425,7 +425,7 @@ import EnrollDialog from './components/EnrollDialog.vue'
 import AbnormalMovementDialog from './components/AbnormalMovementDialog.vue'
 import StudentFormDialog from './components/StudentFormDialog.vue'
 import StudentAvatar from '@/components/StudentAvatar.vue'
-import { resolveStudentStatus, getStudentStatusLabel, getStudentStatusTagType, isStudentEnrolled } from '@/utils/studentStatus'
+import { resolveStudentStatus, getStudentStatusLabel, getStudentStatusTagType } from '@/utils/studentStatus'
 
 const tenantStore = useTenantStore()
 const authStore = useAuthStore()
@@ -441,8 +441,8 @@ const statusCapsuleOptions = [
 ]
 
 function handleStatusCapsuleChange(val: string) {
+  // 回到第 1 页并重新查询由筛选条件的 watch 统一处理
   selectedStatus.value = val
-  currentPage.value = 1
 }
 
 const loading = ref(false)
@@ -480,152 +480,109 @@ const currentCampusDisplayName = computed(() => {
   return c ? c.name : tenantStore.currentCampus.name
 })
 
-const refreshTrigger = ref(0)
+// 当前页学员 (翻页、搜索、筛选都交给后端，避免一次拉全部学员后在前端切片)
 const studentList = ref<Student[]>([])
+const totalCount = ref(0)
+
+// 顶部统计按所选校区由后端计数，不受列表筛选与翻页影响
+const campusStats = ref({ total: 0, normal: 0, notEnrolled: 0, suspended: 0, unassigned: 0 })
+
+let listRequestSeq = 0
+let appliedKeyword = ''
 
 async function loadStudents() {
+  const seq = ++listRequestSeq
   loading.value = true
+  appliedKeyword = keyword.value.trim()
+  const [createdFrom, createdTo] = dateRange.value && dateRange.value.length === 2 ? dateRange.value : [undefined, undefined]
   try {
     const res = await studentApi.getStudents({
+      page: currentPage.value,
+      pageSize: pageSize.value,
       campusId: selectedCampus.value,
-      keyword: keyword.value || undefined,
+      keyword: appliedKeyword || undefined,
       status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
-      warningLevel: selectedWarningLevel.value === 'all' ? undefined : selectedWarningLevel.value,
-      pageSize: 200
+      warningLevel: selectedWarningLevel.value && selectedWarningLevel.value !== 'all' ? selectedWarningLevel.value : undefined,
+      grade: selectedGrade.value || undefined,
+      createdFrom,
+      createdTo,
     })
-    if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.list || res.data.items || [])
-      if (Array.isArray(list)) {
-        studentList.value = list as any
-        return
-      }
-    }
-    studentList.value = []
+    // 只采用最后一次请求的结果，避免快速切换筛选时旧响应覆盖新结果
+    if (seq !== listRequestSeq) return
+    const data: any = res?.data
+    const list = Array.isArray(data) ? data : (data?.list || data?.items || [])
+    studentList.value = Array.isArray(list) ? (list as any) : []
+    totalCount.value = Number(Array.isArray(data) ? list.length : (data?.total ?? studentList.value.length))
   } catch (err: any) {
+    if (seq !== listRequestSeq) return
     ElMessage.error(err.message || '获取学员列表失败')
     studentList.value = []
+    totalCount.value = 0
   } finally {
-    loading.value = false
+    if (seq === listRequestSeq) loading.value = false
   }
 }
-
-onMounted(() => {
-  loadStudents()
-})
-
-watch(() => selectedCampus.value, () => {
-  loadStudents()
-  currentPage.value = 1
-})
-
-watch(() => selectedWarningLevel.value, () => {
-  loadStudents()
-  currentPage.value = 1
-})
-
-watch(() => authStore.token, () => {
-  loadStudents()
-})
-
-watch(() => tenantStore.currentCampusId, (id) => {
-  if (id && selectedCampus.value !== id) {
-    selectedCampus.value = id // 由 selectedCampus 的 watch 触发重载
-  } else {
-    loadStudents()
-  }
-})
-
-// 筛选后学员全集
-const filteredStudents = computed(() => {
-  // 建立显式响应式追踪依赖
-  const _tick = refreshTrigger.value
-  return studentList.value.filter(s => {
-    // 校区筛选：若选了具体校区，或者未选全集团且不在总部时做作用域
-    if (selectedCampus.value !== 'all') {
-      const matchId = s.campusId === selectedCampus.value
-      const matchName = s.campusName && (s.campusName.includes(currentCampusDisplayName.value) || currentCampusDisplayName.value.includes(s.campusName))
-      if (!matchId && !matchName) return false
-    }
-
-    // 关键词
-    if (keyword.value) {
-      const q = keyword.value.trim().toLowerCase()
-      const matchName = s.name.toLowerCase().includes(q)
-      const matchNo = s.studentNo.toLowerCase().includes(q)
-      const matchPhone = s.phone.includes(q) || (s.parentPhone && s.parentPhone.includes(q))
-      if (!matchName && !matchNo && !matchPhone) return false
-    }
-
-    // 状态
-    // 「正常在读」与后端同口径：包含已编班在读 (in_class)
-    if (selectedStatus.value !== 'all') {
-      // 「正常在读」须已报读；「未报读」为派生状态（见 utils/studentStatus）
-      const display = resolveStudentStatus(s)
-      const matchStatus = selectedStatus.value === 'normal'
-        ? (display === 'normal' || display === 'in_class')
-        : display === selectedStatus.value
-      if (!matchStatus) return false
-    }
-
-    // 课消风控与续费决策
-    if (selectedWarningLevel.value && selectedWarningLevel.value !== 'all') {
-      const risk = s.riskLevel || s.warningLevel
-      if (selectedWarningLevel.value === 'dormant') {
-        const dRisk = s.consumptionHealth?.dormantRisk
-        if (!dRisk || dRisk === 'active') return false
-      } else if (selectedWarningLevel.value === 'critical') {
-        if (risk !== 'urgent' && risk !== 'critical') return false
-      } else if (selectedWarningLevel.value === 'warning') {
-        if (risk !== 'warning') return false
-      } else if (selectedWarningLevel.value === 'normal') {
-        if (risk !== 'normal' || remainingOf(s) <= 0) return false
-      }
-    }
-
-    // 年级
-    if (selectedGrade.value && !(s.grade || '').includes(selectedGrade.value)) {
-      return false
-    }
-
-    // 时间范围
-    if (dateRange.value && dateRange.value.length === 2) {
-      const [start, end] = dateRange.value
-      if (s.createdAt < start || s.createdAt > end) return false
-    }
-
-    return true
-  })
-})
-
-// 分页切片
-const paginatedStudents = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredStudents.value.slice(start, start + pageSize.value)
-})
 
 // 在读课包剩余课时合计（与列表「余 X 课时」同一口径）
 function remainingOf(row: any): number {
   return Number(row.totalRemainingLessons ?? row.coursePackages?.reduce((s: number, p: any) => s + (p.remainingLessons || 0), 0) ?? 0)
 }
 
-// 统计
-const campusStats = computed(() => {
-  const list = selectedCampus.value === 'all'
-    ? studentList.value
-    : studentList.value.filter(s => s.campusId === selectedCampus.value)
-
-  return {
-    total: list.length,
-    normal: list.filter(s => (s.status === 'normal' || s.status === 'in_class') && isStudentEnrolled(s)).length,
-    notEnrolled: list.filter(s => resolveStudentStatus(s) === 'not_enrolled').length,
-    suspended: list.filter(s => s.status === 'suspended').length,
-    // 与「待分班池」同口径：有在读课包 (active) 未编班且仍有剩余课时的学员
-    unassigned: list.filter(s => (s.coursePackages || []).some(p => !p.classId && (p.remainingLessons || 0) > 0)).length
+async function loadStats() {
+  try {
+    const res = await studentApi.getStudentStats({ campusId: selectedCampus.value })
+    if (res?.data) campusStats.value = { ...campusStats.value, ...res.data }
+  } catch (err) {
+    console.warn('[allStudent] 学员统计加载失败', err)
   }
+}
+
+onMounted(() => {
+  loadStudents()
+  loadStats()
 })
 
-function handleSearch() {
+// 同一轮里多个条件一起变化 (如重置筛选、改条件同时回到第 1 页) 只发一次请求
+let loadQueued = false
+function queueLoad() {
+  if (loadQueued) return
+  loadQueued = true
+  nextTick(() => {
+    loadQueued = false
+    loadStudents()
+  })
+}
+
+// 筛选条件变化：回到第 1 页再查询
+function reloadFromFirstPage() {
   currentPage.value = 1
+  queueLoad()
+}
+
+watch([selectedCampus, selectedStatus, selectedWarningLevel, selectedGrade, dateRange], reloadFromFirstPage)
+watch(selectedCampus, loadStats)
+watch([currentPage, pageSize], queueLoad)
+
+// 关键词输入 300ms 防抖；回车 / 点「查询」立即查询
+let keywordTimer: ReturnType<typeof setTimeout> | undefined
+watch(keyword, () => {
+  clearTimeout(keywordTimer)
+  keywordTimer = setTimeout(() => {
+    if (keyword.value.trim() !== appliedKeyword) reloadFromFirstPage()
+  }, 300)
+})
+onBeforeUnmount(() => clearTimeout(keywordTimer))
+
+watch(() => authStore.token, () => {
+  loadStudents()
+  loadStats()
+})
+
+// 切换校区时 MainLayout 会按校区重建整个页面并重新加载，不再在页面里重复监听校区
+
+function handleSearch() {
+  clearTimeout(keywordTimer)
+  reloadFromFirstPage()
 }
 
 function handleReset() {
@@ -635,7 +592,9 @@ function handleReset() {
   selectedStatus.value = 'all'
   selectedWarningLevel.value = 'all'
   dateRange.value = null
-  currentPage.value = 1
+  // 回到第 1 页并重新查询由筛选条件的 watch 统一处理；条件本来就是默认值时手动刷新一次
+  clearTimeout(keywordTimer)
+  reloadFromFirstPage()
 }
 
 function handleSelectionChange(val: Student[]) {
@@ -728,7 +687,7 @@ function handleBatchNotify() {
 }
 
 function handleBatchExport() {
-  const exportData = selectedRows.value.length > 0 ? selectedRows.value : filteredStudents.value
+  const exportData = selectedRows.value.length > 0 ? selectedRows.value : studentList.value
   const headers = ['学号', '姓名', '联系电话', '归属校区', '年级', '状态', '剩余课时', '建档时间']
   const rows = exportData.map(s => [
     s.studentNo,
@@ -762,7 +721,7 @@ function handleFinanceExport() {
 }
 
 function refreshData(createdInfo?: any) {
-  refreshTrigger.value++
+  loadStats()
   if (createdInfo?.campusId && selectedCampus.value !== 'all' && selectedCampus.value !== createdInfo.campusId) {
     selectedCampus.value = 'all'
   }

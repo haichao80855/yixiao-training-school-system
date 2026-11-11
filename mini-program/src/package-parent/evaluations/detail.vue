@@ -23,7 +23,8 @@
           @change="heroIndex = $event.detail.current"
         >
           <swiper-item v-for="(p, idx) in heroPhotos" :key="idx" @click="preview(heroPhotos, idx)">
-            <image class="hero-img" :src="mediaUrl(p.url)" mode="aspectFill" />
+            <!-- 只有当前及相邻两张加载 1280px 预览图，其余先用 300px 缩略图，避免进页面就下载全部大图 -->
+            <image class="hero-img" :src="mediaUrl(isNearHero(idx) ? p.url : p.thumbUrl)" mode="aspectFill" />
           </swiper-item>
         </swiper>
         <view class="hero-shade" />
@@ -71,6 +72,8 @@
             v-if="detail.forChild?.video"
             class="video"
             :src="mediaUrl(detail.forChild.video.url)"
+            :poster="detail.forChild.video.thumbUrl ? mediaUrl(detail.forChild.video.thumbUrl) : undefined"
+            preload="none"
             object-fit="cover"
             :show-center-play-btn="true"
           />
@@ -133,6 +136,13 @@ const detail = ref<EvaluationDetail | null>(null);
 const loading = ref(true);
 const showFullContent = ref(false);
 const heroIndex = ref(0);
+/** 轮播里与当前张相邻 (含首尾循环) 的图片才加载大图 */
+function isNearHero(idx: number): boolean {
+  const n = heroPhotos.value.length;
+  if (n <= 3) return true;
+  const d = Math.abs(idx - heroIndex.value);
+  return d <= 1 || d === n - 1;
+}
 const studentId = ref('');
 
 const childName = computed(() => parentStore.children.find((c) => c.studentId === studentId.value)?.name || '孩子');

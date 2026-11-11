@@ -733,7 +733,7 @@
           placeholder="搜索班级名称/执教老师"
           size="small"
           clearable
-          prefix-icon="Search"
+          :prefix-icon="Search"
         />
         <el-table
           :data="filteredClassList"
@@ -814,7 +814,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search,
@@ -1319,10 +1319,7 @@ onMounted(async () => {
   await loadOrders()
 })
 
-watch(() => tenantStore.currentCampusId, () => {
-  filterForm.campusId = tenantStore.currentCampusId
-  loadOrders()
-})
+// 切换校区时 MainLayout 会按校区重建整个页面并重新加载，不再在页面里重复监听校区
 </script>
 
 <style scoped>

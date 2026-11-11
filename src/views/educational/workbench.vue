@@ -188,6 +188,7 @@
             popper-class="workbench-date-popper"
             :cell-class-name="getCalendarCellClassName"
             clearable
+            @panel-change="handleCalendarPanelChange"
             class="!w-full"
             @change="loadData"
           />
@@ -514,7 +515,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { BookOpen, Calendar, Sparkles, Video } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
@@ -655,29 +656,61 @@ function getCalendarCellClassName(date: Date): string {
   return 'workbench-cal-dot-pending'
 }
 
-async function loadCalendarHeatmap() {
+// 日历圆点只按日期选择器正在看的月份取数 (含面板上露出的前后几天)，同一口径下已取过的月份不再重复请求
+const heatmapLoadedMonths = new Set<string>()
+let heatmapContextKey = ''
+
+function heatmapTeacherId(): string | undefined {
+  if (isDataScopeSelf.value) return authStore.user?.teacherId || authStore.user?.id
+  if (onlyMyLessons.value && !isSuperAdminUser.value) return authStore.user?.teacherId || authStore.user?.id
+  return filters.teacherId || undefined
+}
+
+function monthKeyOf(value?: string | Date | null): string {
+  const d = value ? new Date(value) : new Date()
+  if (Number.isNaN(d.getTime())) return formatDateStr(new Date()).slice(0, 7)
+  return formatDateStr(d).slice(0, 7)
+}
+
+function handleCalendarPanelChange(date: Date) {
+  void loadCalendarHeatmap(monthKeyOf(date))
+}
+
+async function loadCalendarHeatmap(month: string = monthKeyOf(filters.date)) {
+  const teacherIdParam = heatmapTeacherId()
+  const contextKey = `${tenantStore.currentCampusId}|${teacherIdParam || ''}`
+  if (contextKey !== heatmapContextKey) {
+    heatmapContextKey = contextKey
+    heatmapLoadedMonths.clear()
+    scheduleDateSummaryMap.value = new Map()
+  }
+  if (heatmapLoadedMonths.has(month)) return
+  heatmapLoadedMonths.add(month)
+
   try {
-    let teacherIdParam: string | undefined = undefined
-    if (isDataScopeSelf.value) {
-      teacherIdParam = authStore.user?.teacherId || authStore.user?.id
-    } else if (onlyMyLessons.value && !isSuperAdminUser.value) {
-      teacherIdParam = authStore.user?.teacherId || authStore.user?.id
-    } else if (filters.teacherId) {
-      teacherIdParam = filters.teacherId
-    }
+    const [y, m] = month.split('-').map(Number)
+    // 日期面板一屏 6 周：向前多取 7 天、向后多取 14 天
+    const startDate = formatDateStr(new Date(y, m - 1, 1 - 7))
+    const endDate = formatDateStr(new Date(y, m, 14))
 
     const res = await educationalApi.getSchedules({
       campusId: tenantStore.currentCampusId,
       teacherId: teacherIdParam,
+      startDate,
+      endDate,
     })
+    if (contextKey !== heatmapContextKey) return
 
     const list = Array.isArray(res?.data) ? res.data : []
-    const map = new Map<string, DateSummary>()
+    const map = new Map(scheduleDateSummaryMap.value)
+    const seen = new Set<string>()
 
     for (const item of list) {
       if (!item.date) continue
       const d = String(item.date).split('T')[0]
-      const current = map.get(d) || { total: 0, pending: 0, completed: 0 }
+      // 相邻月份的取数范围有重叠：同一天以本次返回为准重新计数，避免重复累加
+      const current = seen.has(d) ? map.get(d)! : { total: 0, pending: 0, completed: 0 }
+      seen.add(d)
       current.total += 1
       if (item.status === 'completed') {
         current.completed += 1
@@ -689,12 +722,14 @@ async function loadCalendarHeatmap() {
 
     scheduleDateSummaryMap.value = map
   } catch (err) {
+    heatmapLoadedMonths.delete(month)
     console.error('Failed to load schedule calendar heatmap:', err)
   }
 }
 
 const classroomList = ref<Classroom[]>([])
 const teacherList = ref<Teacher[]>([])
+let optionsLoaded = false
 
 async function loadOptions() {
   try {
@@ -724,7 +759,11 @@ const activeLessonForSignIn = ref<WorkbenchLessonCard | null>(null)
 const tempAttendanceList = ref<{ studentId: string; studentName: string; status: 'present' | 'late' | 'leave' | 'absent' }[]>([])
 
 async function loadData() {
-  await loadOptions()
+  // 教室 / 讲师筛选项只在进入页面时加载一次 (切换校区时页面会整体重建)
+  if (!optionsLoaded) {
+    optionsLoaded = true
+    void loadOptions()
+  }
   void loadCalendarHeatmap()
   const isTeacher = isTeacherUser.value
   const isSuper = isSuperAdminUser.value
@@ -788,9 +827,7 @@ watch(() => authStore.user, () => {
   loadData()
 }, { immediate: true })
 
-watch(() => tenantStore.currentCampusId, () => {
-  loadData()
-})
+// 切换校区时 MainLayout 会按校区重建页面，这里不再单独监听校区
 
 // 上课
 async function handleStartLesson(card: WorkbenchLessonCard) {
@@ -897,9 +934,7 @@ function handleEvaluationSuccess(evalRecord: any) {
   loadData()
 }
 
-onMounted(() => {
-  loadData()
-})
+// 首次加载由上方 authStore.user 的 immediate watch 触发，不再在 onMounted 里重复调用
 </script>
 
 <style>
