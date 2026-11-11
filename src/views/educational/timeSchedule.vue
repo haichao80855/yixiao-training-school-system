@@ -441,6 +441,7 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { MapPin, Zap, AlertTriangle, User, Lock } from 'lucide-vue-next'
@@ -536,6 +537,7 @@ const currentMinuteLineTop = computed(() => {
 const teacherList = ref<Teacher[]>([])
 const classroomList = ref<Classroom[]>([])
 const courseList = ref<CourseItem[]>([])
+let optionsRequest: Promise<void> | null = null
 
 async function loadOptions() {
   try {
@@ -571,12 +573,16 @@ const schedules = ref<ScheduleEvent[]>([])
 async function loadSchedules() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (filterTeacher.value || undefined)
   try {
-    await loadOptions()
-    const res = await educationalApi.getSchedules({
-      campusId: tenantStore.currentCampusId,
-      teacherId: tId,
-      classroomId: filterClassroom.value || undefined
-    })
+    // 讲师 / 教室 / 课程选项只在进入页面时加载一次，并与排课并行请求 (切换校区时页面会整体重建)
+    if (!optionsRequest) optionsRequest = loadOptions()
+    const [res] = await Promise.all([
+      educationalApi.getSchedules({
+        campusId: tenantStore.currentCampusId,
+        teacherId: tId,
+        classroomId: filterClassroom.value || undefined
+      }),
+      optionsRequest
+    ])
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       schedules.value = list

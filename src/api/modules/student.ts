@@ -113,6 +113,13 @@ export const studentApi = {
     return res;
   },
 
+  /** 学员列表顶部统计 (总数 / 正常在读 / 未报读 / 停课休学 / 待分班) */
+  getStudentStats: (params?: { campusId?: string }) =>
+    request<{ total: number; normal: number; notEnrolled: number; suspended: number; unassigned: number }>(
+      '/api/students/stats',
+      { params },
+    ),
+
   getStudentById: async (id: string, fallbackData?: any) => {
     const res = await request(`/api/students/${id}`, { fallbackData });
     if (res && res.data) {

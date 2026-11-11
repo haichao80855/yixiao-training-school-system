@@ -583,10 +583,6 @@ export class EducationalService {
             capacity: true,
             currentStudentCount: true,
             course: { select: { id: true, name: true, subject: true } },
-            studentPackages: {
-              where: { status: 'active' },
-              select: { studentId: true },
-            },
           },
         },
         attendances: {
@@ -598,10 +594,27 @@ export class EducationalService {
       },
     });
 
+    // 班级在读学员按班级只查一次：原来每条排课都内嵌一份 class.studentPackages，
+    // 同一班级的几十节课重复下发同一份名单，占列表响应体积的三成
+    const classIds = Array.from(new Set(schedules.map((s) => s.classId).filter(Boolean))) as string[];
+    const activePackages = classIds.length
+      ? await this.prisma.studentCoursePackage.findMany({
+          where: { classId: { in: classIds }, status: 'active' },
+          select: { classId: true, studentId: true },
+        })
+      : [];
+    const classStudentIds = new Map<string, string[]>();
+    for (const p of activePackages) {
+      if (!p.classId) continue;
+      const list = classStudentIds.get(p.classId) || [];
+      list.push(p.studentId);
+      classStudentIds.set(p.classId, list);
+    }
+
     const lessonInfo = await this.resolveLessonSequence(schedules);
 
     return schedules.map((s: any) => {
-      const activePackageStudentIds = (s.class?.studentPackages || []).map((p: any) => p.studentId);
+      const activePackageStudentIds = (s.classId && classStudentIds.get(s.classId)) || [];
       const attendanceStudentIds = (s.attendances || []).map((a: any) => a.studentId);
       const uniqueStudentIds = Array.from(new Set([...activePackageStudentIds, ...attendanceStudentIds]));
 

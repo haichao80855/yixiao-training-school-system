@@ -353,7 +353,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import ThemeProgress from '@/components/ThemeProgress.vue'
@@ -500,9 +500,7 @@ onMounted(() => {
   loadStats(true)
 })
 
-watch(() => tenantStore.currentCampusId, () => {
-  loadStats(true)
-})
+// 切换校区时 MainLayout 会按校区重建整个页面并重新加载，不再在页面里重复监听校区
 
 // 精炼的9大核心业务直通车（每一个对应独立完整的业务页面）
 const quickAccessList = [

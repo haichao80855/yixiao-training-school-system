@@ -12,11 +12,23 @@ export const useDictStore = defineStore('dict', () => {
   /**
    * 加载指定分类的字典项（优先读取前端内存缓存）
    */
-  async function loadDict(category: string, force = false): Promise<DictItem[]> {
-    if (!force && dictMap.value[category] && dictMap.value[category].length > 0) {
-      return dictMap.value[category];
-    }
+  // 同一分类正在加载时复用同一个请求 (同页多个组件同时 useDict 同一分类)
+  const inFlight = new Map<string, Promise<DictItem[]>>();
 
+  function loadDict(category: string, force = false): Promise<DictItem[]> {
+    if (!force && dictMap.value[category] && dictMap.value[category].length > 0) {
+      return Promise.resolve(dictMap.value[category]);
+    }
+    const pending = inFlight.get(category);
+    if (pending) return pending;
+    const request = fetchDict(category).finally(() => {
+      inFlight.delete(category);
+    });
+    inFlight.set(category, request);
+    return request;
+  }
+
+  async function fetchDict(category: string): Promise<DictItem[]> {
     loadingMap.value[category] = true;
     try {
       const res = await systemApi.getDictItems(category);

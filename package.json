@@ -12,7 +12,7 @@
     "server:build": "cd server && npm run build",
     "test:server": "cd server && node test-auth-and-system.js && node test-curriculum-and-student.js && node test-educational-and-attendance.js && node test-financial-and-approval.js && node test-rbac-permissions.js && node test-staff-admin-boundary.js && node test-organization-campus-unification.js && node test-role-permission-contract.js && node test-dict-cache-and-binding.js && node test-org-admin-persistence.js && node test-admin-reset-pwd-flow.js && node test-user-phone-login.js && node test-teacher-page-permissions.js && node test-teacher-portal.js && node test-data-scope-security.js && node test-campus-switch-scope.js && node test-lesson-settlement-engine.js && node test-student-enrollment-coordinator.js && node test-course-delivery-engine.js && node test-batch-scheduling-deep-module.js && node test-student-movement-deep-module.js && node test-financial-approval-orchestrator.js && node test-class-roster-coordinator.js && node test-class-schedule-summary.js && node test-learning-growth-projector.js && node test-lesson-evaluation-coordinator.js && node test-lesson-fulfillment-coordinator.js && node test-student-centric-evaluation-matrix.js && node test-parent-portal.js && node test-aliyun-oss-storage-adapter.js && node test-staff-media-links.js && node test-production-config.js && node test-stats-health-access.js && node test-admin-dashboard-aggregator.js && node test-student-archive-import.js",
     "test:backup": "python3 -W ignore::ResourceWarning deploy/backup/test_yixiao_db_backup.py",
-    "test:fullstack":"node tests/e2e_full_stack_integration.cjs",
+    "test:fullstack": "node tests/e2e_full_stack_integration.cjs",
     "test:e2e:walkthrough": "node scripts/e2e_all_functions_browser_walkthrough.cjs",
     "test:all": "node tests/run_all_unified.cjs",
     "db:stats": "node scripts/db_stats.cjs",
@@ -24,9 +24,7 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",
-    "dayjs": "^1.11.13",
     "element-plus": "^2.8.3",
-    "lodash-es": "^4.17.21",
     "lucide-vue-next": "^0.441.0",
     "mediabunny": "1.62.0",
     "pinia": "^2.2.2",
@@ -34,7 +32,6 @@
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
-    "@types/lodash-es": "^4.17.12",
     "@types/node": "^20.16.5",
     "@vitejs/plugin-vue": "^5.1.3",
     "autoprefixer": "^10.4.20",

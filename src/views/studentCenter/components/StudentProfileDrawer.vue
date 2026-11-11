@@ -624,7 +624,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Play, Link2, Image, Mic, Video, Phone } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
@@ -853,6 +853,8 @@ function handleAddRecord() {
 const calling = ref(false)
 const callTimer = ref('00:00')
 let timerInterval: any = null
+// 抽屉卸载时停止通话计时，避免计时器在后台一直运行
+onBeforeUnmount(() => clearInterval(timerInterval))
 
 function handleCall() {
   if (calling.value) {

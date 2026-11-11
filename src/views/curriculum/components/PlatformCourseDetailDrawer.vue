@@ -148,10 +148,11 @@
 </template>
 
 <script setup lang="ts">
+import { Download } from '@element-plus/icons-vue'
 import { ref } from 'vue'
 import { curriculumApi } from '@/api'
 import { normalizePlatformLessons } from '@/api/normalizers/curriculum'
-import { allCoursewaresData } from '@/constants/platformCourse'
+import { loadPlatformCoursewares } from '@/constants/platformCourse'
 import CoursewarePlayerDialog from './CoursewarePlayerDialog.vue'
 
 interface CourseItem {
@@ -302,7 +303,7 @@ async function open(targetCourse: CourseItem) {
     console.warn('[PlatformCourseDetailDrawer] 远程课件拉取未就绪，使用本地双轨模式:', err)
   }
 
-  const details = (allCoursewaresData as Record<string, any>)[targetCourse.courseCode]
+  const details = await loadPlatformCoursewares(targetCourse.courseCode)
   if (details && details.lessons) {
     lessonList.value = details.lessons
   } else {
