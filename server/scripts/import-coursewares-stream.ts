@@ -59,27 +59,29 @@ async function runCoursewareETL() {
   console.log('🚀 启动课件与课程资产 ETL 数据库沉淀流水线 (L2 Stream Importer)');
   console.log('================================================================================\n');
 
-  const jsonCandidates = [
-    path.resolve(__dirname, '../../src/mocks/allCoursesDetailsWithCoursewares.json'),
-    path.resolve(__dirname, '../src/mocks/allCoursesDetailsWithCoursewares.json'),
-    path.resolve(process.cwd(), 'src/mocks/allCoursesDetailsWithCoursewares.json'),
+  // 课件明细按课程拆成单独文件 (文件名即课程 key)，前端课程库也读这同一份数据
+  const dirCandidates = [
+    path.resolve(__dirname, '../../src/mocks/platform-coursewares'),
+    path.resolve(process.cwd(), 'src/mocks/platform-coursewares'),
+    path.resolve(process.cwd(), '../src/mocks/platform-coursewares'),
   ];
-
-  let jsonPath = '';
-  for (const p of jsonCandidates) {
-    if (fs.existsSync(p)) {
-      jsonPath = p;
-      break;
-    }
-  }
-
-  if (!jsonPath) {
-    console.error('❌ 未找到 allCoursesDetailsWithCoursewares.json 源文件，请检查文件路径！');
+  const dirPath = dirCandidates.find((p) => fs.existsSync(p) && fs.statSync(p).isDirectory());
+  if (!dirPath) {
+    console.error('❌ 未找到课件源目录 src/mocks/platform-coursewares/，请检查文件路径！');
     process.exit(1);
   }
 
-  console.log(`[ETL] 读取课件源文件: ${jsonPath}`);
-  const rawData: Record<string, RawCourse> = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+  const files = fs.readdirSync(dirPath).filter((f) => f.endsWith('.json')).sort();
+  if (files.length === 0) {
+    console.error(`❌ 课件源目录 ${dirPath} 中没有 JSON 文件！`);
+    process.exit(1);
+  }
+
+  console.log(`[ETL] 读取课件源目录: ${dirPath} (${files.length} 个文件)`);
+  const rawData: Record<string, RawCourse> = {};
+  for (const f of files) {
+    rawData[path.basename(f, '.json')] = JSON.parse(fs.readFileSync(path.join(dirPath, f), 'utf-8'));
+  }
   const courseKeys = Object.keys(rawData);
   console.log(`[ETL] 共发现 ${courseKeys.length} 门课程元数据待同步入库...\n`);
 
