@@ -38,11 +38,26 @@ Run commands from the repository root:
   - `npm run build`: Use this, not bare `nest build`. A leftover `*.tsbuildinfo` makes `nest build` exit silently without emitting `dist/`.
   - `npm run format`: Format backend code using Prettier.
 - Deployment: `deploy/deploy-to-aliyun.sh` builds the admin SPA, the parent H5, and the server, then syncs them to production. Run it only when explicitly asked.
+  - The live nginx config is `/etc/nginx/sites-available/yixiao` on the ECS host, not a repo file. `deploy/nginx.conf` is the reference copy. When changing nginx behavior, update both and keep them in step.
+  - Production serves pre-built `.br` files (`brotli_static`, via `libnginx-mod-http-brotli-static`) and `.gz` files (`gzip_static`). Hashed assets use `Cache-Control: public, max-age=31536000, immutable`.
+  - In `deploy/nginx.conf`, `brotli_static` stays commented out on purpose. The `Dockerfile` copies that file into `nginx:1.25-alpine`, which has no brotli module, so enabling it there would break the container.
 
 ## Coding Style & Naming Conventions
 - **Frontend**: Vue 3 `<script setup lang="ts">`. Use PascalCase for components (`BatchScheduleDialog.vue`), camelCase for stores/composables, and 2 spaces for indentation.
 - **Backend**: NestJS conventions. Use kebab-case for filenames (`student.service.ts`), PascalCase for classes (`StudentService`), and camelCase for methods/variables.
 - **Typing**: Keep TypeScript strict; avoid untyped `any`.
+
+## Frontend Performance Conventions
+These follow PR #36. The first load is about 187 KB gzip; don't let it grow back.
+- **Element Plus loads on demand** through `unplugin-auto-import` / `unplugin-vue-components` (`vite.config.ts`). Do not add `app.use(ElementPlus)`, the full `element-plus/dist/index.css`, or a global icon registration loop. Import icons from `@element-plus/icons-vue` in each file that uses them.
+  - Imperative components (`ElMessage`, `ElMessageBox`, `ElNotification`, `ElLoading`) get their styles from the imports at the top of `src/main.ts`. When you start using another imperative API, add its style import there.
+- **`manualChunks`** in `vite.config.ts`: never put the `element-plus` main entry (`es/index.mjs`) or the icon library into a manual chunk. That turns tree-shaking off and pulls in the whole 1 MB library. Component code and styles stay split by page, and shared internals go into `vendor-element-base`.
+- `MainLayout` is imported statically on purpose. Lazy-loading it was measured 160–180 ms slower on desktop, so keep it static unless you have new measurements.
+- **Large static data** must not be bundled into a page. For example, the platform courseware details are one JSON file per course under `src/mocks/platform-coursewares/`, loaded with `import.meta.glob` only when a course drawer opens. Follow the same pattern for new large datasets, and keep an eye on `chunkSizeWarningLimit` (800 KB).
+- **Lists that can grow** should be paginated and filtered on the server. The all-students page is an example: filters go to `GET /api/students`, and summary numbers come from `GET /api/students/stats`. Don't fetch everything and filter in the browser.
+- **Avoid duplicate requests**: reuse the profile request cache in `src/api/modules/auth.ts` (same token, 5 seconds), shared by `authStore` and `tenantStore`, and the in-flight dict request dedupe in `src/stores/dictStore.ts`. `MainLayout` already rebuilds pages when the campus changes, so pages should not add their own campus `watch` that reloads data again.
+- `build/vite-precompress.ts` writes `.gz` and `.br` next to the build output for the admin SPA and the parent H5. It uses only Node's built-in zlib, so don't add a compression dependency for this.
+- Parent H5 media: videos get a poster image and `preload="none"`. Carousels load only the current and neighboring full-size images. OSS thumbnails are not WebP yet, because the same links serve the WeChat mini-program and iOS `<image>` needs the `webp` attribute.
 
 ## Testing Guidelines
 - **Suites**: Custom tiered runner (`tests/runner.js`), Node.js assertions, and Puppeteer for E2E scenarios.
