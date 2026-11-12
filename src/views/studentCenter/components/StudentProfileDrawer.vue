@@ -435,110 +435,7 @@
           </div>
         </el-tab-pane>
 
-        <!-- Tab 4: 沟通记录 (communicationRecord) -->
-        <el-tab-pane label="家校沟通与回访日志" name="communication">
-          <div class="space-y-4 pt-2">
-            <!-- 软电话外呼模拟条 -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between">
-              <div class="flex items-center space-x-3 text-xs">
-                <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                  <Phone class="w-4 h-4" />
-                </div>
-                <div>
-                  <div class="font-semibold text-st-title">软电话 (TQSIP / 容联云通讯中心) 状态：在线</div>
-                  <div class="text-st-muted text-[11px]">一键呼叫学员家长 {{ student.parentName }} ({{ student.parentPhone }})</div>
-                </div>
-              </div>
-              <div class="flex items-center space-x-2">
-                <el-button type="success" size="small" :loading="calling" @click="handleCall">
-                  {{ calling ? `通话中 ${callTimer}` : '一键外呼拨打' }}
-                </el-button>
-                <el-button type="primary" size="small" plain @click="showAddCommDialog = true">
-                  + 新增跟进记录
-                </el-button>
-              </div>
-            </div>
 
-            <!-- 跟进历史 -->
-            <div class="space-y-3">
-              <div
-                v-for="log in student.communicationRecords"
-                :key="log.id"
-                class="border border-slate-200 rounded-lg p-3 bg-white space-y-2 text-xs"
-              >
-                <div class="flex justify-between items-center border-b pb-1.5">
-                  <div class="flex items-center space-x-2">
-                    <el-tag size="small" type="primary">{{ log.type }}</el-tag>
-                    <span class="font-semibold text-st-title">{{ log.counselor }}</span>
-                    <span class="text-st-muted font-mono">{{ log.time }}</span>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <span v-if="log.duration" class="font-mono text-st-secondary bg-gray-100 px-1.5 py-0.5 rounded text-[11px]">
-                      通话时长: {{ log.duration }}
-                    </span>
-                    <el-rate :model-value="log.parentSatisfaction || 5" disabled size="small" />
-                  </div>
-                </div>
-
-                <div class="text-st-title leading-relaxed">
-                  {{ log.content }}
-                </div>
-
-                <!-- 录音模拟试听控件 -->
-                <div class="bg-gray-50 rounded p-2 flex items-center justify-between text-[11px] text-st-secondary">
-                  <div class="flex items-center space-x-2">
-                    <el-button link type="primary" size="small" class="!font-bold inline-flex items-center gap-1">
-                      <Play class="w-3 h-3 fill-current" />
-                      <span>播放通话录音</span>
-                    </el-button>
-                    <span>音频波形: ▃▅▇█▅▃ 128kbps MP3</span>
-                  </div>
-                  <span class="font-mono">录音存档: TQSIP-REC-2026.mp3</span>
-                </div>
-              </div>
-
-              <div v-if="!student.communicationRecords?.length" class="text-center py-6 text-xs text-st-muted">
-                暂无沟通跟进记录，点击上方按钮发起外呼或登记回访。
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
-
-        <!-- Tab 5: 赛事记录 (matchRecord) -->
-        <el-tab-pane label="白名单赛事与等级考试" name="matches">
-          <div class="space-y-3 pt-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs text-st-muted">教育部白名单全国科技赛事、全国青少年软件编程等级考试与CSP竞赛报送</span>
-              <el-button size="small" plain @click="showAddCert = true">+ 录入考级成果</el-button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div
-                v-for="cert in student.competitionRecords"
-                :key="cert.id"
-                class="border border-indigo-100 rounded-lg p-4 bg-gradient-to-br from-indigo-50/40 to-white shadow-2xs space-y-2 text-xs"
-              >
-                <div class="flex justify-between items-start">
-                  <div class="font-bold text-sm text-indigo-950">{{ cert.competitionName }}</div>
-                  <el-tag size="small" type="success">{{ cert.award }}</el-tag>
-                </div>
-                <div class="text-st-secondary grid grid-cols-2 gap-1 text-[11px]">
-                  <div>参赛期次: {{ cert.session }}</div>
-                  <div>考核等级: {{ cert.level }}</div>
-                  <div>获奖日期: {{ cert.awardDate }}</div>
-                  <div>证书编号: <span class="font-mono font-semibold">{{ cert.certificateNo }}</span></div>
-                </div>
-                <div class="pt-2 border-t border-indigo-100 flex justify-end">
-                  <el-button size="small" link type="primary" @click="handlePreviewCert(cert)">查看电子考级证书</el-button>
-                </div>
-              </div>
-
-              <div v-if="!student.competitionRecords?.length" class="col-span-2 text-center py-6 text-xs text-st-muted">
-                该学员尚未录入白名单赛事及等级考试成绩。
-              </div>
-            </div>
-          </div>
-        </el-tab-pane>
       </el-tabs>
     </div>
 
@@ -571,64 +468,17 @@
       </template>
     </el-dialog>
 
-    <!-- 新增跟进记录弹窗 -->
-    <el-dialog v-model="showAddCommDialog" title="新增家校跟进与回访记录" :width="DIALOG_SIZE.sm" append-to-body>
-      <el-form label-position="top" size="small">
-        <div class="grid grid-cols-2 gap-3">
-          <el-form-item label="沟通类型" required>
-            <el-select v-model="newComm.type" class="w-full">
-              <el-option label="课后反馈" value="课后反馈" />
-              <el-option label="电话跟进" value="电话跟进" />
-              <el-option label="请假回访" value="请假回访" />
-              <el-option label="续费沟通" value="续费沟通" />
-              <el-option label="满意度调查" value="满意度调查" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="沟通方式">
-            <el-select v-model="newComm.method" class="w-full">
-              <el-option label="软电话拨打" value="phone" />
-              <el-option label="企业微信" value="wechat" />
-              <el-option label="校区面谈" value="in_person" />
-            </el-select>
-          </el-form-item>
-        </div>
-        <el-form-item label="详细跟进沟通记录" required>
-          <el-input v-model="newComm.content" type="textarea" :rows="3" placeholder="请输入与家长的沟通反馈要点..." />
-        </el-form-item>
-        <el-form-item label="家长反馈意向评分">
-          <el-rate v-model="newComm.satisfaction" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showAddCommDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleAddComm">保存跟进日志</el-button>
-      </template>
-    </el-dialog>
 
-    <!-- 证书预览弹窗 -->
-    <el-dialog v-model="showCertPreview" title="全国青少年科技与编程考级荣誉证书" :width="DIALOG_SIZE.md" append-to-body>
-      <div v-if="previewCert" class="border-4 border-amber-500/60 rounded-xl p-6 bg-amber-50/20 text-center space-y-4">
-        <div class="text-amber-800 font-serif text-lg font-bold">★ 荣 誉 证 书 ★</div>
-        <div class="text-xl font-bold text-st-title">{{ student?.name }} 同学：</div>
-        <div class="text-xs text-st-secondary leading-relaxed px-6">
-          在 {{ previewCert.session }}「{{ previewCert.competitionName }}」中表现优异，经组委会综合评定，特授予
-          <b class="text-amber-700 text-base">【{{ previewCert.award }}】</b> 荣誉。
-        </div>
-        <div class="pt-4 border-t border-amber-200 flex justify-between items-center text-[11px] text-st-muted px-4 font-mono">
-          <span>证书编号: {{ previewCert.certificateNo }}</span>
-          <span>发证日期: {{ previewCert.awardDate }}</span>
-        </div>
-      </div>
-    </el-dialog>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, reactive, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Play, Link2, Image, Mic, Video, Phone } from 'lucide-vue-next'
+import { Link2, Image, Mic, Video } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
-import type { Student, StudentCoursePackage, CompetitionRecord } from '@/types/student'
+import type { Student, StudentCoursePackage } from '@/types/student'
 import { studentApi } from '@/api'
 import StudentAvatar from '@/components/StudentAvatar.vue'
 import { getStudentStatusLabel, getStudentStatusTagType, resolveStudentStatus } from '@/utils/studentStatus'
@@ -650,6 +500,7 @@ const visible = computed({
   set: (val) => emit('update:modelValue', val)
 })
 
+const router = useRouter()
 const activeTab = ref('courses')
 
 const profileDetail = ref<any>(null)
@@ -844,35 +695,9 @@ async function handleClearPackage(pkg: StudentCoursePackage) {
   }
 }
 
-// 录入课评
+// 录入课评：课评按课次填写，跳到上课工作台
 function handleAddRecord() {
-  ElMessage.info('教师已进入授课工作台录入课评')
-}
-
-// 软电话通话模拟
-const calling = ref(false)
-const callTimer = ref('00:00')
-let timerInterval: any = null
-// 抽屉卸载时停止通话计时，避免计时器在后台一直运行
-onBeforeUnmount(() => clearInterval(timerInterval))
-
-function handleCall() {
-  if (calling.value) {
-    // 挂断
-    calling.value = false
-    clearInterval(timerInterval)
-    ElMessage.success(`通话结束，通话时长 ${callTimer.value}，录音已自动回传存档`)
-  } else {
-    calling.value = true
-    let seconds = 0
-    callTimer.value = '00:00'
-    timerInterval = setInterval(() => {
-      seconds++
-      const m = String(Math.floor(seconds / 60)).padStart(2, '0')
-      const s = String(seconds % 60).padStart(2, '0')
-      callTimer.value = `${m}:${s}`
-    }, 1000)
-  }
+  router.push('/educational/workbench')
 }
 
 // 充值
@@ -917,42 +742,4 @@ async function handleWithdraw() {
   }
 }
 
-// 新增跟进记录
-const showAddCommDialog = ref(false)
-const newComm = reactive({
-  type: '课后反馈' as any,
-  method: 'phone' as any,
-  content: '',
-  satisfaction: 5
-})
-
-function handleAddComm() {
-  if (!newComm.content.trim()) {
-    ElMessage.warning('请输入跟进沟通内容')
-    return
-  }
-  props.student?.communicationRecords?.unshift({
-    id: `cr-${Date.now()}`,
-    time: new Date().toISOString().replace('T', ' ').slice(0, 16),
-    counselor: '张学管',
-    type: newComm.type,
-    method: newComm.method,
-    content: newComm.content,
-    duration: '03:15',
-    parentSatisfaction: newComm.satisfaction
-  })
-  ElMessage.success('跟进回访记录已成功添加')
-  newComm.content = ''
-  showAddCommDialog.value = false
-}
-
-// 证书预览
-const showAddCert = ref(false)
-const showCertPreview = ref(false)
-const previewCert = ref<CompetitionRecord | null>(null)
-
-function handlePreviewCert(cert: CompetitionRecord) {
-  previewCert.value = cert
-  showCertPreview.value = true
-}
 </script>

@@ -7,17 +7,10 @@
           <h2 class="text-base font-bold text-gray-800">科目体系设置 (教研中心)</h2>
         </div>
         <p class="text-xs text-gray-500 mt-1">
-          标准化建设少儿软件编程、硬件机器人、科技创新与信息学竞赛科目矩阵，统一集团教案大纲与学段进阶标准。
+          科目目录为系统预设，关联课程数按课程库实时统计。科目暂不支持在线新增或修改。
         </p>
       </div>
-      <div class="flex items-center space-x-2">
-        <el-button size="small" @click="handleExportSubjects">
-          导出科目大纲
-        </el-button>
-        <el-button type="primary" size="small" class="!px-4 font-medium" @click="openCreateSubjectDialog">
-          + 新增科目分类
-        </el-button>
-      </div>
+      <el-button @click="handleExportSubjects">导出科目列表</el-button>
     </div>
 
     <!-- 4 大科目分类指标卡片 -->
@@ -145,89 +138,18 @@
 
         <el-table-column prop="updatedAt" label="最近更新" width="120" align="center" />
 
-        <el-table-column label="管理操作" width="180" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openEditSubjectDialog(row as any)">
-              编辑
-            </el-button>
-            <el-button link type="primary" size="small" @click="handleViewSyllabus(row as any)">
-              课标大纲
-            </el-button>
-            <el-button
-              link
-              :type="row.status === 'active' ? 'danger' : 'success'"
-              size="small"
-              @click="toggleSubjectStatus(row as any)"
-            >
-              {{ row.status === 'active' ? '归档' : '启用' }}
-            </el-button>
-          </template>
-        </el-table-column>
       </el-table>
     </div>
 
-    <!-- 新增 / 编辑科目弹窗 -->
-    <el-dialog
-      v-model="subjectDialogVisible"
-      :title="isEditSubject ? `编辑科目：${subjectForm.name}` : '新增科目分类体系'"
-      :width="DIALOG_SIZE.md"
-      class="rounded-xl"
-    >
-      <el-form
-        ref="subjectFormRef"
-        :model="subjectForm"
-        :rules="subjectRules"
-        :label-width="FORM_LABEL_WIDTH.md"
-        size="default"
-        class="pr-4 py-2"
-      >
-        <el-form-item label="科目名称" prop="name">
-          <el-input v-model="subjectForm.name" placeholder="例如：少儿图形化编程 (Scratch)" />
-        </el-form-item>
-        <el-form-item label="科目编码" prop="code">
-          <el-input v-model="subjectForm.code" placeholder="例如：SUBJ-PROG-04" />
-        </el-form-item>
-        <el-form-item label="所属大类" prop="category">
-          <el-select v-model="subjectForm.category" placeholder="请选择所属大类" class="w-full">
-            <el-option label="软件编程体系" value="programming" />
-            <el-option label="硬件创客体系" value="robotics" />
-            <el-option label="科学探索体系" value="science" />
-            <el-option label="数字艺术体系" value="art" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="适用学段" prop="targetAges">
-          <el-input v-model="subjectForm.targetAges" placeholder="例如：小学 1-3 年级 (6-9岁)" />
-        </el-form-item>
-        <el-form-item label="课标版本" prop="syllabusVersion">
-          <el-input v-model="subjectForm.syllabusVersion" placeholder="例如：v1.0" />
-        </el-form-item>
-        <el-form-item label="科目描述">
-          <el-input
-            v-model="subjectForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="该科目教学目标、学科特色与核心知识点体系..."
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <div class="flex justify-end space-x-2">
-          <el-button @click="subjectDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSaveSubject">保存科目</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
 import { Code2, Bot, Microscope, Palette } from 'lucide-vue-next'
 import { curriculumApi } from '@/api'
 import { PRESET_SUBJECTS } from '@/constants/curriculum'
-import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
+import { downloadCsv, todayStamp } from '@/utils/csvExport'
 import type { SubjectItem } from '@/types/curriculum'
 
 const subjects = ref<SubjectItem[]>([...PRESET_SUBJECTS])
@@ -313,83 +235,14 @@ const filteredSubjects = computed(() => {
   })
 })
 
-// 弹窗表单状态
-const subjectDialogVisible = ref(false)
-const isEditSubject = ref(false)
-const subjectFormRef = ref<FormInstance>()
-
-const defaultSubjectForm: SubjectItem = {
-  id: '',
-  code: '',
-  name: '',
-  targetAges: '',
-  category: 'programming',
-  categoryName: '软件编程体系',
-  courseCount: 0,
-  status: 'active',
-  syllabusVersion: 'v1.0',
-  description: ''
-}
-
-const subjectForm = reactive<SubjectItem>({ ...defaultSubjectForm })
-
-const subjectRules: FormRules = {
-  name: [{ required: true, message: '请输入科目名称', trigger: 'blur' }],
-  code: [{ required: true, message: '请输入科目编码', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择所属大类', trigger: 'change' }],
-  targetAges: [{ required: true, message: '请输入适用学段', trigger: 'blur' }]
-}
-
-function openCreateSubjectDialog() {
-  isEditSubject.value = false
-  Object.assign(subjectForm, defaultSubjectForm)
-  subjectForm.id = `subj-${Date.now()}`
-  subjectForm.code = `SUBJ-NEW-${Math.floor(Math.random() * 900 + 100)}`
-  subjectDialogVisible.value = true
-}
-
-function openEditSubjectDialog(row: SubjectItem) {
-  isEditSubject.value = true
-  Object.assign(subjectForm, JSON.parse(JSON.stringify(row)))
-  subjectDialogVisible.value = true
-}
-
-async function handleSaveSubject() {
-  if (!subjectFormRef.value) return
-  await subjectFormRef.value.validate(valid => {
-    if (!valid) return
-    const categoryNameMap: Record<string, string> = {
-      programming: '软件编程体系',
-      robotics: '硬件创客体系',
-      science: '科学探索体系',
-      art: '数字艺术体系'
-    }
-    subjectForm.categoryName = categoryNameMap[subjectForm.category] || '综合体系'
-    subjectForm.updatedAt = new Date().toISOString().split('T')[0]
-
-    const idx = subjects.value.findIndex(s => s.id === subjectForm.id)
-    if (idx >= 0) {
-      subjects.value[idx] = { ...subjectForm }
-      ElMessage.success(`科目「${subjectForm.name}」修改已保存！`)
-    } else {
-      subjects.value.unshift({ ...subjectForm })
-      ElMessage.success(`新增科目「${subjectForm.name}」已成功创建！`)
-    }
-    subjectDialogVisible.value = false
-  })
-}
-
-function toggleSubjectStatus(row: SubjectItem) {
-  row.status = row.status === 'active' ? 'archived' : 'active'
-  row.updatedAt = new Date().toISOString().split('T')[0]
-  ElMessage.success(`科目状态已更新为「${row.status === 'active' ? '正常启用' : '已归档'}」`)
-}
-
-function handleViewSyllabus(row: SubjectItem) {
-  ElMessage.info(`正在载入「${row.name}」官方教学大纲与能力图谱...`)
-}
-
 function handleExportSubjects() {
-  ElMessage.success('科目体系大纲与学段拓扑图已生成导出任务！')
+  downloadCsv(`科目列表-${todayStamp()}`, [
+    { title: '科目编码', value: (s: SubjectItem) => s.code },
+    { title: '科目名称', value: (s) => s.name },
+    { title: '所属体系', value: (s) => s.categoryName },
+    { title: '适用学段', value: (s) => s.targetAges },
+    { title: '关联课程数', value: (s) => s.courseCount },
+    { title: '状态', value: (s) => (s.status === 'active' ? '启用' : '已归档') },
+  ], filteredSubjects.value)
 }
 </script>

@@ -85,7 +85,9 @@
         </div>
 
         <div class="space-x-2">
-          <el-button size="small" plain @click="handleExport">批量导出待分班名单</el-button>
+          <el-button size="small" plain :loading="exporting" @click="handleExport">
+            {{ selectedRows.length > 0 ? `导出选中 (${selectedRows.length})` : '导出待分班名单' }}
+          </el-button>
           <el-button type="primary" size="small" :disabled="selectedRows.length === 0" @click="handleBatchAssign">
             批量加入班级 (已选 {{ selectedRows.length }})
           </el-button>
@@ -115,7 +117,8 @@
           <el-table-column label="学员姓名" min-width="150">
             <template #default="{ row }">
               <div class="flex items-center space-x-2">
-                <img :src="row.avatar || 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=60'" class="w-8 h-8 rounded-full object-cover border" />
+                <img v-if="row.avatar" :src="row.avatar" class="w-8 h-8 rounded-full object-cover border" alt="" />
+                <StudentAvatar v-else :seed="row.studentId" :name="row.name" :gender="row.gender" :size="32" />
                 <div>
                   <div class="font-semibold text-st-primary text-xs">{{ row.name }}</div>
                   <div class="text-[11px] text-st-muted font-mono">{{ row.studentNo }}</div>
@@ -135,7 +138,8 @@
           <el-table-column prop="preferredTime" label="意向上课时段" min-width="170" />
           <el-table-column label="测评报告得分" width="120" align="center">
             <template #default="{ row }">
-              <span class="font-mono font-bold text-indigo-600">{{ row.assessmentScore || 90 }} 分</span>
+              <span v-if="row.assessmentScore" class="font-mono font-bold text-indigo-600">{{ row.assessmentScore }} 分</span>
+              <span v-else class="text-st-placeholder">—</span>
             </template>
           </el-table-column>
           <el-table-column prop="counselor" label="签约学管" width="100" />
@@ -300,6 +304,8 @@ import { educationalApi } from '@/api'
 import AppPagination from '@/components/AppPagination.vue'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
+import StudentAvatar from '@/components/StudentAvatar.vue'
+import { downloadCsv, todayStamp, type CsvColumn } from '@/utils/csvExport'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { UnassignedStudentItemView, UnassignedRosterSummary } from '@/types/educational'
 
@@ -545,7 +551,52 @@ function handleBatchAssign() {
   assignDialogVisible.value = true
 }
 
-function handleExport() {
-  ElMessage.success('待分班学员名单已成功导出')
+const exporting = ref(false)
+const EXPORT_PAGE_SIZE = 200
+
+const unassignedExportColumns: CsvColumn<UnassignedStudentItemView>[] = [
+  { title: '学员姓名', value: (r) => r.name },
+  { title: '学号', value: (r) => r.studentNo },
+  { title: '联系电话', value: (r) => r.phone },
+  { title: '归属校区', value: (r) => r.campusName },
+  { title: '报读课程', value: (r) => r.courseName },
+  { title: '待分配课时', value: (r) => r.unassignedLessons },
+  { title: '意向上课时段', value: (r) => r.preferredTime },
+  { title: '签约学管', value: (r) => r.counselor },
+  { title: '报读时间', value: (r) => r.signupDate },
+  { title: '已等待天数', value: (r) => r.waitDays },
+]
+
+async function handleExport() {
+  if (selectedRows.value.length > 0) {
+    downloadCsv(`待分班名单-选中${selectedRows.value.length}人-${todayStamp()}`, unassignedExportColumns, selectedRows.value)
+    return
+  }
+  if (exporting.value) return
+  exporting.value = true
+  try {
+    const all: UnassignedStudentItemView[] = []
+    for (let page = 1; ; page++) {
+      const res = await educationalApi.getUnassignedRoster({
+        keyword: keyword.value.trim() || undefined,
+        page,
+        pageSize: EXPORT_PAGE_SIZE,
+      })
+      const list: UnassignedStudentItemView[] = res?.data?.list || []
+      all.push(...list)
+      const total = Number(res?.data?.total ?? all.length)
+      if (list.length === 0 || all.length >= total) break
+    }
+    if (all.length === 0) {
+      ElMessage.info('当前没有待分班学员')
+      return
+    }
+    downloadCsv(`待分班名单-${todayStamp()}`, unassignedExportColumns, all)
+    ElMessage.success(`已导出 ${all.length} 条待分班记录`)
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '导出失败')
+  } finally {
+    exporting.value = false
+  }
 }
 </script>

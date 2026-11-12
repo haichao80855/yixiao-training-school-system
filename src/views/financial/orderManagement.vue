@@ -648,9 +648,9 @@
 
       <template #footer>
         <div class="flex justify-between items-center">
-          <el-button size="small" type="primary" plain @click="simulateUploadVoucher">
+          <el-button size="small" type="primary" plain :loading="uploadingVoucher" @click="handleUploadVoucher">
             <el-icon class="mr-1"><Upload /></el-icon>
-            模拟上传新凭证
+            {{ currentVoucherOrder?.voucherUrl ? '重新上传凭证' : '上传收款凭证' }}
           </el-button>
           <div>
             <el-button size="small" @click="voucherDialogVisible = false">取消</el-button>
@@ -825,7 +825,9 @@ import {
   Upload
 } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
-import { financialApi, studentApi, educationalApi } from '@/api'
+import { useAuthStore } from '@/stores/authStore'
+import { financialApi, studentApi, educationalApi, uploadApi } from '@/api'
+import { pickFile, checkFileSize } from '@/utils/pickFile'
 import { FinanceAggregator } from '@/utils/financeAggregator'
 import SummaryStrip from '@/components/SummaryStrip.vue'
 import HighDensityGrid from '@/components/HighDensityGrid.vue'
@@ -843,6 +845,7 @@ import type {
 } from '@/types'
 
 const tenantStore = useTenantStore()
+const authStore = useAuthStore()
 const currentCampusName = computed(() => tenantStore.currentCampus?.name || '')
 
 // 主分段 Tab
@@ -1124,10 +1127,31 @@ function openVoucherDialog(order: OrderRecord) {
   voucherDialogVisible.value = true
 }
 
-function simulateUploadVoucher() {
-  if (!currentVoucherOrder.value) return
-  currentVoucherOrder.value.voucherUrl = 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80'
-  ElMessage.success('已模拟上传并解析收款凭条图像')
+const uploadingVoucher = ref(false)
+
+/** 收款凭证截图走随堂照片同一上传通道 (图片类型嗅探、10MB 上限、私有存储 + 限时签名链接) */
+async function handleUploadVoucher() {
+  const order = currentVoucherOrder.value
+  if (!order || uploadingVoucher.value) return
+  const file = await pickFile('image/jpeg,image/png,image/webp')
+  if (!file) return
+  const tooLarge = checkFileSize(file, 10)
+  if (tooLarge) {
+    ElMessage.warning(tooLarge)
+    return
+  }
+  uploadingVoucher.value = true
+  try {
+    const res = await uploadApi.uploadClassroomPhotos({ files: [file], campusId: order.campusId })
+    const url = res?.data?.persistedUrls?.[0]
+    if (!url) throw new Error(res?.data?.errors?.[0]?.reason || '凭证上传失败')
+    order.voucherUrl = url
+    ElMessage.success('凭证已上传，点击“保存核验信息”后生效')
+  } catch (err: any) {
+    ElMessage.error(err.message || '凭证上传失败')
+  } finally {
+    uploadingVoucher.value = false
+  }
 }
 
 async function saveVoucherAudit() {
@@ -1136,7 +1160,7 @@ async function saveVoucherAudit() {
     await financialApi.updateVoucher(currentVoucherOrder.value.id, {
       voucherUrl: currentVoucherOrder.value.voucherUrl || '',
       auditRemark: voucherAuditRemark.value,
-      auditor: '财务审核专员'
+      auditor: authStore.user?.realName || authStore.user?.account || ''
     })
     currentVoucherOrder.value.verifyRemark = voucherAuditRemark.value
     voucherDialogVisible.value = false

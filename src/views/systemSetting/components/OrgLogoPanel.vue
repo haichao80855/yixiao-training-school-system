@@ -13,7 +13,8 @@
         </label>
         <div class="flex items-center space-x-4">
           <div
-            @click="triggerMockUpload('logoUrl')"
+            @click="handleUpload('logoUrl')"
+            v-loading="uploadingField === 'logoUrl'"
             class="w-48 h-16 border-2 border-dashed border-st-border rounded-lg flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
           >
             <img v-if="form.logoUrl" :src="form.logoUrl" class="w-full h-full object-contain p-1" alt="Logo" />
@@ -36,7 +37,8 @@
         </label>
         <div class="flex items-center space-x-4">
           <div
-            @click="triggerMockUpload('faviconUrl')"
+            @click="handleUpload('faviconUrl')"
+            v-loading="uploadingField === 'faviconUrl'"
             class="w-12 h-12 border-2 border-dashed border-st-border rounded-lg flex items-center justify-center bg-slate-50 hover:bg-blue-50/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
           >
             <img v-if="form.faviconUrl" :src="form.faviconUrl" class="w-full h-full object-contain p-1" alt="Favicon" />
@@ -55,7 +57,8 @@
         </label>
         <div class="flex items-center space-x-4">
           <div
-            @click="triggerMockUpload('reportLogoUrl')"
+            @click="handleUpload('reportLogoUrl')"
+            v-loading="uploadingField === 'reportLogoUrl'"
             class="w-64 h-20 border-2 border-dashed border-st-border rounded-lg flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
           >
             <img v-if="form.reportLogoUrl" :src="form.reportLogoUrl" class="w-full h-full object-contain p-1" alt="Report Logo" />
@@ -79,10 +82,14 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import type { CompanyInfo } from '@/types/system'
+import { uploadApi } from '@/api'
+import { pickFile, checkFileSize } from '@/utils/pickFile'
+
+type LogoField = 'logoUrl' | 'faviconUrl' | 'reportLogoUrl'
 
 const props = defineProps<{
   orgMeta?: CompanyInfo
@@ -111,15 +118,29 @@ watch(
   { immediate: true }
 )
 
-function triggerMockUpload(field: 'logoUrl' | 'faviconUrl' | 'reportLogoUrl') {
-  // 模拟选择预设高质量品牌素材，以便测试真实落库与预览
-  const mockImages: Record<string, string> = {
-    logoUrl: '/images/brand-logo-light.png',
-    faviconUrl: '/favicon.ico',
-    reportLogoUrl: '/images/report-header-logo.png',
+const uploadingField = ref<LogoField | null>(null)
+
+async function handleUpload(field: LogoField) {
+  if (uploadingField.value) return
+  const file = await pickFile('image/png,image/jpeg')
+  if (!file) return
+  const tooLarge = checkFileSize(file, 1)
+  if (tooLarge) {
+    ElMessage.warning(tooLarge)
+    return
   }
-  form[field] = mockImages[field]
-  ElMessage.success(`已载入品牌素材: ${field}`)
+  uploadingField.value = field
+  try {
+    const res = await uploadApi.uploadClassroomPhotos({ files: [file] })
+    const url = res?.data?.persistedUrls?.[0]
+    if (!url) throw new Error(res?.data?.errors?.[0]?.reason || '图片上传失败')
+    form[field] = url
+    ElMessage.success('图片已上传，点击“保存”后生效')
+  } catch (err: unknown) {
+    ElMessage.error(err instanceof Error ? err.message : '图片上传失败')
+  } finally {
+    uploadingField.value = null
+  }
 }
 
 function handleSave() {

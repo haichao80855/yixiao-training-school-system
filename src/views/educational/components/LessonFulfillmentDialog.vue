@@ -261,12 +261,12 @@
                   class="hidden"
                   @change="handleVideoUpload"
                 />
-                <el-button size="small" type="primary" plain @click="videoInputRef?.click()">
-                  上传随堂视频
+                <el-button size="small" type="primary" plain :loading="uploadingVideo" @click="videoInputRef?.click()">
+                  {{ uploadingVideo ? '上传中…' : (form.videoUrl ? '重新上传' : '上传随堂视频') }}
                 </el-button>
                 <span v-if="form.videoUrl" class="text-[11px] text-emerald-600 font-bold truncate max-w-[150px] inline-flex items-center gap-1">
                   <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
-                  <span>已就绪 ({{ form.videoUrl.slice(-15) }})</span>
+                  <span>{{ videoFileName || '视频已上传' }}</span>
                 </span>
                 <span v-else class="text-[11px] text-st-muted">单视频不得超过 100MB</span>
               </div>
@@ -387,6 +387,7 @@ const totalEstimatedDeduct = computed(() =>
 async function open(card: any) {
   currentLesson.value = card
   fulfillmentMode.value = 'FULL_SETTLE'
+  videoFileName.value = ''
   visible.value = true
   loading.value = true
 
@@ -502,7 +503,10 @@ function handleRemovePhoto(index: number) {
   form.photoList.splice(index, 1)
 }
 
-function handleVideoUpload(event: Event) {
+const uploadingVideo = ref(false)
+const videoFileName = ref('')
+
+async function handleVideoUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   if (!file) return
@@ -519,10 +523,25 @@ function handleVideoUpload(event: Event) {
     return
   }
 
-  // 模拟直传成功
-  form.videoUrl = `https://storage.yixiao.com/videos/${Date.now()}_${file.name}`
-  ElMessage.success(`随堂精彩视频已就绪: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)}MB)`)
   target.value = ''
+  if (!currentLesson.value) return
+  uploadingVideo.value = true
+  try {
+    const res = await uploadApi.uploadClassroomVideo({
+      file,
+      campusId: currentLesson.value.campusId || localStorage.getItem('yixiao_current_campus_id') || undefined,
+      scheduleEventId: currentLesson.value.id,
+    })
+    const url = res?.data?.videoUrl
+    if (!url) throw new Error('上传结果缺少视频地址')
+    form.videoUrl = url
+    videoFileName.value = file.name
+    ElMessage.success(`随堂视频已上传：${file.name}`)
+  } catch (err: any) {
+    ElMessage.error(err?.message || '上传随堂视频失败，请稍后重试')
+  } finally {
+    uploadingVideo.value = false
+  }
 }
 
 async function handleSubmitFulfillment() {

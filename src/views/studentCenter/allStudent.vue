@@ -107,14 +107,8 @@
         <el-button type="primary" size="small" @click="handleAddStudent">
           + 新增学员建档
         </el-button>
-        <el-button size="small" plain @click="handleBatchExport">
-          批量导出课包
-        </el-button>
-        <el-button size="small" plain @click="handleBatchImport">
-          批量导入
-        </el-button>
-        <el-button size="small" plain @click="handleFinanceExport">
-          缴费导出
+        <el-button size="small" plain :loading="exporting" @click="handleExportFiltered">
+          导出学员
         </el-button>
       </template>
     </SummaryStrip>
@@ -161,9 +155,15 @@
               <div class="text-xs">
                 <div class="font-mono flex items-center space-x-1">
                   <span>{{ row.phone }}</span>
-                  <el-button link type="primary" size="small" class="!p-0 text-[11px]" @click="quickCall(row as any)">
-                    <Phone class="w-3 h-3 ml-0.5" />
-                  </el-button>
+                  <a
+                    v-if="row.parentPhone || row.phone"
+                    :href="`tel:${row.parentPhone || row.phone}`"
+                    class="inline-flex text-st-primary hover:text-st-primary-hover"
+                    title="拨打家长电话"
+                    aria-label="拨打家长电话"
+                  >
+                    <Phone class="w-3.5 h-3.5 ml-0.5" />
+                  </a>
                 </div>
                 <div class="text-[11px] text-st-secondary mt-0.5 flex items-center space-x-1">
                   <span v-if="row.wechatBound" class="text-emerald-600">● 微信已绑</span>
@@ -351,9 +351,8 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="wechat">{{ row.wechatBound ? '解除微信绑定' : '绑定家长微信' }}</el-dropdown-item>
-                    <el-dropdown-item command="resetPwd">重置学员端密码</el-dropdown-item>
-                    <el-dropdown-item command="delete" divided class="text-red-600">删除档案</el-dropdown-item>
+                    <el-dropdown-item v-if="row.wechatBound" command="wechat">解除微信绑定</el-dropdown-item>
+                    <el-dropdown-item command="delete" :divided="!!row.wechatBound" class="text-red-600">删除档案</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -374,9 +373,7 @@
           <template #left>
             <div class="flex items-center space-x-2">
               <span class="text-xs text-st-muted">批量操作：</span>
-              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchMove">批量转班</el-button>
-              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchNotify">发送通知短信</el-button>
-              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleBatchExport">导出选中 ({{ selectedRows.length }})</el-button>
+              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleExportSelected">导出选中 ({{ selectedRows.length }})</el-button>
             </div>
           </template>
         </AppPagination>
@@ -425,6 +422,7 @@ import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'
 import { groupCoursePackages } from '@/utils/coursePackageGroups'
+import { downloadCsv, todayStamp, type CsvColumn } from '@/utils/csvExport'
 import AppPagination from '@/components/AppPagination.vue'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import SummaryStrip from '@/components/SummaryStrip.vue'
@@ -654,22 +652,24 @@ function handleEdit(student: Student) {
   formDialogVisible.value = true
 }
 
-function quickCall(student: Student) {
-  ElMessage.success(`软电话正在呼叫学员 [${student.name}] 家长电话: ${student.parentPhone || student.phone}`)
-}
-
 async function handleCommand(cmd: string, row: Student) {
   if (cmd === 'wechat') {
     try {
-      const targetBound = !row.wechatBound
-      await studentApi.updateStudent(row.id, { wechatOpenId: targetBound ? 'wx_mock_bind' : null })
-      row.wechatBound = targetBound
-      ElMessage.success(row.wechatBound ? '已成功绑定家长微信公众号' : '已成功解绑家长微信')
-    } catch (err: any) {
-      ElMessage.error(err.message || '微信绑定操作失败')
+      await ElMessageBox.confirm(`确认解除学员 [${row.name}] 的家长微信绑定？`, '解除微信绑定', {
+        type: 'warning',
+        confirmButtonText: '解除绑定',
+        cancelButtonText: '取消',
+      })
+    } catch {
+      return
     }
-  } else if (cmd === 'resetPwd') {
-    ElMessage.info(`学员 [${row.name}] 采用家长手机号验证码认证登录，无需重置静态密码`)
+    try {
+      await studentApi.updateStudent(row.id, { wechatOpenId: null })
+      row.wechatBound = false
+      ElMessage.success('已解除家长微信绑定')
+    } catch (err: any) {
+      ElMessage.error(err.message || '解除微信绑定失败')
+    }
   } else if (cmd === 'delete') {
     ElMessageBox.confirm(`确认删除学员 [${row.name}] (${row.studentNo}) 的档案？删除后将彻底清理该学员及其关联的所有测试课包与订单！`, '警示', {
       type: 'warning',
@@ -689,47 +689,63 @@ async function handleCommand(cmd: string, row: Student) {
   }
 }
 
-// 批量操作
-function handleBatchMove() {
-  ElMessage.info(`已对选中的 ${selectedRows.value.length} 位学员发起批量转班排课任务`)
+// 导出：选中的学员，或按当前筛选条件分批拉取全部学员
+const EXPORT_PAGE_SIZE = 500
+const exporting = ref(false)
+
+const studentExportColumns: CsvColumn<Student>[] = [
+  { title: '学号', value: (s) => s.studentNo },
+  { title: '姓名', value: (s) => s.name },
+  { title: '联系电话', value: (s) => s.phone },
+  { title: '家长电话', value: (s) => s.parentPhone },
+  { title: '归属校区', value: (s) => s.campusName },
+  { title: '年级', value: (s) => s.grade },
+  { title: '状态', value: (s) => getStudentStatusLabel(s) },
+  { title: '剩余课时', value: (s) => remainingOf(s) },
+  { title: '建档时间', value: (s) => (s.createdAt || '').slice(0, 10) },
+]
+
+function handleExportSelected() {
+  if (selectedRows.value.length === 0) return
+  downloadCsv(`学员档案-选中${selectedRows.value.length}人-${todayStamp()}`, studentExportColumns, selectedRows.value)
+  ElMessage.success(`已导出 ${selectedRows.value.length} 名学员`)
 }
 
-function handleBatchNotify() {
-  ElMessage.info(`短信通道处理中：已为选中的 ${selectedRows.value.length} 位学员家长排入通知队列`)
-}
-
-function handleBatchExport() {
-  const exportData = selectedRows.value.length > 0 ? selectedRows.value : studentList.value
-  const headers = ['学号', '姓名', '联系电话', '归属校区', '年级', '状态', '剩余课时', '建档时间']
-  const rows = exportData.map(s => [
-    s.studentNo,
-    `"${s.name}"`,
-    s.phone,
-    `"${s.campusName || ''}"`,
-    s.grade || '小学全学段',
-    getStudentStatusLabel(s),
-    s.coursePackages?.reduce((sum, p) => sum + (p.remainingLessons || 0), 0) || 0,
-    s.createdAt || '2026-09-01'
-  ])
-  const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n')
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.setAttribute('href', url)
-  link.setAttribute('download', `学员档案数据导出_${new Date().toISOString().split('T')[0]}.csv`)
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-  ElMessage.success(`成功导出 ${exportData.length} 笔学员档案资产台账！`)
-}
-
-function handleBatchImport() {
-  ElMessage.info('请选择标准学员信息 Excel/CSV 模板文件进行批量导入')
-}
-
-function handleFinanceExport() {
-  ElMessage.success('已生成学员缴费明细与财务对账单导出流水')
+async function handleExportFiltered() {
+  if (exporting.value) return
+  exporting.value = true
+  const [createdFrom, createdTo] = dateRange.value && dateRange.value.length === 2 ? dateRange.value : [undefined, undefined]
+  try {
+    const all: Student[] = []
+    for (let page = 1; ; page++) {
+      const res = await studentApi.getStudents({
+        page,
+        pageSize: EXPORT_PAGE_SIZE,
+        campusId: selectedCampus.value,
+        keyword: keyword.value.trim() || undefined,
+        status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
+        warningLevel: selectedWarningLevel.value && selectedWarningLevel.value !== 'all' ? selectedWarningLevel.value : undefined,
+        grade: selectedGrade.value || undefined,
+        createdFrom,
+        createdTo,
+      })
+      const data: any = res?.data
+      const list: Student[] = Array.isArray(data) ? data : (data?.list || data?.items || [])
+      all.push(...list)
+      const total = Number(Array.isArray(data) ? list.length : (data?.total ?? all.length))
+      if (list.length < EXPORT_PAGE_SIZE || all.length >= total) break
+    }
+    if (all.length === 0) {
+      ElMessage.info('当前筛选条件下没有学员')
+      return
+    }
+    downloadCsv(`学员档案-${todayStamp()}`, studentExportColumns, all)
+    ElMessage.success(`已导出 ${all.length} 名学员`)
+  } catch (err: any) {
+    ElMessage.error(err.message || '导出失败')
+  } finally {
+    exporting.value = false
+  }
 }
 
 function refreshData(createdInfo?: any) {

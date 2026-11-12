@@ -14,7 +14,7 @@ export function normalizeLesson(raw: any): LessonItem {
     name: raw.name || raw.title || raw.lessonName || '',
     duration: Number(raw.duration || raw.durationMin || 60),
     order: Number(raw.order || raw.sort || 1),
-    objective: raw.objective || '教学大纲核心知识与工程实操',
+    objective: raw.objective || '',
     pptUrl: raw.pptUrl || raw.courseware || '',
     codeTemplate: raw.codeTemplate || '',
     videoUrl: raw.videoUrl || '',

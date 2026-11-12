@@ -29,31 +29,43 @@
       <CampusSelector ref="campusSelectorRef" class="mr-2" />
 
       <!-- 待办消息与通知 -->
-      <el-popover placement="bottom-end" :width="300" trigger="click">
+      <el-popover placement="bottom-end" :width="300" trigger="click" @show="loadTodoCounts">
         <template #reference>
-          <button type="button" class="header-icon-btn relative" title="待办通知" aria-label="待办通知">
+          <button type="button" class="header-icon-btn relative" title="待办" :aria-label="todoTotal > 0 ? `待办 ${todoTotal} 项` : '待办'">
             <el-icon :size="18"><Bell /></el-icon>
-            <span class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-st-danger text-white text-[10px] leading-4 font-semibold text-center ring-2 ring-white">
-              3
+            <span
+              v-if="todoTotal > 0"
+              class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-st-danger text-white text-xs leading-4 font-semibold text-center ring-2 ring-white"
+            >
+              {{ todoTotal > 99 ? '99+' : todoTotal }}
             </span>
           </button>
         </template>
         <div class="text-[13px]">
-          <div class="flex items-center justify-between pb-2 mb-1 border-b border-st-border">
-            <span class="font-semibold text-st-title">待办通知</span>
-            <span class="text-xs text-st-primary cursor-pointer hover:underline">全部已读</span>
-          </div>
-          <button type="button" class="notice-item" @click="$router.push('/financial/approvalFlow')">
+          <div class="pb-2 mb-1 border-b border-st-border font-semibold text-st-title">待办</div>
+          <button
+            v-if="todoCounts.approvals !== null"
+            type="button"
+            class="notice-item"
+            @click="$router.push('/financial/approvalFlow')"
+          >
             <span class="notice-dot bg-st-primary"></span>
-            <span><span class="font-medium text-st-title">待审批</span> · 学员退费工单待审核与财务核验</span>
+            <span class="flex-1"><span class="font-medium text-st-title">待审批</span> · 退费等审批工单</span>
+            <span class="notice-count">{{ todoCounts.approvals }}</span>
           </button>
-          <button type="button" class="notice-item" @click="$router.push('/studentCenter/unassigned')">
+          <button
+            v-if="todoCounts.unassigned !== null"
+            type="button"
+            class="notice-item"
+            @click="$router.push('/studentCenter/unassigned')"
+          >
             <span class="notice-dot bg-st-warning"></span>
-            <span><span class="font-medium text-st-title">待分班</span> · 已购课学员等待安排班级</span>
+            <span class="flex-1"><span class="font-medium text-st-title">待分班</span> · 已购课、尚未安排班级的学员</span>
+            <span class="notice-count">{{ todoCounts.unassigned }}</span>
           </button>
           <button type="button" class="notice-item" @click="$router.push('/educational/timeSchedule')">
             <span class="notice-dot bg-st-purple"></span>
-            <span><span class="font-medium text-st-title">排课</span> · 查看本周校区课表</span>
+            <span class="flex-1"><span class="font-medium text-st-title">课表</span> · 查看本周校区课表</span>
           </button>
         </div>
       </el-popover>
@@ -103,19 +115,7 @@
       </el-dropdown>
     </div>
 
-    <!-- AI 助手弹窗 -->
-    <el-dialog v-model="aiDialogVisible" title="拓视未来教育 AI 智能助教与课评引擎" :width="DIALOG_SIZE.sm">
-      <div class="space-y-3 text-xs">
-        <p class="text-st-secondary">已连接拓视未来教育 AI 大模型中枢，为您实时提供智能课评生成、排课冲突建议与学员留存分析支持。</p>
-        <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <div class="font-semibold text-st-primary mb-1">今日教务建议：</div>
-          <div>检测到原阳校区周六下午 14:00 李老师存在双课冲突，建议将《EV3单片机实操》调整至 16:30 由张老师代授。</div>
-        </div>
-      </div>
-      <template #footer>
-        <el-button size="small" type="primary" @click="aiDialogVisible = false">收到建议</el-button>
-      </template>
-    </el-dialog>
+    <ChangePasswordDialog v-if="passwordDialogRequested" v-model="passwordDialogVisible" />
     <!-- 测试数据管理弹窗 -->
     <el-dialog v-model="testDataModalVisible" title="测试数据与 Mock 数据管理中枢" :width="DIALOG_SIZE.md" destroy-on-close>
       <div class="space-y-4 text-xs">
@@ -191,15 +191,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Database, LogOut, Settings, Info } from 'lucide-vue-next'
+import { Database, LogOut, Settings } from 'lucide-vue-next'
 import { Fold, Bell, FullScreen, ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
 import { DIALOG_SIZE } from '@/constants/ui'
 import CampusSelector from './CampusSelector.vue'
+// 顶栏随 MainLayout 首屏加载：改密码弹窗和待办数量接口按需加载，不计入首屏体积
+const ChangePasswordDialog = defineAsyncComponent(() => import('./ChangePasswordDialog.vue'))
 
 defineEmits(['toggle-sidebar'])
 
@@ -207,26 +209,46 @@ const router = useRouter()
 const authStore = useAuthStore()
 const tenantStore = useTenantStore()
 
-const currentUserName = computed(() => authStore.user?.realName || authStore.user?.account || '冬海潮')
-const currentUserRole = computed(() => authStore.user?.roleName || '超级管理员')
+const currentUserName = computed(() => authStore.user?.realName || authStore.user?.account || '')
+const currentUserRole = computed(() => authStore.user?.roleName || '')
 const avatarChar = computed(() => currentUserName.value ? currentUserName.value.charAt(0) : '用')
 const isTeacher = computed(() => authStore.isTeacher)
 // 演示用的快捷换号与测试数据入口仅在开发环境展示
 const isDev = import.meta.env.DEV
 
-const aiDialogVisible = ref(false)
 const campusSelectorRef = ref<{ open?: () => void } | null>(null)
+const passwordDialogVisible = ref(false)
+const passwordDialogRequested = ref(false)
+
+/** 待办数量：只统计当前账号有权限查看的项；null 表示无权限或获取失败，不展示该项 */
+const todoCounts = ref<{ approvals: number | null; unassigned: number | null }>({ approvals: null, unassigned: null })
+const todoTotal = computed(() => (todoCounts.value.approvals ?? 0) + (todoCounts.value.unassigned ?? 0))
+
+async function loadTodoCounts() {
+  const [{ financialApi }, { studentApi }] = await Promise.all([
+    import('@/api/modules/financial'),
+    import('@/api/modules/student'),
+  ])
+  const [approvals, stats] = await Promise.all([
+    authStore.hasPermission('financial:approvalFlow')
+      ? financialApi.getApprovals({ status: 'pending', page: 1, pageSize: 1 }).catch(() => null)
+      : Promise.resolve(null),
+    authStore.hasPermission('student:allStudent')
+      ? studentApi.getStudentStats().catch(() => null)
+      : Promise.resolve(null),
+  ])
+  const approvalTotal = approvals?.data?.total
+  const unassigned = stats?.data?.unassigned
+  todoCounts.value = {
+    approvals: typeof approvalTotal === 'number' ? approvalTotal : null,
+    unassigned: typeof unassigned === 'number' ? unassigned : null,
+  }
+}
+
+onMounted(loadTodoCounts)
 
 function handleGoHome() {
   router.push('/dashboard')
-}
-
-function handleAiAssistant() {
-  aiDialogVisible.value = true
-}
-
-function handleDownloads() {
-  ElMessage.info('已开启云端导出中心，当前暂无后台任务。')
 }
 
 function toggleFullScreen() {
@@ -348,8 +370,9 @@ function handleUserCommand(command: string) {
     campusSelectorRef.value?.open?.()
   } else if (command === 'profile') {
     router.push('/systemSetting/authoritiesInfo')
-  } else {
-    ElMessage.info(`触发操作: ${command}`)
+  } else if (command === 'password') {
+    passwordDialogRequested.value = true
+    passwordDialogVisible.value = true
   }
 }
 </script>
@@ -382,6 +405,11 @@ function handleUserCommand(command: string) {
 }
 .notice-item:hover {
   background-color: #F8FAFC;
+}
+.notice-count {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--st-color-title);
 }
 .notice-dot {
   width: 6px;
