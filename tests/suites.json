@@ -68,6 +68,18 @@
         {
           "file": "server/src/modules/data-scope/tests/data-scope-policy.spec.ts",
           "needs": []
+        },
+        {
+          "file": "server/test-data-scope-schema.js",
+          "needs": [
+            "server-dist"
+          ]
+        },
+        {
+          "file": "server/test-student-movement-campus-scope.js",
+          "needs": [
+            "server"
+          ]
         }
       ]
     },

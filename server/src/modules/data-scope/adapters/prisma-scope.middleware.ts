@@ -10,20 +10,19 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { DataScopePolicyEngine } from '../domain/data-scope-policy.engine';
 import { CrossCampusTamperError } from '../domain/data-scope.types';
 
+/** 受校区行级隔离约束的模型 (小写)。每个都必须有 campusId 字段，server/test-data-scope-schema.js 会核对。 */
+export const DATA_SCOPED_MODELS = ['student', 'class', 'scheduleevent', 'classroom', 'order', 'servicefeerecord'] as const;
+
 export function createDataScopePrismaMiddleware(
   engine: DataScopePolicyEngine,
   getClient: () => PrismaClient,
 ): Prisma.Middleware {
   // 受校区行级隔离约束的实体模型字典 (小写，直接持有 campusId)
-  const scopedModels = new Set([
-    'student',
-    'class',
-    'scheduleevent',
-    'classroom',
-    'order',
-    'servicefeerecord',
-    'studentabnormalmovement',
-  ]);
+  // 注意：只能列真正有 campusId 字段的表，否则自动注入的 campusId 会让 Prisma 直接报错 (500)。
+  // StudentAbnormalMovement (学员异动) 没有 campusId 字段，不在此列：异动的预览和办理都先经由
+  // 本中间件按校区查询学员 (student)，查不到其他校区的学员，校区隔离由这一步保证。
+  // 曾经误列入，导致执行校长等按校区限定的账号办理任何异动都返回 500。
+  const scopedModels = new Set<string>(DATA_SCOPED_MODELS);
 
   return async (params, next) => {
     const lowerModel = params.model ? params.model.toLowerCase() : '';
