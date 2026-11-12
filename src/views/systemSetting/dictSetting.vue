@@ -20,6 +20,9 @@
       </div>
     </div>
 
+    <!-- 课件来源 (盛通 / 百家云 与本校备份的切换) -->
+    <CoursewareSourceCard />
+
     <!-- 主卡片 -->
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border space-y-4">
       <!-- 顶部分类 Tabs -->
@@ -186,6 +189,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { DictItem } from '@/types/system'
 import { systemApi } from '@/api'
+import CoursewareSourceCard from './components/CoursewareSourceCard.vue'
 
 // --- 状态数据 ---
 const activeCategoryTab = ref('all')
