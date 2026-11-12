@@ -8,6 +8,7 @@ import { LearningGrowthProjector } from './domain/learning-growth.projector';
 import { ClassLifecycleCoordinator } from './domain/class-lifecycle.coordinator';
 import { LessonEvaluationCoordinator } from './domain/lesson-evaluation.coordinator';
 import { LessonFulfillmentCoordinator } from './domain/lesson-fulfillment.coordinator';
+import { TeachingMetricsAggregator } from './domain/teaching-metrics.aggregator';
 import { OutboxNotificationDispatcher } from './domain/notification/outbox-notification.dispatcher';
 import { MockNotificationAdapter } from './domain/notification/mock-notification.adapter';
 import { WechatNotificationAdapter } from './domain/notification/wechat-notification.adapter';
@@ -37,6 +38,7 @@ import { StudentModule } from '../student/student.module';
     ClassLifecycleCoordinator,
     LessonEvaluationCoordinator,
     LessonFulfillmentCoordinator,
+    TeachingMetricsAggregator,
     OutboxNotificationDispatcher,
     MockNotificationAdapter,
     WechatNotificationAdapter,

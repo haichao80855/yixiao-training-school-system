@@ -11,6 +11,26 @@ import {
 } from '../normalizers/educational';
 import { normalizeStudent } from '../normalizers/student';
 
+export interface RatioMetric {
+  numerator: number;
+  denominator: number;
+  /** 0~100；没有数据时为 null */
+  rate: number | null;
+}
+
+export interface TeachingMetrics {
+  start: string;
+  end: string;
+  lessonCount: number;
+  attendance: RatioMetric;
+  leave: RatioMetric;
+  absentCount: number;
+  evaluationView: RatioMetric;
+  classFill: RatioMetric;
+  fullClassCount: number;
+  activeClassCount: number;
+}
+
 export function adaptRollCallDto(input: any): { scheduleEventId: string; items: any[] } {
   const scheduleEventId = input.scheduleEventId || input.scheduleId || '';
   const rawList = input.items || input.attendances || [];
@@ -397,5 +417,9 @@ export const educationalApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  /** 首页教学经营指标：到课率、请假率、课评查看率、满班率 */
+  getTeachingMetrics: (params: { start: string; end: string }) =>
+    request<TeachingMetrics>('/api/educational/dashboard/teaching-metrics', { params }),
 };
 
