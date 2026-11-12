@@ -80,18 +80,44 @@ function checkHealth(baseUrl) {
   });
 }
 
+function newestMtime(dir) {
+  let newest = 0;
+  const walk = (d) => {
+    for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, ent.name);
+      if (ent.isDirectory()) walk(p);
+      else newest = Math.max(newest, fs.statSync(p).mtimeMs);
+    }
+  };
+  if (fs.existsSync(dir)) walk(dir);
+  return newest;
+}
+
+/** 小程序 / H5 的构建产物比源码旧时不能测：测的是旧代码，通过和失败都没有意义。 */
+let mpSourceMtime = null;
+function buildStatus(distDir) {
+  const abs = path.join(ROOT, distDir);
+  if (!fs.existsSync(abs)) return 'missing';
+  if (mpSourceMtime === null) mpSourceMtime = newestMtime(path.join(ROOT, 'mini-program/src'));
+  return newestMtime(abs) < mpSourceMtime ? 'stale' : 'fresh';
+}
+
 function missingNeeds(entry) {
   if (entry.skip) return [`已登记跳过：${entry.skip}`];
   const reasons = [];
+  const builds = {
+    'mp-dist': ['mini-program/dist/build/mp-weixin', '小程序', 'npm run mp:build'],
+    'h5-dist': ['mini-program/dist/build/h5', '家长端 H5', 'cd mini-program && npm run build:h5'],
+  };
   for (const need of entry.needs || []) {
     if (need === 'server-dist' && !fs.existsSync(path.join(ROOT, 'server/dist/main.js'))) {
       reasons.push('需要先构建后端 (npm run server:build)');
     }
-    if (need === 'mp-dist' && !fs.existsSync(path.join(ROOT, 'mini-program/dist/build/mp-weixin'))) {
-      reasons.push('需要先构建小程序 (npm run mp:build)');
-    }
-    if (need === 'h5-dist' && !fs.existsSync(path.join(ROOT, 'mini-program/dist/build/h5'))) {
-      reasons.push('需要先构建家长端 H5 (cd mini-program && npm run build:h5)');
+    if (builds[need]) {
+      const [dir, label, cmd] = builds[need];
+      const status = buildStatus(dir);
+      if (status === 'missing') reasons.push(`需要先构建${label} (${cmd})`);
+      if (status === 'stale') reasons.push(`${label}构建产物比源码旧，请先重新构建 (${cmd})`);
     }
   }
   return reasons;
