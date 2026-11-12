@@ -1,4 +1,5 @@
 const http = require('http');
+const { PORT } = require('../server/test-utils/target');
 const assert = require('assert');
 const { PrismaClient } = require('../server/node_modules/@prisma/client');
 const prisma = new PrismaClient();
@@ -29,7 +30,7 @@ async function loginAdmin() {
   const res = await request(
     {
       hostname: '127.0.0.1',
-      port: 3001,
+      port: PORT,
       path: '/api/auth/login',
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -171,7 +172,7 @@ async function runTests() {
   console.log('--- [步骤 1: 首次打开课评工作台] ---');
   let wbRes = await request({
     hostname: '127.0.0.1',
-    port: 3001,
+    port: PORT,
     path: `/api/educational/lesson-evaluations/workbench/${schedule.id}`,
     method: 'GET',
     headers: {
@@ -233,7 +234,7 @@ async function runTests() {
   const draftRes = await request(
     {
       hostname: '127.0.0.1',
-      port: 3001,
+      port: PORT,
       path: '/api/educational/lesson-evaluations/commit',
       method: 'POST',
       headers: {
@@ -253,7 +254,7 @@ async function runTests() {
   console.log('\n--- [步骤 3: 再次打开课评工作台，验证回显数据] ---');
   wbRes = await request({
     hostname: '127.0.0.1',
-    port: 3001,
+    port: PORT,
     path: `/api/educational/lesson-evaluations/workbench/${schedule.id}`,
     method: 'GET',
     headers: {
@@ -298,7 +299,7 @@ async function runTests() {
   const publishRes = await request(
     {
       hostname: '127.0.0.1',
-      port: 3001,
+      port: PORT,
       path: '/api/educational/lesson-evaluations/commit',
       method: 'POST',
       headers: {

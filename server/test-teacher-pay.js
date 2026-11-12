@@ -15,7 +15,7 @@ const {
 } = require('./dist/modules/financial/domain/teacher-pay.engine');
 
 const prisma = new PrismaClient();
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const { PORT } = require('./test-utils/target');
 const HOST = '127.0.0.1';
 const MONTH = '2020-01';
 

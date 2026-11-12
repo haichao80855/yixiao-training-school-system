@@ -40,7 +40,7 @@ async function runTests() {
     }
   }
 
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+  const { PORT } = require('./test-utils/target');
   const HOST = '127.0.0.1';
 
   // 1. 登录超管账号获取 JWT Token
@@ -496,9 +496,8 @@ async function runTests() {
   try {
     const path = require('path');
     const { PrismaClient } = require(path.resolve(__dirname, './node_modules/@prisma/client'));
-    const prisma = new PrismaClient({
-      datasources: { db: { url: 'file:' + path.resolve(__dirname, './prisma/dev.db') } },
-    });
+    // 和被测后端用同一个库 (DATABASE_URL)，不能写死 dev.db，否则隔离运行时会去清理开发库
+    const prisma = new PrismaClient();
     // 1. 清理学员关联订单与审批
     const studentIds = [createdStudent?.id, secondStudent?.id].filter(Boolean);
     if (studentIds.length > 0) {

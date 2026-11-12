@@ -12,7 +12,7 @@ const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const { AppController } = require('./dist/app.controller');
 
-const BASE_URL = `http://127.0.0.1:${process.env.PORT || 3001}`;
+const { BASE_URL } = require('./test-utils/target');
 const prisma = new PrismaClient();
 const RUN = Date.now().toString().slice(-7);
 const PARENT_PHONE = `1772${RUN}`;

@@ -7,7 +7,7 @@ const bcrypt = require('bcryptjs');
 const { PrismaClient } = require('@prisma/client');
 const { of, lastValueFrom } = require('rxjs');
 
-const BASE_URL = `http://127.0.0.1:${process.env.PORT || 3001}`;
+const { BASE_URL } = require('./test-utils/target');
 const prisma = new PrismaClient();
 const SUFFIX = Date.now().toString(36);
 const PASSWORD = 'Teacher123';

@@ -11,9 +11,9 @@
     "type-check": "vue-tsc --noEmit",
     "server:dev": "cd server && npm run start:dev",
     "server:build": "cd server && npm run build",
-    "test:server": "cd server && node test-auth-and-system.js && node test-curriculum-and-student.js && node test-educational-and-attendance.js && node test-financial-and-approval.js && node test-rbac-permissions.js && node test-staff-admin-boundary.js && node test-organization-campus-unification.js && node test-role-permission-contract.js && node test-dict-cache-and-binding.js && node test-org-admin-persistence.js && node test-admin-reset-pwd-flow.js && node test-user-phone-login.js && node test-teacher-page-permissions.js && node test-teacher-portal.js && node test-data-scope-security.js && node test-campus-switch-scope.js && node test-lesson-settlement-engine.js && node test-student-enrollment-coordinator.js && node test-course-delivery-engine.js && node test-batch-scheduling-deep-module.js && node test-student-movement-deep-module.js && node test-financial-approval-orchestrator.js && node test-class-roster-coordinator.js && node test-class-schedule-summary.js && node test-learning-growth-projector.js && node test-lesson-evaluation-coordinator.js && node test-lesson-fulfillment-coordinator.js && node test-student-centric-evaluation-matrix.js && node test-parent-portal.js && node test-aliyun-oss-storage-adapter.js && node test-staff-media-links.js && node test-production-config.js && node test-stats-health-access.js && node test-admin-dashboard-aggregator.js && node test-student-archive-import.js && node test-courseware-source.js && node test-renewal-class-seat.js && node test-teaching-metrics-aggregator.js && node test-staff-notification.js && node test-teacher-pay.js",
+    "test:server": "node tests/isolated-env.cjs --scope=server",
     "test:backup": "python3 -W ignore::ResourceWarning deploy/backup/test_yixiao_db_backup.py",
-    "test:fullstack": "node tests/e2e_full_stack_integration.cjs",
+    "test:fullstack": "node tests/isolated-env.cjs --file=e2e_full_stack_integration",
     "test:e2e:walkthrough": "node scripts/e2e_all_functions_browser_walkthrough.cjs",
     "test:all": "node tests/run_all_unified.cjs",
     "db:stats": "node scripts/db_stats.cjs",
@@ -21,7 +21,10 @@
     "db:clear:classes": "node scripts/clear_class_data.cjs",
     "mp:dev": "cd mini-program && npm run dev:mp-weixin",
     "mp:build": "cd mini-program && npm run build:mp-weixin",
-    "mp:type-check": "cd mini-program && npm run type-check"
+    "mp:type-check": "cd mini-program && npm run type-check",
+    "test:isolated": "node tests/isolated-env.cjs",
+    "test:suite": "node tests/run-suite.cjs",
+    "check:bundle": "node scripts/check-bundle-size.cjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

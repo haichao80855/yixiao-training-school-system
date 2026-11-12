@@ -10,7 +10,7 @@ const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3001';
+const { BASE_URL } = require('./test-utils/target');
 const prisma = new PrismaClient();
 const RUN = Date.now().toString().slice(-6);
 const PHONE_A = `1770${RUN}1`.slice(0, 11); // 家庭 A (多个子女)

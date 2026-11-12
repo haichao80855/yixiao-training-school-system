@@ -1,0 +1,141 @@
+{
+  "$comment": "测试统一清单：test:server、test:all、test:isolated 和 CI 都只读这一份。新增 server/test-*.js 必须登记在这里，否则运行器报错。needs: server = 需要运行中的后端和测试库；server-dist = 需要先构建后端；mp-dist / h5-dist = 需要先构建小程序 / 家长端 H5，没有构建产物时跳过。",
+  "groups": [
+    {
+      "name": "权限与数据隔离",
+      "scope": "server",
+      "tests": [
+        { "file": "server/test-auth-and-system.js", "needs": ["server"] },
+        { "file": "server/test-rbac-permissions.js", "needs": ["server"] },
+        { "file": "server/test-role-permission-contract.js", "needs": ["server"] },
+        { "file": "server/test-staff-admin-boundary.js", "needs": ["server"] },
+        { "file": "server/test-teacher-page-permissions.js", "needs": ["server"] },
+        { "file": "server/test-data-scope-security.js", "needs": ["server"] },
+        { "file": "server/test-campus-switch-scope.js", "needs": ["server"] },
+        { "file": "server/test-user-phone-login.js", "needs": ["server"] },
+        { "file": "server/test-admin-reset-pwd-flow.js", "needs": ["server"] },
+        { "file": "server/test-stats-health-access.js", "needs": ["server"] },
+        { "file": "server/src/modules/data-scope/tests/data-scope-policy.spec.ts", "needs": [] }
+      ]
+    },
+    {
+      "name": "资金与结算",
+      "scope": "server",
+      "tests": [
+        { "file": "server/test-financial-and-approval.js", "needs": ["server"] },
+        { "file": "server/test-financial-approval-orchestrator.js", "needs": ["server"] },
+        { "file": "server/test-lesson-settlement-engine.js", "needs": ["server"] },
+        { "file": "server/test-teacher-pay.js", "needs": ["server"] },
+        { "file": "server/test-admin-dashboard-aggregator.js", "needs": ["server"] }
+      ]
+    },
+    {
+      "name": "课时、点名与课评",
+      "scope": "server",
+      "tests": [
+        { "file": "server/test-lesson-fulfillment-coordinator.js", "needs": ["server"] },
+        { "file": "server/test-course-delivery-engine.js", "needs": ["server"] },
+        { "file": "server/test-lesson-evaluation-coordinator.js", "needs": ["server"] },
+        { "file": "server/test-student-centric-evaluation-matrix.js", "needs": ["server"] },
+        { "file": "server/test-educational-and-attendance.js", "needs": ["server"] },
+        { "file": "server/test-teaching-metrics-aggregator.js", "needs": ["server"] },
+        { "file": "server/test-staff-notification.js", "needs": ["server"] }
+      ]
+    },
+    {
+      "name": "教务与学员",
+      "scope": "server",
+      "tests": [
+        { "file": "server/test-curriculum-and-student.js", "needs": ["server"] },
+        { "file": "server/test-student-enrollment-coordinator.js", "needs": ["server"] },
+        { "file": "server/test-student-movement-deep-module.js", "needs": ["server"] },
+        { "file": "server/test-batch-scheduling-deep-module.js", "needs": ["server"] },
+        { "file": "server/test-class-roster-coordinator.js", "needs": ["server"] },
+        { "file": "server/test-class-schedule-summary.js", "needs": ["server"] },
+        { "file": "server/test-class-lifecycle-coordinator.js", "needs": ["server"] },
+        { "file": "server/test-lesson-renewal-coordinator.js", "needs": ["server"] },
+        { "file": "server/test-renewal-class-seat.js", "needs": ["server"] },
+        { "file": "server/test-student-archive-import.js", "needs": [] }
+      ]
+    },
+    {
+      "name": "组织与系统设置",
+      "scope": "server",
+      "tests": [
+        { "file": "server/test-organization-campus-unification.js", "needs": ["server"] },
+        { "file": "server/test-org-admin-persistence.js", "needs": ["server"] },
+        { "file": "server/test-dict-cache-and-binding.js", "needs": ["server"] }
+      ]
+    },
+    {
+      "name": "家长端、教师端与成长档案",
+      "scope": "server",
+      "tests": [
+        { "file": "server/test-parent-portal.js", "needs": ["server"] },
+        { "file": "server/test-teacher-portal.js", "needs": ["server"] },
+        { "file": "server/test-learning-growth-projector.js", "needs": ["server"] },
+        { "file": "server/test-learning-growth-multimedia-projector.js", "needs": ["server"] }
+      ]
+    },
+    {
+      "name": "媒体、课件与运维配置",
+      "scope": "server",
+      "tests": [
+        { "file": "server/test-staff-media-links.js", "needs": ["server"] },
+        { "file": "server/test-media-upload-coordinator.js", "needs": ["server"] },
+        { "file": "server/test-aliyun-oss-storage-adapter.js", "needs": ["server-dist"] },
+        { "file": "server/test-courseware-source.js", "needs": ["server-dist"] },
+        { "file": "server/test-production-config.js", "needs": ["server-dist"] }
+      ]
+    },
+    {
+      "name": "全栈与点名课评集成",
+      "scope": "integration",
+      "tests": [
+        { "file": "tests/e2e_full_stack_integration.cjs", "needs": ["server"] },
+        { "file": "tests/adversarial_challenger_m1_request.cjs", "needs": ["server"] },
+        { "file": "tests/test_mp_rollcall_evaluation_state.cjs", "needs": ["server"], "skip": "写死了开发库里的一个排课 ID，临时库里没有这条数据 (第 2 期改成自建夹具)" },
+        { "file": "tests/test_student_evaluation_isolation.cjs", "needs": ["server"] },
+        { "file": "tests/test_evaluation_media_lifecycle.cjs", "needs": ["server"] },
+        { "file": "tests/test_evaluation_attendance_draft_lifecycle.cjs", "needs": ["server"] },
+        { "file": "tests/test_mp_rollcall_attendance_persistence.cjs", "needs": ["server"] },
+        { "file": "tests/test_workbench_attendance_headcount_verification.cjs", "needs": ["server"] }
+      ]
+    },
+    {
+      "name": "源码契约与静态检查",
+      "scope": "offline",
+      "tests": [
+        { "file": "tests/adversarial_challenger_m1_swallowed_errors.cjs", "needs": [] },
+        { "file": "tests/adversarial_m1_2_suite.cjs", "needs": [] },
+        { "file": "tests/test_mp_phase5_contracts.cjs", "needs": [] },
+        { "file": "tests/test_mp_login_error_toast.cjs", "needs": [] },
+        { "file": "tests/test_evaluation_override_payload.cjs", "needs": [] }
+      ]
+    },
+    {
+      "name": "小程序与家长端构建产物 (下个周期整理)",
+      "scope": "offline",
+      "tests": [
+        { "file": "tests/test_mp_phase1_contracts.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_phase2_contracts.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_phase3_contracts.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_phase4_contracts.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_fulfillment_coordinator.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_student_projector.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_enrollment_coordinator.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_class_coordinator.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_renewal_coordinator.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_mp_no_mock_fallback.cjs", "needs": ["mp-dist"] },
+        { "file": "tests/test_parent_h5_build.cjs", "needs": ["h5-dist"] }
+      ]
+    },
+    {
+      "name": "分层模型用例 (第 2 期清理)",
+      "scope": "offline",
+      "tests": [
+        { "file": "tests/runner.js", "needs": [] }
+      ]
+    }
+  ]
+}

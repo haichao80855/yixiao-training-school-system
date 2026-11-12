@@ -16,7 +16,7 @@ const http = require('http');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const { PORT } = require('./test-utils/target');
 const HOST = '127.0.0.1';
 
 function request(method, path, headers, data) {

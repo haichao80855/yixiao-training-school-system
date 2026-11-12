@@ -45,7 +45,7 @@ async function runTests() {
     }
   }
 
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+  const { PORT } = require('./test-utils/target');
   const HOST = '127.0.0.1';
 
   // 1. 登录超管获取 Token

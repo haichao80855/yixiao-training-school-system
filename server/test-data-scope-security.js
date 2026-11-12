@@ -12,7 +12,7 @@ const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const { PORT } = require('./test-utils/target');
 const HOST = '127.0.0.1';
 
 function checkPort(port, host = '127.0.0.1') {

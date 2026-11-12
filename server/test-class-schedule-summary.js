@@ -7,7 +7,7 @@ const assert = require('assert');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const { PORT } = require('./test-utils/target');
 let token = '';
 
 function api(method, path, data) {

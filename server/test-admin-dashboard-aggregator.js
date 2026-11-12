@@ -14,7 +14,7 @@ const {
 } = require('./dist/modules/financial/domain/admin-dashboard.aggregator');
 
 const prisma = new PrismaClient();
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const { PORT } = require('./test-utils/target');
 const HOST = '127.0.0.1';
 
 function request(path, { method = 'GET', token, body } = {}) {
@@ -95,6 +95,19 @@ async function onlineTests() {
   const { date: today } = toBusinessDateParts(new Date());
   const created = { orders: [], attendances: [], schedules: [], packages: [], students: [], classes: [], classrooms: [] };
 
+  const q = (start, end) =>
+    `/api/financial/dashboard/admin?campusId=${campusId}&consumptionStart=${start}&consumptionEnd=${end}&enrollmentStart=${start}&enrollmentEnd=${end}`;
+  const monthStart = `${today.slice(0, 8)}01`;
+  const pointValue = (trend, label) => (trend.find((p) => p.label === label) || { value: 0 }).value;
+  const trendSum = (trend) => trend.reduce((s, p) => s + p.value, 0);
+
+  // 同一个库里其他测试今天也会建订单和点名，所以先记下基线，下面只核对本测试夹具带来的增量
+  const baseRes = await request(q(today, today), { token });
+  const baseMonthRes = await request(q(monthStart, today), { token });
+  check(baseRes.status === 200 && baseMonthRes.status === 200, '夹具创建前读取看板基线');
+  const base = baseRes.body.data;
+  const baseMonth = baseMonthRes.body.data;
+
   try {
     const classroom = await prisma.classroom.create({ data: { campusId, code: `CR-${tag}`, name: `看板测试教室${tag}` } });
     created.classrooms.push(classroom.id);
@@ -172,28 +185,35 @@ async function onlineTests() {
     await mkOrder(fresh.id, { packageId: pkgB.id, status: 'unpaid' }); // 未缴费不计
     await mkOrder(fresh.id, { orderType: 'refund', actualAmount: -100 }); // 退费不计
 
-    const q = (start, end) =>
-      `/api/financial/dashboard/admin?campusId=${campusId}&consumptionStart=${start}&consumptionEnd=${end}&enrollmentStart=${start}&enrollmentEnd=${end}`;
-
     const res = await request(q(today, today), { token });
     check(res.status === 200, `今日看板接口返回 200 (实际 ${res.status})`);
     const { consumption, enrollment } = res.body.data;
-    check(consumption.amount === 500, `课耗金额 = 实扣课时 × 课包单价 = 500 (实际 ${consumption.amount})`);
-    check(consumption.regularAmount === 300 && consumption.expandAmount === 200 && consumption.otherAmount === 0, '课耗按课程属性拆分 常规 300 / 扩科 200 / 其他 0');
-    check(consumption.lessonCount === 3, '课耗数量只计未冲正且实扣的课时 (3)');
-    const tenOClock = consumption.trend.find((p) => p.label === '10:00');
-    check(tenOClock && tenOClock.value === 500, '课耗趋势落在 10:00 上课时段');
-    check(consumption.trend.reduce((s, p) => s + p.value, 0) === 500, '课耗趋势各点之和等于课耗总额');
+    const c0 = base.consumption;
+    const e0 = base.enrollment;
+    const dAmount = consumption.amount - c0.amount;
+    check(dAmount === 500, `课耗金额 = 实扣课时 × 课包单价 = 500 (增量 ${dAmount})`);
+    check(
+      consumption.regularAmount - c0.regularAmount === 300 &&
+        consumption.expandAmount - c0.expandAmount === 200 &&
+        consumption.otherAmount - c0.otherAmount === 0,
+      '课耗按课程属性拆分 常规 300 / 扩科 200 / 其他 0',
+    );
+    check(consumption.lessonCount - c0.lessonCount === 3, '课耗数量只计未冲正且实扣的课时 (3)');
+    check(pointValue(consumption.trend, '10:00') - pointValue(c0.trend, '10:00') === 500, '课耗趋势落在 10:00 上课时段');
+    check(trendSum(consumption.trend) === consumption.amount, '课耗趋势各点之和等于课耗总额');
 
-    check(enrollment.studentCount === 2, `招生人数为去重学员数 2 (实际 ${enrollment.studentCount})`);
-    check(enrollment.newCount === 1 && enrollment.renewalCount === 1, '新签 1 / 续费 1');
-    check(enrollment.regularCount === 1 && enrollment.expandCount === 1, '常规课 1 / 扩科 1');
-    check(enrollment.trend.reduce((s, p) => s + p.value, 0) === 2, '招生趋势各点之和等于招生人数');
+    const dStudents = enrollment.studentCount - e0.studentCount;
+    check(dStudents === 2, `招生人数为去重学员数 2 (增量 ${dStudents})`);
+    check(enrollment.newCount - e0.newCount === 1 && enrollment.renewalCount - e0.renewalCount === 1, '新签 1 / 续费 1');
+    check(enrollment.regularCount - e0.regularCount === 1 && enrollment.expandCount - e0.expandCount === 1, '常规课 1 / 扩科 1');
+    check(trendSum(enrollment.trend) === enrollment.studentCount, '招生趋势各点之和等于招生人数');
 
-    const monthStart = `${today.slice(0, 8)}01`;
     const monthRes = await request(q(monthStart, today), { token });
-    const dayPoint = monthRes.body.data.consumption.trend.find((p) => p.label === today.slice(5));
-    check(monthRes.status === 200 && dayPoint && dayPoint.value === 500, '本月按天分桶，课耗落在今天');
+    const dayLabel = today.slice(5);
+    const dDay = monthRes.status === 200
+      ? pointValue(monthRes.body.data.consumption.trend, dayLabel) - pointValue(baseMonth.consumption.trend, dayLabel)
+      : NaN;
+    check(dDay === 500, '本月按天分桶，课耗落在今天');
 
     const bad = await request(q('2026-11', today), { token });
     check(bad.status === 400, '日期格式非法返回 400');

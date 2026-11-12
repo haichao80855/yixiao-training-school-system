@@ -40,7 +40,7 @@ async function runTests() {
     }
   }
 
-  const PORT = 3001;
+  const { PORT } = require('./test-utils/target');
   const HOST = '127.0.0.1';
 
   // 1. 超管登录

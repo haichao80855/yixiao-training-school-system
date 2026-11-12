@@ -8,7 +8,7 @@ const assert = require('assert');
 const http = require('http');
 
 const HOST = '127.0.0.1';
-const PORT = 3001;
+const { PORT } = require('../server/test-utils/target');
 
 function request(options, data) {
   return new Promise((resolve, reject) => {
