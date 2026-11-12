@@ -672,3 +672,13 @@ model ParentReadState {
 
   @@unique([parentAccountId, studentId, scheduleEventId])
 }
+
+// -------------------------------------------------------
+// 系统级开关 (键值对)，例如课件来源 courseware.sourceMode = auto | origin | mirror
+// -------------------------------------------------------
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedBy String?  // 最后修改人的用户 ID
+  updatedAt DateTime @default(now()) @updatedAt
+}

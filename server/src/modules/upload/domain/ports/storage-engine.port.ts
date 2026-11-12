@@ -10,6 +10,12 @@ export interface SignedUrlOptions {
    * 实际有效期为 expiresInSeconds 到 expiresInSeconds + stableForSeconds 之间。
    */
   stableForSeconds?: number;
+  /**
+   * 让存储服务按指定的 Content-Disposition 返回文件 (仅 OSS 生效，本地磁盘忽略)。
+   * 用于课件备份：下载时带上中文文件名，预览时 inline 打开。
+   * 注意 OSS 不允许在签名链接里改写 Content-Type，文件类型要在上传时写对。
+   */
+  response?: { contentDisposition?: string };
 }
 
 /** 链接到期时间 (秒级时间戳)：指定 stableForSeconds 时对齐到时间窗口边界，同一窗口内结果相同 */

@@ -41,6 +41,9 @@ Run commands from the repository root:
   - The live nginx config is `/etc/nginx/sites-available/yixiao` on the ECS host, not a repo file. `deploy/nginx.conf` is the reference copy. When changing nginx behavior, update both and keep them in step.
   - Production serves pre-built `.br` files (`brotli_static`, via `libnginx-mod-http-brotli-static`) and `.gz` files (`gzip_static`). Hashed assets use `Cache-Control: public, max-age=31536000, immutable`.
   - In `deploy/nginx.conf`, `brotli_static` stays commented out on purpose. The `Dockerfile` copies that file into `nginx:1.25-alpine`, which has no brotli module, so enabling it there would break the container.
+- Courseware fallback: platform courseware normally uses the public 盛通 (download) and 百家云 (online whiteboard) links. A backup of the courseware the school archived lives in the prod bucket under `courseware/shengtong/<盛通 path>`. `POST /api/curriculum/courseware/resolve` picks the origin link or a signed backup link, based on the 系统设置 switch (`auto` / `origin` / `mirror`) and on probes of the origin platforms. See `deploy/courseware-mirror/README.md`.
+  - OSS rejects `response-content-type` on signed links. Set the right Content-Type when uploading.
+  - The local disk engine only accepts ASCII keys, so Chinese-named backups only work with `STORAGE_ENGINE=oss`.
 
 ## Coding Style & Naming Conventions
 - **Frontend**: Vue 3 `<script setup lang="ts">`. Use PascalCase for components (`BatchScheduleDialog.vue`), camelCase for stores/composables, and 2 spaces for indentation.

@@ -159,12 +159,15 @@ export class AliyunOssStorageAdapter implements StorageEnginePort {
     const ttl = options.expiresInSeconds ?? 3600;
     const stable = options.stableForSeconds;
     const nowSeconds = Math.floor(Date.now() / 1000);
+    // 响应头参数参与签名，取固定值，否则同一窗口内链接也会变化
+    const response: Record<string, string> = {};
+    if (stable) response['cache-control'] = `private, max-age=${ttl + stable}`;
+    if (options.response?.contentDisposition) response['content-disposition'] = options.response.contentDisposition;
     return this.signClient.signatureUrl(cleanKey, {
       // SDK 用「当前时间 + expires」作为到期时间，这里反算出对齐后的到期时间
       expires: stable ? signedUrlExpiry(options, nowSeconds) - nowSeconds : ttl,
       ...(process ? { process } : {}),
-      // 响应头参数参与签名，取固定值，否则同一窗口内链接也会变化
-      ...(stable ? { response: { 'cache-control': `private, max-age=${ttl + stable}` } } : {}),
+      ...(Object.keys(response).length > 0 ? { response } : {}),
     });
   }
 
