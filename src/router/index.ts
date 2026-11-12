@@ -22,25 +22,25 @@ const routes: RouteRecordRaw[] = [
         path: 'curriculum/courseManage',
         name: 'CourseManage',
         component: () => import('@/views/curriculum/courseManage.vue'),
-        meta: { title: '课程研发管理', module: '教研中心' }
+        meta: { title: '课程研发管理', module: '教研中心', requiresPermission: 'curriculum:courseManage' }
       },
       {
         path: 'curriculum/subject',
         name: 'CurriculumSubject',
         component: () => import('@/views/curriculum/subject.vue'),
-        meta: { title: '科目体系设置', module: '教研中心' }
+        meta: { title: '科目体系设置', module: '教研中心', requiresPermission: 'curriculum:subject' }
       },
       {
         path: 'curriculum/lessonPlan',
         name: 'CurriculumLessonPlan',
         component: () => import('@/views/curriculum/lessonPlan.vue'),
-        meta: { title: '课次进度大纲', module: '教研中心' }
+        meta: { title: '课次进度大纲', module: '教研中心', requiresPermission: 'curriculum:lessonPlan' }
       },
       {
         path: 'curriculum/platformCourse',
         name: 'CurriculumPlatformCourse',
         component: () => import('@/views/curriculum/platformCourse.vue'),
-        meta: { title: '资源平台课程库', module: '教研中心' }
+        meta: { title: '资源平台课程库', module: '教研中心', requiresPermission: 'curriculum:courseManage' }
       },
       // 2. 学员中心 (StudentCenter)
       {
@@ -51,19 +51,19 @@ const routes: RouteRecordRaw[] = [
         path: 'studentCenter/allStudent',
         name: 'AllStudent',
         component: () => import('@/views/studentCenter/allStudent.vue'),
-        meta: { title: '全部学员全景', module: '学员中心' }
+        meta: { title: '全部学员全景', module: '学员中心', requiresPermission: 'student:allStudent' }
       },
       {
         path: 'studentCenter/unassigned',
         name: 'UnassignedStudent',
         component: () => import('@/views/studentCenter/unassigned.vue'),
-        meta: { title: '待分班学员池', module: '学员中心' }
+        meta: { title: '待分班学员池', module: '学员中心', requiresPermission: 'student:unassigned' }
       },
       {
         path: 'studentCenter/serviceFee',
         name: 'StudentServiceFee',
         component: () => import('@/views/studentCenter/serviceFee.vue'),
-        meta: { title: '服务费代报考', module: '学员中心' }
+        meta: { title: '服务费代报考', module: '学员中心', requiresPermission: 'student:serviceFee' }
       },
       // 3. 教务中心 (Educational)
       {
@@ -74,25 +74,25 @@ const routes: RouteRecordRaw[] = [
         path: 'educational/workbench',
         name: 'EducationalWorkbench',
         component: () => import('@/views/educational/workbench.vue'),
-        meta: { title: '教学服务 - 讲台', module: '教务中心' }
+        meta: { title: '教学服务 - 讲台', module: '教务中心', requiresPermission: 'educational:workbench' }
       },
       {
         path: 'educational/timeSchedule',
         name: 'TimeSchedule',
         component: () => import('@/views/educational/timeSchedule.vue'),
-        meta: { title: '7×15 排课时间看板', module: '教务中心' }
+        meta: { title: '7×15 排课时间看板', module: '教务中心', requiresPermission: 'educational:timeSchedule' }
       },
       {
         path: 'educational/classManagement',
         name: 'ClassManagement',
         component: () => import('@/views/educational/classManagement.vue'),
-        meta: { title: '班级与班容管理', module: '教务中心' }
+        meta: { title: '班级与班容管理', module: '教务中心', requiresPermission: 'educational:classManagement' }
       },
       {
         path: 'educational/attendance',
         name: 'Attendance',
         component: () => import('@/views/educational/attendance.vue'),
-        meta: { title: '授课点名消课', module: '教务中心' }
+        meta: { title: '授课点名消课', module: '教务中心', requiresPermission: 'educational:attendance' }
       },
       // 4. 财务中心 (Financial)
       {
@@ -103,19 +103,19 @@ const routes: RouteRecordRaw[] = [
         path: 'financial/orderManagement',
         name: 'OrderManagement',
         component: () => import('@/views/financial/orderManagement.vue'),
-        meta: { title: '订单营收流水', module: '财务中心' }
+        meta: { title: '订单营收流水', module: '财务中心', requiresPermission: 'financial:orderManagement' }
       },
       {
         path: 'financial/chargingLedger',
         name: 'ChargingLedger',
         component: () => import('@/views/financial/chargingLedger.vue'),
-        meta: { title: '收费流水账本', module: '财务中心' }
+        meta: { title: '收费流水账本', module: '财务中心', requiresPermission: 'financial:chargingLedger' }
       },
       {
         path: 'financial/approvalFlow',
         name: 'ApprovalFlow',
         component: () => import('@/views/financial/approvalFlow.vue'),
-        meta: { title: '业务审批工作台', module: '财务中心' }
+        meta: { title: '业务审批工作台', module: '财务中心', requiresPermission: 'financial:approvalFlow' }
       },
       // 5. 系统设置 (SystemSetting)
       {
@@ -126,19 +126,19 @@ const routes: RouteRecordRaw[] = [
         path: 'systemSetting/authoritiesInfo',
         name: 'AuthoritiesInfo',
         component: () => import('@/views/systemSetting/authoritiesInfo.vue'),
-        meta: { title: '组织架构与机构', module: '系统设置' }
+        meta: { title: '组织架构与机构', module: '系统设置', requiresPermission: ['system:org:view', 'system:user:view', 'system:view'] }
       },
       {
         path: 'systemSetting/roleManagement',
         name: 'RoleManagement',
         component: () => import('@/views/systemSetting/roleManagement.vue'),
-        meta: { title: '4级RBAC角色管理', module: '系统设置' }
+        meta: { title: '4级RBAC角色管理', module: '系统设置', requiresPermission: 'system:role:view' }
       },
       {
         path: 'systemSetting/dictSetting',
         name: 'DictSetting',
         component: () => import('@/views/systemSetting/dictSetting.vue'),
-        meta: { title: '业务参数字典', module: '系统设置' }
+        meta: { title: '业务参数字典', module: '系统设置', requiresPermission: 'system:dict:view' }
       }
     ]
   },
@@ -266,8 +266,9 @@ router.beforeEach((to, _from, next) => {
       // 默认入口 (含 / 与未知路径) 对纯教师账号落到教师端
       next('/teacher')
     } else {
-      const requiredPermission = to.matched.find((r) => r.meta.requiresPermission)?.meta.requiresPermission as string | undefined
-      if (requiredPermission && !authStore.hasPermission(requiredPermission)) {
+      const requiredPermission = to.matched.find((r) => r.meta.requiresPermission)?.meta.requiresPermission as string | string[] | undefined
+      // 没有页面权限时回首页 (菜单里本来也不显示这些页面)
+      if (requiredPermission && !authStore.hasAnyPermission(requiredPermission)) {
         next('/dashboard')
       } else {
         next()

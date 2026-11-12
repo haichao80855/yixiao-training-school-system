@@ -134,7 +134,7 @@
 
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
         <div
-          v-for="item in quickAccessList"
+          v-for="item in visibleQuickAccess"
           :key="item.name"
           @click="$router.push(item.path)"
           class="flex flex-col items-center px-2 py-3.5 rounded-lg hover:bg-st-header transition-colors cursor-pointer group text-center"
@@ -480,6 +480,14 @@ const quickAccessList = [
   { name: '财务流水', desc: '营收订单与核验', icon: CircleDollarSign, bgClass: 'bg-st-warning-light text-st-warning', path: '/financial/orderManagement' },
   { name: '审批中心', desc: '业务退费审批单', icon: ClipboardCheck, bgClass: 'bg-st-danger-light text-st-danger', path: '/financial/approvalFlow' }
 ]
+
+// 只显示当前账号有权限打开的入口
+const visibleQuickAccess = computed(() =>
+  quickAccessList.filter((item) => {
+    const required = router.resolve(item.path).meta.requiresPermission as string | string[] | undefined
+    return !required || authStore.hasAnyPermission(required)
+  }),
+)
 </script>
 
 <style scoped>

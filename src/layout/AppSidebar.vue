@@ -23,94 +23,14 @@
           </template>
         </el-menu-item>
 
-        <!-- 1. 教研中心 -->
-        <el-sub-menu index="/curriculum">
+        <!-- 各业务中心：只显示当前账号有权限打开的页面，整组都没有权限时整组隐藏 -->
+        <el-sub-menu v-for="group in visibleGroups" :key="group.index" :index="group.index">
           <template #title>
-            <el-icon><Reading /></el-icon>
-            <span>教研中心</span>
+            <el-icon><component :is="group.icon" /></el-icon>
+            <span>{{ group.title }}</span>
           </template>
-          <el-menu-item index="/curriculum/courseManage">
-            课程研发管理
-          </el-menu-item>
-          <el-menu-item index="/curriculum/subject">
-            科目体系设置
-          </el-menu-item>
-          <el-menu-item index="/curriculum/lessonPlan">
-            课次进度大纲
-          </el-menu-item>
-          <el-menu-item index="/curriculum/platformCourse">
-            资源平台课程库
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 2. 学员中心 -->
-        <el-sub-menu index="/studentCenter">
-          <template #title>
-            <el-icon><UserFilled /></el-icon>
-            <span>学员中心</span>
-          </template>
-          <el-menu-item index="/studentCenter/allStudent">
-            全部学员全景
-          </el-menu-item>
-          <el-menu-item index="/studentCenter/unassigned">
-            待分班学员池
-          </el-menu-item>
-          <el-menu-item index="/studentCenter/serviceFee">
-            服务费代报考
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 3. 教务中心 -->
-        <el-sub-menu index="/educational">
-          <template #title>
-            <el-icon><Calendar /></el-icon>
-            <span>教务中心</span>
-          </template>
-          <el-menu-item index="/educational/workbench">
-            教学讲台
-          </el-menu-item>
-          <el-menu-item index="/educational/timeSchedule">
-            排课课表
-          </el-menu-item>
-          <el-menu-item index="/educational/classManagement">
-            班级与班容
-          </el-menu-item>
-          <el-menu-item index="/educational/attendance">
-            授课点名消课
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 4. 财务中心 -->
-        <el-sub-menu index="/financial">
-          <template #title>
-            <el-icon><Money /></el-icon>
-            <span>财务中心</span>
-          </template>
-          <el-menu-item index="/financial/orderManagement">
-            订单营收流水
-          </el-menu-item>
-          <el-menu-item index="/financial/chargingLedger">
-            收费流水账本
-          </el-menu-item>
-          <el-menu-item index="/financial/approvalFlow">
-            业务审批工作台
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 5. 系统设置 -->
-        <el-sub-menu index="/systemSetting">
-          <template #title>
-            <el-icon><Setting /></el-icon>
-            <span>系统设置</span>
-          </template>
-          <el-menu-item index="/systemSetting/authoritiesInfo">
-            组织架构与机构
-          </el-menu-item>
-          <el-menu-item index="/systemSetting/roleManagement">
-            角色与权限
-          </el-menu-item>
-          <el-menu-item index="/systemSetting/dictSetting">
-            业务参数字典
+          <el-menu-item v-for="item in group.items" :key="item.path" :index="item.path">
+            {{ item.title }}
           </el-menu-item>
         </el-sub-menu>
       </el-menu>
@@ -146,9 +66,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, type Component } from 'vue'
 import { Monitor, BookOpen as Reading, Users as UserFilled, Calendar, Wallet as Money, Settings as Setting, MapPin as Location, ArrowLeftRight as Switch } from 'lucide-vue-next'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
 import CampusSelector from './CampusSelector.vue'
 
@@ -157,6 +78,82 @@ defineProps<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
+const authStore = useAuthStore()
+
+interface MenuGroup {
+  index: string
+  title: string
+  icon: Component
+  items: { path: string; title: string }[]
+}
+
+const MENU_GROUPS: MenuGroup[] = [
+  {
+    index: '/curriculum',
+    title: '教研中心',
+    icon: Reading,
+    items: [
+      { path: '/curriculum/courseManage', title: '课程研发管理' },
+      { path: '/curriculum/subject', title: '科目体系设置' },
+      { path: '/curriculum/lessonPlan', title: '课次进度大纲' },
+      { path: '/curriculum/platformCourse', title: '资源平台课程库' },
+    ],
+  },
+  {
+    index: '/studentCenter',
+    title: '学员中心',
+    icon: UserFilled,
+    items: [
+      { path: '/studentCenter/allStudent', title: '全部学员全景' },
+      { path: '/studentCenter/unassigned', title: '待分班学员池' },
+      { path: '/studentCenter/serviceFee', title: '服务费代报考' },
+    ],
+  },
+  {
+    index: '/educational',
+    title: '教务中心',
+    icon: Calendar,
+    items: [
+      { path: '/educational/workbench', title: '教学讲台' },
+      { path: '/educational/timeSchedule', title: '排课课表' },
+      { path: '/educational/classManagement', title: '班级与班容' },
+      { path: '/educational/attendance', title: '授课点名消课' },
+    ],
+  },
+  {
+    index: '/financial',
+    title: '财务中心',
+    icon: Money,
+    items: [
+      { path: '/financial/orderManagement', title: '订单营收流水' },
+      { path: '/financial/chargingLedger', title: '收费流水账本' },
+      { path: '/financial/approvalFlow', title: '业务审批工作台' },
+    ],
+  },
+  {
+    index: '/systemSetting',
+    title: '系统设置',
+    icon: Setting,
+    items: [
+      { path: '/systemSetting/authoritiesInfo', title: '组织架构与机构' },
+      { path: '/systemSetting/roleManagement', title: '角色与权限' },
+      { path: '/systemSetting/dictSetting', title: '业务参数字典' },
+    ],
+  },
+]
+
+/** 页面所需权限写在路由 meta.requiresPermission 上，菜单和路由守卫用同一份 */
+function canOpen(path: string): boolean {
+  const required = router.resolve(path).meta.requiresPermission as string | string[] | undefined
+  return !required || authStore.hasAnyPermission(required)
+}
+
+const visibleGroups = computed(() =>
+  MENU_GROUPS.map((group) => ({ ...group, items: group.items.filter((item) => canOpen(item.path)) })).filter(
+    (group) => group.items.length > 0,
+  ),
+)
 const tenantStore = useTenantStore()
 const currentCampus = computed(() => tenantStore.currentCampus)
 
