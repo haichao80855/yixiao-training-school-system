@@ -713,3 +713,51 @@ model StaffNotificationRead {
 
   @@unique([notificationId, userId])
 }
+
+// ============================================================================
+// 老师课酬 (只有校区负责人及以上可见)
+// 规则存在 SystemSetting (key = teacherPay.rules:<campusId>)，金额一律用整数「分」
+// ============================================================================
+
+/// 某校区某月的课酬单。status = confirmed 时锁定，显示确认时的快照；撤销确认后改为 reopened，按实时数据重新计算
+model TeacherPayrollMonth {
+  id               String   @id @default(uuid())
+  campusId         String
+  month            String   // YYYY-MM
+  status           String   @default("confirmed") // confirmed | reopened
+  ruleSnapshot     String   // 确认时使用的规则 JSON
+  totalCents       Int      @default(0)
+  confirmedBy      String?  // 确认人姓名
+  confirmedAt      DateTime?
+  lastReopenReason String?  // 最近一次撤销确认的原因
+  lastReopenedBy   String?
+  lastReopenedAt   DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  items            TeacherPayrollItem[]
+
+  @@unique([campusId, month])
+}
+
+/// 课酬单里每位老师一行 (确认时的快照)
+model TeacherPayrollItem {
+  id             String   @id @default(uuid())
+  payrollMonthId String
+  teacherId      String
+  teacherName    String
+  teachingDays   Int
+  lessonCount    Int
+  attendedCount  Int
+  bonusDays      Int
+  baseCents      Int
+  lessonCents    Int
+  studentCents   Int
+  bonusCents     Int
+  totalCents     Int
+  dailyDetail    String   // JSON：逐天、逐节明细
+
+  payrollMonth   TeacherPayrollMonth @relation(fields: [payrollMonthId], references: [id], onDelete: Cascade)
+
+  @@index([payrollMonthId])
+}

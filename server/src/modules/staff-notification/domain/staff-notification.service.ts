@@ -1,17 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-
-/** 能收到站内通知的角色：校区负责人 (执行校长) 及以上 */
-export const NOTIFIED_ROLE_CODES = ['super_admin', 'admin', 'principal'];
+import { isCampusLeader } from '../../../common/campus-leader.policy';
 
 /** 剩余课时不多于这个数时通知负责人 (与续费预警「紧急枯竭 <=4 课时」同一口径) */
 export const LOW_BALANCE_THRESHOLD = 4;
 
-export function canReceiveStaffNotifications(user: any): boolean {
-  if (!user) return false;
-  if (user.permissions?.includes('*') || user.permissions?.includes('admin:all')) return true;
-  return (user.roles || []).some((r: any) => NOTIFIED_ROLE_CODES.includes(typeof r === 'string' ? r : r?.code));
-}
+/** 能收到站内通知的人：校区负责人 (执行校长) 及以上 */
+export const canReceiveStaffNotifications = isCampusLeader;
 
 export interface StaffNotificationView {
   id: string;

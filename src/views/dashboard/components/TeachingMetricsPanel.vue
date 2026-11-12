@@ -49,6 +49,7 @@ import type { TeachingMetrics } from '@/api/modules/educational'
 import { useLoadState } from '@/composables/useLoadState'
 import { toDateKey, mondayOf } from '@/utils/dateKey'
 import { useAuthStore } from '@/stores/authStore'
+import { canAccessRoute } from '@/router/access'
 
 type Period = 'week' | 'month' | 'lastMonth'
 
@@ -93,8 +94,7 @@ function load() {
 
 /** 有权限才给跳转，免得点进去被送回首页 */
 function linkIfAllowed(path: string): string | undefined {
-  const required = router.resolve(path).meta.requiresPermission as string | string[] | undefined
-  return !required || authStore.hasAnyPermission(required) ? path : undefined
+  return canAccessRoute(router.resolve(path), authStore) ? path : undefined
 }
 
 const tiles = computed(() => {

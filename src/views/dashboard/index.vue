@@ -348,6 +348,7 @@ import {
   RefreshCw
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
+import { canAccessRoute } from '@/router/access'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi, studentApi, curriculumApi, educationalApi } from '@/api'
 import TeachingMetricsPanel from './components/TeachingMetricsPanel.vue'
@@ -493,8 +494,7 @@ const quickAccessList = [
 
 /** 当前账号能否打开这个页面 (页面权限写在路由 meta.requiresPermission 上) */
 function canOpen(path: string): boolean {
-  const required = router.resolve(path).meta.requiresPermission as string | string[] | undefined
-  return !required || authStore.hasAnyPermission(required)
+  return canAccessRoute(router.resolve(path), authStore)
 }
 
 // 只显示当前账号有权限打开的入口

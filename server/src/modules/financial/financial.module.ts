@@ -12,10 +12,12 @@ import { CourseChangeDiffStrategy } from './domain/strategies/course-change-diff
 import { WalletPrestoreStrategy } from './domain/strategies/wallet-prestore.strategy';
 import { GenericSettlementStrategy } from './domain/strategies/generic-settlement.strategy';
 import { AdminDashboardAggregator } from './domain/admin-dashboard.aggregator';
+import { TeacherPayCoordinator } from './domain/teacher-pay.coordinator';
+import { TeacherPayController } from './teacher-pay.controller';
 
 @Module({
   imports: [StudentModule],
-  controllers: [FinancialController],
+  controllers: [FinancialController, TeacherPayController],
   providers: [
     FinancialService,
     SettlementStrategyRegistry,
@@ -27,6 +29,7 @@ import { AdminDashboardAggregator } from './domain/admin-dashboard.aggregator';
     GenericSettlementStrategy,
     FinancialApprovalOrchestrator,
     AdminDashboardAggregator,
+    TeacherPayCoordinator,
   ],
   exports: [FinancialService, FinancialApprovalOrchestrator],
 })

@@ -59,6 +59,13 @@ export const useAuthStore = defineStore('auth', () => {
       false
     )
   })
+  /** 校区负责人 (执行校长) 及以上：站内通知、老师课酬只对他们开放 (与后端 isCampusLeader 一致) */
+  const isCampusLeader = computed(() => {
+    const u = user.value
+    if (!u) return false
+    if (u.permissions?.includes('*') || u.permissions?.includes('admin:all')) return true
+    return (u.roles || []).some((r) => ['super_admin', 'admin', 'principal'].includes(r))
+  })
   const isTeacher = computed(() => user.value?.roles.includes('teacher') || !!user.value?.teacherId)
   // 只有教师角色的账号：默认进入网页教师端；兼任校长 / 教务等其他角色的账号仍进管理后台
   const isTeacherOnly = computed(() => {
@@ -188,6 +195,7 @@ export const useAuthStore = defineStore('auth', () => {
     user,
     isAuthenticated,
     isSuperAdmin,
+    isCampusLeader,
     isTeacher,
     isTeacherOnly,
     homePath,
