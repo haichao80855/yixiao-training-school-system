@@ -6,7 +6,18 @@
 
 set -e
 
-REMOTE_HOST="${1:-aliyun}"
+# 用法: bash deploy/deploy-to-aliyun.sh [远程主机] [--skip-tests]
+#   --skip-tests  紧急情况下跳过部署前的测试门禁 (会打印警告，请事后补跑 npm run test:all)
+REMOTE_HOST=""
+SKIP_TESTS=0
+for arg in "$@"; do
+  case "$arg" in
+    --skip-tests) SKIP_TESTS=1 ;;
+    -*) echo "未知参数: $arg"; exit 1 ;;
+    *) REMOTE_HOST="$arg" ;;
+  esac
+done
+REMOTE_HOST="${REMOTE_HOST:-aliyun}"
 REMOTE_DIR="/opt/yixiao"
 
 RED='\033[0;31m'
@@ -37,6 +48,18 @@ npm --prefix server run build
 echo -e "${YELLOW}构建网页家长端 (mini-program H5)...${NC}"
 npm --prefix mini-program run build:h5
 echo -e "${GREEN}✓ 本地构建产物已就绪！${NC}"
+
+# 测试门禁：临时库 + 随机端口的后端，跑 tests/suites.json 里的全部测试，失败就不部署
+if [ "$SKIP_TESTS" = "1" ]; then
+  echo -e "${RED}⚠️  已用 --skip-tests 跳过测试门禁，本次部署没有经过自动测试，请事后补跑 npm run test:all${NC}"
+else
+  echo -e "${YELLOW}运行测试门禁 (npm run test:all，使用临时库，不碰开发库)...${NC}"
+  if ! npm run test:all; then
+    echo -e "${RED}❌ 测试没有全部通过，已停止部署，线上没有任何改动。修好后再部署；紧急情况可加 --skip-tests。${NC}"
+    exit 1
+  fi
+  echo -e "${GREEN}✓ 测试门禁通过！${NC}"
+fi
 
 # 3. 远端全量自动备份
 echo -e "\n${GREEN}[Step 3/6] 执行远端数据安全快照备份...${NC}"

@@ -3,7 +3,7 @@
  * 所有夹具都是临时创建的一次性账号和角色，结束后清理。
  * 需要后端已运行：PORT=3187 node test-staff-admin-boundary.js
  */
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3001;
+const { PORT } = require('./test-utils/target');
 const BASE = `http://127.0.0.1:${PORT}`;
 const PASSWORD = '123456';
 const stamp = Date.now().toString(36);

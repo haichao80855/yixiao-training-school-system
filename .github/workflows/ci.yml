@@ -1,0 +1,69 @@
+# 每个 PR 和 main 上的每次推送都会自动检查：
+#   - 前端：样式规则、类型检查 + 生产构建、首屏体积不超过上限
+#   - 后端：构建，并在临时库 + 随机端口的后端上运行 tests/suites.json 登记的全部测试
+# 员工小程序本周期不改，依赖小程序构建产物的测试在 CI 里会显示为「跳过」。
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: 前端检查与构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: 样式规则检查
+        run: npm run lint:ui
+      - name: 类型检查 + 生产构建
+        run: npm run build
+      - name: 首屏体积检查
+        run: npm run check:bundle
+
+  backend:
+    name: 后端构建与测试 (临时库)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - name: 安装依赖
+        run: |
+          npm ci
+          npm --prefix server ci
+      - name: 生成 Prisma Client 并构建后端
+        working-directory: server
+        run: |
+          npx prisma generate
+          npm run build
+      - name: 运行全部测试 (临时库 + 随机端口)
+        run: node tests/isolated-env.cjs --no-build --report=test-results/suite-report.json
+      - name: 上传测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-report
+          path: test-results/
+          if-no-files-found: ignore

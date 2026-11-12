@@ -8,6 +8,7 @@
  */
 
 const assert = require('assert');
+const { BASE_URL } = require('../server/test-utils/target');
 const http = require('http');
 
 function postJson(url, data, token) {
@@ -81,7 +82,7 @@ async function run() {
   console.log('='.repeat(80));
 
   // 0. 登录获取 Token
-  const loginRes = await postJson('http://127.0.0.1:3001/api/auth/login', {
+  const loginRes = await postJson(BASE_URL + '/api/auth/login', {
     account: 'donghaichao',
     password: '123456',
   });
@@ -207,12 +208,12 @@ async function run() {
     };
 
     console.log('\n--- [阶段 1: 初次全班履约结课] ---');
-    const initRes = await postJson('http://127.0.0.1:3001/api/educational/fulfillment/fulfill', initPayload, token);
+    const initRes = await postJson(BASE_URL + '/api/educational/fulfillment/fulfill', initPayload, token);
     assert.strictEqual(initRes.status, 201, `初次履约应返回 201: ${JSON.stringify(initRes)}`);
     console.log('✓ PASS: 初次履约结课成功！');
 
     // 验证初始状态下工作台数据
-    const wb1Res = await getJson(`http://127.0.0.1:3001/api/educational/fulfillment/workbench/${schedule.id}`, token);
+    const wb1Res = await getJson(`${BASE_URL}/api/educational/fulfillment/workbench/${schedule.id}`, token);
     const wb1 = wb1Res.data?.data || wb1Res.data;
     const stA1 = wb1.students.find((s) => s.studentId === studentA.id);
     const stB1 = wb1.students.find((s) => s.studentId === studentB.id);
@@ -260,14 +261,14 @@ async function run() {
       idempotencyKey: `mp-rev-test-${schedule.id}-${studentA.id}-${Date.now()}`,
     };
 
-    const reviseRes = await postJson('http://127.0.0.1:3001/api/educational/fulfillment/fulfill', updateAPayload, token);
+    const reviseRes = await postJson(BASE_URL + '/api/educational/fulfillment/fulfill', updateAPayload, token);
     console.log('reviseRes response:', JSON.stringify(reviseRes));
     assert.strictEqual(reviseRes.status, 201, `单学员修改课评应成功: ${JSON.stringify(reviseRes)}`);
     console.log('✓ PASS: 单学员修改课评请求成功返回！');
 
     // 6. 验证核心断言：学员 A 成功更新，学员 B 绝对未被串改！
     console.log('\n--- [阶段 3: 核心防串改与数据独立性断言] ---');
-    const wb2Res = await getJson(`http://127.0.0.1:3001/api/educational/fulfillment/workbench/${schedule.id}`, token);
+    const wb2Res = await getJson(`${BASE_URL}/api/educational/fulfillment/workbench/${schedule.id}`, token);
     const wb2 = wb2Res.data?.data || wb2Res.data;
     const stA2 = wb2.students.find((s) => s.studentId === studentA.id);
     const stB2 = wb2.students.find((s) => s.studentId === studentB.id);

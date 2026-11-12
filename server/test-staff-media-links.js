@@ -11,7 +11,7 @@ const { of, lastValueFrom } = require('rxjs');
 const { MediaLinkInterceptor } = require('./dist/modules/upload/media-link.interceptor');
 const { LocalStorageEngineAdapter } = require('./dist/modules/upload/domain/adapters/local-storage-engine.adapter');
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3001';
+const { BASE_URL } = require('./test-utils/target');
 const prisma = new PrismaClient();
 
 function request(method, urlPath, { body, headers = {}, raw } = {}) {

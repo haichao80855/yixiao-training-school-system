@@ -12,7 +12,7 @@ const assert = require('assert');
 const { PrismaClient } = require('../server/node_modules/@prisma/client');
 
 const prisma = new PrismaClient();
-const BACKEND_URL = 'http://127.0.0.1:3001';
+const { BASE_URL: BACKEND_URL } = require('../server/test-utils/target');
 
 let authToken = '';
 

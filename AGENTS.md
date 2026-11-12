@@ -26,9 +26,10 @@ Run commands from the repository root:
 - `npm run server:dev`: Run the NestJS backend in watch mode (port 3001).
 - `npm run build`: Run `vue-tsc` type-checking and build production frontend assets.
 - `npm run type-check`: Validate TypeScript types across frontend code.
-- `npm run test:all`: Run tiered tests, full-stack E2E, and backend domain tests.
-- `npm run test:server`: Execute backend module test suites (an explicit list in `package.json`; add new `server/test-*.js` files there).
+- `npm run test:all`: Run every suite registered in `tests/suites.json` on a throwaway database (see Testing Guidelines). The deploy script runs it first and stops on failure.
+- `npm run test:server`: Same, backend suites only. Filter with `-- --group=<name>` or `-- --file=<part>`, for example `npm run test:server -- --file=teacher-pay`.
 - `npm run test:fullstack` / `npm run test:backup`: Full-stack E2E only / backup script tests (Python).
+- `npm run check:bundle`: After `npm run build`, check that the first load stays within 187 KB gzip.
 - `npm run mp:dev`, `npm run mp:build`, `npm run mp:type-check`: WeChat mini-program. Under `mini-program/`, `npm run build:h5` builds the web parent portal.
 - `npm run db:stats`: Print local database statistics.
 - Under `server/`:
@@ -69,8 +70,25 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
   - `tests/e2e_full_stack_integration.cjs`: End-to-end integration flows.
   - `server/test-*.js`: Backend API and domain validations.
   - `tests/test_mp_*.cjs`: Mini-program coordinator/projector contracts and adversarial checks.
-- **Tests hit a live server and write to the real database.** Many `server/test-*.js` files and `tests/*.cjs` hardcode port 3001 and ignore `PORT`. `test:all` reuses any server already listening on 3001, which is usually the dev server on `server/prisma/dev.db`. Before running them, check `lsof -iTCP:3001`. To run them in isolation, start a server on another port with a temporary `DATABASE_URL` and rewrite the port in copies of the tests (`perl -pe 's/\b3001\b/<port>/g'`; macOS `sed` lacks `\b`).
-- Not every `server/test-*.js` is listed in `test:server` (for example `test-class-lifecycle-coordinator.js`, `test-lesson-renewal-coordinator.js`, `test-media-upload-coordinator.js`, `test-learning-growth-multimedia-projector.js`). Run the relevant ones directly when touching those areas.
+- **Run tests in isolation.** `npm run test:all` / `test:server` (`tests/isolated-env.cjs`) do the following:
+  - Copy nothing from `dev.db`. They create a temporary SQLite database with `prisma db push` and the seed.
+  - Start `server/dist/main.js` on a random port, rebuilding it first if `server/src` is newer.
+  - Run the suites, then delete everything. Use `--keep` to keep the temp folder (database, uploads, server log).
+  - The 3001 dev server and `server/prisma/dev.db` are never touched.
+- **One list of tests: `tests/suites.json`.** It is grouped by domain and read by `test:all`, `test:server`, the deploy gate and CI.
+  - Register every new `server/test-*.js` there. The runner (`tests/run-suite.cjs`) fails when a backend test is missing from the list.
+  - `needs` marks what a test requires. Tests whose build output is missing (`mp-dist` / `h5-dist`) are reported as skipped. `skip` records a known reason to skip.
+- **Server address in tests.** Tests get it from `server/test-utils/target.js` (`TEST_BASE_URL`, then `PORT`, then 3001). Don't hardcode ports or hosts in new tests.
+- **Environment guard (`tests/env-guard.cjs`).**
+  - Running `node tests/run-suite.cjs` against an existing server is refused for a remote host, a missing `DATABASE_URL`, `dev.db`, or port 3001.
+  - Pass `--allow-dev-db` only when you really mean to write the dev database.
+- **Don't depend on existing data.** Tests must build their own fixtures and must not assume they are the only writer. For example, compare against a baseline read before creating fixtures, because other suites write to the same database earlier in the run.
+- **CI.** `.github/workflows/ci.yml` runs on every PR and on pushes to `main`:
+  - `lint:ui`
+  - `build` (type-check included)
+  - `check:bundle`
+  - the backend build
+  - all suites on a temporary database
 - Git worktrees have no `server/node_modules`. Run `npm ci` there instead of symlinking the main checkout, whose Prisma Client may be stale.
 - Ensure all tests pass (`npm run test:all`) with zero errors before submitting changes.
 

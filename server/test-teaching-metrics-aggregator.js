@@ -8,7 +8,7 @@ const assert = require('assert');
 const http = require('http');
 const { summarizeTeachingMetrics, ratio } = require('./dist/modules/educational/domain/teaching-metrics.aggregator');
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
+const { PORT } = require('./test-utils/target');
 const HOST = '127.0.0.1';
 
 function request(path, { method = 'GET', token, body } = {}) {

@@ -2,6 +2,7 @@
  * 微信小程序课评媒体生命周期专项验收测试 (新增、删除、清空、重新加载与多学员隔离)
  */
 const assert = require('assert');
+const { BASE_URL } = require('../server/test-utils/target');
 const http = require('http');
 
 function postJson(url, data, token) {
@@ -74,7 +75,7 @@ async function run() {
   console.log('🧪 课评媒体完整生命周期 (新增/部分删除/全部清空/重载/学员隔离) 验收测试');
   console.log('='.repeat(80));
 
-  const loginRes = await postJson('http://127.0.0.1:3001/api/auth/login', {
+  const loginRes = await postJson(BASE_URL + '/api/auth/login', {
     account: 'donghaichao',
     password: '123456',
   });
@@ -201,12 +202,12 @@ async function run() {
     };
 
     console.log('\n--- [阶段 1: 初次全班履约结课] ---');
-    const initRes = await postJson('http://127.0.0.1:3001/api/educational/fulfillment/fulfill', initPayload, token);
+    const initRes = await postJson(BASE_URL + '/api/educational/fulfillment/fulfill', initPayload, token);
     assert.strictEqual(initRes.status, 201);
     console.log('✓ PASS: 初次履约成功');
 
     // 检查初始工作台
-    const wb1Res = await getJson(`http://127.0.0.1:3001/api/educational/fulfillment/workbench/${schedule.id}`, token);
+    const wb1Res = await getJson(`${BASE_URL}/api/educational/fulfillment/workbench/${schedule.id}`, token);
     const wb1 = wb1Res.data?.data || wb1Res.data;
     const stA1 = wb1.students.find((s) => s.studentId === studentA.id);
     const stB1 = wb1.students.find((s) => s.studentId === studentB.id);
@@ -325,10 +326,10 @@ async function run() {
       idempotencyKey: `mp-part-del-${schedule.id}-${studentA.id}-${Date.now()}`,
     };
 
-    const res2 = await postJson('http://127.0.0.1:3001/api/educational/fulfillment/fulfill', partDelPayload, token);
+    const res2 = await postJson(BASE_URL + '/api/educational/fulfillment/fulfill', partDelPayload, token);
     assert.strictEqual(res2.status, 201);
 
-    const wb2Res = await getJson(`http://127.0.0.1:3001/api/educational/fulfillment/workbench/${schedule.id}`, token);
+    const wb2Res = await getJson(`${BASE_URL}/api/educational/fulfillment/workbench/${schedule.id}`, token);
     const wb2 = wb2Res.data?.data || wb2Res.data;
     const stA2 = wb2.students.find((s) => s.studentId === studentA.id);
     const stB2 = wb2.students.find((s) => s.studentId === studentB.id);
@@ -389,10 +390,10 @@ async function run() {
       idempotencyKey: `mp-full-del-${schedule.id}-${studentA.id}-${Date.now()}`,
     };
 
-    const res3 = await postJson('http://127.0.0.1:3001/api/educational/fulfillment/fulfill', fullDelPayload, token);
+    const res3 = await postJson(BASE_URL + '/api/educational/fulfillment/fulfill', fullDelPayload, token);
     assert.strictEqual(res3.status, 201);
 
-    const wb3Res = await getJson(`http://127.0.0.1:3001/api/educational/fulfillment/workbench/${schedule.id}`, token);
+    const wb3Res = await getJson(`${BASE_URL}/api/educational/fulfillment/workbench/${schedule.id}`, token);
     const wb3 = wb3Res.data?.data || wb3Res.data;
     const stA3 = wb3.students.find((s) => s.studentId === studentA.id);
     const stB3 = wb3.students.find((s) => s.studentId === studentB.id);
@@ -455,10 +456,10 @@ async function run() {
       idempotencyKey: `mp-add-med-${schedule.id}-${studentA.id}-${Date.now()}`,
     };
 
-    const res4 = await postJson('http://127.0.0.1:3001/api/educational/fulfillment/fulfill', addMediaPayload, token);
+    const res4 = await postJson(BASE_URL + '/api/educational/fulfillment/fulfill', addMediaPayload, token);
     assert.strictEqual(res4.status, 201);
 
-    const wb4Res = await getJson(`http://127.0.0.1:3001/api/educational/fulfillment/workbench/${schedule.id}`, token);
+    const wb4Res = await getJson(`${BASE_URL}/api/educational/fulfillment/workbench/${schedule.id}`, token);
     const wb4 = wb4Res.data?.data || wb4Res.data;
     const stA4 = wb4.students.find((s) => s.studentId === studentA.id);
 

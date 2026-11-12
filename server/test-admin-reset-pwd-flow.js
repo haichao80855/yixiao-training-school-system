@@ -12,7 +12,7 @@
 
 const assert = require('assert');
 
-const BASE_URL = 'http://localhost:3001';
+const { BASE_URL } = require('./test-utils/target');
 
 let passed = 0;
 function logPass(msg) {
