@@ -3,8 +3,8 @@
     <!-- 顶部状态栏与统计信息 -->
     <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
-          002599
+        <div class="w-10 h-10 rounded-lg bg-st-primary-light text-st-primary flex items-center justify-center shrink-0">
+          <Library class="w-5 h-5" aria-hidden="true" />
         </div>
         <div>
           <div class="flex items-center space-x-2">
@@ -13,7 +13,7 @@
             <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 font-medium">全量课件互动白板已接入</span>
           </div>
           <p class="text-xs text-gray-500 mt-1">
-            已同步拓视未来教育 118 门精品课程，涵盖 2,029 个随堂课次与互动白板课件，点击课程即可随时调出互动大纲进行在线授课！
+            已同步拓视未来教育 {{ totalCourses }} 门课程，共 {{ totalPlannedLessons.toLocaleString() }} 个计划课次。点击课程可查看课次与课件。
           </p>
         </div>
       </div>
@@ -25,8 +25,8 @@
         </div>
         <div class="h-6 w-px bg-gray-200"></div>
         <div>
-          <span class="text-st-secondary text-xs block">在线互动课件课次</span>
-          <span class="text-lg font-bold text-emerald-600">2,029</span> 节
+          <span class="text-st-secondary text-xs block">计划课次</span>
+          <span class="text-lg font-bold text-emerald-600">{{ totalPlannedLessons.toLocaleString() }}</span> 节
         </div>
         <div class="h-6 w-px bg-gray-200"></div>
         <div>
@@ -204,6 +204,7 @@
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
 import { ref, computed } from 'vue'
+import { Library } from 'lucide-vue-next'
 import { platformData } from '@/constants/platformCourse'
 import AppPagination from '@/components/AppPagination.vue'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
@@ -226,6 +227,7 @@ interface PlatformCourse {
 
 const courses = ref<PlatformCourse[]>(platformData.list as PlatformCourse[])
 const totalCourses = computed(() => courses.value.length)
+const totalPlannedLessons = computed(() => courses.value.reduce((sum, c) => sum + (Number(c.planLessonTotal) || 0), 0))
 
 // 筛选字段
 const keyword = ref('')

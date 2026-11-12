@@ -137,9 +137,6 @@
         <span class="text-xs text-st-secondary">共检索到 {{ filteredCourses.length }} 门课程</span>
       </div>
       <div class="flex items-center space-x-2.5">
-        <el-button size="small" class="!border-st-primary/40 !text-st-primary hover:!bg-st-primary/10" @click="handleBatchOperation">
-          批量操作
-        </el-button>
         <el-button size="small" class="!border-st-primary/40 !text-st-primary hover:!bg-st-primary/10" @click="handleBatchAuthorize">
           授权
         </el-button>
@@ -607,11 +604,6 @@ function openEditDialog(course: CourseItem) {
 
 function handleCourseSaved() {
   reloadCourses()
-}
-
-// 批量操作
-function handleBatchOperation() {
-  ElMessage.info('已进入批量管理模式，可批量调整课时或下架归档。')
 }
 
 function handleBatchAuthorize() {

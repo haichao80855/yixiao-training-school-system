@@ -286,6 +286,7 @@
 </template>
 
 <script setup lang="ts">
+import { toDateKey } from '@/utils/dateKey'
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Download, DocumentCopy } from '@element-plus/icons-vue'
@@ -366,7 +367,7 @@ const metrics = computed(() => {
   let onlineCents = 0
   let bankPosCents = 0
 
-  const todayStr = '2026-09-21'
+  const todayStr = toDateKey()
 
   for (const item of list) {
     const cents = Math.round(item.amount * 100)

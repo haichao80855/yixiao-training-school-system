@@ -152,6 +152,7 @@
 </template>
 
 <script setup lang="ts">
+import { nextWeekday, toDateKey } from '@/utils/dateKey'
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Calendar, AlertTriangle } from 'lucide-vue-next'
@@ -196,7 +197,7 @@ const teachers = computed(() => teacherList.value.filter(t => t.role === 'teache
 const classrooms = computed(() => classroomList.value)
 
 const form = reactive({
-  startDate: '2026-09-26',
+  startDate: toDateKey(nextWeekday(6)),
   startTime: '14:00',
   endTime: '16:00',
   repeatCount: 16,
@@ -213,15 +214,16 @@ const rules: FormRules = {
   classroomId: [{ required: true, message: '请选择上课教室', trigger: 'change' }]
 }
 
+/** 默认起排日期：班级开班日还没到就用开班日，否则用最近的周六 (班级名或上课时间含“周日”时用最近的周日) */
 function computeSmartStartDate(cls?: ClassItem | null): string {
-  if (cls?.startDate && cls.startDate >= '2026-09-22') {
+  const today = toDateKey()
+  if (cls?.startDate && cls.startDate >= today) {
     return cls.startDate
   }
-  // 班级含有周日关键词时选 2026-09-27，其余默认选本周六 2026-09-26
   if (cls?.name?.includes('周日') || cls?.scheduleDesc?.includes('周日')) {
-    return '2026-09-27'
+    return toDateKey(nextWeekday(0))
   }
-  return '2026-09-26'
+  return toDateKey(nextWeekday(6))
 }
 
 function syncFormFromClass(cls: ClassItem) {

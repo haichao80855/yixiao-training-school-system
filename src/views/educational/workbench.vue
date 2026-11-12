@@ -36,7 +36,6 @@
         <el-tag size="small" type="primary" effect="plain" class="font-medium">
           {{ currentCampus.name }}
         </el-tag>
-        <span class="text-xs text-st-muted">系统时间：2026-09-22</span>
       </div>
     </div>
 
@@ -255,7 +254,7 @@
 
           <!-- 课次大标题 -->
           <div class="pr-10">
-            <h3 class="font-bold text-base text-st-title tracking-tight truncate hover:text-st-primary cursor-pointer">
+            <h3 class="font-bold text-base text-st-title tracking-tight truncate">
               {{ lessonLabel(card) }}
             </h3>
             <p v-if="card.lessonTitle" class="text-xs text-st-muted truncate mt-0.5">{{ card.lessonTitle }}</p>
@@ -318,7 +317,7 @@
         </div>
 
         <!-- 卡片底部 4 大操作常态图标栏 (下边框分割横排) -->
-        <div class="border-t border-st-border bg-gray-50/50 px-2 py-2 grid grid-cols-4 divide-x divide-gray-200 text-center select-none">
+        <div class="border-t border-st-border bg-gray-50/50 px-2 py-2 grid grid-cols-3 divide-x divide-gray-200 text-center select-none">
           <!-- 1. 备课 -->
           <el-button
             link
@@ -352,15 +351,6 @@
             <span class="text-[11px] font-semibold text-indigo-700 group-hover:underline">课评</span>
           </el-button>
 
-          <!-- 4. 上传回放 -->
-          <el-button
-            link
-            class="!h-auto !py-1 !px-0 flex flex-col items-center justify-center gap-1 text-st-secondary hover:!text-st-primary group"
-            @click="handleOpenPlayback(card)"
-          >
-            <Video class="w-4 h-4 text-st-secondary group-hover:text-st-primary transition-transform group-hover:scale-110" />
-            <span class="text-[11px] font-medium text-st-secondary group-hover:text-st-primary">上传回放</span>
-          </el-button>
         </div>
       </div>
       </div>
@@ -455,11 +445,6 @@
       ref="lessonPlanDrawerRef"
     />
 
-    <!-- 3. 上传回放弹窗 -->
-    <LessonPlaybackDialog
-      ref="playbackDialogRef"
-    />
-
     <!-- 4. 快捷随堂签到消课抽屉/弹窗 -->
     <el-dialog
       v-model="signInDialogVisible"
@@ -517,7 +502,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { BookOpen, Calendar, Sparkles, Video } from 'lucide-vue-next'
+import { BookOpen, Calendar, Sparkles } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { formatLessonLabel as lessonLabel } from '@/utils/lessonLabel'
 import { useAuthStore } from '@/stores/authStore'
@@ -527,7 +512,6 @@ import type { WorkbenchLessonCard, LessonEvaluation, Teacher, Classroom } from '
 import LessonFulfillmentDialog from './components/LessonFulfillmentDialog.vue'
 import LessonEvaluationDialog from './components/LessonEvaluationDialog.vue'
 import LessonLessonPlanDrawer from './components/LessonLessonPlanDrawer.vue'
-import LessonPlaybackDialog from './components/LessonPlaybackDialog.vue'
 
 const tenantStore = useTenantStore()
 const authStore = useAuthStore()
@@ -751,7 +735,6 @@ const teacherOptions = computed(() => teacherList.value.filter(t => t.role === '
 const fulfillmentDialogRef = ref<InstanceType<typeof LessonFulfillmentDialog>>()
 const evaluationDialogRef = ref<InstanceType<typeof LessonEvaluationDialog>>()
 const lessonPlanDrawerRef = ref<InstanceType<typeof LessonLessonPlanDrawer>>()
-const playbackDialogRef = ref<InstanceType<typeof LessonPlaybackDialog>>()
 
 // 快捷签到消课
 const signInDialogVisible = ref(false)
@@ -869,10 +852,6 @@ function handleOpenEvaluation(card: WorkbenchLessonCard) {
 
 function handleOpenLessonPlan(card: WorkbenchLessonCard) {
   lessonPlanDrawerRef.value?.open(card)
-}
-
-function handleOpenPlayback(card: WorkbenchLessonCard) {
-  playbackDialogRef.value?.open(card)
 }
 
 // 签到相关

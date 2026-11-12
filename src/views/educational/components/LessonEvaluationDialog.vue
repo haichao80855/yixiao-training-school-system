@@ -367,7 +367,7 @@
               </div>
             </div>
 
-            <!-- 4. 老师个性化点评 (配备 AI 润色与 AI 重写) -->
+            <!-- 4. 老师个性化点评 -->
             <div class="space-y-1.5">
               <div class="flex items-center justify-between">
                 <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
@@ -376,16 +376,6 @@
                 </span>
 
                 <div class="flex items-center gap-2">
-                  <el-button
-                    type="primary"
-                    link
-                    size="small"
-                    class="!text-indigo-700 hover:!text-indigo-900 !bg-indigo-50 hover:!bg-indigo-100 !px-2.5 !py-1 !rounded-full transition-all !border !border-indigo-200 !h-auto font-bold inline-flex items-center gap-1"
-                    @click="handleAiRewriteForStudent"
-                  >
-                    <Sparkles class="w-3.5 h-3.5" />
-                    <span>AI 帮我重写</span>
-                  </el-button>
                   <span class="text-[11px] text-st-secondary font-mono">已输入 {{ (activeStudent.comment || '').length }} 字</span>
                 </div>
               </div>
@@ -401,27 +391,12 @@
 
               <!-- 辅助工具栏 -->
               <div class="flex items-center justify-between text-xs pt-0.5">
-                <el-button
-                  type="warning"
-                  plain
-                  size="small"
-                  class="!px-2.5 !py-0.5 !text-xs font-medium"
-                  :loading="polishing"
-                  @click="handleAiPolishForStudent"
-                >
-                  <template #icon><Sparkles class="w-3.5 h-3.5" /></template>
-                  AI 润色
-                </el-button>
 
                 <div class="flex items-center gap-2">
                   <el-button link type="primary" size="small" class="!text-xs flex items-center gap-1" @click="handleCycleCommentTemplateForStudent">
                     <RefreshCw class="w-3.5 h-3.5" />
                     快速载入预设评语
                   </el-button>
-                  <span v-if="activeStudent.aiPolished" class="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1">
-                    <Check class="w-3 h-3" />
-                    已 AI 润色
-                  </span>
                 </div>
               </div>
             </div>
@@ -522,7 +497,6 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
 import {
-  Sparkles,
   Edit3,
   Calendar,
   MapPin,
@@ -537,8 +511,7 @@ import {
   Coffee,
   BookOpen,
   Loader2,
-  RefreshCw,
-  Check
+  RefreshCw
 } from 'lucide-vue-next'
 import { educationalApi, uploadApi } from '@/api'
 import { getEvaluationTemplates } from '@/constants/evaluation'
@@ -555,7 +528,6 @@ const loading = ref(false)
 const saving = ref(false)
 const uploadingVideo = ref(false)
 const uploadingPhotos = ref(false)
-const polishing = ref(false)
 
 const currentLesson = ref<WorkbenchLessonCard | null>(null)
 const templateList = ref<EvaluationTemplate[]>([])
@@ -825,45 +797,6 @@ function handlePreviewPhoto(url: string) {
   window.open(url, '_blank')
 }
 
-// AI 重写
-function handleAiRewriteForStudent() {
-  if (!activeStudent.value) return
-  const target = activeStudent.value
-
-  const loadingMsg = ElMessage({
-    message: `AI 正在为【${target.studentName}】生成高情商个性化随堂评语...`,
-    duration: 0,
-    type: 'info'
-  })
-
-  setTimeout(() => {
-    loadingMsg.close()
-    target.comment = `【${target.studentName}随堂学情反馈】在本节课中，${target.studentName}展现出极高的课堂专注力与探索求知欲。面对新授核心知识点时吸收迅速，逻辑结构清晰。在实操练习环节，不仅能独立解决问题，还具备成熟的排查能力，表现非常出色！建议继续保持探索热情，期待下节课更亮眼的发挥！`
-    target.aiPolished = true
-    target.isEvaluated = true
-    ElMessage.success(`AI 已为【${target.studentName}】生成专属评语！`)
-  }, 700)
-}
-
-// AI 润色
-function handleAiPolishForStudent() {
-  if (!activeStudent.value) return
-  const target = activeStudent.value
-  if (!target.comment) {
-    ElMessage.warning('请先输入评语草稿再进行 AI 润色')
-    return
-  }
-
-  polishing.value = true
-  setTimeout(() => {
-    polishing.value = false
-    target.comment = `【专属学情特写】${target.comment.trim()} 在课堂探究中，孩子的思维发散性与动手闭环能力均有亮眼突破，展现出坚韧的专注品质！`
-    target.aiPolished = true
-    target.isEvaluated = true
-    ElMessage.success(`已完成【${target.studentName}】评语的 AI 深度润色！`)
-  }, 500)
-}
-
 // 循环常用评语
 let commentIdx = 0
 function handleCycleCommentTemplateForStudent() {
@@ -884,7 +817,7 @@ function handleCycleCommentTemplateForStudent() {
 function handleSaveCurrentStudentDraft() {
   if (!activeStudent.value) return
   activeStudent.value.isEvaluated = true
-  ElMessage.success(`【${activeStudent.value.studentName}】的课评草稿已暂存！`)
+  ElMessage.success(`已标记【${activeStudent.value.studentName}】点评完成，提交课评时一并保存`)
 }
 
 // 暂存并评下一位

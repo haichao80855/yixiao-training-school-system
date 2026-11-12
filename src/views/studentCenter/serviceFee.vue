@@ -82,7 +82,7 @@
       :summary-text="`当前筛选条件下：共计 ${filteredRecords.length} 人次代报考，服务费总额 ¥ ${filteredFeeSum} 元 (待财务核销 ¥ ${pendingTotalFee.toFixed(2)} 元，已核销入账 ¥ ${verifiedTotalFee.toFixed(2)} 元)`"
     >
       <template #right>
-        <el-button size="small" plain @click="handleExportReport">导出代报考对账单</el-button>
+        <el-button size="small" plain :disabled="filteredRecords.length === 0" @click="handleExportReport">导出对账单</el-button>
         <el-button
           size="small"
           type="warning"
@@ -143,7 +143,7 @@
             </template>
           </el-table-column>
           <el-table-column prop="invoiceTitle" label="发票抬头" min-width="150" />
-          <el-table-column label="易快报凭证号" width="160">
+          <el-table-column label="核销编号" width="160">
             <template #default="{ row }">
               <span v-if="row.yikuaibaoVoucherNo" class="font-mono text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
                 {{ row.yikuaibaoVoucherNo }}
@@ -280,6 +280,7 @@ import AppEmpty from '@/components/AppEmpty.vue'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student } from '@/types/student'
 import type { ServiceFeeRecordItem } from '@/api/modules/student'
+import { downloadCsv, todayStamp } from '@/utils/csvExport'
 
 const activeTab = ref('all')
 const keyword = ref('')
@@ -465,7 +466,7 @@ async function handleBatchVerify() {
     const vNo = `YKB-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`
     await studentApi.batchVerifyServiceFees({ ids: pendingIds, yikuaibaoVoucherNo: vNo })
     await loadRecords()
-    ElMessage.success(`成功批量核销 ${pendingIds.length} 笔代报考费用，凭证已回写易快报系统！`)
+    ElMessage.success(`已核销 ${pendingIds.length} 笔代报考费用，核销编号 ${vNo}`)
     selectedRows.value = []
   } catch (err: unknown) {
     ElMessage.error(err instanceof Error ? err.message : '批量核销失败')
@@ -473,6 +474,18 @@ async function handleBatchVerify() {
 }
 
 function handleExportReport() {
-  ElMessage.success(`代报考与易快报服务费对账单已生成，共 ${records.value.length} 笔明细。`)
+  downloadCsv(`代报考对账单-${todayStamp()}`, [
+    { title: '报考单号', value: (r: ServiceFeeRecordItem) => r.certNo },
+    { title: '学员姓名', value: (r) => r.studentName },
+    { title: '学号', value: (r) => r.studentNo },
+    { title: '归属校区', value: (r) => r.campusName },
+    { title: '项目名称', value: (r) => r.examType },
+    { title: '业务类别', value: (r) => (r.category === 'competition' ? '白名单赛事' : '等级考试') },
+    { title: '代报服务费 (元)', value: (r) => Number(r.fee || 0).toFixed(2) },
+    { title: '发票抬头', value: (r) => r.invoiceTitle },
+    { title: '核销编号', value: (r) => r.yikuaibaoVoucherNo },
+    { title: '核销状态', value: (r) => (r.status === 'verified' ? '已核销' : '待核销') },
+    { title: '录入时间', value: (r) => r.createTime },
+  ], filteredRecords.value)
 }
 </script>

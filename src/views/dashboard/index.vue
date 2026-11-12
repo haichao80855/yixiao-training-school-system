@@ -316,37 +316,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 校区运营履约健康指数卡片 (ThemeProgress 集成) -->
-        <div class="panel-card">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center space-x-2">
-                            <h2 class="panel-title">运营指标</h2>
-            </div>
-            <span class="text-xs px-1.5 py-0.5 rounded-md bg-slate-100 text-st-muted" title="该卡片数值为前端固定示例，尚未接入真实统计接口">
-              示例数据
-            </span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2 text-center py-1">
-            <div class="flex flex-col items-center">
-              <ThemeProgress :percentage="88" color-theme="primary" :size="58" :stroke-width="5" />
-              <span class="text-[13px] font-medium text-st-regular mt-2">出勤履约率</span>
-              <span class="text-xs text-st-muted mt-0.5">正常到课消课</span>
-            </div>
-            <div class="flex flex-col items-center">
-              <ThemeProgress :percentage="92" color-theme="success" :size="58" :stroke-width="5" />
-              <span class="text-[13px] font-medium text-st-regular mt-2">教室满班率</span>
-              <span class="text-xs text-st-muted mt-0.5">资源高效利用</span>
-            </div>
-            <div class="flex flex-col items-center">
-              <ThemeProgress :percentage="76" color-theme="warning" :size="58" :stroke-width="5" />
-              <span class="text-[13px] font-medium text-st-regular mt-2">课消达成率</span>
-              <span class="text-xs text-st-muted mt-0.5">阶段教务目标</span>
-            </div>
-          </div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -356,7 +325,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import ThemeProgress from '@/components/ThemeProgress.vue'
 import {
   GraduationCap,
   Users,

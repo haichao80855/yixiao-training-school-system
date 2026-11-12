@@ -453,6 +453,8 @@ import { curriculumApi } from '@/api'
 import type { ScheduleEvent, LaneEvent, Teacher, Classroom } from '@/types/educational'
 import type { CourseItem } from '@/types/curriculum'
 import HighDensityGrid from '@/components/HighDensityGrid.vue'
+import { downloadCsv } from '@/utils/csvExport'
+import { mondayOf, toDateKey } from '@/utils/dateKey'
 import AppEmpty from '@/components/AppEmpty.vue'
 import QuickScheduleDialog from './components/QuickScheduleDialog.vue'
 import ScheduleDetailDrawer from './components/ScheduleDetailDrawer.vue'
@@ -483,13 +485,13 @@ const filterAdvisor = ref('')
 const filterCourse = ref('')
 const filterClassroom = ref('')
 
-// 周次状态管理 (基准：2026-09-21 周一 ~ 2026-09-27 周日)
-const currentWeekStart = ref(new Date('2026-09-21T00:00:00'))
+// 周次状态管理：默认显示今天所在的一周 (周一为一周开始)
+const currentWeekStart = ref(mondayOf(new Date()))
 
 const currentWeekDays = computed(() => {
   const days = []
   const weekNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-  const todayStr = '2026-09-21'
+  const todayStr = toDateKey(new Date())
 
   for (let i = 0; i < 7; i++) {
     const d = new Date(currentWeekStart.value)
@@ -523,7 +525,7 @@ const currentWeekDisplay = computed(() => {
 // 07:00 ~ 21:00 (15 个整点)
 const hours = Array.from({ length: 15 }, (_, i) => i + 7)
 
-// 当前时间指示线位置 (2026-09-21 21:05 => 21点5分 => 14:05 min)
+// 当前时间指示线位置：距 07:00 的分钟数，每分钟 1px
 const currentMinuteLineTop = computed(() => {
   const now = new Date()
   const currentHours = now.getHours()
@@ -676,7 +678,7 @@ function nextWeek() {
 }
 
 function resetToCurrentWeek() {
-  currentWeekStart.value = new Date('2026-09-21T00:00:00')
+  currentWeekStart.value = mondayOf(new Date())
 }
 
 function handleSubTabChange(key: string) {
@@ -721,8 +723,28 @@ function openConflictCenter() {
   conflictCenterRef.value?.open(conflicts)
 }
 
+/** 导出当前查看这一周的课表 (与页面上的讲师、教室筛选一致) */
 function handleExport() {
-  ElMessage.success(`课表已成功导出为 Excel 报表（覆盖 ${schedules.value.length} 门课次）！`)
+  const weekDates = new Set(currentWeekDays.value.map((d) => d.fullDate))
+  const rows = schedules.value
+    .filter((s) => weekDates.has(s.date))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
+  if (rows.length === 0) {
+    ElMessage.info('这一周没有排课')
+    return
+  }
+  const first = currentWeekDays.value[0]?.fullDate || ''
+  downloadCsv(`课表-${first}起一周`, [
+    { title: '日期', value: (s: ScheduleEvent) => s.date },
+    { title: '开始', value: (s) => s.startTime },
+    { title: '结束', value: (s) => s.endTime },
+    { title: '班级', value: (s) => s.className },
+    { title: '课程', value: (s) => s.courseName },
+    { title: '讲师', value: (s) => s.teacherName },
+    { title: '教室', value: (s) => s.classroomName },
+    { title: '校区', value: (s) => s.campusName },
+  ], rows)
+  ElMessage.success(`已导出 ${rows.length} 节课`)
 }
 
 async function handleDelete(id: string) {
