@@ -100,14 +100,16 @@
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border">
       <div class="overflow-x-auto w-full min-w-0">
         <el-table
-          :data="filteredRecords"
+          :data="filteredRecords" v-loading="listLoading"
           style="width: 100%"
           stripe
           @selection-change="(rows: ServiceFeeRecordItem[]) => selectedRows = rows"
         >
           <template #empty>
             <AppEmpty
-              :type="keyword || selectedCategory ? 'search' : 'data'"
+              :type="listError ? 'error' : (keyword || selectedCategory ? 'search' : 'data')"
+              :description="listError || undefined"
+              @retry="loadRecords"
               action-text="重置筛选"
               @action="handleReset"
             />
@@ -269,6 +271,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { CheckCircle2, Trophy, Link2, Clock } from 'lucide-vue-next'
@@ -280,6 +283,9 @@ import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student } from '@/types/student'
 import type { ServiceFeeRecordItem } from '@/api/modules/student'
 import { downloadCsv, todayStamp } from '@/utils/csvExport'
+
+// 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
+const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
 
 const activeTab = ref('all')
 const keyword = ref('')
@@ -307,7 +313,11 @@ async function loadStudents() {
   }
 }
 
-async function loadRecords() {
+function loadRecords() {
+  return trackList(loadRecordsTask)
+}
+
+async function loadRecordsTask() {
   try {
     const res = await studentApi.getServiceFees()
     if (res && res.data && Array.isArray(res.data)) {
@@ -316,6 +326,7 @@ async function loadRecords() {
     }
     feeRecords.value = []
   } catch (err: unknown) {
+    failList(err, '加载代报考账本失败')
     ElMessage.error(err instanceof Error ? err.message : '加载考务代报考账本失败')
     feeRecords.value = []
   }
