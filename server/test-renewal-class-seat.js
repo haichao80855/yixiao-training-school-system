@@ -17,6 +17,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 const HOST = '127.0.0.1';
 
 function request(method, path, headers, data) {
@@ -57,8 +58,8 @@ async function main() {
   console.log('================================================================\n');
 
   const login = await request('POST', '/api/auth/login', { 'Content-Type': 'application/json' }, {
-    account: 'donghaichao',
-    password: '123456',
+    account: ACCOUNTS.superAdmin,
+    password: SEED_PASSWORD,
   });
   assert(ok(login), '超管登录成功');
   const token = login.body?.data?.accessToken || login.body?.token;

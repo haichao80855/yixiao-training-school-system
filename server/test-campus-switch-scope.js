@@ -9,6 +9,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD } = require('./test-utils/accounts');
 const HOST = '127.0.0.1';
 const HQ = 'campus-bj-hq';
 const YY = 'campus-bj-yy';
@@ -51,7 +52,7 @@ function request(path, { method = 'GET', headers = {}, data } = {}) {
 }
 
 async function login(account) {
-  const res = await request('/api/auth/login', { method: 'POST', data: { account, password: '123456' } });
+  const res = await request('/api/auth/login', { method: 'POST', data: { account, password: SEED_PASSWORD } });
   const token = res.body?.data?.accessToken || res.body?.accessToken;
   if (!token) throw new Error(`登录失败 [${account}]: ${JSON.stringify(res.body)}`);
   return token;

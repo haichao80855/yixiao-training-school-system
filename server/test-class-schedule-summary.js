@@ -8,6 +8,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 let token = '';
 
 function api(method, path, data) {
@@ -33,7 +34,7 @@ function api(method, path, data) {
 }
 
 async function run() {
-  const login = await api('POST', '/api/auth/login', { account: 'donghaichao', password: '123456' });
+  const login = await api('POST', '/api/auth/login', { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD });
   token = login.body.data.accessToken;
 
   const campus = await prisma.campus.findFirstOrThrow();

@@ -12,6 +12,7 @@ const { MediaLinkInterceptor } = require('./dist/modules/upload/media-link.inter
 const { LocalStorageEngineAdapter } = require('./dist/modules/upload/domain/adapters/local-storage-engine.adapter');
 
 const { BASE_URL } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 const prisma = new PrismaClient();
 
 function request(method, urlPath, { body, headers = {}, raw } = {}) {
@@ -119,7 +120,7 @@ async function testHttp() {
   console.log('\n▶ [Case 2] 上传回执签名、/uploads/ 不可匿名访问、签名防篡改');
   const login = await request('POST', '/api/auth/login', {
     headers: { 'Content-Type': 'application/json' },
-    body: { account: 'donghaichao', password: '123456' },
+    body: { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD },
   });
   const token = login.body?.accessToken || login.body?.token;
   assert(!!token, '管理员登录成功');

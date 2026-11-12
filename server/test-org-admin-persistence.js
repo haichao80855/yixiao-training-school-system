@@ -11,6 +11,7 @@
 const assert = require('assert');
 
 const { BASE_URL } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 
 let passedAssertions = 0;
 function logPass(msg) {
@@ -56,7 +57,7 @@ async function runTests() {
   console.log('================================================================================\n');
 
   // 1. 超管登录
-  const adminToken = await login('donghaichao', '123456');
+  const adminToken = await login(ACCOUNTS.superAdmin, SEED_PASSWORD);
   logPass('超级管理员 [donghaichao] 成功登录');
 
   const authHeaders = { Authorization: `Bearer ${adminToken}` };
@@ -180,21 +181,21 @@ async function runTests() {
     headers: authHeaders,
     body: JSON.stringify({
       targetUserId: superUserObj.id,
-      password: '123456',
+      password: SEED_PASSWORD,
     }),
   });
   assert.strictEqual(selfTransferRes.status, 400, '转给自己本人应被拒绝 400');
   logPass('【逻辑拦截】目标员工为超管本人被拒绝 (禁止自我转让)');
 
   // 4.4 普通教师账号越权调用转让端点，被 PermissionsGuard 拦截
-  const teacherToken = await login('teacher_zhang', '123456');
+  const teacherToken = await login('teacher_zhang', SEED_PASSWORD);
   const teacherHeaders = { Authorization: `Bearer ${teacherToken}` };
   const teacherTransferRes = await request('/api/system/company/transfer-admin', {
     method: 'POST',
     headers: teacherHeaders,
     body: JSON.stringify({
       targetUserId: targetUser.id,
-      password: '123456',
+      password: SEED_PASSWORD,
     }),
   });
   assert.strictEqual(teacherTransferRes.status, 403, '无权限员工调用超管转让应返回 403');
@@ -207,7 +208,7 @@ async function runTests() {
     headers: authHeaders,
     body: JSON.stringify({
       targetUserId: targetUser.id,
-      password: '123456',
+      password: SEED_PASSWORD,
     }),
   });
   assert.ok(validTransferRes.status === 200 || validTransferRes.status === 201, '合法密码超管转让应返回 200/201');
@@ -222,7 +223,7 @@ async function runTests() {
   logPass('【原子联动】机构 Company 表关联的超级管理员已更新为: ' + targetUserName);
 
   // 验证张建华登录后拥有超级管理员身份与全部权限
-  const newAdminToken = await login('zhangjh', '123456');
+  const newAdminToken = await login(ACCOUNTS.principal, SEED_PASSWORD);
   const newAdminHeaders = { Authorization: `Bearer ${newAdminToken}` };
   const newAdminProfile = await request('/api/auth/profile', { headers: newAdminHeaders });
   assert.strictEqual(newAdminProfile.status, 200, '新超管获取个人资料应返回 200');
@@ -239,7 +240,7 @@ async function runTests() {
     headers: newAdminHeaders,
     body: JSON.stringify({
       targetUserId: superUserObj.id,
-      password: '123456',
+      password: SEED_PASSWORD,
     }),
   });
   assert.ok(returnRes.status === 200 || returnRes.status === 201, '超管交还应返回 200/201');

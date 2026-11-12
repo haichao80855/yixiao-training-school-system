@@ -13,6 +13,7 @@ const { PrismaClient } = require('../server/node_modules/@prisma/client');
 
 const prisma = new PrismaClient();
 const { BASE_URL: BACKEND_URL } = require('../server/test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('../server/test-utils/accounts');
 
 let authToken = '';
 
@@ -20,7 +21,7 @@ async function login() {
   const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ account: 'donghaichao', password: '123456' }),
+    body: JSON.stringify({ account: ACCOUNTS.superAdmin, password: SEED_PASSWORD }),
   });
   const data = await res.json();
   authToken = data.data?.accessToken || data.data?.token || data.token || '';

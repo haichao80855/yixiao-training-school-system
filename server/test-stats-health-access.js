@@ -13,6 +13,7 @@ const { PrismaClient } = require('@prisma/client');
 const { AppController } = require('./dist/app.controller');
 
 const { BASE_URL } = require('./test-utils/target');
+const { SEED_PASSWORD } = require('./test-utils/accounts');
 const prisma = new PrismaClient();
 const RUN = Date.now().toString().slice(-7);
 const PARENT_PHONE = `1772${RUN}`;
@@ -44,7 +45,7 @@ async function call(method, url, token, body) {
   return { status: res.status, text, json };
 }
 
-async function staffToken(account, password = '123456') {
+async function staffToken(account, password = SEED_PASSWORD) {
   const res = await call('POST', '/api/auth/login', null, { account, password });
   const token = res.json?.data?.accessToken;
   assert.ok(token, `账号 ${account} 应能登录 (需先执行 prisma:seed)`);

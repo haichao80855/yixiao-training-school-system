@@ -16,6 +16,7 @@ const {
 
 const prisma = new PrismaClient();
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 const HOST = '127.0.0.1';
 const MONTH = '2020-01';
 
@@ -52,7 +53,7 @@ function request(path, { method = 'GET', token, body, campusId } = {}) {
 }
 
 async function login(account) {
-  const res = await request('/api/auth/login', { method: 'POST', body: { account, password: '123456' } });
+  const res = await request('/api/auth/login', { method: 'POST', body: { account, password: SEED_PASSWORD } });
   const data = res.body && res.body.data;
   return { token: data && (data.accessToken || data.token), user: data && data.user };
 }
@@ -162,7 +163,7 @@ async function online() {
   assert.ok(principal.token && teacher.token && finance.token && advisor.token, '种子账号登录失败');
   const campusId = principal.user.campusId;
 
-  const teacherUser = await prisma.user.findFirst({ where: { account: 'zhaolp' } });
+  const teacherUser = await prisma.user.findFirst({ where: { account: ACCOUNTS.teacher } });
   const classroom = await prisma.classroom.findFirst({ where: { campusId } });
   const course = await prisma.course.findFirst();
   const students = await prisma.student.findMany({ where: { campusId }, take: 3 });

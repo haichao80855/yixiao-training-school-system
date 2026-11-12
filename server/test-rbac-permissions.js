@@ -60,6 +60,7 @@ async function runTests() {
   }
 
   const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
   const HOST = '127.0.0.1';
 
   let serverProcess = null;
@@ -135,7 +136,7 @@ async function runTests() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       },
-      { account: 'donghaichao', password: '123456' },
+      { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD },
     );
     assert(adminLoginRes.status === 200 || adminLoginRes.status === 201, '超管账号 [donghaichao] 成功登录');
     const adminToken = adminLoginRes.body.data.accessToken;
@@ -194,7 +195,7 @@ async function runTests() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       },
-      { account: 'zhaolp', password: '123456' },
+      { account: ACCOUNTS.teacher, password: SEED_PASSWORD },
     );
     if (teacherLoginRes.status !== 200 && teacherLoginRes.status !== 201) {
       teacherLoginRes = await request(
@@ -205,7 +206,7 @@ async function runTests() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         },
-        { account: 'teacher_zhang', password: '123456' },
+        { account: 'teacher_zhang', password: SEED_PASSWORD },
       );
     }
     assert(teacherLoginRes.status === 200 || teacherLoginRes.status === 201, '普通授课讲师登录成功');
@@ -351,7 +352,7 @@ async function runTests() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       },
-      { account: 'zhangjh', password: '123456' },
+      { account: ACCOUNTS.principal, password: SEED_PASSWORD },
     );
     assert(principalLoginRes.status === 200 || principalLoginRes.status === 201, '执行校长 [zhangjh] 成功登录');
     const principalToken = principalLoginRes.body.data.accessToken;

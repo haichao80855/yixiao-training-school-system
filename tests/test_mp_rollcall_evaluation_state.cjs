@@ -1,208 +1,187 @@
 /**
- * 微信小程序端课次详情课评状态同步专项契约测试
- * 针对用户真实测试班级: 统一结课测试班-934632
- * 验证: Web 端评价并推送后，小程序端课次详情页面学员状态即刻权威流转为「看学情」
+ * 课次详情 (小程序点名页) 的课评状态契约：GET /api/educational/fulfillment/workbench/:id
+ *
+ * 小程序课次详情按每个学员的 isEvaluated / hasPersonalEvaluation / isExempt 决定显示「写课评」还是「看学情」。
+ * 本测试自建班级、学员、课包和排课 (不依赖任何已有数据)，结课后核对接口返回的每个学员状态：
+ *   - 写了专属评语和照片的学员：已评价，且有专属课评
+ *   - 同班只到课、没写专属内容的学员：没有专属课评 (回归：曾经一人推送后全班都显示为已推送)
+ *   - 请假学员：免评
+ * 测完按 ID 清理全部夹具。
  */
-
 const assert = require('assert');
 const http = require('http');
+const { BASE_URL } = require('../server/test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('../server/test-utils/accounts');
+const { PrismaClient } = require('../server/node_modules/@prisma/client');
 
-const HOST = '127.0.0.1';
-const { PORT } = require('../server/test-utils/target');
+const prisma = new PrismaClient();
+let passed = 0;
 
-function request(options, data) {
+function check(cond, desc) {
+  assert.ok(cond, `❌ ${desc}`);
+  passed += 1;
+  console.log(`  ✓ PASS [${passed}]: ${desc}`);
+}
+
+function call(method, urlPath, body, token) {
   return new Promise((resolve, reject) => {
-    const req = http.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => (body += chunk));
+    const u = new URL(BASE_URL + urlPath);
+    const data = body ? JSON.stringify(body) : null;
+    const headers = { 'Content-Type': 'application/json' };
+    if (data) headers['Content-Length'] = Buffer.byteLength(data);
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const req = http.request({ hostname: u.hostname, port: u.port, path: u.pathname, method, headers }, (res) => {
+      let raw = '';
+      res.on('data', (c) => (raw += c));
       res.on('end', () => {
+        let parsed = null;
         try {
-          const parsed = JSON.parse(body);
-          resolve({ status: res.statusCode, body: parsed });
-        } catch (e) {
-          resolve({ status: res.statusCode, raw: body });
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = { raw };
         }
+        resolve({ status: res.statusCode, body: parsed });
       });
     });
     req.on('error', reject);
-    if (data) {
-      req.write(typeof data === 'string' ? data : JSON.stringify(data));
-    }
+    if (data) req.write(data);
     req.end();
   });
 }
 
-async function runTest() {
-  console.log('================================================================================');
-  console.log('小程序端课次详情课评状态双向实时互通专项契约测试');
-  console.log('目标班级: 统一结课测试班-934632');
-  console.log('================================================================================\n');
+async function run() {
+  console.log('='.repeat(80));
+  console.log('课次详情课评状态契约 (fulfillment workbench，自建夹具)');
+  console.log('='.repeat(80));
 
-  // 1. 超管登录
-  const loginRes = await request(
-    {
-      hostname: HOST,
-      port: PORT,
-      path: '/api/auth/login',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-    },
-    { account: 'donghaichao', password: '123456' },
-  );
+  const login = await call('POST', '/api/auth/login', { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD });
+  const token = login.body?.data?.accessToken;
+  check(Boolean(token), '超管登录成功');
 
-  assert(loginRes.status === 200 || loginRes.status === 201, '超管登录成功获取 Token');
-  const token = loginRes.body?.data?.accessToken || loginRes.body?.token;
-  const authHeaders = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  };
+  const campus = (await prisma.campus.findFirst({ where: { status: 'active' } })) || (await prisma.campus.findFirst());
+  const teacher = (await prisma.user.findFirst({ where: { campusId: campus.id } })) || (await prisma.user.findFirst());
+  const course = (await prisma.course.findFirst({ where: { status: 'published' } })) || (await prisma.course.findFirst());
+  check(Boolean(campus && teacher && course), '测试库里有校区、老师和课程');
 
-  // 2. 定位排课日程
-  const targetScheduleId = '9a486f6e-f952-4c5a-b38f-a20a59d5e3bc';
+  const tag = `__t_${Date.now().toString(36)}`;
+  const created = { classrooms: [], classes: [], students: [], packages: [], schedules: [] };
 
-  // 3. 模拟小程序端底层请求 GET /api/educational/fulfillment/workbench/:id
-  const wbRes = await request({
-    hostname: HOST,
-    port: PORT,
-    path: `/api/educational/fulfillment/workbench/${targetScheduleId}`,
-    method: 'GET',
-    headers: authHeaders,
-  });
-
-  assert(wbRes.status === 200, 'GET fulfillment workbench 接口返回 200 OK');
-  const rawData = wbRes.body?.data;
-  assert(rawData && rawData.students && rawData.students.length === 3, '成功返回班级 3 名在读到课学员');
-
-  // 4. 模拟 mini-program/src/api/edu.ts 中 eduApi.getFulfillmentWorkbench 的映射逻辑
-  const mappedStudents = (rawData.students || []).map((s) => {
-    const studentPhotos = Array.isArray(s.photos)
-      ? s.photos
-      : typeof s.photos === 'string'
-        ? JSON.parse(s.photos || '[]')
-        : [];
-    const isStudentEvaluated = Boolean(
-      s.isEvaluated ||
-      s.evaluated ||
-      (studentPhotos && studentPhotos.length > 0) ||
-      s.videoUrl ||
-      s.currentComment ||
-      s.comment
-    );
-    return {
-      studentId: s.studentId,
-      studentNo: s.studentNo,
-      name: s.studentName || s.name || '学员',
-      avatar: s.avatar,
-      status: s.recordedStatus || s.status || s.defaultStatus || 'present',
-      deductLessons: s.deductLessons ?? s.defaultDeductLessons ?? 1,
-      packageId: s.packageId,
-      packageName: s.packageName,
-      remainingLessons: s.remainingLessons ?? 0,
-      phone: s.phone,
-      tag: s.tag || (s.bonusLessons > 0 ? '赠' : '正'),
-      evaluated: isStudentEvaluated,
-      isEvaluated: isStudentEvaluated,
-      isExempt: Boolean(s.isExempt),
-      photos: studentPhotos,
-      videoUrl: s.videoUrl || undefined,
-      comment: s.currentComment || s.comment || undefined,
-      rating: s.currentRating !== undefined ? Number(s.currentRating) : (s.rating !== undefined ? Number(s.rating) : 5),
-      currentComment: s.currentComment || s.comment || undefined,
-      currentRating: s.currentRating !== undefined ? Number(s.currentRating) : undefined,
-      evaluatedAt: s.evaluatedAt || undefined,
-      evaluatedSource: s.evaluatedSource || 'web',
-    };
-  });
-
-  console.log('--- [阶段 1: eduApi.getFulfillmentWorkbench 映射断言] ---');
-  for (const stu of mappedStudents) {
-    console.log(`  学员 [${stu.name}]: isEvaluated=${stu.isEvaluated}, evaluated=${stu.evaluated}, photos=${stu.photos.length}张`);
-    assert(stu.isEvaluated === true, `学员 [${stu.name}] isEvaluated 必须为 true`);
-    assert(stu.evaluated === true, `学员 [${stu.name}] evaluated 必须为 true`);
-    assert(Array.isArray(stu.photos), `学员 [${stu.name}] 专属照片数组必须被完整携带`);
-  }
-  console.log('  ✓ PASS: eduApi 层数据映射 100% 完整无损！\n');
-
-  // 5. 模拟 mini-program/src/coordinators/fulfillment/coordinator.ts 中 loadSession 逻辑
-  console.log('--- [阶段 2: coordinator.loadSession 会话状态装配断言] ---');
-  const sessionStudents = [];
-  for (const s of mappedStudents) {
-    const studentPhotos = Array.isArray(s.photos) ? s.photos : [];
-    const isStudentEvaluated = Boolean(
-      s.isEvaluated ||
-      s.evaluated ||
-      (studentPhotos && studentPhotos.length > 0) ||
-      s.videoUrl ||
-      s.comment
-    );
-    sessionStudents.push({
-      studentId: s.studentId,
-      studentNo: s.studentNo,
-      name: s.name,
-      avatar: s.avatar,
-      status: s.status,
-      deductLessons: s.deductLessons,
-      remainingLessons: s.remainingLessons,
-      rating: s.rating,
-      comment: s.comment,
-      isAnomaly: false,
-      isWechatBound: true,
-      isEvaluated: isStudentEvaluated,
-      isExempt: s.isExempt,
-      photos: studentPhotos,
-      videoUrl: s.videoUrl,
+  try {
+    const classroom = await prisma.classroom.create({ data: { campusId: campus.id, code: `CR-${tag}`, name: `课评状态教室${tag}` } });
+    created.classrooms.push(classroom.id);
+    const cls = await prisma.class.create({
+      data: {
+        campusId: campus.id,
+        courseId: course.id,
+        teacherId: teacher.id,
+        classroomId: classroom.id,
+        name: `课评状态测试班${tag}`,
+        code: `CLS-${tag}`,
+        capacity: 10,
+        status: 'in_progress',
+        startDate: new Date(Date.now() - 86400000 * 30),
+        endDate: new Date(Date.now() + 86400000 * 180),
+      },
     });
-  }
+    created.classes.push(cls.id);
 
-  for (const s of sessionStudents) {
-    assert(s.isEvaluated === true, `会话学员 [${s.name}] isEvaluated 必须为 true`);
-    assert(Array.isArray(s.photos), `会话学员 [${s.name}] photos 数组必须存在`);
-  }
-  console.log('  ✓ PASS: coordinator 会话模型完整保全单学员专属评价状态与多媒体！\n');
-
-  // 6. 模拟 mini-program/src/package-edu/lecture/roll-call.vue 中课次详情视图状态
-  console.log('--- [阶段 3: 课次详情 roll-call.vue UI 按钮状态断言] ---');
-  const viewStudents = sessionStudents.map((s) => {
-    const studentPhotos = s.photos || [];
-    const isStudentEvaluated = Boolean(
-      s.isEvaluated ||
-      s.evaluated ||
-      (studentPhotos.length > 0) ||
-      s.videoUrl ||
-      s.comment
-    );
-    return {
-      studentId: s.studentId,
-      studentNo: s.studentNo,
-      name: s.name,
-      avatar: s.avatar,
-      status: s.status,
-      deductLessons: s.deductLessons,
-      remainingLessons: s.remainingLessons,
-      phone: s.phone,
-      tag: '正',
-      evaluated: isStudentEvaluated,
-      isEvaluated: isStudentEvaluated,
-      isExempt: Boolean(s.isExempt),
-      photos: studentPhotos,
-      videoUrl: s.videoUrl,
-      buttonText: isStudentEvaluated ? '看学情' : '写课评',
+    const mkStudent = async (suffix) => {
+      const s = await prisma.student.create({
+        data: { campusId: campus.id, name: `课评状态${suffix}${tag}`, studentNo: `${tag}${suffix}`, gender: 'male', phone: '13800000000' },
+      });
+      created.students.push(s.id);
+      const p = await prisma.studentCoursePackage.create({
+        data: { studentId: s.id, courseId: course.id, classId: cls.id, totalLessons: 20, remainingLessons: 20, consumedLessons: 0, status: 'active' },
+      });
+      created.packages.push(p.id);
+      return s;
     };
-  });
+    const written = await mkStudent('A'); // 写了专属评语和照片
+    const plain = await mkStudent('B'); // 只到课
+    const onLeave = await mkStudent('C'); // 请假
 
-  for (const v of viewStudents) {
-    console.log(`  UI渲染项 [${v.name}] -> 操作按钮: 【${v.buttonText}】`);
-    assert(v.evaluated === true, `学员 [${v.name}] evaluated 必须为 true`);
-    assert(v.buttonText === '看学情', `学员 [${v.name}] 操作按钮必须展示为「看学情」，坚决杜绝「写课评」误显！`);
+    const schedule = await prisma.scheduleEvent.create({
+      data: {
+        campusId: campus.id,
+        classId: cls.id,
+        teacherId: teacher.id,
+        classroomId: classroom.id,
+        date: '2026-10-18',
+        startTime: '10:00',
+        endTime: '11:30',
+        status: 'scheduled',
+      },
+    });
+    created.schedules.push(schedule.id);
+
+    const before = await call('GET', `/api/educational/fulfillment/workbench/${schedule.id}`, null, token);
+    check(before.status === 200, '结课前工作台接口返回 200');
+    const beforeStudents = before.body?.data?.students || [];
+    check(beforeStudents.length === 3, `结课前返回班级 3 名学员 (实际 ${beforeStudents.length})`);
+    check(beforeStudents.every((s) => s.isEvaluated === false && s.hasPersonalEvaluation === false), '结课前所有学员都显示「写课评」(未评价)');
+
+    const fulfill = await call(
+      'POST',
+      '/api/educational/fulfillment/fulfill',
+      {
+        scheduleEventId: schedule.id,
+        mode: 'FULL_SETTLE',
+        lessonTitle: '第1讲 课评状态契约',
+        studyContentHtml: '全班内容',
+        overallRating: 5,
+        teacherComment: '全班整体评语',
+        anomalyOverrides: [
+          {
+            studentId: written.id,
+            status: 'present',
+            deductLessons: 1,
+            rating: 5,
+            personalizedComment: '学员 A 专属评语',
+            photos: [`/uploads/${tag}/a.jpg`],
+          },
+          { studentId: onLeave.id, status: 'leave', deductLessons: 0 },
+        ],
+      },
+      token,
+    );
+    check(fulfill.status === 201, `结课返回 201 (实际 ${fulfill.status})`);
+
+    const after = await call('GET', `/api/educational/fulfillment/workbench/${schedule.id}`, null, token);
+    check(after.status === 200, '结课后工作台接口返回 200');
+    const byId = new Map((after.body?.data?.students || []).map((s) => [s.studentId, s]));
+    const a = byId.get(written.id);
+    const b = byId.get(plain.id);
+    const c = byId.get(onLeave.id);
+    check(a && b && c, '结课后三名学员都在返回结果里');
+
+    check(a.recordedStatus === 'present' && b.recordedStatus === 'present' && c.recordedStatus === 'leave', '点名结果落库：A、B 到课，C 请假');
+    check(a.isEvaluated === true && a.hasPersonalEvaluation === true, '学员 A 写了专属课评：已评价，显示「看学情」');
+    check(a.currentComment === '学员 A 专属评语' && a.photos.length === 1, '学员 A 带出自己的评语和照片');
+    check(b.hasPersonalEvaluation === false, '学员 B 没写专属内容：不算已推送专属课评 (不被 A 带成已推送)');
+    check(!b.photos.length && b.currentComment !== '学员 A 专属评语', '学员 B 不会串到 A 的评语和照片');
+    check(c.isExempt === true, '请假学员 C 为免评');
+  } finally {
+    // 结课发布课评时会给校区负责人发一条站内通知 (按课评 ID 去重)，先删掉
+    const evaluations = await prisma.lessonEvaluation.findMany({ where: { scheduleEventId: { in: created.schedules } }, select: { id: true } });
+    await prisma.staffNotification.deleteMany({
+      where: { dedupeKey: { in: evaluations.map((e) => `evaluation_published:${e.id}`) } },
+    });
+    // 课评、课评学员条目、修订和推送队列都随排课级联删除
+    await prisma.attendanceRecord.deleteMany({ where: { scheduleEventId: { in: created.schedules } } });
+    await prisma.scheduleEvent.deleteMany({ where: { id: { in: created.schedules } } });
+    await prisma.studentCoursePackage.deleteMany({ where: { id: { in: created.packages } } });
+    await prisma.student.deleteMany({ where: { id: { in: created.students } } });
+    await prisma.class.deleteMany({ where: { id: { in: created.classes } } });
+    await prisma.classroom.deleteMany({ where: { id: { in: created.classrooms } } });
+    await prisma.$disconnect();
+    console.log('  · 测试夹具已按 ID 清理');
   }
-  console.log('  ✓ PASS: 课次详情页所有学员状态 100% 正确流转为【看学情】！\n');
 
-  console.log('================================================================================');
-  console.log('🎉 验证成功！班级「统一结课测试班-934632」在小程序端课次详情已彻底流转为「看学情」！');
-  console.log('================================================================================');
+  console.log(`\n🎉 课次详情课评状态契约 ${passed} 项全部通过\n`);
 }
 
-runTest().catch((err) => {
-  console.error('测试失败:', err);
+run().catch(async (err) => {
+  console.error('测试失败:', err.message || err);
+  await prisma.$disconnect().catch(() => {});
   process.exit(1);
 });

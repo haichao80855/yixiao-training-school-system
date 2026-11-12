@@ -3,6 +3,8 @@
  */
 const assert = require('assert');
 const http = require('http');
+const { PORT } = require('../server/test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('../server/test-utils/accounts');
 
 global.Page = function() {};
 global.Component = function() {};
@@ -23,7 +25,7 @@ function postJson(path, payload) {
     const postData = JSON.stringify(payload);
     const req = http.request({
       hostname: '127.0.0.1',
-      port: 3001,
+      port: PORT,
       path,
       method: 'POST',
       headers: {
@@ -51,7 +53,7 @@ function httpGet(path, token) {
   return new Promise((resolve, reject) => {
     http.get({
       hostname: '127.0.0.1',
-      port: 3001,
+      port: PORT,
       path,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -79,8 +81,8 @@ async function runTests() {
   // 先登录获取有效 JWT Token
   console.log('【0】登录系统获取 JWT Token');
   const loginRes = await postJson('/api/auth/login', {
-    account: 'donghaichao',
-    password: '123456',
+    account: ACCOUNTS.superAdmin,
+    password: SEED_PASSWORD,
   });
   assert(loginRes && loginRes.data && loginRes.data.accessToken, '应成功获取登录 Token');
   const token = loginRes.data.accessToken;

@@ -6,6 +6,7 @@
 const assert = require('assert');
 
 const { BASE_URL } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 
 let passed = 0;
 function logPass(msg) {
@@ -46,7 +47,7 @@ async function runTests() {
   console.log('================================================================================\n');
 
   // 1. 超管登录
-  const adminLogin = await login('donghaichao', '123456');
+  const adminLogin = await login(ACCOUNTS.superAdmin, SEED_PASSWORD);
   assert.ok(adminLogin.token, '超级管理员必须成功登录');
   logPass('超级管理员成功登录并签发 JWT');
   const adminHeaders = { Authorization: `Bearer ${adminLogin.token}` };
@@ -77,9 +78,9 @@ async function runTests() {
   logPass('超管在 4 级 RBAC 角色中为教师成功开通排课看板、班级管理与教学讲台权限（无 system:user:view）');
 
   // 4. 登录教师账号 (优先 teacher_zhang，兼容 zhaolp)
-  let teacherLogin = await login('teacher_zhang', '123456');
+  let teacherLogin = await login('teacher_zhang', SEED_PASSWORD);
   if (!teacherLogin.token) {
-    teacherLogin = await login('zhaolp', '123456');
+    teacherLogin = await login(ACCOUNTS.teacher, SEED_PASSWORD);
   }
   assert.ok(teacherLogin.token, '教师账号登录成功');
   const teacherHeaders = { Authorization: `Bearer ${teacherLogin.token}` };
@@ -129,29 +130,14 @@ async function runTests() {
   assert.strictEqual(hackPwdRes.status, 403, '教师越权重置他人密码被坚决拦截 (403)');
   logPass('【安全红线未失守】教师越权重置他人密码被坚决拦截 (403 Forbidden: 缺少 system:user:resetPwd)');
 
-  // 10. 安全复原：恢复教师角色标准种子权限 (不包含 classManagement 等管理权限)
-  const standardTeacherPerms = [
-    'curriculum:view',
-    'curriculum:courseManage',
-    'curriculum:course:add',
-    'curriculum:course:edit',
-    'curriculum:course:delete',
-    'curriculum:course:auth',
-    'curriculum:course:status',
-    'curriculum:lessonPlan',
-    'curriculum:lessonPlan:add',
-    'curriculum:lessonPlan:preview',
-    'curriculum:subject',
-    'educational:workbench',
-    'educational:workbench:attend',
-    'educational:timeSchedule',
-    'educational:schedule:collision',
-  ];
-  await request(`/api/system/roles/${teacherRole.id}/permissions`, {
+  // 10. 安全复原：把教师角色权限恢复成测试开始前读到的原样 (以前写死了一份清单，和种子数据对不上)
+  assert.ok(originalPerms.length > 0, '测试开始时读到了教师角色的原有权限');
+  const restoreRes = await request(`/api/system/roles/${teacherRole.id}/permissions`, {
     method: 'POST',
     headers: adminHeaders,
-    body: JSON.stringify({ permissionCodes: standardTeacherPerms }),
+    body: JSON.stringify({ permissionCodes: originalPerms }),
   });
+  assert.ok(restoreRes.status === 200 || restoreRes.status === 201, '教师角色权限恢复成功');
   logPass('测试环境安全复原：教师角色权限已平滑还原为标准配置');
 
   console.log('\n================================================================================');

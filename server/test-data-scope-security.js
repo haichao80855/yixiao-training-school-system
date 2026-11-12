@@ -13,6 +13,7 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 const HOST = '127.0.0.1';
 
 function checkPort(port, host = '127.0.0.1') {
@@ -54,7 +55,7 @@ function request(options, data) {
   });
 }
 
-async function login(account, password = '123456') {
+async function login(account, password = SEED_PASSWORD) {
   const res = await request(
     {
       hostname: HOST,
@@ -121,7 +122,7 @@ async function runSecurityTests() {
 
   try {
     // 1. 准备测试主体与跨校区目标实体
-    const superAdminToken = await login('donghaichao', '123456');
+    const superAdminToken = await login(ACCOUNTS.superAdmin, SEED_PASSWORD);
 
     // 获取总部校区 (campus-bj-hq) 与 远洋校区 (campus-bj-yy)
     const hqCampus = await prisma.campus.findUnique({ where: { id: 'campus-bj-hq' } });
@@ -133,7 +134,7 @@ async function runSecurityTests() {
       where: { campusId: 'campus-bj-yy', account: 'yy_teacher_test' },
     });
     const bcrypt = require('bcryptjs');
-    const pwdHash = await bcrypt.hash('123456', 10);
+    const pwdHash = await bcrypt.hash(SEED_PASSWORD, 10);
     const principalRole = await prisma.role.findFirst({ where: { code: 'principal' } });
 
     if (!yyUser) {
@@ -167,7 +168,7 @@ async function runSecurityTests() {
         });
       }
     }
-    const yyToken = await login('yy_teacher_test', '123456');
+    const yyToken = await login('yy_teacher_test', SEED_PASSWORD);
     assert(!!yyToken, '远洋分校测试员工成功登录并获取专属 JWT Token');
 
     // 获取总部校区的一个有效学员 (HQ Student)

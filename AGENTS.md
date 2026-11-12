@@ -14,7 +14,7 @@ This repository contains three clients and one backend for the **一校教培系
   - `server/src/modules/`: `auth`, `curriculum`, `student`, `educational`, `financial`, `system`, `data-scope` (campus data-permission policy), `parent` (parent portal and WeChat login), `teacher-portal`, `upload` (media upload and Aliyun OSS links), `staff-notification` (in-app notices for principals and above: evaluation published, low lesson balance; shown in the admin header bell). Teacher pay (`financial` module, `teacher-pay.*`, page `/financial/teacherPay`) is computed from roll-call records and is visible only to principals and above (`common/campus-leader.policy.ts`); the rules are stored per campus in `SystemSetting`.
   - Most modules keep their domain logic in `domain/` (coordinators, engines, projectors); controllers and services stay thin. The ADRs in `docs/adr/` describe these modules.
   - `server/prisma/`: `schema.prisma` (the active schema), `schema.sqlite.prisma` / `schema.postgresql.prisma` (the sources it is copied from), and `seed.ts`. There is no migrations folder; schema changes go through `prisma db push`. The local database `server/prisma/dev.db` is git-ignored.
-- `tests/`: Tiered suites (`tier1_core` … `tier4_e2e_scenarios`, `tier5_adversarial_suite_*.cjs`), adversarial/challenger scripts, mini-program contract tests (`test_mp_*.cjs`), and E2E runners.
+- `tests/`: The test list (`suites.json`), runner and isolated environment, full-stack and integration tests, mini-program contract tests (`test_mp_*.cjs`), and `unit/` (tests for the real `src/utils`). See `TEST_INFRA.md`.
 - `scripts/`: Browser walkthroughs, DB maintenance (`db_stats`, `clear_*`), and campus provisioning (`provision_campuses.cjs`).
 - `deploy/`: Aliyun ECS deployment (`deploy-to-aliyun.sh`, nginx, docker-compose) and `deploy/backup/` (daily DB backup to OSS, alerting, restore; see its README).
 - Root docs: `README.md`, `PROJECT.md`, `GLOSSARY.md` (domain vocabulary), `TEST_INFRA.md`, `docs/adr/`.
@@ -64,12 +64,13 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
 - Parent H5 media: videos get a poster image and `preload="none"`. Carousels load only the current and neighboring full-size images. OSS thumbnails are not WebP yet, because the same links serve the WeChat mini-program and iOS `<image>` needs the `webp` attribute.
 
 ## Testing Guidelines
-- **Suites**: Custom tiered runner (`tests/runner.js`), Node.js assertions, and Puppeteer for E2E scenarios.
+- **Overview**: `TEST_INFRA.md` describes the layout and rules. `docs/test-improvement-plan.md` holds the improvement plan.
 - **Organization**:
-  - `tests/tier1~tier5`: Unit contracts, boundaries, pairwise states, and adversarial tests.
-  - `tests/e2e_full_stack_integration.cjs`: End-to-end integration flows.
-  - `server/test-*.js`: Backend API and domain validations.
-  - `tests/test_mp_*.cjs`: Mini-program coordinator/projector contracts and adversarial checks.
+  - `server/test-*.js`: Backend API and domain tests against a live backend.
+  - `tests/*.cjs`: Full-stack and roll-call/evaluation integration, mini-program contracts, and source checks.
+  - `tests/unit/*.test.js`: Unit tests for the real `src/utils` modules.
+    - They load TypeScript directly through `tests/helpers/load-ts.cjs` and are run by `tests/runner.js`.
+    - The old Tier 1–5 suites tested hand-written copies in `tests/contracts/` and the unused `src/mocks` data, so they were removed. Don't reintroduce copied business logic in tests.
 - **Run tests in isolation.** `npm run test:all` / `test:server` (`tests/isolated-env.cjs`) do the following:
   - Copy nothing from `dev.db`. They create a temporary SQLite database with `prisma db push` and the seed.
   - Start `server/dist/main.js` on a random port, rebuilding it first if `server/src` is newer.
@@ -78,6 +79,12 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
 - **One list of tests: `tests/suites.json`.** It is grouped by domain and read by `test:all`, `test:server`, the deploy gate and CI.
   - Register every new `server/test-*.js` there. The runner (`tests/run-suite.cjs`) fails when a backend test is missing from the list.
   - `needs` marks what a test requires. Tests whose build output (`mp-dist` / `h5-dist`) is missing or older than `mini-program/src` are reported as skipped, because a stale build would test old code. `skip` records a known reason to skip.
+- **Test accounts.** Log in with `server/test-utils/accounts.js` (`ACCOUNTS.superAdmin`, `principal`, `finance`, `teacher`, `advisor`, and `SEED_PASSWORD`). Prefer a business role over the super admin, because the super admin hides permission bugs.
+- **Leftover check.** In isolated runs, the runner counts rows before and after every backend test.
+  - New rows a test leaves behind are listed under 「清理遗漏」 in the summary and then deleted, so the next test sees the original database.
+  - Tables where a test changed existing rows are reported but not restored.
+  - This only runs on a database inside the system temp dir.
+  - Fix a test's own cleanup when it shows up there.
 - **Server address in tests.** Tests get it from `server/test-utils/target.js` (`TEST_BASE_URL`, then `PORT`, then 3001). Don't hardcode ports or hosts in new tests.
 - **Environment guard (`tests/env-guard.cjs`).**
   - Running `node tests/run-suite.cjs` against an existing server is refused for a remote host, a missing `DATABASE_URL`, `dev.db`, or port 3001.

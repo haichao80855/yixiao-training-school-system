@@ -4,8 +4,9 @@
  * 需要后端已运行：PORT=3187 node test-staff-admin-boundary.js
  */
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD } = require('./test-utils/accounts');
 const BASE = `http://127.0.0.1:${PORT}`;
-const PASSWORD = '123456';
+const PASSWORD = SEED_PASSWORD;
 const stamp = Date.now().toString(36);
 
 let passed = 0;

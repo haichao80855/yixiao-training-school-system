@@ -6,6 +6,7 @@
 const http = require('http');
 
 const { BASE_URL } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 
 function request(method, path, body = null, headers = {}) {
   return new Promise((resolve, reject) => {
@@ -74,8 +75,8 @@ async function runTests() {
     // 1. 超级管理员登录
     console.log('👉 测试 1: 超级管理员登录系统');
     const adminLoginRes = await request('POST', '/api/auth/login', {
-      account: 'donghaichao',
-      password: '123456',
+      account: ACCOUNTS.superAdmin,
+      password: SEED_PASSWORD,
     });
     assert(
       adminLoginRes.statusCode === 200 || adminLoginRes.statusCode === 201,
@@ -97,7 +98,7 @@ async function runTests() {
         campusId: 'campus-bj-hq',
         roleId: 'r4',
         dataScope: 'self',
-        password: '123456',
+        password: SEED_PASSWORD,
       },
       {
         Authorization: `Bearer ${adminToken}`,
@@ -114,7 +115,7 @@ async function runTests() {
     console.log('\n👉 测试 3: 使用【工号】及默认初始密码 123456 登录系统');
     const loginByAccountRes = await request('POST', '/api/auth/login', {
       account: testAccount,
-      password: '123456',
+      password: SEED_PASSWORD,
     });
     assert(
       loginByAccountRes.statusCode === 200 || loginByAccountRes.statusCode === 201,
@@ -129,7 +130,7 @@ async function runTests() {
     console.log('\n👉 测试 4: 使用【手机号】及密码 123456 登录系统 (双轨登录核心修复点)');
     const loginByPhoneRes = await request('POST', '/api/auth/login', {
       account: testPhone,
-      password: '123456',
+      password: SEED_PASSWORD,
     });
     assert(
       loginByPhoneRes.statusCode === 200 || loginByPhoneRes.statusCode === 201,
@@ -188,7 +189,7 @@ async function runTests() {
     console.log('\n👉 测试 7: 未注册手机号登录校验');
     const nonexistentRes = await request('POST', '/api/auth/login', {
       account: '19999999999',
-      password: '123456',
+      password: SEED_PASSWORD,
     });
     assert(
       nonexistentRes.statusCode === 401,
@@ -239,13 +240,13 @@ async function runTests() {
     );
     assert(updatePhoneRes.statusCode === 200, '修改为合法手机号成功');
 
-    const loginNewPhoneRes = await request('POST', '/api/auth/login', { account: newPhone, password: '123456' });
+    const loginNewPhoneRes = await request('POST', '/api/auth/login', { account: newPhone, password: SEED_PASSWORD });
     assert(
       (loginNewPhoneRes.statusCode === 200 || loginNewPhoneRes.statusCode === 201) &&
         loginNewPhoneRes.body.user?.account === testAccount,
       '新手机号可登录并识别到原账号',
     );
-    const loginOldPhoneRes = await request('POST', '/api/auth/login', { account: testPhone, password: '123456' });
+    const loginOldPhoneRes = await request('POST', '/api/auth/login', { account: testPhone, password: SEED_PASSWORD });
     assert(loginOldPhoneRes.statusCode === 401, '旧手机号不再可用于登录');
 
     // 10. 号码未变化时不校验格式：历史不规范号码不阻塞改角色
