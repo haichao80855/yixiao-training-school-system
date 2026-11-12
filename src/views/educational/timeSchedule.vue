@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 space-y-3.5 bg-gray-50 min-h-screen">
+  <div class="p-5 space-y-3.5 bg-st-header min-h-screen">
 
     <!-- 顶部子 Tab 切换条 (对标截图: 上课日历 / 课表汇总 / 时间课表 / 教室课表 / 讲师课表 / 班级课表 / 冲突记录) -->
     <div class="bg-white rounded-lg border border-st-border px-5 py-2.5 shadow-sm flex items-center justify-between">
@@ -17,7 +17,7 @@
           @click="handleSubTabChange(tab.key)"
         >
           {{ tab.name }}
-          <span v-if="tab.key === 'conflictRecord' && campusConflictCount > 0" class="ml-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-xs">
+          <span v-if="tab.key === 'conflictRecord' && campusConflictCount > 0" class="ml-1 px-1.5 py-0.2 rounded-full bg-st-danger text-white text-xs">
             {{ campusConflictCount }}
           </span>
         </el-button>
@@ -85,7 +85,7 @@
         </div>
         <div class="flex items-center space-x-2">
           <el-button type="danger" plain @click="openConflictCenter">
-            <template #icon><Zap class="w-3.5 h-3.5" /></template>
+            <template #icon><Zap class="w-4 h-4" /></template>
             冲突检测中心 ({{ campusConflictCount }})
           </el-button>
           <el-button @click="handleExport">
@@ -101,13 +101,13 @@
     <!-- 冲突预警提示横条（当有冲突课次时展现） -->
     <div
       v-if="campusConflictCount > 0"
-      class="bg-rose-50 border border-rose-300 rounded-lg p-3 text-xs text-rose-800 flex items-center justify-between shadow-sm animate-pulse"
+      class="bg-st-danger-light border border-st-danger-border rounded-lg p-3 text-xs text-st-danger-deep flex items-center justify-between shadow-sm animate-pulse"
     >
       <div class="flex items-center space-x-2">
-        <AlertTriangle class="w-4 h-4 text-rose-600 shrink-0" />
+        <AlertTriangle class="w-4 h-4 text-st-danger shrink-0" />
         <span>
           三维碰撞检测引擎在当前校区 [<b>{{ currentCampus.name }}</b>] 发现
-          <b class="text-rose-600 text-sm font-extrabold mx-0.5">{{ campusConflictCount }}</b> 处日程重叠冲突（讲师/物理教室时段碰撞），排课卡片已自动红框警示！
+          <b class="text-st-danger text-sm font-extrabold mx-0.5">{{ campusConflictCount }}</b> 处日程重叠冲突（讲师/物理教室时段碰撞），排课卡片已自动红框警示！
         </span>
       </div>
       <el-button type="danger" plain @click="openConflictCenter">
@@ -140,8 +140,8 @@
           <span class="text-st-danger font-medium">冲突日程</span>
         </div>
         <div class="flex items-center space-x-1.5">
-          <span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
-          <span class="text-purple-700">我的日程</span>
+          <span class="w-3 h-3 rounded-full bg-st-purple inline-block"></span>
+          <span class="text-st-purple">我的日程</span>
         </div>
         <div class="flex items-center space-x-1.5">
           <span class="w-3 h-3 rounded-full bg-st-primary inline-block"></span>
@@ -155,8 +155,8 @@
       <div class="overflow-x-auto w-full min-w-0">
         <div class="min-w-[840px]">
           <!-- 星期表头 (7 天) -->
-          <div class="grid grid-cols-[80px_repeat(7,1fr)] bg-gray-50 border-b border-st-border text-xs font-semibold text-st-title text-center select-none sticky top-0 z-20">
-            <div class="py-2.5 border-r border-st-border bg-gray-100/70 text-st-muted flex items-center justify-center">
+          <div class="grid grid-cols-[80px_repeat(7,1fr)] bg-st-header border-b border-st-border text-xs font-semibold text-st-title text-center select-none sticky top-0 z-20">
+            <div class="py-2.5 border-r border-st-border bg-st-fill text-st-muted flex items-center justify-center">
               时间 / 星期
             </div>
         <div
@@ -164,7 +164,7 @@
           :key="day.date"
           :class="[
             'py-2.5 border-r border-st-border last:border-r-0 transition-colors',
-            day.isToday ? 'bg-blue-50/70 text-st-primary' : 'bg-gray-50'
+            day.isToday ? 'bg-st-primary-light/70 text-st-primary' : 'bg-st-header'
           ]"
         >
           <div class="flex items-center justify-center gap-1">
@@ -181,10 +181,10 @@
           <div
             v-for="hour in hours"
             :key="hour"
-            class="grid grid-cols-[80px_repeat(7,1fr)] h-[60px] border-b border-gray-200 relative"
+            class="grid grid-cols-[80px_repeat(7,1fr)] h-[60px] border-b border-st-border relative"
           >
             <!-- 左侧时间刻度标签 -->
-            <div class="border-r border-st-border bg-gray-50/80 text-xs font-mono text-st-muted flex items-start justify-center pt-1 select-none">
+            <div class="border-r border-st-border bg-st-header text-xs font-mono text-st-muted flex items-start justify-center pt-1 select-none">
               {{ String(hour).padStart(2, '0') }}:00
             </div>
 
@@ -192,15 +192,15 @@
             <div
               v-for="day in currentWeekDays"
               :key="day.fullDate"
-              class="border-r border-gray-200 last:border-r-0 relative group hover:bg-sky-50/20 transition-colors cursor-pointer"
+              class="border-r border-st-border last:border-r-0 relative group hover:bg-st-primary-light/20 transition-colors cursor-pointer"
               @click="handleGridCellClick(day.fullDate, hour)"
             >
               <!-- 30 分钟半小时虚线分割线 -->
-              <div class="absolute top-[30px] left-0 right-0 border-t border-dashed border-gray-200 pointer-events-none"></div>
+              <div class="absolute top-[30px] left-0 right-0 border-t border-dashed border-st-border pointer-events-none"></div>
 
               <!-- 悬浮微小提示 -->
               <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span class="text-xs text-st-primary/80 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-sky-100">
+                <span class="text-xs text-st-primary/80 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-st-primary-border">
                   + 点击排课
                 </span>
               </div>
@@ -221,8 +221,8 @@
               class="absolute left-0 right-0 z-30 pointer-events-none flex items-center"
               :style="{ top: `${currentMinuteLineTop}px` }"
             >
-              <span class="w-2 h-2 rounded-full bg-rose-500 -ml-1"></span>
-              <div class="w-full border-t-2 border-rose-500 shadow-sm"></div>
+              <span class="w-2 h-2 rounded-full bg-st-danger -ml-1"></span>
+              <div class="w-full border-t-2 border-st-danger shadow-sm"></div>
             </div>
 
             <!-- 渲染分配好的 Lane 日程卡片 -->
@@ -261,8 +261,8 @@
 
                 <!-- 底部：地点与讲师 -->
                 <div class="text-xs space-y-0.5 pt-0.5 border-t border-black/5 opacity-90 truncate">
-                  <div class="truncate flex items-center gap-1"><MapPin class="w-3 h-3 shrink-0" /> {{ laneEvt.event.classroomName }}</div>
-                  <div class="truncate flex items-center gap-1"><User class="w-3 h-3 shrink-0" /> {{ laneEvt.event.teacherName }}</div>
+                  <div class="truncate flex items-center gap-1"><MapPin class="w-4 h-4 shrink-0" /> {{ laneEvt.event.classroomName }}</div>
+                  <div class="truncate flex items-center gap-1"><User class="w-4 h-4 shrink-0" /> {{ laneEvt.event.teacherName }}</div>
                 </div>
               </div>
             </div>
@@ -283,7 +283,7 @@
         <div
           v-for="room in classrooms"
           :key="room.id"
-          class="border border-st-border rounded-lg p-3 bg-gray-50 space-y-2.5"
+          class="border border-st-border rounded-lg p-3 bg-st-header space-y-2.5"
         >
           <div class="flex items-center justify-between">
             <span class="font-bold text-st-title text-sm flex items-center gap-1.5"><MapPin class="w-4 h-4 text-st-primary" /> {{ room.name }}</span>
@@ -302,7 +302,7 @@
               </div>
               <div class="text-xs text-st-muted flex justify-between">
                 <span>{{ evt.startTime }}-{{ evt.endTime }}</span>
-                <span class="flex items-center gap-1"><User class="w-3 h-3" /> {{ evt.teacherName }}</span>
+                <span class="flex items-center gap-1"><User class="w-4 h-4" /> {{ evt.teacherName }}</span>
               </div>
             </div>
             <div v-if="getEventsByClassroom(room.id).length === 0" class="text-center py-6 text-st-muted text-xs">
@@ -323,7 +323,7 @@
         <div
           v-for="t in teachers"
           :key="t.id"
-          class="border border-st-border rounded-lg p-3 bg-gray-50 space-y-2.5"
+          class="border border-st-border rounded-lg p-3 bg-st-header space-y-2.5"
         >
           <div class="flex items-center justify-between">
             <span class="font-bold text-st-title text-sm flex items-center gap-1.5"><User class="w-4 h-4 text-st-primary" /> {{ t.name }}</span>
@@ -342,7 +342,7 @@
               </div>
               <div class="text-xs text-st-muted flex justify-between">
                 <span>{{ evt.startTime }}-{{ evt.endTime }}</span>
-                <span class="inline-flex items-center gap-0.5"><MapPin class="w-3 h-3 text-amber-500" />{{ evt.classroomName }}</span>
+                <span class="inline-flex items-center gap-0.5"><MapPin class="w-4 h-4 text-st-warning" />{{ evt.classroomName }}</span>
               </div>
             </div>
             <div v-if="getEventsByTeacher(t.id).length === 0" class="text-center py-6 text-st-muted text-xs">
@@ -426,10 +426,9 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { MapPin, Zap, AlertTriangle, User, Lock } from 'lucide-vue-next'
+import { MapPin, Zap, AlertTriangle, User, Lock, ChevronLeft as ArrowLeft, ChevronRight as ArrowRight } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'

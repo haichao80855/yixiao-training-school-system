@@ -11,7 +11,7 @@
     <!-- 底部操作/筛选联动工具栏 -->
     <div
       v-if="$slots.footer"
-      class="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-gray-100"
+      class="flex flex-wrap items-center justify-between gap-2.5 pt-2 border-t border-st-divider"
     >
       <slot name="footer" />
     </div>

@@ -7,7 +7,7 @@
     :close-on-click-modal="false"
   >
     <div v-if="student" class="space-y-4">
-      <div class="p-3 bg-slate-50 border rounded flex items-center justify-between text-xs">
+      <div class="p-3 bg-st-header border rounded flex items-center justify-between text-xs">
         <div>
           <span class="font-bold text-st-title">{{ student.name }}</span>
           <span class="text-st-muted font-mono ml-2">{{ student.studentNo }}</span>
@@ -21,17 +21,17 @@
       <!-- 摄像头取景模拟框 -->
       <div class="relative bg-slate-900 rounded-lg overflow-hidden h-64 flex flex-col items-center justify-center text-white border-2 border-slate-700">
         <!-- 取景辅助圆框 -->
-        <div class="w-40 h-40 rounded-full border-2 border-dashed border-blue-400 flex items-center justify-center relative">
+        <div class="w-40 h-40 rounded-full border-2 border-dashed border-st-primary flex items-center justify-center relative">
           <img
             :src="capturedImage || student.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120'"
             class="w-36 h-36 rounded-full object-cover"
           />
-          <div v-if="scanning" class="absolute inset-0 bg-blue-500/20 rounded-full animate-pulse flex items-center justify-center">
+          <div v-if="scanning" class="absolute inset-0 bg-st-primary/20 rounded-full animate-pulse flex items-center justify-center">
             <span class="text-xs font-bold text-blue-200">特征点提取中...</span>
           </div>
         </div>
 
-        <div class="absolute bottom-3 text-xs text-slate-300">
+        <div class="absolute bottom-3 text-xs text-st-placeholder">
           {{ scanning ? '正在比对人脸关键点 (128维特征向量)...' : '请正对摄像头，保持光线充足与面部无遮挡' }}
         </div>
       </div>

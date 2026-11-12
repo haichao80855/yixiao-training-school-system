@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
+    "lint:ui": "node scripts/ui-lint.cjs",
     "type-check": "vue-tsc --noEmit",
     "server:dev": "cd server && npm run start:dev",
     "server:build": "cd server && npm run build",

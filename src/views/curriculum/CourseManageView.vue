@@ -2,7 +2,7 @@
   <div class="p-5 space-y-4 bg-st-bg min-h-[calc(100vh-60px)]">
 
     <!-- 胶囊筛选矩阵与综合检索卡片 -->
-    <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 space-y-3.5">
+    <div class="bg-white rounded-lg p-5 shadow-sm border border-st-border space-y-3.5">
       <!-- 适用年级胶囊 -->
       <CapsuleFilter
         v-model="selectedGrade"
@@ -128,7 +128,7 @@
     <!-- 列表顶部操作栏 -->
     <div class="flex items-center justify-between pt-1">
       <div class="flex items-center space-x-3">
-        <h3 class="text-base font-bold text-gray-800">课程列表</h3>
+        <h3 class="text-base font-bold text-st-title">课程列表</h3>
         <span class="text-xs text-st-secondary">共检索到 {{ filteredCourses.length }} 门课程</span>
       </div>
       <div class="flex items-center space-x-2.5">
@@ -150,10 +150,10 @@
         v-for="course in pagedCourses"
         :key="course.id"
         @click="openEditDialog(course)"
-        class="bg-white rounded-lg overflow-hidden border border-gray-200/90 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group select-none"
+        class="bg-white rounded-lg overflow-hidden border border-st-border shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col justify-between group select-none"
       >
         <!-- 封面图容器 (16:9 黄金比例) -->
-        <div class="relative aspect-video w-full bg-slate-100 overflow-hidden">
+        <div class="relative aspect-video w-full bg-st-fill overflow-hidden">
           <img
             :src="course.cover"
             :alt="course.name"
@@ -182,7 +182,7 @@
           <div>
             <!-- 课程标题：2 行溢出省略号 -->
             <h4
-              class="font-bold text-sm text-gray-800 line-clamp-2 leading-snug group-hover:text-st-primary transition-colors"
+              class="font-bold text-sm text-st-title line-clamp-2 leading-snug group-hover:text-st-primary transition-colors"
               :title="course.name"
             >
               {{ course.name }}
@@ -190,13 +190,13 @@
 
             <!-- 标签行：[授权] 橙色标签 + 蓝色体系胶囊 -->
             <div class="flex flex-wrap gap-1.5 mt-2.5 items-center">
-              <span class="px-1.5 py-0.5 text-xs rounded border border-orange-400 bg-orange-50 text-orange-600 font-semibold">
+              <span class="px-1.5 py-0.5 text-xs rounded border border-st-warning bg-st-warning-light text-st-warning font-semibold">
                 授权
               </span>
               <span
                 v-for="(tag, tIdx) in getDisplayTags(course)"
                 :key="tIdx"
-                class="px-1.5 py-0.5 text-xs rounded border border-st-primary/30 bg-blue-50/80 text-st-primary font-normal truncate max-w-[170px]"
+                class="px-1.5 py-0.5 text-xs rounded border border-st-primary/30 bg-st-primary-light/80 text-st-primary font-normal truncate max-w-[170px]"
               >
                 {{ tag }}
               </span>
@@ -214,7 +214,7 @@
 
           <!-- 底部 Switch 开关状态条 -->
           <div
-            class="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100"
+            class="flex items-center justify-between mt-3 pt-2.5 border-t border-st-divider"
             @click.stop
           >
             <div class="flex items-center space-x-1.5">
@@ -246,7 +246,7 @@
     <!-- 空数据状态 (AppEmpty 集成) -->
     <div
       v-else
-      class="bg-white rounded-lg p-10 text-center border border-gray-200 shadow-sm"
+      class="bg-white rounded-lg p-10 text-center border border-st-border shadow-sm"
     >
       <AppEmpty
         type="search"
@@ -280,11 +280,11 @@
       class="rounded-xl"
     >
       <div class="space-y-4 text-xs">
-        <div class="p-3 bg-blue-50 text-blue-800 rounded">
+        <div class="p-3 bg-st-primary-light text-st-primary-active rounded">
           将所选校区的开课权限批量应用至当前筛选出的 {{ filteredCourses.length }} 门课程。
         </div>
         <div class="space-y-2">
-          <div class="font-semibold text-gray-700">请选择目标授权实体校区：</div>
+          <div class="font-semibold text-st-regular">请选择目标授权实体校区：</div>
           <el-checkbox-group v-model="batchSelectedCampuses" class="grid grid-cols-2 gap-2">
             <el-checkbox
               v-for="campus in tenantStore.campuses"

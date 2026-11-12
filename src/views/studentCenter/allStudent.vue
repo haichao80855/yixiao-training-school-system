@@ -84,7 +84,7 @@
       <template #footer>
         <div class="text-xs text-st-muted flex items-center space-x-2">
           <span>匹配结果：共 <b class="text-st-primary font-bold">{{ totalCount }}</b> 位学员档案</span>
-          <span v-if="selectedRows.length > 0" class="text-indigo-600 font-semibold">
+          <span v-if="selectedRows.length > 0" class="text-st-primary font-semibold">
             (已勾选 {{ selectedRows.length }} 项)
           </span>
         </div>
@@ -160,11 +160,11 @@
                     title="拨打家长电话"
                     aria-label="拨打家长电话"
                   >
-                    <Phone class="w-3.5 h-3.5 ml-0.5" />
+                    <Phone class="w-4 h-4 ml-0.5" />
                   </a>
                 </div>
                 <div class="text-xs text-st-secondary mt-0.5 flex items-center space-x-1">
-                  <span v-if="row.wechatBound" class="text-emerald-600">● 微信已绑</span>
+                  <span v-if="row.wechatBound" class="text-st-success">● 微信已绑</span>
                   <span v-else class="text-st-secondary">○ 微信未绑</span>
                 </div>
               </div>
@@ -220,7 +220,7 @@
                   <span v-if="g.hasUnassigned" class="text-st-warning">{{ g.classNames ? ' · 含待分班' : '待分班' }}</span>
                 </div>
                 <div class="text-xs flex items-center justify-between text-st-secondary">
-                  <span>剩余: <b class="text-emerald-600 font-bold font-mono">{{ g.remainingLessons }}</b> / {{ g.totalLessons }} 课时</span>
+                  <span>剩余: <b class="text-st-success font-bold font-mono">{{ g.remainingLessons }}</b> / {{ g.totalLessons }} 课时</span>
                   <el-tag size="small" :type="g.status === 'active' ? 'success' : 'warning'" class="scale-90">
                     {{ g.status === 'active' ? '正常' : g.status === 'frozen' ? '冻结' : '结课' }}
                   </el-tag>
@@ -276,7 +276,7 @@
                   余 {{ remainingOf(row) }} 课时
                 </span>
               </div>
-              <div v-if="row.consumptionHealth?.dormantRisk && row.consumptionHealth.dormantRisk !== 'active'" class="text-xs text-purple-600 font-semibold">
+              <div v-if="row.consumptionHealth?.dormantRisk && row.consumptionHealth.dormantRisk !== 'active'" class="text-xs text-st-purple font-semibold">
                 停消休眠 {{ typeof row.consumptionHealth.inactiveDays === 'number' ? `${row.consumptionHealth.inactiveDays} 天` : '超 14 天' }}
               </div>
               <div v-else-if="typeof row.consumptionHealth?.estimatedDepletionDays === 'number' && remainingOf(row) > 0" class="text-xs text-st-muted">
@@ -350,7 +350,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item v-if="row.wechatBound" command="wechat">解除微信绑定</el-dropdown-item>
-                    <el-dropdown-item command="delete" :divided="!!row.wechatBound" class="text-red-600">删除档案</el-dropdown-item>
+                    <el-dropdown-item command="delete" :divided="!!row.wechatBound" class="text-st-danger">删除档案</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -361,7 +361,7 @@
       </div>
 
       <!-- 表格底部批量与分页 -->
-      <div class="mt-4 pt-4 border-t border-slate-100">
+      <div class="mt-4 pt-4 border-t border-st-divider">
         <AppPagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"

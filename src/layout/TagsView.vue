@@ -10,7 +10,7 @@
           'group flex items-center space-x-1.5 px-2.5 py-1 text-xs rounded border transition-all cursor-pointer whitespace-nowrap',
           isActive(tag)
             ? 'bg-st-primary-light border-st-primary-border text-st-primary font-semibold shadow-xs'
-            : 'bg-gray-50 border-gray-200 text-st-regular hover:bg-gray-100'
+            : 'bg-st-header border-st-border text-st-regular hover:bg-st-fill'
         ]"
       >
         <span
@@ -22,7 +22,7 @@
         <span
           v-if="!tag.affix"
           @click.stop="handleCloseTag(tag)"
-          class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-xs text-st-secondary group-hover:text-gray-600 hover:!bg-red-100 hover:!text-red-600 transition-colors ml-0.5"
+          class="w-3.5 h-3.5 rounded-full flex items-center justify-center text-xs text-st-secondary group-hover:text-st-secondary hover:!bg-st-danger-light hover:!text-st-danger transition-colors ml-0.5"
         >
           ×
         </span>
@@ -31,7 +31,7 @@
 
     <!-- 右侧标签快捷操作 -->
     <el-dropdown trigger="click" @command="handleCommand">
-      <el-button link size="small" class="!p-1 text-st-muted hover:!text-st-primary hover:!bg-gray-100 transition-colors">
+      <el-button link size="small" class="!p-1 text-st-muted hover:!text-st-primary hover:!bg-st-fill transition-colors">
         <el-icon><ArrowDown /></el-icon>
       </el-button>
       <template #dropdown>
@@ -45,8 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import { ArrowDown } from '@element-plus/icons-vue'
 import { watch, computed } from 'vue'
+import { ChevronDown as ArrowDown } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { useTagsViewStore } from '@/stores/tagsViewStore'
 import type { TagViewItem } from '@/types'

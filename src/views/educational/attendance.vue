@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 space-y-4 bg-gray-50 min-h-screen">
+  <div class="p-5 space-y-4 bg-st-header min-h-screen">
     <!-- 顶部工作台标题与操作条 -->
     <div class="bg-white rounded-lg p-5 shadow-sm border border-st-border flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
@@ -14,7 +14,7 @@
 
       <div class="flex items-center space-x-2">
         <el-button size="default" @click="handleFaceSync">
-          <template #icon><Camera class="w-3.5 h-3.5" /></template>
+          <template #icon><Camera class="w-4 h-4" /></template>
           刷脸考勤同步
         </el-button>
         <el-button type="primary" size="default" @click="handleBatchRollCall">
@@ -27,14 +27,14 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
         <div class="text-xs text-st-muted">{{ filterDate ? "当日待上课次" : "今日待上课次" }}</div>
-        <div class="text-2xl font-bold text-blue-600 mt-1">
+        <div class="text-2xl font-bold text-st-primary mt-1">
           {{ workbenchStats.scheduledCount }} <span class="text-xs font-normal text-st-muted">节</span>
         </div>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
         <div class="text-xs text-st-muted">{{ filterDate ? "当日已结课次" : "今日已结课次" }}</div>
-        <div class="text-2xl font-bold text-emerald-600 mt-1">
+        <div class="text-2xl font-bold text-st-success mt-1">
           {{ workbenchStats.completedCount }} <span class="text-xs font-normal text-st-muted">节</span>
         </div>
       </div>
@@ -48,14 +48,14 @@
 
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
         <div class="text-xs text-st-muted">{{ filterDate ? "当日实到学员" : "今日实到学员" }}</div>
-        <div class="text-2xl font-bold text-teal-600 mt-1">
+        <div class="text-2xl font-bold text-st-success mt-1">
           {{ workbenchStats.presentStudents }} <span class="text-xs font-normal text-st-muted">人</span>
         </div>
       </div>
 
       <div class="bg-white p-4 rounded-lg shadow-sm border border-st-border">
         <div class="text-xs text-st-muted">累计课消总课时</div>
-        <div class="text-2xl font-bold text-indigo-600 mt-1">
+        <div class="text-2xl font-bold text-st-primary mt-1">
           {{ workbenchStats.totalDeductedLessons }} <span class="text-xs font-normal text-st-muted">课时</span>
         </div>
       </div>
@@ -135,12 +135,12 @@
                 </el-table-column>
                 <el-table-column prop="teacherName" label="授课老师" width="115">
                   <template #default="{ row }">
-                    <span class="font-medium text-st-title flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" /> {{ row.teacherName }}</span>
+                    <span class="font-medium text-st-title flex items-center gap-1"><User class="w-4 h-4 text-st-primary" /> {{ row.teacherName }}</span>
                   </template>
                 </el-table-column>
                 <el-table-column prop="classroomName" label="所在教室" width="130">
                   <template #default="{ row }">
-                    <span class="text-xs text-st-secondary flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-st-secondary" /> {{ row.classroomName }}</span>
+                    <span class="text-xs text-st-secondary flex items-center gap-1"><MapPin class="w-4 h-4 text-st-secondary" /> {{ row.classroomName }}</span>
                   </template>
                 </el-table-column>
                 <el-table-column label="应到人数" width="100">
@@ -175,7 +175,7 @@
         <!-- Tab 2: 历史课消记录与反结课冲正专区 -->
         <el-tab-pane label="历史课消记录与反结课冲正" name="records">
           <div class="space-y-4">
-            <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 flex items-center justify-between">
+            <div class="bg-st-warning-light border border-st-warning-border rounded-lg p-3 text-xs text-st-warning-deep flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="text-base">↩️</span>
                 <span>
@@ -206,21 +206,21 @@
               </el-table-column>
               <el-table-column prop="teacherName" label="授课老师" width="115">
                 <template #default="{ row }">
-                  <span class="flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" /> {{ row.teacherName }}</span>
+                  <span class="flex items-center gap-1"><User class="w-4 h-4 text-st-primary" /> {{ row.teacherName }}</span>
                 </template>
               </el-table-column>
               <el-table-column label="出勤情况" width="160">
                 <template #default="{ row }">
                   <div class="text-xs space-x-2">
-                    <span class="text-emerald-600 font-semibold">到课: {{ row.presentCount }}</span>
-                    <span class="text-amber-600">请假: {{ row.leaveCount }}</span>
-                    <span class="text-rose-600">缺勤: {{ row.absentCount }}</span>
+                    <span class="text-st-success font-semibold">到课: {{ row.presentCount }}</span>
+                    <span class="text-st-warning">请假: {{ row.leaveCount }}</span>
+                    <span class="text-st-danger">缺勤: {{ row.absentCount }}</span>
                   </div>
                 </template>
               </el-table-column>
               <el-table-column label="消课课时" width="95">
                 <template #default="{ row }">
-                  <span class="font-bold text-emerald-700">{{ row.deductedLessonsTotal }} 课时</span>
+                  <span class="font-bold text-st-success">{{ row.deductedLessonsTotal }} 课时</span>
                 </template>
               </el-table-column>
               <el-table-column label="状态" width="110">
@@ -245,7 +245,7 @@
                     >
                       反结课冲正
                     </el-button>
-                    <span v-else class="text-xs text-st-muted px-1.5 py-0.5 bg-gray-100 rounded">
+                    <span v-else class="text-xs text-st-muted px-1.5 py-0.5 bg-st-fill rounded">
                       已冲正
                     </span>
                   </div>

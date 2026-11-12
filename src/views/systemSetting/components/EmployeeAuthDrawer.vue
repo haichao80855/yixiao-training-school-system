@@ -6,7 +6,7 @@
     size="420px"
   >
     <div v-if="localUser" class="space-y-4 text-xs">
-      <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
+      <div class="p-3 bg-st-header rounded-lg border border-st-border">
         <div class="font-bold text-st-title text-sm">{{ localUser.name }}</div>
         <div class="text-st-muted mt-1 font-mono text-xs">
           账号：{{ localUser.account }} | 手机：{{ localUser.phone }}
@@ -52,8 +52,8 @@
             :class="[
               'p-2.5 rounded border cursor-pointer transition flex items-start space-x-2.5',
               localUser.dataScope === scope.value
-                ? 'border-st-primary bg-blue-50/50 text-st-primary'
-                : 'border-slate-200 hover:bg-slate-50 text-st-title'
+                ? 'border-st-primary bg-st-primary-light/50 text-st-primary'
+                : 'border-st-border hover:bg-st-header text-st-title'
             ]"
           >
             <el-radio :value="scope.value" :model-value="localUser.dataScope" class="!mr-0 mt-0.5" />
@@ -65,7 +65,7 @@
         </div>
       </div>
 
-      <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
+      <div class="pt-4 border-t border-st-divider flex justify-end space-x-2">
         <el-button @click="$emit('update:modelValue', false)">取消</el-button>
         <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
       </div>

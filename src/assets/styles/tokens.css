@@ -28,6 +28,11 @@
   --st-color-danger-deep: #B91C1C;
   --st-color-purple: #7C3AED;
   --st-color-purple-light: #F5F3FF;
+  /* 浅底标签的描边 */
+  --st-color-success-border: #BBF7D0;
+  --st-color-warning-border: #FDE68A;
+  --st-color-danger-border: #FECACA;
+  --st-color-purple-border: #DDD6FE;
 
   /* ---------- 中性色：只用 Slate 一套 ---------- */
   --st-color-bg: #F5F5F7;

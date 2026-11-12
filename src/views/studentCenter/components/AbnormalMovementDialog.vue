@@ -8,11 +8,11 @@
   >
     <div v-if="student" class="space-y-4">
       <!-- 学员基本名片 -->
-      <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center justify-between">
+      <div class="bg-st-header border border-st-border rounded-lg p-3 flex items-center justify-between">
         <div class="flex items-center space-x-3">
           <img
             :src="student.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=60'"
-            class="w-10 h-10 rounded-full object-cover border border-slate-300"
+            class="w-10 h-10 rounded-full object-cover border border-st-border-dark"
           />
           <div>
             <div class="flex items-center space-x-2">
@@ -25,7 +25,7 @@
             <div class="text-xs text-st-secondary mt-0.5">
               归属校区: <span class="font-semibold text-st-primary">{{ student.campusName }}</span> |
               联系电话: <span class="font-mono">{{ student.phone }}</span> |
-              在读课包: <span class="font-semibold text-emerald-600">{{ activePackages.length }}</span> 个
+              在读课包: <span class="font-semibold text-st-success">{{ activePackages.length }}</span> 个
             </div>
           </div>
         </div>
@@ -81,7 +81,7 @@
                 />
               </el-select>
             </el-form-item>
-            <div v-if="selectedTargetClass" class="bg-blue-50 border border-blue-200 rounded p-2.5 text-xs text-blue-800">
+            <div v-if="selectedTargetClass" class="bg-st-primary-light border border-st-primary-border rounded p-2.5 text-xs text-st-primary-active">
               提示：目标班级「{{ selectedTargetClass.name }}」容量为 {{ selectedTargetClass.capacity }} 人，当前已入班 {{ selectedTargetClass.currentCount }} 人。
               {{ previewResult?.capacityImpact ? (previewResult.capacityImpact.willExceedCapacity ? '满班警告：已达额定人数上限，禁止转入！' : `班级尚有名额 (剩余 ${previewResult.capacityImpact.remainingSlots} 人)，允许转入。`) : (selectedTargetClass.currentCount < selectedTargetClass.capacity ? '班级尚有名额，允许转入。' : '满班警告：已无空余名额！') }}
             </div>
@@ -121,18 +121,18 @@
             </el-form-item>
 
             <!-- 差额核算看板 (服务端权威预演数据) -->
-            <div v-if="previewResult?.financialImpact" class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs space-y-1.5">
-              <div class="flex justify-between text-amber-900">
+            <div v-if="previewResult?.financialImpact" class="bg-st-warning-light border border-st-warning-border rounded-lg p-3 text-xs space-y-1.5">
+              <div class="flex justify-between text-st-warning-deep">
                 <span>原课包实付剩余净值:</span>
                 <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.sourceResidualValue?.toFixed(2) }}</span>
               </div>
-              <div class="flex justify-between text-amber-900">
+              <div class="flex justify-between text-st-warning-deep">
                 <span>新课程拟购总价:</span>
                 <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.targetRequiredAmount?.toFixed(2) }}</span>
               </div>
-              <div class="border-t border-amber-300 pt-1 flex justify-between font-bold">
+              <div class="border-t border-st-warning-border pt-1 flex justify-between font-bold">
                 <span>差额核算结果 (原净值 - 新总价):</span>
-                <span :class="previewResult.financialImpact.netDiffAmount >= 0 ? 'text-emerald-700' : 'text-red-700'" class="font-mono text-sm">
+                <span :class="previewResult.financialImpact.netDiffAmount >= 0 ? 'text-st-success' : 'text-st-danger-deep'" class="font-mono text-sm">
                   {{ previewResult.financialImpact.netDiffAmount >= 0 ? `+ ¥${previewResult.financialImpact.netDiffAmount.toFixed(2)} (差额自动退回电子钱包本金)` : `- ¥${Math.abs(previewResult.financialImpact.netDiffAmount).toFixed(2)} (需自钱包扣减补交)` }}
                 </span>
               </div>
@@ -167,7 +167,7 @@
             <el-form-item label="详细说明与事由备注">
               <el-input v-model="suspendForm.reason" type="textarea" :rows="2" placeholder="补充详细事由，如家长申请、突发情况等" />
             </el-form-item>
-            <div class="bg-yellow-50 border border-yellow-200 rounded p-2.5 text-xs text-yellow-800">
+            <div class="bg-st-warning-light border border-st-warning-border rounded p-2.5 text-xs text-st-warning-deep">
               办理后，学员在读状态将转为「停课休学」，{{ activePackages.length }} 个有效课包将冻结，到期日统一顺延 {{ suspendForm.days }} 天。
             </div>
           </el-form>
@@ -178,7 +178,7 @@
           <div class="text-xs font-bold text-st-title border-b pb-2">
             复课操作：解冻全部已冻结课包，学员恢复「正常在读」状态
           </div>
-          <div class="p-3 bg-emerald-50 border border-emerald-200 rounded text-xs text-emerald-800 space-y-1">
+          <div class="p-3 bg-st-success-light border border-st-success-border rounded text-xs text-st-success-deep space-y-1">
             <p>● 学员当前处于「停课休学」状态。</p>
             <p>● 确认复课后，名下已冻结课包将全部激活解冻，重新进入教务可排课名单。</p>
           </div>
@@ -223,7 +223,7 @@
                 />
               </el-select>
             </el-form-item>
-            <div class="bg-red-50 border border-red-200 rounded p-2.5 text-xs text-red-800">
+            <div class="bg-st-danger-light border border-st-danger-border rounded p-2.5 text-xs text-st-danger-deep">
               警告：转让为单向不可逆操作！当前学员 [{{ student.name }}] 的所有课时和钱包余额 ¥{{ (student.wallet.principalBalance + student.wallet.bonusBalance).toFixed(2) }} 将全部移交给受让学员，原学员课包将自动归档。
             </div>
           </el-form>
@@ -250,24 +250,24 @@
             </el-form-item>
 
             <!-- 退费核算结果 (服务端权威预演数据) -->
-            <div v-if="previewResult?.financialImpact" class="bg-slate-100 border border-slate-300 rounded p-3 text-xs space-y-1.5">
-              <div class="flex justify-between text-slate-700">
+            <div v-if="previewResult?.financialImpact" class="bg-st-fill border border-st-border-dark rounded p-3 text-xs space-y-1.5">
+              <div class="flex justify-between text-st-regular">
                 <span>实付正课剩余净值:</span>
                 <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.sourceResidualValue?.toFixed(2) }}</span>
               </div>
-              <div v-if="previewResult.financialImpact.clawbackAmount > 0" class="flex justify-between text-slate-700">
+              <div v-if="previewResult.financialImpact.clawbackAmount > 0" class="flex justify-between text-st-regular">
                 <span>赠课超额扣减追缴 (透支赠课):</span>
-                <span class="text-red-600 font-bold font-mono">- ¥{{ previewResult.financialImpact.clawbackAmount.toFixed(2) }}</span>
+                <span class="text-st-danger font-bold font-mono">- ¥{{ previewResult.financialImpact.clawbackAmount.toFixed(2) }}</span>
               </div>
-              <div v-if="previewResult.financialImpact.deductionFee > 0" class="flex justify-between text-slate-700">
+              <div v-if="previewResult.financialImpact.deductionFee > 0" class="flex justify-between text-st-regular">
                 <span>教材与违约手续费扣除:</span>
-                <span class="text-red-600 font-bold font-mono">- ¥{{ previewResult.financialImpact.deductionFee.toFixed(2) }}</span>
+                <span class="text-st-danger font-bold font-mono">- ¥{{ previewResult.financialImpact.deductionFee.toFixed(2) }}</span>
               </div>
-              <div class="border-t border-slate-300 pt-1 flex justify-between font-bold text-st-title">
+              <div class="border-t border-st-border-dark pt-1 flex justify-between font-bold text-st-title">
                 <span>盛通核算实退金额:</span>
                 <span class="text-st-danger-deep font-mono text-base">¥ {{ previewResult.financialImpact.refundableCashAmount?.toFixed(2) }}</span>
               </div>
-              <div class="text-xs text-slate-500 pt-0.5">
+              <div class="text-xs text-st-muted pt-0.5">
                 * 经由盛通防腐算法核算，赠送课时不折现，实退金额将转入退费审批工单
               </div>
             </div>
@@ -275,15 +275,15 @@
         </div>
 
         <!-- 服务端权威预演诊断与阻断提示 -->
-        <div v-if="previewResult && previewResult.blockingIssues && previewResult.blockingIssues.length > 0" class="bg-red-50 border border-red-200 text-red-700 p-2.5 rounded text-xs space-y-1">
+        <div v-if="previewResult && previewResult.blockingIssues && previewResult.blockingIssues.length > 0" class="bg-st-danger-light border border-st-danger-border text-st-danger-deep p-2.5 rounded text-xs space-y-1">
           <div v-for="issue in previewResult.blockingIssues" :key="issue.code" class="flex items-center space-x-1.5 font-medium">
-            <AlertTriangle class="w-3.5 h-3.5 text-red-600 shrink-0" />
+            <AlertTriangle class="w-4 h-4 text-st-danger shrink-0" />
             <span>{{ issue.message }}</span>
           </div>
         </div>
-        <div v-else-if="previewResult && previewResult.warnings && previewResult.warnings.length > 0" class="bg-amber-50 border border-amber-200 text-amber-700 p-2.5 rounded text-xs space-y-1">
+        <div v-else-if="previewResult && previewResult.warnings && previewResult.warnings.length > 0" class="bg-st-warning-light border border-st-warning-border text-st-warning-deep p-2.5 rounded text-xs space-y-1">
           <div v-for="w in previewResult.warnings" :key="w.code" class="flex items-center space-x-1.5">
-            <Info class="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            <Info class="w-4 h-4 text-st-warning shrink-0" />
             <span>{{ w.message }}</span>
           </div>
         </div>

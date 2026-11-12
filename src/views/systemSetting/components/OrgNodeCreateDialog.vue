@@ -81,12 +81,12 @@ function getLevelName(level: number): string {
 
 function getLevelTagClass(level: number): string {
   switch (level) {
-    case 1: return 'bg-purple-100 text-purple-700'
-    case 2: return 'bg-blue-100 text-blue-700'
-    case 3: return 'bg-emerald-100 text-emerald-700'
-    case 4: return 'bg-amber-100 text-amber-700'
-    case 5: return 'bg-slate-100 text-slate-700'
-    default: return 'bg-gray-100 text-gray-700'
+    case 1: return 'bg-st-purple-light text-st-purple'
+    case 2: return 'bg-st-primary-light text-st-primary'
+    case 3: return 'bg-st-success-light text-st-success'
+    case 4: return 'bg-st-warning-light text-st-warning-deep'
+    case 5: return 'bg-st-fill text-st-regular'
+    default: return 'bg-st-fill text-st-regular'
   }
 }
 

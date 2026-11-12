@@ -9,13 +9,13 @@
       <!-- 上传系统LOGO -->
       <div>
         <label class="block text-xs font-medium text-st-title mb-2">
-          <span class="text-rose-500 mr-1">*</span>系统顶栏 LOGO (浅色背景)
+          <span class="text-st-danger mr-1">*</span>系统顶栏 LOGO (浅色背景)
         </label>
         <div class="flex items-center space-x-4">
           <div
             @click="handleUpload('logoUrl')"
             v-loading="uploadingField === 'logoUrl'"
-            class="w-48 h-16 border-2 border-dashed border-st-border rounded-lg flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
+            class="w-48 h-16 border-2 border-dashed border-st-border rounded-lg flex flex-col items-center justify-center bg-st-header hover:bg-st-primary-light/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
           >
             <img v-if="form.logoUrl" :src="form.logoUrl" class="w-full h-full object-contain p-1" alt="Logo" />
             <template v-else>
@@ -39,7 +39,7 @@
           <div
             @click="handleUpload('faviconUrl')"
             v-loading="uploadingField === 'faviconUrl'"
-            class="w-12 h-12 border-2 border-dashed border-st-border rounded-lg flex items-center justify-center bg-slate-50 hover:bg-blue-50/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
+            class="w-12 h-12 border-2 border-dashed border-st-border rounded-lg flex items-center justify-center bg-st-header hover:bg-st-primary-light/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
           >
             <img v-if="form.faviconUrl" :src="form.faviconUrl" class="w-full h-full object-contain p-1" alt="Favicon" />
             <el-icon v-else class="text-base text-st-muted"><Plus /></el-icon>
@@ -53,13 +53,13 @@
       <!-- 用户报告LOGO -->
       <div>
         <label class="block text-xs font-medium text-st-title mb-2">
-          <span class="text-rose-500 mr-1">*</span>学员测评与学习报告专属 LOGO
+          <span class="text-st-danger mr-1">*</span>学员测评与学习报告专属 LOGO
         </label>
         <div class="flex items-center space-x-4">
           <div
             @click="handleUpload('reportLogoUrl')"
             v-loading="uploadingField === 'reportLogoUrl'"
-            class="w-64 h-20 border-2 border-dashed border-st-border rounded-lg flex flex-col items-center justify-center bg-slate-50 hover:bg-blue-50/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
+            class="w-64 h-20 border-2 border-dashed border-st-border rounded-lg flex flex-col items-center justify-center bg-st-header hover:bg-st-primary-light/50 hover:border-st-primary transition cursor-pointer overflow-hidden"
           >
             <img v-if="form.reportLogoUrl" :src="form.reportLogoUrl" class="w-full h-full object-contain p-1" alt="Report Logo" />
             <template v-else>
@@ -83,7 +83,7 @@
 
 <script setup lang="ts">
 import { reactive, ref, watch } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
+import { Plus } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import type { CompanyInfo } from '@/types/system'
 import { uploadApi } from '@/api'

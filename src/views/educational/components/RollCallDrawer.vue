@@ -8,11 +8,11 @@
   >
     <div v-if="event" class="space-y-4">
       <!-- 课次概要横幅 -->
-      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg p-4 space-y-2">
+      <div class="bg-gradient-to-r from-emerald-50 to-teal-50 border border-st-success-border rounded-lg p-4 space-y-2">
         <div class="flex items-start justify-between">
           <div>
             <div class="flex items-center gap-2">
-              <span class="text-xs px-2 py-0.5 rounded font-bold bg-emerald-600 text-white">
+              <span class="text-xs px-2 py-0.5 rounded font-bold bg-st-success text-white">
                 {{ event.lessonNumber ? `第${event.lessonNumber}讲` : '课次点名' }}
               </span>
               <h3 class="text-base font-bold text-st-title">{{ event.className }}</h3>
@@ -22,11 +22,11 @@
           <el-tag type="warning" size="small">待点名结算</el-tag>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-emerald-200 text-xs">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-st-success-border text-xs">
           <div><span class="text-st-muted">上课日期：</span><span class="font-mono text-st-title">{{ event.date }}</span></div>
           <div><span class="text-st-muted">上课时段：</span><span class="font-mono text-st-title">{{ event.startTime }} - {{ event.endTime }}</span></div>
-          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ event.teacherName }}</span></div>
-          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />{{ event.classroomName }}</span></div>
+          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title inline-flex items-center gap-1"><User class="w-4 h-4 text-st-primary" />{{ event.teacherName }}</span></div>
+          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><MapPin class="w-4 h-4 text-st-warning" />{{ event.classroomName }}</span></div>
         </div>
       </div>
 
@@ -34,14 +34,14 @@
       <div class="flex items-center justify-between bg-white p-3 rounded-lg border border-st-border text-xs">
         <div class="flex items-center space-x-3">
           <span class="font-bold text-st-title">应到学员：{{ studentRows.length }} 人</span>
-          <span class="text-emerald-600 font-semibold">到课: {{ countStatus('present') }}</span>
-          <span class="text-amber-600">请假: {{ countStatus('leave') }}</span>
-          <span class="text-rose-600">旷课: {{ countStatus('absent') }}</span>
-          <span class="text-blue-600">迟到: {{ countStatus('late') }}</span>
+          <span class="text-st-success font-semibold">到课: {{ countStatus('present') }}</span>
+          <span class="text-st-warning">请假: {{ countStatus('leave') }}</span>
+          <span class="text-st-danger">旷课: {{ countStatus('absent') }}</span>
+          <span class="text-st-primary">迟到: {{ countStatus('late') }}</span>
         </div>
 
         <el-button type="success" plain @click="handleAllPresent" class="inline-flex items-center gap-1">
-          <Zap class="w-3.5 h-3.5" />
+          <Zap class="w-4 h-4" />
           <span>一键全勤</span>
         </el-button>
       </div>
@@ -97,9 +97,9 @@
       </div>
 
       <!-- 课消预警核算 -->
-      <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs flex items-center justify-between">
+      <div class="bg-st-header border border-st-border rounded-lg p-3 text-xs flex items-center justify-between">
         <div class="text-st-secondary">
-          本次结算将真实扣减学员课包总计：<b class="text-emerald-700 text-sm">{{ totalDeductLessons }}</b> 课时。
+          本次结算将真实扣减学员课包总计：<b class="text-st-success text-sm">{{ totalDeductLessons }}</b> 课时。
         </div>
         <div class="text-xs text-st-muted">
           结算后系统将自动生成考勤记录并支持后续反结课冲正

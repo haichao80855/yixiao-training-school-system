@@ -18,7 +18,7 @@
           v-if="item.count !== undefined"
           :class="[
             'text-xs px-1 py-0.2 rounded-full ml-1',
-            isSelected(item.value) ? 'bg-white/25 text-white' : 'bg-gray-100 text-st-muted'
+            isSelected(item.value) ? 'bg-white/25 text-white' : 'bg-st-fill text-st-muted'
           ]"
         >
           {{ item.count }}

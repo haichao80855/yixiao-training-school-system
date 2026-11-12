@@ -7,8 +7,8 @@
     destroy-on-close
   >
     <div class="text-xs space-y-3 pt-2">
-      <div class="p-3 bg-amber-50 border border-amber-200 rounded text-amber-800 flex items-start space-x-2">
-        <el-icon class="text-base text-amber-600 shrink-0 mt-0.5"><WarningFilled /></el-icon>
+      <div class="p-3 bg-st-warning-light border border-st-warning-border rounded text-st-warning-deep flex items-start space-x-2">
+        <el-icon class="text-base text-st-warning shrink-0 mt-0.5"><WarningFilled /></el-icon>
         <div class="text-xs leading-relaxed">
           <strong>风险警告：</strong>转让超级管理员后，您的账号将自动降级为执行校长角色，接收方员工将获得集团全量业务审批与组织根节点控制权！此操作将立即写入数据库生效。
         </div>
@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { WarningFilled } from '@element-plus/icons-vue'
+import { AlertTriangle as WarningFilled } from 'lucide-vue-next'
 import { ElMessage } from 'element-plus'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { SystemUser } from '@/types/system'

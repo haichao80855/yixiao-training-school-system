@@ -5,7 +5,7 @@
       <div>
         <div class="flex items-center space-x-3">
           <h1 class="text-lg font-bold text-st-title">业务参数与异动原因数据字典</h1>
-          <span class="px-2.5 py-0.5 text-xs font-mono rounded bg-blue-50 text-st-primary border border-blue-200">
+          <span class="px-2.5 py-0.5 text-xs font-mono rounded bg-st-primary-light text-st-primary border border-st-primary-border">
             Dictionary Engine
           </span>
         </div>
@@ -76,7 +76,7 @@
 
         <el-table-column prop="dictKey" label="字典键值 (Key)" min-width="190">
           <template #default="{ row }">
-            <span class="font-mono text-xs font-semibold text-st-title bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+            <span class="font-mono text-xs font-semibold text-st-title bg-st-fill px-2 py-0.5 rounded border border-st-border">
               {{ row.dictKey }}
             </span>
           </template>
@@ -90,7 +90,7 @@
 
         <el-table-column prop="order" label="排序权重" width="90" align="center">
           <template #default="{ row }">
-            <span class="font-mono px-2 py-0.5 rounded-full bg-slate-100 text-st-title font-medium text-xs">
+            <span class="font-mono px-2 py-0.5 rounded-full bg-st-fill text-st-title font-medium text-xs">
               {{ row.order }}
             </span>
           </template>
@@ -182,8 +182,8 @@
 </template>
 
 <script setup lang="ts">
-import { Search } from '@element-plus/icons-vue'
 import { ref, computed, onMounted } from 'vue'
+import { Search } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
 import type { DictItem } from '@/types/system'

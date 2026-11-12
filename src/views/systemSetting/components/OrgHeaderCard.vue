@@ -5,7 +5,7 @@
       <div>
         <div class="flex items-center space-x-3">
           <h1 class="text-xl font-bold text-st-title tracking-tight">{{ orgMeta.name }}</h1>
-          <span class="px-2.5 py-0.5 text-xs font-mono rounded bg-blue-50 text-st-primary border border-blue-200">
+          <span class="px-2.5 py-0.5 text-xs font-mono rounded bg-st-primary-light text-st-primary border border-st-primary-border">
             A股上市代码：{{ orgMeta.stockCode }}
           </span>
         </div>
@@ -27,7 +27,7 @@
             系统超级管理员：<span class="font-medium text-st-primary">{{ orgMeta.adminName }}</span>
           </div>
           <div>
-            授权有效期至：<span class="font-mono font-medium text-emerald-600">{{ orgMeta.validUntil }}</span>
+            授权有效期至：<span class="font-mono font-medium text-st-success">{{ orgMeta.validUntil }}</span>
           </div>
         </div>
       </div>

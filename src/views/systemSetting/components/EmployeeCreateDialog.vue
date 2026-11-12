@@ -40,7 +40,7 @@
           </el-select>
         </el-form-item>
       </div>
-      <div class="-mt-2 mb-2 text-xs text-gray-400">
+      <div class="-mt-2 mb-2 text-xs text-st-placeholder">
         如需细分部门或岗位，请先在左侧组织架构中新增，再回来选择
       </div>
       <div class="grid grid-cols-2 gap-x-3">

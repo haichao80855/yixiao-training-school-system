@@ -124,7 +124,7 @@
         @click="openCampusModal"
         :class="[
           'w-full rounded-lg transition-colors flex items-center text-left',
-          tenantStore.canSwitchCampus ? 'hover:bg-slate-50' : 'cursor-default',
+          tenantStore.canSwitchCampus ? 'hover:bg-st-header' : 'cursor-default',
           collapsed ? 'justify-center p-2' : 'gap-2.5 px-2.5 py-2'
         ]"
         :title="tenantStore.canSwitchCampus ? `当前校区：${currentCampus.name}（点击切换）` : `当前校区：${currentCampus.name}`"
@@ -147,17 +147,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { Monitor, BookOpen as Reading, Users as UserFilled, Calendar, Wallet as Money, Settings as Setting, MapPin as Location, ArrowLeftRight as Switch } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
-import {
-  Monitor,
-  Reading,
-  UserFilled,
-  Calendar,
-  Money,
-  Setting,
-  Location,
-  Switch
-} from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
 import CampusSelector from './CampusSelector.vue'
 
@@ -191,7 +182,7 @@ function openCampusModal() {
   --el-menu-item-font-size: 14px;
   --el-menu-text-color: var(--st-color-secondary);
   --el-menu-hover-text-color: var(--st-color-title);
-  --el-menu-hover-bg-color: #F1F5F9;
+  --el-menu-hover-bg-color: var(--st-color-fill);
   --el-menu-active-color: var(--st-color-primary);
   --el-menu-base-level-padding: 14px;
   --el-menu-level-padding: 16px;

@@ -271,7 +271,7 @@
             <span
               :class="[
                 'text-xs px-1.5 py-0.2 rounded-full font-mono ml-1',
-                activeStatusTab === tab.key ? 'bg-st-primary text-white' : 'bg-gray-100 text-st-muted'
+                activeStatusTab === tab.key ? 'bg-st-primary text-white' : 'bg-st-fill text-st-muted'
               ]"
             >
               {{ statusCounts[tab.key] || 0 }}
@@ -460,7 +460,7 @@
               <span
                 :class="[
                   'font-bold font-mono',
-                  row.actualAmount < 0 ? 'text-blue-600' : 'text-st-danger'
+                  row.actualAmount < 0 ? 'text-st-primary' : 'text-st-danger'
                 ]"
               >
                 ¥ {{ (row.actualAmount || 0).toFixed(2) }}
@@ -567,7 +567,7 @@
       </div>
 
       <!-- 分页控制栏 (10/20/50条/页) -->
-      <div class="border-t border-gray-100 mt-3">
+      <div class="border-t border-st-divider mt-3">
         <AppPagination
           v-model:current-page="filterForm.page"
           v-model:page-size="filterForm.pageSize"
@@ -587,7 +587,7 @@
       destroy-on-close
     >
       <div v-if="currentVoucherOrder" class="space-y-4 text-xs">
-        <div class="bg-gray-50 p-3 rounded border border-gray-200 grid grid-cols-2 gap-2">
+        <div class="bg-st-header p-3 rounded border border-st-border grid grid-cols-2 gap-2">
           <div>
             <span class="text-st-muted">学员姓名：</span>
             <strong class="text-st-title">{{ currentVoucherOrder.studentName }}</strong>
@@ -609,7 +609,7 @@
         <!-- 凭证缩略图与大图预览 -->
         <div>
           <div class="font-bold text-st-title mb-2">电子凭证原件 (支持点击放大预览)</div>
-          <div v-if="currentVoucherOrder.voucherUrl" class="border rounded p-2 flex items-center justify-center bg-gray-50">
+          <div v-if="currentVoucherOrder.voucherUrl" class="border rounded p-2 flex items-center justify-center bg-st-header">
             <el-image
               :src="currentVoucherOrder.voucherUrl"
               :preview-src-list="[currentVoucherOrder.voucherUrl]"
@@ -617,7 +617,7 @@
               class="h-44 rounded cursor-pointer"
             />
           </div>
-          <div v-else class="h-32 border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-st-muted">
+          <div v-else class="h-32 border-2 border-dashed border-st-border-dark rounded flex flex-col items-center justify-center text-st-muted">
             <el-icon class="text-2xl mb-1"><Picture /></el-icon>
             <span>暂无上传原始凭证扫描件</span>
           </div>
@@ -756,7 +756,7 @@
       destroy-on-close
     >
       <div v-if="currentSelectedStudent" class="space-y-4 text-xs">
-        <div class="flex items-center space-x-3 p-3 bg-blue-50/60 rounded-lg border border-blue-100">
+        <div class="flex items-center space-x-3 p-3 bg-st-primary-light/60 rounded-lg border border-st-primary-border">
           <el-avatar :size="48" :src="currentSelectedStudent.avatar">
             {{ currentSelectedStudent.name?.charAt(0) }}
           </el-avatar>
@@ -776,13 +776,13 @@
           <el-descriptions-item label="微信绑定">已绑定 (家长接收通知)</el-descriptions-item>
         </el-descriptions>
 
-        <div class="p-3 bg-gray-50 rounded border border-gray-200">
+        <div class="p-3 bg-st-header rounded border border-st-border">
           <div class="font-bold text-st-title mb-1.5">最近订单流水历史</div>
           <div class="space-y-1">
             <div
               v-for="ord in studentOrderHistory"
               :key="ord.id"
-              class="flex items-center justify-between text-st-regular py-1 border-b border-gray-100 last:border-b-0"
+              class="flex items-center justify-between text-st-regular py-1 border-b border-st-divider last:border-b-0"
             >
               <div>
                 <div class="font-mono">{{ ord.orderNo }}</div>
@@ -802,15 +802,8 @@
 
 <script setup lang="ts">
 import { ref, computed, reactive, onMounted } from 'vue'
+import { Search, Download, Copy as DocumentCopy, User, Image as Picture, Upload } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  Search,
-  Download,
-  DocumentCopy,
-  User,
-  Picture,
-  Upload
-} from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { financialApi, studentApi, educationalApi, uploadApi } from '@/api'

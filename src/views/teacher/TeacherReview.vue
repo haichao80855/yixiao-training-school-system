@@ -94,8 +94,8 @@ onMounted(workbench.load)
   gap: 2px;
 }
 .star-on {
-  color: #d97706;
-  fill: #f59e0b;
+  color: var(--st-color-warning);
+  fill: var(--st-color-warning);
 }
 .star-off {
   color: var(--tp-line-strong);

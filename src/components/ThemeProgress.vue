@@ -40,7 +40,7 @@
     <!-- 条形进度 -->
     <template v-else>
       <div class="w-full flex items-center gap-2">
-        <div class="flex-1 bg-gray-100 rounded-full overflow-hidden" :style="{ height: `${strokeWidth}px` }">
+        <div class="flex-1 bg-st-fill rounded-full overflow-hidden" :style="{ height: `${strokeWidth}px` }">
           <div
             class="h-full rounded-full transition-all duration-500 ease-out"
             :style="{ width: `${clampedPercentage}%`, backgroundColor: themeColor }"
@@ -109,7 +109,7 @@ const themeColor = computed(() => {
 })
 
 const trackColor = computed(() => {
-  return '#f1f5f9'
+  return 'var(--st-color-fill, #f1f5f9)'
 })
 </script>
 

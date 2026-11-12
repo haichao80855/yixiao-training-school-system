@@ -8,7 +8,7 @@
     class="course-editor-dialog rounded-xl"
   >
     <!-- 步骤指示器 -->
-    <div class="px-8 pb-4 pt-1 border-b border-gray-100">
+    <div class="px-8 pb-4 pt-1 border-b border-st-divider">
       <el-steps :active="currentStep" finish-status="success" align-center>
         <el-step title="基础信息" description="课程参数与单价" />
         <el-step title="校区授权" description="跨校区开课权限" />
@@ -176,11 +176,11 @@
         <el-form-item label="课程封面">
           <div class="w-full space-y-3">
             <div class="flex items-center space-x-4">
-              <div class="w-40 aspect-video rounded border border-gray-200 overflow-hidden bg-gray-50 shrink-0 shadow-sm">
+              <div class="w-40 aspect-video rounded border border-st-border overflow-hidden bg-st-header shrink-0 shadow-sm">
                 <img :src="form.cover" alt="封面预览" class="w-full h-full object-cover" />
               </div>
-              <div class="flex-1 text-xs text-gray-500">
-                <div class="font-medium text-gray-700 mb-1">封面推荐预设（点击直接选用）：</div>
+              <div class="flex-1 text-xs text-st-muted">
+                <div class="font-medium text-st-regular mb-1">封面推荐预设（点击直接选用）：</div>
                 <div class="flex flex-wrap gap-2">
                   <el-button
                     v-for="(url, key) in presetCovers"
@@ -216,8 +216,8 @@
 
     <!-- 步骤二：跨校区授权穿梭树 -->
     <div v-show="currentStep === 1" class="py-5 px-6 max-h-[60vh] overflow-y-auto">
-      <div class="bg-blue-50/70 border border-blue-200 rounded-lg p-3.5 mb-4 flex items-center justify-between">
-        <div class="text-xs text-blue-900">
+      <div class="bg-st-primary-light/70 border border-st-primary-border rounded-lg p-3.5 mb-4 flex items-center justify-between">
+        <div class="text-xs text-st-primary-active">
           <span class="font-bold">跨校区授权规则：</span>
           被勾选授权的实体校区，其学员中心可报名该课，教务排课可指派该课。总部校区拥有超级排课权。
         </div>
@@ -234,7 +234,7 @@
         </div>
       </div>
 
-      <div class="text-xs font-medium text-gray-500 mb-2 flex items-center justify-between">
+      <div class="text-xs font-medium text-st-muted mb-2 flex items-center justify-between">
         <span>可选实体校区列表 ({{ form.authorizedCampusIds.length }} / {{ allCampuses.length }} 已授权)</span>
         <span class="text-st-secondary">点击卡片切换授权状态</span>
       </div>
@@ -248,7 +248,7 @@
             'p-3.5 rounded-lg border cursor-pointer transition-all duration-200 flex items-start justify-between select-none',
             form.authorizedCampusIds.includes(campus.id)
               ? 'border-st-primary bg-st-primary/5 shadow-sm'
-              : 'border-gray-200 bg-white hover:border-gray-300'
+              : 'border-st-border bg-white hover:border-st-border-dark'
           ]"
         >
           <div class="flex items-start space-x-3">
@@ -259,21 +259,21 @@
             />
             <div>
               <div class="flex items-center space-x-2">
-                <span class="font-bold text-sm text-gray-800">{{ campus.name }}</span>
+                <span class="font-bold text-sm text-st-title">{{ campus.name }}</span>
                 <span
                   v-if="campus.isHeadquarter"
-                  class="px-1.5 py-0.2 text-xs rounded bg-orange-100 text-orange-700 font-semibold border border-orange-200"
+                  class="px-1.5 py-0.2 text-xs rounded bg-st-warning-light text-st-warning-deep font-semibold border border-st-warning-border"
                 >
                   总部直属
                 </span>
               </div>
-              <div class="text-xs text-gray-500 mt-1">校区编号：{{ campus.code }}</div>
+              <div class="text-xs text-st-muted mt-1">校区编号：{{ campus.code }}</div>
               <div class="text-xs text-st-secondary mt-0.5 truncate max-w-[260px]">{{ campus.address }}</div>
             </div>
           </div>
           <div class="text-xs font-medium pt-0.5">
             <span v-if="form.authorizedCampusIds.includes(campus.id)" class="text-st-primary flex items-center gap-1">
-              <Check class="w-3.5 h-3.5" />
+              <Check class="w-4 h-4" />
               已授权
             </span>
             <span v-else class="text-st-secondary">
@@ -286,10 +286,10 @@
 
     <!-- 步骤三：单元与课时编排 -->
     <div v-show="currentStep === 2" class="py-5 px-6 max-h-[60vh] overflow-y-auto space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+      <div class="flex items-center justify-between pb-2 border-b border-st-divider">
         <div>
-          <h4 class="text-sm font-bold text-gray-800">课程教学次序与大纲编排</h4>
-          <p class="text-xs text-gray-500">支持建立“单元 (Unit) → 课次 (Lesson)”二级层级目录与上下移动重新排序</p>
+          <h4 class="text-sm font-bold text-st-title">课程教学次序与大纲编排</h4>
+          <p class="text-xs text-st-muted">支持建立“单元 (Unit) → 课次 (Lesson)”二级层级目录与上下移动重新排序</p>
         </div>
         <el-button type="primary" @click="addUnit">
           + 新增单元
@@ -303,9 +303,9 @@
         </el-button>
       </div>
 
-      <div v-for="(unit, uIdx) in form.units" :key="unit.id" class="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+      <div v-for="(unit, uIdx) in form.units" :key="unit.id" class="border border-st-border rounded-lg overflow-hidden bg-white shadow-sm">
         <!-- 单元表头 -->
-        <div class="bg-gray-50 px-4 py-2.5 flex items-center justify-between border-b border-gray-200">
+        <div class="bg-st-header px-4 py-2.5 flex items-center justify-between border-b border-st-border">
           <div class="flex items-center space-x-2 flex-1 mr-4">
             <span class="w-2.5 h-2.5 rounded-full bg-st-primary shrink-0"></span>
             <el-input
@@ -313,7 +313,7 @@
               placeholder="单元标题，例如：第一单元：基础语法"
               class="font-semibold text-sm max-w-sm"
             />
-            <span class="text-xs text-gray-500 font-normal">({{ unit.lessons ? unit.lessons.length : 0 }} 课次)</span>
+            <span class="text-xs text-st-muted font-normal">({{ unit.lessons ? unit.lessons.length : 0 }} 课次)</span>
           </div>
           <div class="flex items-center space-x-1 shrink-0">
             <el-button
@@ -344,7 +344,7 @@
         </div>
 
         <!-- 课时列表 -->
-        <div class="divide-y divide-gray-100 p-2 space-y-2">
+        <div class="divide-y divide-st-divider p-2 space-y-2">
           <div
             v-if="!unit.lessons || unit.lessons.length === 0"
             class="py-4 text-center text-xs text-st-secondary"
@@ -354,7 +354,7 @@
           <div
             v-for="(lesson, lIdx) in unit.lessons"
             :key="lesson.id"
-            class="p-2.5 rounded hover:bg-blue-50/30 transition-colors flex items-center justify-between text-xs space-x-3 bg-gray-50/50 border border-gray-100"
+            class="p-2.5 rounded hover:bg-st-primary-light/30 transition-colors flex items-center justify-between text-xs space-x-3 bg-st-header border border-st-divider"
           >
             <div class="flex items-center space-x-2 flex-1">
               <span class="font-mono text-st-secondary font-semibold w-8 text-center shrink-0">
@@ -414,7 +414,7 @@
 
     <!-- 底部按钮栏 -->
     <template #footer>
-      <div class="flex items-center justify-between px-4 py-2 border-t border-gray-100">
+      <div class="flex items-center justify-between px-4 py-2 border-t border-st-divider">
         <el-button @click="visible = false">取消</el-button>
         <div class="space-x-2">
           <el-button v-if="currentStep > 0" @click="currentStep--">

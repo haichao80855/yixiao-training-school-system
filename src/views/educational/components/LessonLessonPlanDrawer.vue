@@ -7,7 +7,7 @@
   >
     <div v-if="lesson" class="space-y-4 text-xs">
       <!-- 课程元数据 -->
-      <div class="bg-blue-50/70 p-3.5 rounded-lg border border-blue-100 space-y-1.5">
+      <div class="bg-st-primary-light/70 p-3.5 rounded-lg border border-st-primary-border space-y-1.5">
         <div class="flex items-center justify-between">
           <span class="font-bold text-sm text-st-title">{{ lesson.lessonTitle || lesson.className }}</span>
           <el-tag size="small" type="primary">{{ lesson.campusName || '拓视未来-原阳校区' }}</el-tag>
@@ -41,19 +41,19 @@
           <span>随堂教具与器材调配清单</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <div class="bg-gray-50 p-2 rounded border border-gray-100">
+          <div class="bg-st-header p-2 rounded border border-st-divider">
             <div class="text-st-muted text-xs">编程主控板</div>
             <div class="font-medium text-st-title mt-0.5">Micro:bit V2.2 主板 × {{ lesson.totalStudents }} 套</div>
           </div>
-          <div class="bg-gray-50 p-2 rounded border border-gray-100">
+          <div class="bg-st-header p-2 rounded border border-st-divider">
             <div class="text-st-muted text-xs">传感器组件</div>
             <div class="font-medium text-st-title mt-0.5">红外避障光电模块 × {{ lesson.totalStudents * 2 }} 个</div>
           </div>
-          <div class="bg-gray-50 p-2 rounded border border-gray-100">
+          <div class="bg-st-header p-2 rounded border border-st-divider">
             <div class="text-st-muted text-xs">动力执行套件</div>
             <div class="font-medium text-st-title mt-0.5">双减速电机小车底盘 × {{ lesson.totalStudents }} 套</div>
           </div>
-          <div class="bg-gray-50 p-2 rounded border border-gray-100">
+          <div class="bg-st-header p-2 rounded border border-st-divider">
             <div class="text-st-muted text-xs">电源与杜邦线</div>
             <div class="font-medium text-st-title mt-0.5">18650锂电池组 + 杜邦线包</div>
           </div>

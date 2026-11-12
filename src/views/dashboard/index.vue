@@ -32,7 +32,7 @@
       <div class="kpi-card group">
         <div class="flex items-center justify-between">
           <span class="text-[13px] text-st-secondary">实收营收流水 (本月)</span>
-          <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+          <div class="w-9 h-9 rounded-lg bg-st-primary-light text-st-primary flex items-center justify-center">
             <CircleDollarSign class="w-5 h-5" />
           </div>
         </div>
@@ -51,7 +51,7 @@
       <div class="kpi-card group">
         <div class="flex items-center justify-between">
           <span class="text-[13px] text-st-secondary">在籍在读学员总量</span>
-          <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div class="w-9 h-9 rounded-lg bg-st-success-light text-st-success flex items-center justify-center">
             <GraduationCap class="w-5 h-5" />
           </div>
         </div>
@@ -65,7 +65,7 @@
         </div>
         <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>归属校区生源池</span>
-          <span class="text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded-md text-xs">
+          <span class="text-st-primary font-medium bg-st-primary-light px-1.5 py-0.5 rounded-md text-xs">
             待分班 {{ stats.unassignedCount }} 人
           </span>
         </div>
@@ -75,7 +75,7 @@
       <div class="kpi-card group">
         <div class="flex items-center justify-between">
           <span class="text-[13px] text-st-secondary">本周排课日程</span>
-          <div class="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+          <div class="w-9 h-9 rounded-lg bg-st-purple-light text-st-purple flex items-center justify-center">
             <Calendar class="w-5 h-5" />
           </div>
         </div>
@@ -92,7 +92,7 @@
           <span
             :class="[
               'px-1.5 py-0.5 rounded-md text-xs font-medium',
-              stats.conflictCount > 0 ? 'bg-red-50 text-red-600 font-bold' : 'bg-emerald-50 text-emerald-600'
+              stats.conflictCount > 0 ? 'bg-st-danger-light text-st-danger font-bold' : 'bg-st-success-light text-st-success'
             ]"
           >
             {{ stats.conflictCount > 0 ? `检测到 ${stats.conflictCount} 处冲突` : '无排课冲突' }}
@@ -104,7 +104,7 @@
       <div class="kpi-card group">
         <div class="flex items-center justify-between">
           <span class="text-[13px] text-st-secondary">已授权标准化课程体系</span>
-          <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+          <div class="w-9 h-9 rounded-lg bg-st-warning-light text-st-warning flex items-center justify-center">
             <BookOpen class="w-5 h-5" />
           </div>
         </div>
@@ -118,7 +118,7 @@
         </div>
         <div class="flex items-center justify-between text-xs pt-3 border-t border-st-border text-st-muted">
           <span>教研中心统一质控</span>
-          <span class="text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded-md text-xs">标准化课件就绪</span>
+          <span class="text-st-warning font-medium bg-st-warning-light px-1.5 py-0.5 rounded-md text-xs">标准化课件就绪</span>
         </div>
       </div>
     </div>
@@ -137,7 +137,7 @@
           v-for="item in quickAccessList"
           :key="item.name"
           @click="$router.push(item.path)"
-          class="flex flex-col items-center px-2 py-3.5 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer group text-center"
+          class="flex flex-col items-center px-2 py-3.5 rounded-lg hover:bg-st-header transition-colors cursor-pointer group text-center"
         >
           <div :class="['w-10 h-10 rounded-lg flex items-center justify-center mb-2', item.bgClass]">
             <component :is="item.icon" class="w-5 h-5" />
@@ -170,7 +170,7 @@
               @click="$router.push('/educational/timeSchedule')"
             >
               <span>查看课表</span>
-              <ArrowRight class="w-3.5 h-3.5 ml-0.5 inline" />
+              <ArrowRight class="w-4 h-4 ml-0.5 inline" />
             </el-button>
           </div>
 
@@ -179,7 +179,7 @@
             <div
               v-for="item in recentSchedules"
               :key="item.id"
-              class="p-3 rounded-lg border border-st-border hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              class="p-3 rounded-lg border border-st-border hover:bg-st-header transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
             >
               <div class="flex items-center space-x-3.5">
                 <div class="w-16 h-11 rounded-lg bg-st-primary-light text-st-primary flex flex-col items-center justify-center shrink-0 leading-tight">
@@ -189,12 +189,12 @@
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-medium text-sm text-st-title">{{ item.lessonTitle || item.courseName || '标准课程' }}</span>
-                    <span class="text-xs px-1.5 py-0.5 rounded-md bg-slate-100 text-st-secondary">
+                    <span class="text-xs px-1.5 py-0.5 rounded-md bg-st-fill text-st-secondary">
                       {{ item.className || '标准班级' }}
                     </span>
                     <span
                       v-if="item.isConflict"
-                      class="text-xs px-1.5 py-0.5 rounded-md bg-red-50 text-red-700 font-medium"
+                      class="text-xs px-1.5 py-0.5 rounded-md bg-st-danger-light text-st-danger-deep font-medium"
                     >
                       时段冲突
                     </span>
@@ -257,7 +257,7 @@
               class="todo-row group"
             >
               <div class="flex items-center gap-3">
-                <ClipboardCheck class="w-4 h-4 text-blue-600 shrink-0" />
+                <ClipboardCheck class="w-4 h-4 text-st-primary shrink-0" />
                 <div>
                   <div class="font-medium text-st-title">
                     退费审批
@@ -265,7 +265,7 @@
                   <div class="text-xs text-st-muted">财务中心待复核审批单据</div>
                 </div>
               </div>
-              <span class="font-mono font-medium text-xs text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+              <span class="font-mono font-medium text-xs text-st-primary bg-st-primary-light px-2 py-0.5 rounded-md">
                 {{ stats.pendingApprovalCount }} 笔待办
               </span>
             </div>
@@ -276,7 +276,7 @@
               class="todo-row group"
             >
               <div class="flex items-center gap-3">
-                <Users class="w-4 h-4 text-amber-600 shrink-0" />
+                <Users class="w-4 h-4 text-st-warning shrink-0" />
                 <div>
                   <div class="font-medium text-st-title">
                     待分班学员
@@ -284,7 +284,7 @@
                   <div class="text-xs text-st-muted">已购课但尚未安排班级的学员</div>
                 </div>
               </div>
-              <span class="font-mono font-medium text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+              <span class="font-mono font-medium text-xs text-st-warning-deep bg-st-warning-light px-2 py-0.5 rounded-md">
                 {{ stats.unassignedCount }} 人待排
               </span>
             </div>
@@ -295,7 +295,7 @@
               class="todo-row group"
             >
               <div class="flex items-center gap-3">
-                <Zap class="w-4 h-4 text-purple-600 shrink-0" />
+                <Zap class="w-4 h-4 text-st-purple shrink-0" />
                 <div>
                   <div class="font-medium text-st-title">
                     排课冲突
@@ -306,7 +306,7 @@
               <span
                 :class="[
                   'font-mono font-medium text-xs px-2 py-0.5 rounded-md',
-                  stats.conflictCount > 0 ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
+                  stats.conflictCount > 0 ? 'bg-st-danger-light text-st-danger-deep' : 'bg-st-success-light text-st-success'
                 ]"
               >
                 {{ stats.conflictCount > 0 ? `${stats.conflictCount} 处冲突` : '正常' }}
@@ -470,15 +470,15 @@ onMounted(() => {
 
 // 精炼的9大核心业务直通车（每一个对应独立完整的业务页面）
 const quickAccessList = [
-  { name: '学员全景', desc: '档案与生命周期', icon: GraduationCap, bgClass: 'bg-blue-50 text-blue-600', path: '/studentCenter/allStudent' },
-  { name: '待分班池', desc: '待入班履约学员', icon: Users, bgClass: 'bg-orange-50 text-orange-600', path: '/studentCenter/unassigned' },
-  { name: '排课看板', desc: '7×15智能排课', icon: Calendar, bgClass: 'bg-purple-50 text-purple-600', path: '/educational/timeSchedule' },
+  { name: '学员全景', desc: '档案与生命周期', icon: GraduationCap, bgClass: 'bg-st-primary-light text-st-primary', path: '/studentCenter/allStudent' },
+  { name: '待分班池', desc: '待入班履约学员', icon: Users, bgClass: 'bg-st-warning-light text-st-warning', path: '/studentCenter/unassigned' },
+  { name: '排课看板', desc: '7×15智能排课', icon: Calendar, bgClass: 'bg-st-purple-light text-st-purple', path: '/educational/timeSchedule' },
   { name: '教学讲台', desc: '讲师课堂互动', icon: Monitor, bgClass: 'bg-cyan-50 text-cyan-600', path: '/educational/workbench' },
-  { name: '班级班容', desc: '班级负荷与预警', icon: School, bgClass: 'bg-emerald-50 text-emerald-600', path: '/educational/classManagement' },
-  { name: '考勤消课', desc: '一键点名与扣课', icon: Clock, bgClass: 'bg-teal-50 text-teal-600', path: '/educational/attendance' },
-  { name: '课程研发', desc: '标准化教研大纲', icon: BookOpen, bgClass: 'bg-indigo-50 text-indigo-600', path: '/curriculum/courseManage' },
-  { name: '财务流水', desc: '营收订单与核验', icon: CircleDollarSign, bgClass: 'bg-amber-50 text-amber-600', path: '/financial/orderManagement' },
-  { name: '审批中心', desc: '业务退费审批单', icon: ClipboardCheck, bgClass: 'bg-rose-50 text-rose-600', path: '/financial/approvalFlow' }
+  { name: '班级班容', desc: '班级负荷与预警', icon: School, bgClass: 'bg-st-success-light text-st-success', path: '/educational/classManagement' },
+  { name: '考勤消课', desc: '一键点名与扣课', icon: Clock, bgClass: 'bg-st-success-light text-st-success', path: '/educational/attendance' },
+  { name: '课程研发', desc: '标准化教研大纲', icon: BookOpen, bgClass: 'bg-st-primary-light text-st-primary', path: '/curriculum/courseManage' },
+  { name: '财务流水', desc: '营收订单与核验', icon: CircleDollarSign, bgClass: 'bg-st-warning-light text-st-warning', path: '/financial/orderManagement' },
+  { name: '审批中心', desc: '业务退费审批单', icon: ClipboardCheck, bgClass: 'bg-st-danger-light text-st-danger', path: '/financial/approvalFlow' }
 ]
 </script>
 
@@ -522,6 +522,6 @@ const quickAccessList = [
   transition: background-color 0.15s;
 }
 .todo-row:hover {
-  background: #F8FAFC;
+  background: var(--st-color-header);
 }
 </style>

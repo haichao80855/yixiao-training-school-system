@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-50 border border-gray-200/90 rounded-md px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs select-none">
+  <div class="bg-st-header border border-st-border rounded-md px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs select-none">
     <!-- 左侧统计小计文案 -->
     <div class="flex items-center space-x-2">
       <slot name="left">
@@ -32,14 +32,14 @@
           trigger="click"
         >
           <template #reference>
-            <el-button plain class="!border-st-primary !text-st-primary hover:!bg-blue-50">
+            <el-button plain class="!border-st-primary !text-st-primary hover:!bg-st-primary-light">
               <el-icon class="mr-1"><Setting /></el-icon>
               选择列
             </el-button>
           </template>
 
           <div class="py-1">
-            <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-100 text-xs font-bold text-st-title">
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-st-divider text-xs font-bold text-st-title">
               <span>自定义表格列</span>
               <el-button link type="primary" size="small" @click="resetColumns">恢复默认</el-button>
             </div>
@@ -66,7 +66,7 @@
         <el-button
           plain
           :loading="loading"
-          class="!border-st-primary !text-st-primary hover:!bg-blue-50"
+          class="!border-st-primary !text-st-primary hover:!bg-st-primary-light"
           @click="$emit('export')"
         >
           <el-icon class="mr-1"><Download /></el-icon>
@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
-import { Setting, Download } from '@element-plus/icons-vue'
+import { Settings as Setting, Download } from 'lucide-vue-next'
 import type { ColumnConfig } from '@/types/financial'
 
 const props = withDefaults(
