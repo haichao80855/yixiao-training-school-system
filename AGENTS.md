@@ -77,7 +77,7 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
   - The 3001 dev server and `server/prisma/dev.db` are never touched.
 - **One list of tests: `tests/suites.json`.** It is grouped by domain and read by `test:all`, `test:server`, the deploy gate and CI.
   - Register every new `server/test-*.js` there. The runner (`tests/run-suite.cjs`) fails when a backend test is missing from the list.
-  - `needs` marks what a test requires. Tests whose build output is missing (`mp-dist` / `h5-dist`) are reported as skipped. `skip` records a known reason to skip.
+  - `needs` marks what a test requires. Tests whose build output (`mp-dist` / `h5-dist`) is missing or older than `mini-program/src` are reported as skipped, because a stale build would test old code. `skip` records a known reason to skip.
 - **Server address in tests.** Tests get it from `server/test-utils/target.js` (`TEST_BASE_URL`, then `PORT`, then 3001). Don't hardcode ports or hosts in new tests.
 - **Environment guard (`tests/env-guard.cjs`).**
   - Running `node tests/run-suite.cjs` against an existing server is refused for a remote host, a missing `DATABASE_URL`, `dev.db`, or port 3001.
