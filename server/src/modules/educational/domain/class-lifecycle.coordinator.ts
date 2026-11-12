@@ -72,7 +72,8 @@ export class ClassLifecycleCoordinator {
         );
       }
 
-      const actualCount = cls.studentPackages.length;
+      // 一个学员在一个班只占一个名额，续费产生的多个课包按人去重
+      const actualCount = new Set(cls.studentPackages.map((p) => p.studentId)).size;
       const minRequired = cmd.minStudentCount !== undefined ? cmd.minStudentCount : 1;
       if (actualCount < minRequired) {
         throw new BadRequestException(
@@ -195,7 +196,7 @@ export class ClassLifecycleCoordinator {
         }
         targetClassName = targetClass.name;
 
-        const incomingCount = activePackages.length;
+        const incomingCount = new Set(activePackages.map((p) => p.studentId)).size;
         if (targetClass.currentStudentCount + incomingCount > targetClass.capacity) {
           throw new ConflictException(
             `升班目标班级「${targetClass.name}」容量不足 (当前 ${targetClass.currentStudentCount}/${targetClass.capacity}，拟升入 ${incomingCount} 人)`,
@@ -403,13 +404,14 @@ export class ClassLifecycleCoordinator {
         await tx.class.delete({ where: { id: cls.id } });
       }
 
+      const disbandedStudentCount = new Set(cls.studentPackages.map((p) => p.studentId)).size;
       const receiptId = `REC-CNC-${Date.now().toString().slice(-6)}-${cls.code}`;
       const fingerprint = this.generateFingerprint({
         receiptId,
         classId: cls.id,
         action: 'cancel',
         reason: cmd.reason,
-        disbandedStudentCount: cls.studentPackages.length,
+        disbandedStudentCount,
         revokedScheduleCount: revokedCount,
         isSoftDisbanded,
       });
@@ -418,13 +420,13 @@ export class ClassLifecycleCoordinator {
         success: true,
         classId: cls.id,
         className: cls.name,
-        disbandedStudentCount: cls.studentPackages.length,
+        disbandedStudentCount,
         revokedScheduleCount: revokedCount,
         historicalAttendancesPreserved: preservedAttendanceCount,
         isSoftDisbanded,
         receiptId,
         immutableFingerprint: fingerprint,
-        message: `班级「${cls.name}」已成功解散，${cls.studentPackages.length} 名在读学员课包已安全回退待分班池，${revokedCount} 节未上日程已注销`,
+        message: `班级「${cls.name}」已成功解散，${disbandedStudentCount} 名在读学员的课包已安全回退待分班池，${revokedCount} 节未上日程已注销`,
       };
     });
   }
@@ -478,7 +480,7 @@ export class ClassLifecycleCoordinator {
 
       // 4.2 计算全部待迁移学员课包
       const allSourcePackages = sourceClasses.flatMap((sc) => sc.studentPackages);
-      const totalMigrating = allSourcePackages.length;
+      const totalMigrating = new Set(allSourcePackages.map((p) => p.studentId)).size;
 
       // 4.3 目标班级行级 CAS 班容锁
       if (targetClass.currentStudentCount + totalMigrating > targetClass.capacity) {

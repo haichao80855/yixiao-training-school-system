@@ -191,8 +191,12 @@ export class LessonEvaluationCoordinator {
         },
       });
 
+      // 续费学员有多个在读课包，名单按学员去重
+      const seenStudentIds = new Set<string>();
       for (const pkg of activePackages) {
         const student = pkg.student;
+        if (seenStudentIds.has(student.id)) continue;
+        seenStudentIds.add(student.id);
         const isBound = Boolean(student.wechatOpenId);
         if (isBound) wechatBoundCount++;
         else wechatUnboundCount++;

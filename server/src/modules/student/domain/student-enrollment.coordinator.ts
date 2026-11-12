@@ -9,11 +9,16 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import {
   EnrollStudentCommand,
   EnrollmentReceipt,
+  EnrollmentPreview,
   RefundInitiationCommand,
   RefundInitiationReceipt,
   RollbackRefundReceipt,
   FinalizeRefundReceipt,
 } from './student-enrollment.types';
+import {
+  findCurrentClassForCourse,
+  holdsSeatInClass,
+} from '../../educational/domain/class-seat.policy';
 
 @Injectable()
 export class StudentEnrollmentCoordinator {
@@ -54,21 +59,35 @@ export class StudentEnrollmentCoordinator {
       throw new NotFoundException(`未找到对应课程 (ID/编码: ${cmd.courseId})`);
     }
 
-    // 1.3 班容准入前置检查 (Class Capacity Invariant)
-    let targetClass: any = null;
+    // 1.3 班级归属与班容准入
+    // 老学员续报同一课程：新课包并入他在这门课当前所在的班级 (续费)，不再进待分班。
+    // 一个学员在一个班只占一个名额，已在班内的续费不加班级人数、也不受满员限制。
+    let targetClass: { id: string; name: string; capacity: number; currentStudentCount: number } | null = null;
+    let seatAlreadyHeld = false;
     if (cmd.classId) {
-      targetClass = await this.prisma.class.findUnique({
+      const cls = await this.prisma.class.findUnique({
         where: { id: cmd.classId },
       });
-      if (!targetClass) {
+      if (!cls) {
         throw new NotFoundException(`指定排入的班级不存在 (ID: ${cmd.classId})`);
       }
-
-      if (targetClass.currentStudentCount >= targetClass.capacity) {
+      // 点名扣课按「班级课程 = 课包课程」匹配，课程不一致会导致上课不扣课时
+      if (cls.courseId !== course.id) {
         throw new BadRequestException(
-          `班级「${targetClass.name}」已达额定人数上限 (${targetClass.capacity}人)，严禁超编签约入班`,
+          `班级「${cls.name}」所授课程与报读课程「${course.name}」不一致，不能排入`,
         );
       }
+      targetClass = cls;
+      seatAlreadyHeld = await holdsSeatInClass(this.prisma, student.id, cls.id);
+    } else {
+      targetClass = await findCurrentClassForCourse(this.prisma, student.id, course.id);
+      seatAlreadyHeld = !!targetClass;
+    }
+
+    if (targetClass && !seatAlreadyHeld && targetClass.currentStudentCount >= targetClass.capacity) {
+      throw new BadRequestException(
+        `班级「${targetClass.name}」已达额定人数上限 (${targetClass.capacity}人)，严禁超编签约入班`,
+      );
     }
 
     // 1.4 金额核算 (防浮点精度漂移)
@@ -182,10 +201,12 @@ export class StudentEnrollmentCoordinator {
 
       // (5) 若分配实体班级，原子递增班级人数并流转学籍状态
       if (targetClass) {
-        await tx.class.update({
-          where: { id: targetClass.id },
-          data: { currentStudentCount: { increment: 1 } },
-        });
+        if (!seatAlreadyHeld) {
+          await tx.class.update({
+            where: { id: targetClass.id },
+            data: { currentStudentCount: { increment: 1 } },
+          });
+        }
 
         if (student.status !== 'in_class') {
           await tx.student.update({
@@ -196,7 +217,7 @@ export class StudentEnrollmentCoordinator {
       }
 
       this.logger.log(
-        `学员 [${student.name}] 开单签约成功: 订单号 [${orderNo}], 课包ID [${coursePackage.id}], 班级 [${targetClass?.name || '待分班'}]`,
+        `学员 [${student.name}] 开单签约成功: 订单号 [${orderNo}], 课包ID [${coursePackage.id}], 班级 [${targetClass?.name || '待分班'}]${seatAlreadyHeld ? ' (续费并入原班)' : ''}`,
       );
 
       return {
@@ -214,9 +235,38 @@ export class StudentEnrollmentCoordinator {
         totalLessons: coursePackage.totalLessons,
         bonusLessons: coursePackage.bonusLessons,
         assignedClass: !!targetClass,
+        renewalMerged: seatAlreadyHeld,
         walletPaid: cmd.paymentMethod === 'wallet',
       };
     });
+  }
+
+  /**
+   * 1b. 报读预检：老学员续报同一课程时，告诉前端新课包会并入哪个班
+   */
+  async previewEnrollment(studentId: string, courseId: string): Promise<EnrollmentPreview> {
+    const student = await this.prisma.student.findFirst({
+      where: { OR: [{ id: studentId }, { studentNo: studentId }] },
+      select: { id: true },
+    });
+    if (!student) {
+      throw new NotFoundException(`未找到对应学员 (ID/学号: ${studentId})`);
+    }
+    const [currentClass, live] = await Promise.all([
+      findCurrentClassForCourse(this.prisma, student.id, courseId),
+      this.prisma.studentCoursePackage.aggregate({
+        where: { studentId: student.id, courseId, status: { in: ['active', 'frozen'] } },
+        _sum: { remainingLessons: true },
+        _count: { _all: true },
+      }),
+    ]);
+    return {
+      isRenewal: !!currentClass || live._count._all > 0,
+      classId: currentClass?.id ?? null,
+      className: currentClass?.name ?? null,
+      remainingLessons: live._sum.remainingLessons ?? 0,
+      livePackageCount: live._count._all,
+    };
   }
 
   /**
@@ -436,10 +486,13 @@ export class StudentEnrollmentCoordinator {
         const cls = await tx.class.findUnique({ where: { id: snapshot.classId } });
         if (cls) {
           restoredClassId = cls.id;
-          await tx.class.update({
-            where: { id: cls.id },
-            data: { currentStudentCount: { increment: 1 } },
-          });
+          // 学员仍有其他课包在这个班 (例如已续费)，名额没释放过，不能再加
+          if (!(await holdsSeatInClass(tx, refundedPkg.studentId, cls.id, [refundedPkg.id]))) {
+            await tx.class.update({
+              where: { id: cls.id },
+              data: { currentStudentCount: { increment: 1 } },
+            });
+          }
         }
       }
 

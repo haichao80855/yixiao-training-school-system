@@ -508,6 +508,10 @@ export class StudentService {
   /**
    * 报名单开单与合同签约向导 (委托招生签约履约协调器)
    */
+  async previewEnrollment(studentId: string, courseId: string) {
+    return this.enrollmentCoordinator.previewEnrollment(studentId, courseId);
+  }
+
   async enrollStudent(dto: EnrollStudentDto, currentUser: any) {
     return this.enrollmentCoordinator.enroll(dto, currentUser);
   }

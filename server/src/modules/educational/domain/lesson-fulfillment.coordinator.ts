@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { groupPackagesByStudent } from './class-seat.policy';
 import { OutboxNotificationDispatcher } from './notification/outbox-notification.dispatcher';
 import { mediaVariantRef } from '../../upload/domain/media-key.util';
 import {
@@ -133,10 +134,8 @@ export class LessonFulfillmentCoordinator {
     const students: FulfillmentStudentView[] = [];
 
     // 收集所有候选学员：优先取当前班级激活课包中的在读学员，合并已有考勤学员
-    const studentPackageMap = new Map<string, any>();
-    for (const pkg of cls.studentPackages) {
-      studentPackageMap.set(pkg.studentId, pkg);
-    }
+    // 同一学员续费后有多个课包：名单只列一次，扣最早的课包，余额显示合计
+    const studentPackageGroups = groupPackagesByStudent(cls.studentPackages);
 
     const existingEval = schedule.evaluation;
     let photoList: string[] = [];
@@ -158,7 +157,8 @@ export class LessonFulfillmentCoordinator {
 
     for (const studentId of candidateStudentIds) {
       const recorded = attendanceMap.get(studentId);
-      const pkg = studentPackageMap.get(studentId);
+      const pkgGroup = studentPackageGroups.get(studentId);
+      const pkg = pkgGroup?.current;
       const student = pkg?.student || recorded?.student;
       if (!student) continue;
 
@@ -166,7 +166,7 @@ export class LessonFulfillmentCoordinator {
       if (isBound) wechatBoundCount++;
       else wechatUnboundCount++;
 
-      const isLowBalance = (pkg?.remainingLessons ?? 0) <= 3;
+      const isLowBalance = (pkgGroup?.remainingLessons ?? 0) <= 3;
       const evalItem = studentItemMap.get(studentId);
 
       // 默认到课、扣 1 课时、默认 5 星评级
@@ -214,9 +214,9 @@ export class LessonFulfillmentCoordinator {
         phone: student.phone,
         gender: student.gender || undefined,
         packageId: pkg?.id,
-        remainingLessons: pkg?.remainingLessons ?? 0,
-        bonusLessons: pkg?.bonusLessons ?? 0,
-        totalLessons: pkg?.totalLessons ?? 0,
+        remainingLessons: pkgGroup?.remainingLessons ?? 0,
+        bonusLessons: pkgGroup?.bonusLessons ?? 0,
+        totalLessons: pkgGroup?.totalLessons ?? 0,
         isLowBalance,
         wechatOpenId: student.wechatOpenId,
         isWechatBound: isBound,
@@ -389,10 +389,8 @@ export class LessonFulfillmentCoordinator {
     );
 
     // 准备全员名单：以班级在读激活课包学员为主，合并已有考勤学员
-    const studentPackageMap = new Map<string, any>();
-    for (const pkg of cls.studentPackages) {
-      studentPackageMap.set(pkg.studentId, pkg);
-    }
+    // 同一学员有多个课包时先扣最早的 (FIFO)
+    const studentPackageGroups = groupPackagesByStudent(cls.studentPackages);
 
     const candidateStudentIds = Array.from(
       new Set([
@@ -441,7 +439,7 @@ export class LessonFulfillmentCoordinator {
           let itemBonusBurned = 0;
 
           if (actualDeduct > 0) {
-            targetPkg = studentPackageMap.get(studentId);
+            targetPkg = studentPackageGroups.get(studentId)?.current;
             if (!targetPkg) {
               targetPkg = await tx.studentCoursePackage.findFirst({
                 where: {

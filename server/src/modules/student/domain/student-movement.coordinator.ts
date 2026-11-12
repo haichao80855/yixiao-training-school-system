@@ -8,6 +8,11 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { CourseDeliveryEngine } from '../../curriculum/domain/course-delivery.engine';
 import { StudentEnrollmentCoordinator } from './student-enrollment.coordinator';
 import {
+  holdsSeatInClass,
+  releaseSeatIfLast,
+  SEAT_HOLDING_PACKAGE_STATUSES,
+} from '../../educational/domain/class-seat.policy';
+import {
   MovementIntent,
   MovementPreview,
   MovementReceipt,
@@ -120,13 +125,15 @@ export class StudentMovementCoordinator {
               message: `目标班级「${targetClass.name}」所授课程与该课包不一致，跨课程调整请使用「换课」`,
             });
           }
-          const willExceed = targetClass.currentStudentCount >= targetClass.capacity;
+          // 学员已在目标班 (另有课包在读) 时不占新名额
+          const alreadyInTarget = await holdsSeatInClass(this.prisma, student.id, targetClass.id);
+          const willExceed = !alreadyInTarget && targetClass.currentStudentCount >= targetClass.capacity;
           capacityImpact = {
             targetClassId: targetClass.id,
             targetClassName: targetClass.name,
             capacity: targetClass.capacity,
             currentCount: targetClass.currentStudentCount,
-            afterCount: targetClass.currentStudentCount + 1,
+            afterCount: targetClass.currentStudentCount + (alreadyInTarget ? 0 : 1),
             remainingSlots: Math.max(0, targetClass.capacity - targetClass.currentStudentCount),
             willExceedCapacity: willExceed,
           };
@@ -499,8 +506,13 @@ export class StudentMovementCoordinator {
               `目标班级「${targetClass.name}」所授课程与该课包不一致，跨课程调整请使用「换课」`,
             );
           }
+          if (pkg.classId === targetClass.id) {
+            throw new BadRequestException(`学员已在班级「${targetClass.name}」中，无需转班`);
+          }
+          // 学员已在目标班 (另有课包在读) 时不占新名额
+          const alreadyInTarget = await holdsSeatInClass(tx, student.id, targetClass.id);
           // 班容硬顶强阻断不变量 (Capacity Ceiling)
-          if (targetClass.currentStudentCount >= targetClass.capacity) {
+          if (!alreadyInTarget && targetClass.currentStudentCount >= targetClass.capacity) {
             throw new BadRequestException(
               `目标班级「${targetClass.name}」已达额定人数上限 (${targetClass.capacity}人)，满员严禁转入`,
             );
@@ -511,33 +523,45 @@ export class StudentMovementCoordinator {
             className: pkg.class?.name || '未分班',
             remainingLessons: pkg.remainingLessons,
           };
+          const targetCountAfter = targetClass.currentStudentCount + (alreadyInTarget ? 0 : 1);
           targetSnapshot = {
             classId: targetClass.id,
             className: targetClass.name,
-            currentStudentCount: targetClass.currentStudentCount + 1,
+            currentStudentCount: targetCountAfter,
           };
 
-          // 原班级人数原子递减 (若存在原班级)
+          // 转班转的是学员：他在原班的所有课包 (含续费课包) 一起转走，原班释放一个名额
+          const movingPackageIds = pkg.classId
+            ? (
+                await tx.studentCoursePackage.findMany({
+                  where: {
+                    studentId: student.id,
+                    classId: pkg.classId,
+                    status: { in: SEAT_HOLDING_PACKAGE_STATUSES },
+                  },
+                  select: { id: true },
+                })
+              ).map((p) => p.id)
+            : [pkg.id];
+          if (!movingPackageIds.includes(pkg.id)) movingPackageIds.push(pkg.id);
+
           if (pkg.classId) {
+            await releaseSeatIfLast(tx, student.id, pkg.classId, movingPackageIds);
+          }
+
+          if (!alreadyInTarget) {
             await tx.class.update({
-              where: { id: pkg.classId },
-              data: { currentStudentCount: { decrement: 1 } },
+              where: { id: targetClass.id },
+              data: { currentStudentCount: { increment: 1 } },
             });
           }
 
-          // 目标班级人数原子递增
-          await tx.class.update({
-            where: { id: targetClass.id },
-            data: { currentStudentCount: { increment: 1 } },
-          });
-
-          // 课包更新归属班级
-          await tx.studentCoursePackage.update({
-            where: { id: pkg.id },
+          await tx.studentCoursePackage.updateMany({
+            where: { id: { in: movingPackageIds } },
             data: { classId: targetClass.id },
           });
 
-          summaryText = `学员已由「${originalSnapshot.className}」成功转入「${targetClass.name}」，班级人数更新为 ${targetClass.currentStudentCount + 1}/${targetClass.capacity} 人`;
+          summaryText = `学员已由「${originalSnapshot.className}」成功转入「${targetClass.name}」，班级人数更新为 ${targetCountAfter}/${targetClass.capacity} 人`;
           break;
         }
 
@@ -591,12 +615,9 @@ export class StudentMovementCoordinator {
             netDiff,
           };
 
-          // 释放原班级名额
+          // 释放原班级名额 (学员在原班还有其他课包时保留名额)
           if (pkg.classId) {
-            await tx.class.update({
-              where: { id: pkg.classId },
-              data: { currentStudentCount: { decrement: 1 } },
-            });
+            await releaseSeatIfLast(tx, student.id, pkg.classId, [pkg.id]);
           }
 
           // 原课包完结归档
@@ -780,13 +801,17 @@ export class StudentMovementCoordinator {
             data: { campusId: targetCampus.id },
           });
 
-          // 安全解绑原校区班级并释放原班级人数，避免跨校区班级悬挂
+          // 安全解绑原校区班级并释放原班级人数，避免跨校区班级悬挂 (同一班级只释放一个名额)
+          const releasedClassIds = new Set<string>();
           for (const pkg of student.packages) {
             if (pkg.classId && pkg.class && pkg.class.campusId !== targetCampus.id) {
-              await tx.class.update({
-                where: { id: pkg.classId },
-                data: { currentStudentCount: { decrement: 1 } },
-              });
+              if (!releasedClassIds.has(pkg.classId)) {
+                releasedClassIds.add(pkg.classId);
+                await tx.class.updateMany({
+                  where: { id: pkg.classId, currentStudentCount: { gt: 0 } },
+                  data: { currentStudentCount: { decrement: 1 } },
+                });
+              }
               await tx.studentCoursePackage.update({
                 where: { id: pkg.id },
                 data: { classId: null },
@@ -834,10 +859,7 @@ export class StudentMovementCoordinator {
             }
 
             if (pkg.classId) {
-              await tx.class.update({
-                where: { id: pkg.classId },
-                data: { currentStudentCount: { decrement: 1 } },
-              });
+              await releaseSeatIfLast(tx, student.id, pkg.classId, [pkg.id]);
             }
 
             await tx.studentCoursePackage.update({
@@ -852,12 +874,12 @@ export class StudentMovementCoordinator {
               throw new BadRequestException('学员暂无有效课包可转让');
             }
 
+            const leavingIds = activePackages.map((p) => p.id);
+            const leftClassIds = new Set<string>();
             for (const pkg of activePackages) {
-              if (pkg.classId) {
-                await tx.class.update({
-                  where: { id: pkg.classId },
-                  data: { currentStudentCount: { decrement: 1 } },
-                });
+              if (pkg.classId && !leftClassIds.has(pkg.classId)) {
+                leftClassIds.add(pkg.classId);
+                await releaseSeatIfLast(tx, student.id, pkg.classId, leavingIds);
               }
               transferredLessons += pkg.remainingLessons;
             }
@@ -980,12 +1002,9 @@ export class StudentMovementCoordinator {
           }
           computedRefundAmount = refundable;
 
-          // 释放原班级名额
+          // 释放原班级名额 (学员在原班还有其他在读课包时保留名额)
           if (pkg.classId) {
-            await tx.class.update({
-              where: { id: pkg.classId },
-              data: { currentStudentCount: { decrement: 1 } },
-            });
+            await releaseSeatIfLast(tx, student.id, pkg.classId, [pkg.id]);
           }
 
           // 课包置为 refunded 并清空可用课时

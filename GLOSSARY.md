@@ -17,6 +17,8 @@
 ### 3. 学员与资产 (Student & Asset)
 - **学员档案 (Student Profile)**: 学员全生命周期档案，含基本信息、学籍状态、在读班级与联系方式。
 - **课包 (Course Package)**: 包含指定课时数、单价、有效期的资产凭据。
+- **续费并班 (Renewal Into Class)**: 老学员续报同一课程时新建一个课包（一笔订单一个课包，单价、赠课、有效期、退费各自独立），新课包自动挂到学员在这门课当前所在的班级，不进待分班。上课先扣最早的课包；名单与余额按学员合并显示。
+- **班级名额 (Class Seat)**: 一个学员在一个班只占一个名额（`Class.currentStudentCount` 按人计），不论他在班里挂了几个课包。只有学员在该班已没有 `active` / `frozen` 课包时，转班、退费、换课、转让才释放名额。规则见 `server/src/modules/educational/domain/class-seat.policy.ts`。
 - **电子钱包 (Student Wallet)**: 分账账本体系，严格区分本金钱包（现金充值）与赠送金钱包（优惠赠送）。
 - **学籍异动 (Status Flow)**: 包含转班、换课、休学、复课、转校、转学员、退费共 7 种异常状态流转。
 - **学籍异动协调器 (Student Movement Coordinator)**: 服务端学籍与资产异动深模块，对外提供 `preview`（只读预演）与 `execute`（原子落盘）极简接缝，统一编排状态机跃迁、盛通退费折算、班容并发锁、跨校区交付准入与三级风控审批。

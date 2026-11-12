@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { groupPackagesByStudent } from './class-seat.policy';
 import {
   WorkbenchQuery,
   WorkbenchSnapshot,
@@ -385,10 +386,13 @@ export class LessonSettlementEngine {
 
     const attendanceMap = new Map(schedule.attendances.map((a) => [a.studentId, a]));
 
-    const students: RollCallStudentView[] = schedule.class.studentPackages.map((pkg) => {
+    // 同一学员续费后有多个课包：名单只列一次，packageId 给最早还有课时的课包 (先扣它)，余额显示合计
+    const packageGroups = groupPackagesByStudent(schedule.class.studentPackages);
+    const students: RollCallStudentView[] = Array.from(packageGroups.values()).map((group) => {
+      const pkg = group.current;
       const recorded = attendanceMap.get(pkg.studentId);
       const attendanceStatus = (recorded ? recorded.status : 'present') as AttendanceStatus;
-      const isLowBalance = pkg.remainingLessons <= 3;
+      const isLowBalance = group.remainingLessons <= 3;
       const deductLessons =
         attendanceStatus === 'present' || attendanceStatus === 'late'
           ? recorded?.deductLessons ?? 1
@@ -402,9 +406,9 @@ export class LessonSettlementEngine {
         phone: pkg.student.phone,
         gender: pkg.student.gender || undefined,
         packageId: pkg.id,
-        remainingLessons: pkg.remainingLessons,
-        bonusLessons: pkg.bonusLessons,
-        totalLessons: pkg.totalLessons,
+        remainingLessons: group.remainingLessons,
+        bonusLessons: group.bonusLessons,
+        totalLessons: group.totalLessons,
         isLowBalance,
         attendanceStatus,
         status: attendanceStatus,
