@@ -24,9 +24,10 @@ import {
 
 import { CurriculumModule } from '../curriculum/curriculum.module';
 import { StudentModule } from '../student/student.module';
+import { StaffNotificationModule } from '../staff-notification/staff-notification.module';
 
 @Module({
-  imports: [CurriculumModule, forwardRef(() => StudentModule)],
+  imports: [CurriculumModule, forwardRef(() => StudentModule), StaffNotificationModule],
   controllers: [EducationalController],
   providers: [
     EducationalService,

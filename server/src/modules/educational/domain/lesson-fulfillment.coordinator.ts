@@ -9,6 +9,7 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { groupPackagesByStudent } from './class-seat.policy';
 import { OutboxNotificationDispatcher } from './notification/outbox-notification.dispatcher';
+import { StaffNotificationService } from '../../staff-notification/domain/staff-notification.service';
 import { mediaVariantRef } from '../../upload/domain/media-key.util';
 import {
   PrepareFulfillmentQuery,
@@ -56,6 +57,7 @@ export class LessonFulfillmentCoordinator {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outboxDispatcher: OutboxNotificationDispatcher,
+    private readonly staffNotifications: StaffNotificationService,
   ) {}
 
   /**
@@ -864,10 +866,22 @@ export class LessonFulfillmentCoordinator {
               ? `随堂点名消课成功！已结算 ${candidateStudentIds.length} 名学员，扣减 ${totalDeductedLessons} 课时。`
               : `随堂课评补录发布成功！已排入 ${outboxEnqueuedCount} 条微信通知。`,
       };
-    }).then((receipt) => {
+    }).then(async (receipt) => {
       // 事务提交后异步触发微信出站信箱派发
       if (receipt.evaluation?.evaluationId && (receipt.outbox?.enqueuedCount || 0) > 0) {
         this.outboxDispatcher.triggerImmediateDispatch(receipt.evaluation.evaluationId);
+      }
+      // 通知校区负责人：课评发布、扣课后课时不足 (失败只记日志，不影响结课)
+      if (receipt.evaluation) {
+        await this.staffNotifications.notifyEvaluationPublished({ scheduleEventId: receipt.scheduleEventId });
+      }
+      const deductedStudentIds = receipt.settlement.details.map((d) => d.studentId);
+      if (deductedStudentIds.length && schedule.class?.courseId) {
+        await this.staffNotifications.notifyLowBalance({
+          campusId: schedule.campusId,
+          courseId: schedule.class.courseId,
+          studentIds: deductedStudentIds,
+        });
       }
       return receipt;
     });

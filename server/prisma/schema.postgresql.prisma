@@ -683,3 +683,34 @@ model SystemSetting {
   updatedBy String?  // 最后修改人的用户 ID
   updatedAt DateTime @default(now()) @updatedAt
 }
+
+// ============================================================================
+// 员工站内通知 (校区负责人及以上可见，显示在后台顶部铃铛)
+// ============================================================================
+
+/// 一条通知对同一校区的所有负责人可见；谁读过记在 StaffNotificationRead
+model StaffNotification {
+  id        String   @id @default(uuid())
+  campusId  String
+  type      String   // evaluation_published (课评发布) | low_balance (课时不足)
+  title     String
+  content   String
+  link      String?  // 点开后跳转的后台页面
+  dedupeKey String   @unique // 同一件事只通知一次
+  createdAt DateTime @default(now())
+
+  reads     StaffNotificationRead[]
+
+  @@index([campusId, createdAt])
+}
+
+model StaffNotificationRead {
+  id             String   @id @default(uuid())
+  notificationId String
+  userId         String
+  readAt         DateTime @default(now())
+
+  notification   StaffNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, userId])
+}
