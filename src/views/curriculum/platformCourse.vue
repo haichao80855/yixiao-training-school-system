@@ -1,43 +1,41 @@
 <template>
   <div class="p-4 space-y-4 bg-st-bg min-h-[calc(100vh-60px)]">
     <!-- 顶部状态栏与统计信息 -->
-    <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="bg-white rounded-lg p-5 shadow-sm border border-st-divider flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div class="flex items-center space-x-3">
         <div class="w-10 h-10 rounded-lg bg-st-primary-light text-st-primary flex items-center justify-center shrink-0">
           <Library class="w-5 h-5" aria-hidden="true" />
         </div>
         <div>
           <div class="flex items-center space-x-2">
-            <h1 class="text-base font-bold text-gray-900">拓视未来教育·资源平台课程库</h1>
-            <span class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-st-primary font-medium">企业级数据同步</span>
-            <span class="px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-700 font-medium">全量课件互动白板已接入</span>
+            <h1 class="text-base font-bold text-st-title">拓视未来教育·资源平台课程库</h1>
           </div>
-          <p class="text-xs text-gray-500 mt-1">
+          <p class="text-xs text-st-muted mt-1">
             已同步拓视未来教育 {{ totalCourses }} 门课程，共 {{ totalPlannedLessons.toLocaleString() }} 个计划课次。点击课程可查看课次与课件。
           </p>
         </div>
       </div>
 
-      <div class="flex items-center space-x-6 text-sm text-gray-600 bg-gray-50 px-4 py-2.5 rounded-lg border border-gray-100">
+      <div class="flex items-center space-x-6 text-sm text-st-secondary bg-st-header px-4 py-2.5 rounded-lg border border-st-divider">
         <div>
           <span class="text-st-secondary text-xs block">总课程数</span>
           <span class="text-lg font-bold text-st-primary">{{ totalCourses }}</span> 门
         </div>
-        <div class="h-6 w-px bg-gray-200"></div>
+        <div class="h-6 w-px bg-st-border"></div>
         <div>
           <span class="text-st-secondary text-xs block">计划课次</span>
-          <span class="text-lg font-bold text-emerald-600">{{ totalPlannedLessons.toLocaleString() }}</span> 节
+          <span class="text-lg font-bold text-st-success">{{ totalPlannedLessons.toLocaleString() }}</span> 节
         </div>
-        <div class="h-6 w-px bg-gray-200"></div>
+        <div class="h-6 w-px bg-st-border"></div>
         <div>
           <span class="text-st-secondary text-xs block">涵盖学科科目</span>
-          <span class="text-lg font-bold text-gray-800">{{ uniqueSubjects.length }}</span> 个
+          <span class="text-lg font-bold text-st-title">{{ uniqueSubjects.length }}</span> 个
         </div>
       </div>
     </div>
 
     <!-- 筛选面板 -->
-    <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-100 space-y-3">
+    <div class="bg-white rounded-lg p-4 shadow-sm border border-st-divider space-y-3">
       <!-- 快捷科目/类别筛选 (CapsuleFilter 集成) -->
       <CapsuleFilter
         v-model="selectedSubject"
@@ -47,7 +45,7 @@
       />
 
       <!-- 输入框与下拉选择搜索 -->
-      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-100">
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-st-divider">
         <div class="flex flex-wrap items-center gap-3">
           <el-input
             v-model="keyword"
@@ -95,7 +93,7 @@
           </el-button>
         </div>
 
-        <div class="text-xs text-gray-500">
+        <div class="text-xs text-st-muted">
           已筛选出 <span class="font-bold text-st-primary">{{ filteredCourses.length }}</span> 门课程
         </div>
       </div>
@@ -106,11 +104,11 @@
       <div
         v-for="course in pagedCourses"
         :key="course.id"
-        class="bg-white rounded-lg overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between cursor-pointer"
+        class="bg-white rounded-lg overflow-hidden border border-st-divider shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between cursor-pointer"
         @click="openCoursewareDrawer(course)"
       >
         <!-- 封面图 -->
-        <div class="relative w-full aspect-[16/9] bg-gray-100 overflow-hidden">
+        <div class="relative w-full aspect-[16/9] bg-st-fill overflow-hidden">
           <img
             :src="course.courseCover"
             :alt="course.courseName"
@@ -118,16 +116,8 @@
             loading="lazy"
             @error="handleImgError"
           />
-          <!-- 课程类型角标 -->
-          <span
-            v-if="course.configCourseTypeName"
-            class="absolute top-2 left-2 px-2 py-0.5 text-xs rounded bg-black/60 text-white backdrop-blur-xs font-medium"
-          >
-            {{ course.configCourseTypeName }}
-          </span>
-
-          <!-- 授权来源 -->
-          <span class="absolute top-2 right-2 px-1.5 py-0.5 text-xs rounded bg-st-primary/90 text-white font-medium">
+          <!-- 授权来源：封面上只保留这一个标签 -->
+          <span class="absolute top-2 left-2 px-2 py-0.5 text-xs rounded-full bg-black/55 text-white backdrop-blur-sm font-medium">
             盛通授权
           </span>
         </div>
@@ -136,7 +126,7 @@
         <div class="p-3.5 flex-1 flex flex-col justify-between">
           <div>
             <div class="flex items-start justify-between gap-1 mb-1.5">
-              <h3 class="text-sm font-bold text-gray-800 line-clamp-1 group-hover:text-st-primary transition-colors" :title="course.courseName">
+              <h3 class="text-sm font-bold text-st-title line-clamp-1 group-hover:text-st-primary transition-colors" :title="course.courseName">
                 {{ course.courseName }}
               </h3>
             </div>
@@ -144,21 +134,21 @@
               别名: {{ course.courseNameAlias }}
             </p>
 
-            <div class="flex flex-wrap gap-1 mb-2">
-              <span class="text-xs px-2 py-0.5 rounded bg-blue-50 text-st-primary border border-blue-100">
+            <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2 text-xs text-st-muted">
+              <span class="px-2 py-0.5 rounded bg-st-fill text-st-secondary">
                 {{ course.configCourseSubjectName || '综合素养' }}
               </span>
-              <span v-if="course.planLessonTotal" class="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
-                {{ course.planLessonTotal }} 课时
-              </span>
+              <span v-if="course.configCourseTypeName">{{ course.configCourseTypeName }}</span>
+              <span v-if="course.planLessonTotal" class="tabular-nums">{{ course.planLessonTotal }} 课时</span>
             </div>
           </div>
 
-          <div class="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+          <div class="pt-2 border-t border-st-divider flex items-center justify-between text-xs text-st-muted">
             <span>创建人: {{ course.createUserName || '教研组' }}</span>
             <el-button
               type="primary"
-              class="!text-xs !px-2.5 !py-1"
+              plain
+              size="small"
               @click.stop="openCoursewareDrawer(course)"
             >
               授课课件
@@ -171,7 +161,7 @@
     <!-- 空状态 (AppEmpty 集成) -->
     <div
       v-if="filteredCourses.length === 0"
-      class="bg-white rounded-lg p-6 text-center border border-gray-100 shadow-sm"
+      class="bg-white rounded-lg p-6 text-center border border-st-divider shadow-sm"
     >
       <AppEmpty
         type="search"
@@ -182,7 +172,7 @@
     </div>
 
     <!-- 分页器 -->
-    <div class="bg-white rounded-lg px-4 shadow-sm border border-gray-100">
+    <div class="bg-white rounded-lg px-4 shadow-sm border border-st-divider">
       <AppPagination
         v-model:current-page="currentPage"
         v-model:page-size="pageSize"
@@ -198,9 +188,8 @@
 </template>
 
 <script setup lang="ts">
-import { Search } from '@element-plus/icons-vue'
 import { ref, computed } from 'vue'
-import { Library } from 'lucide-vue-next'
+import { Library, Search } from 'lucide-vue-next'
 import { platformData } from '@/constants/platformCourse'
 import AppPagination from '@/components/AppPagination.vue'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'

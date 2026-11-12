@@ -237,3 +237,8 @@ select,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* 图标：全站统一 lucide，线宽 1.75 (比默认 2 更细，更接近苹果 SF Symbols 的观感) */
+svg.lucide {
+  stroke-width: 1.75;
+}

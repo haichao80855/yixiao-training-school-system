@@ -16,22 +16,22 @@
       </el-steps>
 
       <!-- 续费决策智能草案横条 -->
-      <div v-if="props.renewalDraft" class="bg-amber-50 border border-amber-200 rounded p-3 text-xs flex items-center justify-between text-amber-900">
+      <div v-if="props.renewalDraft" class="bg-st-warning-light border border-st-warning-border rounded p-3 text-xs flex items-center justify-between text-st-warning-deep">
         <div class="flex items-center space-x-2">
-          <FileText class="w-4 h-4 text-amber-700 shrink-0" />
+          <FileText class="w-4 h-4 text-st-warning-deep shrink-0" />
           <div>
             <div class="font-bold flex items-center space-x-1.5">
               <span>续费开单智能预填草案已就绪</span>
               <el-tag size="small" type="warning" effect="dark">{{ props.renewalDraft.draftId }}</el-tag>
             </div>
-            <div class="text-xs text-amber-700 mt-0.5">
+            <div class="text-xs text-st-warning-deep mt-0.5">
               原课程: {{ props.renewalDraft.quote.courseName }} | 单价: ¥{{ props.renewalDraft.quote.pricePerLesson }}/课时 | 课时: {{ props.renewalDraft.quote.totalLessons }}讲 (+赠{{ props.renewalDraft.quote.bonusLessons }}讲)
             </div>
           </div>
         </div>
         <div class="text-right">
-          <div class="font-bold text-amber-800">立减 ¥{{ props.renewalDraft.quote.suggestedDiscount }}</div>
-          <div class="text-xs text-amber-600 font-mono">应收: ¥{{ props.renewalDraft.quote.actualPayAmount }}</div>
+          <div class="font-bold text-st-warning-deep">立减 ¥{{ props.renewalDraft.quote.suggestedDiscount }}</div>
+          <div class="text-xs text-st-warning font-mono">应收: ¥{{ props.renewalDraft.quote.actualPayAmount }}</div>
         </div>
       </div>
 
@@ -58,7 +58,7 @@
 
           <!-- 选中学员卡片展示 -->
           <div v-if="studentLocked && selectedStudent" class="text-xs text-st-secondary mb-1.5">报读学员</div>
-          <div v-if="selectedStudent" class="p-3 bg-blue-50 border border-blue-200 rounded flex items-center space-x-3">
+          <div v-if="selectedStudent" class="p-3 bg-st-primary-light border border-st-primary-border rounded flex items-center space-x-3">
             <StudentAvatar :seed="selectedStudent.id" :name="selectedStudent.name" :gender="selectedStudent.gender" :size="48" />
             <div class="flex-1 text-xs">
               <div class="flex items-center space-x-2">
@@ -131,7 +131,7 @@
             </el-form-item>
           </div>
 
-          <div class="p-3 bg-gray-50 border rounded text-xs flex justify-between items-center text-st-title">
+          <div class="p-3 bg-st-header border rounded text-xs flex justify-between items-center text-st-title">
             <span>课程原价计算 (正课 {{ formData.lessonCount }} × ¥{{ formData.pricePerLesson }}):</span>
             <span class="font-bold text-base font-mono text-st-primary">¥ {{ originalTotalPrice.toFixed(2) }}</span>
           </div>
@@ -157,20 +157,20 @@
           </div>
 
           <!-- 账务明细面板 -->
-          <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2 text-xs">
-            <div class="flex justify-between text-amber-900">
+          <div class="bg-st-warning-light border border-st-warning-border rounded-lg p-4 space-y-2 text-xs">
+            <div class="flex justify-between text-st-warning-deep">
               <span>课程标准原价:</span>
               <span class="font-mono">¥ {{ originalTotalPrice.toFixed(2) }}</span>
             </div>
-            <div class="flex justify-between text-amber-900">
+            <div class="flex justify-between text-st-warning-deep">
               <span>优惠券减免:</span>
-              <span class="font-mono text-red-600">- ¥ {{ formData.couponAmount.toFixed(2) }}</span>
+              <span class="font-mono text-st-danger">- ¥ {{ formData.couponAmount.toFixed(2) }}</span>
             </div>
-            <div class="flex justify-between text-amber-900">
+            <div class="flex justify-between text-st-warning-deep">
               <span>直减折扣减免:</span>
-              <span class="font-mono text-red-600">- ¥ {{ formData.discountAmount.toFixed(2) }}</span>
+              <span class="font-mono text-st-danger">- ¥ {{ formData.discountAmount.toFixed(2) }}</span>
             </div>
-            <div class="border-t border-amber-300 pt-2 flex justify-between items-center text-sm font-bold text-amber-950">
+            <div class="border-t border-st-warning-border pt-2 flex justify-between items-center text-sm font-bold text-amber-950">
               <span>最终实收应付金额:</span>
               <span class="text-xl font-bold font-mono text-st-danger-deep">¥ {{ finalActualAmount.toFixed(2) }}</span>
             </div>
@@ -194,18 +194,18 @@
             </el-radio-group>
           </el-form-item>
 
-          <div v-if="formData.paymentMethod === 'wallet'" class="p-3 bg-blue-50 border border-blue-200 rounded text-xs space-y-1 text-blue-900">
+          <div v-if="formData.paymentMethod === 'wallet'" class="p-3 bg-st-primary-light border border-st-primary-border rounded text-xs space-y-1 text-st-primary-active">
             <div>学员电子钱包本金: ¥{{ selectedStudent?.wallet.principalBalance.toFixed(2) }} | 赠送金: ¥{{ selectedStudent?.wallet.bonusBalance.toFixed(2) }}</div>
-            <div class="font-semibold text-emerald-700">● 优先扣除赠送金，不足部分扣除本金。</div>
+            <div class="font-semibold text-st-success">● 优先扣除赠送金，不足部分扣除本金。</div>
           </div>
 
-          <div class="p-4 bg-gray-50 border rounded text-xs space-y-2">
+          <div class="p-4 bg-st-header border rounded text-xs space-y-2">
             <div class="font-bold text-st-title">签约开单确认清单：</div>
             <div class="grid grid-cols-2 gap-2 text-st-secondary">
               <div>学员姓名: <b class="text-st-title">{{ selectedStudent?.name }}</b></div>
               <div>签约校区: <b class="text-st-title">{{ tenantStore.currentCampus.name }}</b></div>
               <div>课程名称: <b class="text-st-title">{{ selectedCourse?.name }}</b></div>
-              <div>入库课时: <b class="text-emerald-600">{{ formData.lessonCount + formData.bonusLessons }} 课时</b></div>
+              <div>入库课时: <b class="text-st-success">{{ formData.lessonCount + formData.bonusLessons }} 课时</b></div>
               <div>支付方式: <b class="text-st-title">{{ getPaymentMethodLabel(formData.paymentMethod) }}</b></div>
               <div>实付金额: <b class="text-st-danger-deep font-mono text-sm">¥ {{ finalActualAmount.toFixed(2) }}</b></div>
             </div>

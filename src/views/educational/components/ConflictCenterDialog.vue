@@ -6,9 +6,9 @@
     destroy-on-close
   >
     <div class="space-y-4">
-      <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 flex items-center justify-between">
+      <div class="bg-st-warning-light border border-st-warning-border rounded-lg p-3 text-xs text-st-warning-deep flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <AlertTriangle class="w-4 h-4 text-amber-600 shrink-0" />
+          <AlertTriangle class="w-4 h-4 text-st-warning shrink-0" />
           <span>
             当前校区检测到 <b>{{ conflictList.length }}</b> 处日程重叠资源争抢。教务排课冲突将导致师资撞期或教室超员，请及时调配。
           </span>
@@ -17,7 +17,7 @@
       </div>
 
       <div v-if="conflictList.length === 0" class="py-12 text-center text-st-muted text-xs">
-        <CheckCircle2 class="w-12 h-12 text-emerald-500 mx-auto mb-2" />
+        <CheckCircle2 class="w-12 h-12 text-st-success mx-auto mb-2" />
         <p>当前校区所有排课均无资源冲突，排课系统运行良好！</p>
       </div>
 
@@ -25,27 +25,27 @@
         <div
           v-for="item in conflictList"
           :key="item.id"
-          class="border border-rose-200 bg-rose-50/50 rounded-lg p-3.5 space-y-2.5 transition-all hover:shadow-sm"
+          class="border border-st-danger-border bg-rose-50/50 rounded-lg p-3.5 space-y-2.5 transition-all hover:shadow-sm"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+              <span class="w-2 h-2 rounded-full bg-st-danger animate-ping"></span>
               <span class="font-bold text-st-title text-sm">{{ item.className }}</span>
               <el-tag type="danger" size="small">{{ getConflictLabel(item.conflictType) }}</el-tag>
             </div>
             <span class="text-xs text-st-muted">{{ item.date }} {{ item.startTime }}-{{ item.endTime }}</span>
           </div>
 
-          <div class="text-xs text-rose-800 bg-white/80 p-2.5 rounded border border-rose-200 space-y-1">
-            <div class="font-semibold text-rose-700">冲突详情说明：</div>
+          <div class="text-xs text-st-danger-deep bg-white/80 p-2.5 rounded border border-st-danger-border space-y-1">
+            <div class="font-semibold text-st-danger-deep">冲突详情说明：</div>
             <p>{{ item.conflictReason || '讲师或教室资源在此时段与其他课程重叠冲突' }}</p>
           </div>
 
           <div class="flex items-center justify-between text-xs text-st-secondary pt-1">
             <div class="space-x-3 flex items-center">
-              <span class="inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />讲师：{{ item.teacherName }}</span>
-              <span class="inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />教室：{{ item.classroomName }}</span>
-              <span class="inline-flex items-center gap-1"><Users class="w-3.5 h-3.5 text-st-primary" />学员数：{{ item.studentIds?.length || 0 }}人</span>
+              <span class="inline-flex items-center gap-1"><User class="w-4 h-4 text-st-primary" />讲师：{{ item.teacherName }}</span>
+              <span class="inline-flex items-center gap-1"><MapPin class="w-4 h-4 text-st-warning" />教室：{{ item.classroomName }}</span>
+              <span class="inline-flex items-center gap-1"><Users class="w-4 h-4 text-st-primary" />学员数：{{ item.studentIds?.length || 0 }}人</span>
             </div>
             <el-button type="danger" @click="handleResolve(item)">
               调整课次解决冲突

@@ -7,12 +7,12 @@
     :close-on-click-modal="false"
   >
     <div class="space-y-4">
-      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800 space-y-1">
-        <div class="font-bold flex items-center gap-1.5 text-blue-900">
+      <div class="bg-st-primary-light border border-st-primary-border rounded-lg p-3 text-xs text-st-primary-active space-y-1">
+        <div class="font-bold flex items-center gap-1.5 text-st-primary-active">
           <Calendar class="w-4 h-4 text-st-primary" />
           <span>按周期自动规律排课 (例如：每周六 14:00-16:00 连续排 16 次)</span>
         </div>
-        <p class="text-blue-700">系统将自动跳过节假日（或按固定周步长推进），并实时调用三维冲突检测引擎探测潜在师生与教室冲突。</p>
+        <p class="text-st-primary">系统将自动跳过节假日（或按固定周步长推进），并实时调用三维冲突检测引擎探测潜在师生与教室冲突。</p>
       </div>
 
       <el-form ref="formRef" :model="form" :rules="rules" :label-width="FORM_LABEL_WIDTH.md" size="default">
@@ -117,7 +117,7 @@
         </div>
 
         <!-- 预览结果摘要 -->
-        <div v-if="previewSummary" class="border rounded-lg p-3 bg-gray-50 text-xs space-y-1.5">
+        <div v-if="previewSummary" class="border rounded-lg p-3 bg-st-header text-xs space-y-1.5">
           <div class="font-bold text-st-title flex justify-between">
             <span>预演排课结果 ({{ previewData?.totalPlannedSlots || form.repeatCount }} 讲)</span>
             <span :class="previewSummary.conflictCount > 0 ? 'text-st-danger font-bold' : 'text-st-success'">
@@ -127,12 +127,12 @@
           <div class="text-st-muted text-xs">
             排课跨度：{{ previewSummary.start }} 至 {{ previewSummary.end }}，每周循环一次。
           </div>
-          <div v-if="previewData?.collisions?.length" class="max-h-24 overflow-y-auto space-y-1 pt-1 border-t border-gray-200">
-            <div v-for="(c, idx) in previewData.collisions.slice(0, 5)" :key="idx" class="text-xs text-rose-600 flex items-center gap-1">
-              <AlertTriangle class="w-3 h-3 text-rose-500 shrink-0" />
+          <div v-if="previewData?.collisions?.length" class="max-h-24 overflow-y-auto space-y-1 pt-1 border-t border-st-border">
+            <div v-for="(c, idx) in previewData.collisions.slice(0, 5)" :key="idx" class="text-xs text-st-danger flex items-center gap-1">
+              <AlertTriangle class="w-4 h-4 text-st-danger shrink-0" />
               <span>[{{ c.date }}] {{ c.message }}</span>
             </div>
-            <div v-if="previewData.collisions.length > 5" class="text-xs text-stone-400">
+            <div v-if="previewData.collisions.length > 5" class="text-xs text-st-placeholder">
               ...以及另外 {{ previewData.collisions.length - 5 }} 处冲突
             </div>
           </div>

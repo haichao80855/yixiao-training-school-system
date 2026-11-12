@@ -8,11 +8,11 @@
       <div
         v-for="prod in authorizedProducts"
         :key="prod.name"
-        class="p-4 rounded-lg border border-slate-200 bg-slate-50/50 flex flex-col justify-between space-y-3"
+        class="p-4 rounded-lg border border-st-border bg-st-header flex flex-col justify-between space-y-3"
       >
         <div class="flex items-start justify-between">
           <div class="flex items-center space-x-2.5">
-            <div class="w-8 h-8 rounded bg-blue-100 text-st-primary flex items-center justify-center font-bold">
+            <div class="w-8 h-8 rounded bg-st-primary-light text-st-primary flex items-center justify-center font-bold">
               {{ prod.icon }}
             </div>
             <div>
@@ -25,9 +25,9 @@
           </el-tag>
         </div>
         <p class="text-st-secondary text-xs leading-relaxed">{{ prod.desc }}</p>
-        <div class="text-xs text-st-muted border-t border-slate-200 pt-2 flex justify-between">
+        <div class="text-xs text-st-muted border-t border-st-border pt-2 flex justify-between">
           <span>授权终端：{{ prod.terminal }}</span>
-          <span class="font-mono text-emerald-600">至 {{ prod.expire }}</span>
+          <span class="font-mono text-st-success">至 {{ prod.expire }}</span>
         </div>
       </div>
     </div>

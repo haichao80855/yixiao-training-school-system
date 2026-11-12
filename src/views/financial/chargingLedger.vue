@@ -55,9 +55,9 @@
       <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border">
         <div class="text-xs text-st-muted flex justify-between items-center">
           <span>线上通道收单占比</span>
-          <span class="text-emerald-600 font-mono font-bold">{{ metrics.onlineRatio }}%</span>
+          <span class="text-st-success font-mono font-bold">{{ metrics.onlineRatio }}%</span>
         </div>
-        <div class="text-xl font-bold font-mono text-emerald-600 mt-1.5">
+        <div class="text-xl font-bold font-mono text-st-success mt-1.5">
           ¥ {{ metrics.onlineAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
         </div>
         <div class="text-xs text-st-muted mt-1">
@@ -68,9 +68,9 @@
       <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border">
         <div class="text-xs text-st-muted flex justify-between items-center">
           <span>对公转账与POS刷卡</span>
-          <span class="text-blue-600 font-mono font-bold">{{ metrics.bankPosRatio }}%</span>
+          <span class="text-st-primary font-mono font-bold">{{ metrics.bankPosRatio }}%</span>
         </div>
-        <div class="text-xl font-bold font-mono text-blue-600 mt-1.5">
+        <div class="text-xl font-bold font-mono text-st-primary mt-1.5">
           ¥ {{ metrics.bankPosAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
         </div>
         <div class="text-xs text-st-muted mt-1">
@@ -212,7 +212,7 @@
               <span
                 :class="[
                   'font-bold font-mono text-sm',
-                  row.amount < 0 ? 'text-blue-600' : 'text-st-danger'
+                  row.amount < 0 ? 'text-st-primary' : 'text-st-danger'
                 ]"
               >
                 ¥ {{ row.amount.toFixed(2) }}
@@ -285,9 +285,9 @@
 
 <script setup lang="ts">
 import { toDateKey } from '@/utils/dateKey'
+import { RefreshCw as Refresh, Download, Copy as DocumentCopy } from 'lucide-vue-next'
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Refresh, Download, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi } from '@/api'
 import { isCampusMatch } from '@/utils/financeAggregator'

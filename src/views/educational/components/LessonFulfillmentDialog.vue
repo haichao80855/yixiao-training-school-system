@@ -9,10 +9,10 @@
   >
     <div v-loading="loading" class="space-y-4 max-h-[78vh] overflow-y-auto px-1 pr-2">
       <!-- 1. 顶部排课全景与履约模式切换 -->
-      <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-3.5 rounded-xl border border-blue-100 flex flex-wrap items-center justify-between gap-3">
+      <div class="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-3.5 rounded-xl border border-st-primary-border flex flex-wrap items-center justify-between gap-3">
         <div class="space-y-1">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-bold text-white bg-indigo-600 px-2 py-0.5 rounded shadow-xs">
+            <span class="text-xs font-bold text-white bg-st-primary px-2 py-0.5 rounded shadow-xs">
               {{ currentLesson?.className }}
             </span>
             <span class="text-sm font-extrabold text-st-title">
@@ -20,9 +20,9 @@
             </span>
           </div>
           <div class="text-xs text-st-secondary flex items-center gap-3">
-            <span class="inline-flex items-center gap-1"><Calendar class="w-3.5 h-3.5 text-st-primary" />{{ currentLesson?.date }} {{ currentLesson?.startTime }} - {{ currentLesson?.endTime }}</span>
-            <span class="inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />{{ currentLesson?.classroomName }}</span>
-            <span class="inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ currentLesson?.teacherName }}</span>
+            <span class="inline-flex items-center gap-1"><Calendar class="w-4 h-4 text-st-primary" />{{ currentLesson?.date }} {{ currentLesson?.startTime }} - {{ currentLesson?.endTime }}</span>
+            <span class="inline-flex items-center gap-1"><MapPin class="w-4 h-4 text-st-warning" />{{ currentLesson?.classroomName }}</span>
+            <span class="inline-flex items-center gap-1"><User class="w-4 h-4 text-st-primary" />{{ currentLesson?.teacherName }}</span>
           </div>
         </div>
 
@@ -41,22 +41,22 @@
       </div>
 
       <!-- 2. 全景看板指标透视 (Zero-ceremony 就绪态) -->
-      <div v-if="workbenchSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-center text-xs">
-        <div class="bg-white p-2 rounded border border-gray-100">
+      <div v-if="workbenchSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-st-header border border-st-border rounded-lg p-2.5 text-center text-xs">
+        <div class="bg-white p-2 rounded border border-st-divider">
           <div class="text-st-muted text-xs">参课学员总数</div>
           <div class="text-base font-extrabold text-st-title font-mono">{{ workbenchSummary.totalStudents }} 人</div>
         </div>
-        <div class="bg-white p-2 rounded border border-gray-100">
+        <div class="bg-white p-2 rounded border border-st-divider">
           <div class="text-st-muted text-xs">实到打卡人次</div>
-          <div class="text-base font-extrabold text-emerald-600 font-mono">{{ presentCount }} 人</div>
+          <div class="text-base font-extrabold text-st-success font-mono">{{ presentCount }} 人</div>
         </div>
-        <div class="bg-white p-2 rounded border border-gray-100">
+        <div class="bg-white p-2 rounded border border-st-divider">
           <div class="text-st-muted text-xs">预计课消学时</div>
-          <div class="text-base font-extrabold text-amber-600 font-mono">{{ totalEstimatedDeduct }} 课时</div>
+          <div class="text-base font-extrabold text-st-warning font-mono">{{ totalEstimatedDeduct }} 课时</div>
         </div>
-        <div class="bg-white p-2 rounded border border-gray-100">
+        <div class="bg-white p-2 rounded border border-st-divider">
           <div class="text-st-muted text-xs">微信推送就绪</div>
-          <div class="text-base font-extrabold text-indigo-600 font-mono">
+          <div class="text-base font-extrabold text-st-primary font-mono">
             {{ workbenchSummary.wechatBoundCount }} / {{ workbenchSummary.totalStudents }}
           </div>
         </div>
@@ -70,8 +70,8 @@
               <ClipboardList class="w-4 h-4 text-st-primary" />
               <span>学员考勤与个性化学情 (全员默认出勤打卡)</span>
             </span>
-            <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
-              <Lightbulb class="w-3.5 h-3.5 text-emerald-600" />
+            <span class="text-xs text-st-success bg-st-success-light px-2 py-0.5 rounded border border-st-success-border inline-flex items-center gap-1">
+              <Lightbulb class="w-4 h-4 text-st-success" />
               <span>90% 课堂无需逐项修改，点击异常学员即可快速切换</span>
             </span>
           </div>
@@ -80,11 +80,11 @@
           </el-button>
         </div>
 
-        <div class="border border-st-border rounded-lg overflow-hidden bg-white shadow-xs divide-y divide-gray-100">
+        <div class="border border-st-border rounded-lg overflow-hidden bg-white shadow-xs divide-y divide-st-divider">
           <div
             v-for="(st, idx) in rosterList"
             :key="st.studentId"
-            class="p-2.5 transition-colors hover:bg-gray-50/80 flex flex-wrap items-center justify-between gap-3 text-xs"
+            class="p-2.5 transition-colors hover:bg-st-header flex flex-wrap items-center justify-between gap-3 text-xs"
             :class="[st.status !== 'present' ? 'bg-amber-50/30' : '']"
           >
             <!-- 学员基本信息与课包告警 -->
@@ -98,7 +98,7 @@
                 effect="plain"
                 class="!text-xs !px-1.5 inline-flex items-center gap-0.5"
               >
-                <AlertTriangle class="w-3 h-3 text-danger" />
+                <AlertTriangle class="w-4 h-4 text-danger" />
                 <span>余 {{ st.remainingLessons }} 课时</span>
               </el-tag>
               <el-tag
@@ -110,11 +110,11 @@
               >
                 余 {{ st.remainingLessons }} 课时
               </el-tag>
-              <span v-if="st.isWechatBound" class="text-emerald-600 text-xs inline-flex items-center" title="已绑定微信公众号">
-                <Smartphone class="w-3.5 h-3.5" />
+              <span v-if="st.isWechatBound" class="text-st-success text-xs inline-flex items-center" title="已绑定微信公众号">
+                <Smartphone class="w-4 h-4" />
               </span>
-              <span v-else class="text-gray-300 text-xs inline-flex items-center" title="未绑定微信公众号">
-                <Smartphone class="w-3.5 h-3.5 opacity-40" />
+              <span v-else class="text-st-placeholder text-xs inline-flex items-center" title="未绑定微信公众号">
+                <Smartphone class="w-4 h-4 opacity-40" />
               </span>
             </div>
 
@@ -149,7 +149,7 @@
             <!-- 扣减课时显示 -->
             <div class="flex items-center gap-1 min-w-[70px]">
               <span class="text-st-muted text-xs">扣除:</span>
-              <span class="font-mono font-bold text-st-title" :class="[st.deductLessons > 0 ? 'text-indigo-600' : 'text-st-secondary']">
+              <span class="font-mono font-bold text-st-title" :class="[st.deductLessons > 0 ? 'text-st-primary' : 'text-st-secondary']">
                 {{ st.deductLessons }} 课时
               </span>
             </div>
@@ -186,10 +186,10 @@
       </div>
 
       <!-- 4. 随堂课评内容区 (仅在 FULL_SETTLE 模式下展开) -->
-      <div v-if="fulfillmentMode === 'FULL_SETTLE'" class="space-y-3 pt-2 border-t border-gray-100">
+      <div v-if="fulfillmentMode === 'FULL_SETTLE'" class="space-y-3 pt-2 border-t border-st-divider">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-st-title flex items-center gap-1">
-            <span>⭐</span> 随堂综合课评与标准知识点大纲
+            <Star class="w-4 h-4 text-st-warning" aria-hidden="true" /> 随堂综合课评与标准知识点大纲
           </span>
           <div class="flex items-center gap-2">
             <span class="text-xs font-semibold text-st-title">综合评级:</span>
@@ -205,7 +205,7 @@
 
           <!-- 教学重难点富文本 -->
           <el-form-item label="随堂核心素养与知识点 (抽取自标准教研大纲)">
-            <div class="w-full border border-st-border rounded-lg bg-gray-50/50 p-2.5 max-h-36 overflow-y-auto text-xs leading-relaxed">
+            <div class="w-full border border-st-border rounded-lg bg-st-header p-2.5 max-h-36 overflow-y-auto text-xs leading-relaxed">
               <div v-html="form.studyContentHtml"></div>
             </div>
           </el-form-item>
@@ -221,9 +221,9 @@
           </el-form-item>
 
           <!-- 多媒体资产直传 (< 100MB 拦截) -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-gray-50/70 p-3 rounded-lg border border-gray-200">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-st-header p-3 rounded-lg border border-st-border">
             <div>
-              <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Image class="w-3.5 h-3.5 text-st-primary" />课堂随堂相册 (最多 9 张)</label>
+              <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Image class="w-4 h-4 text-st-primary" />课堂随堂相册 (最多 9 张)</label>
               <div class="flex items-center gap-2">
                 <el-button type="primary" plain :loading="uploadingPhotos" @click="handleAddPhoto">
                   {{ uploadingPhotos ? '上传中…' : '添加现场照片' }}
@@ -252,7 +252,7 @@
             </div>
 
             <div>
-              <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Video class="w-3.5 h-3.5 text-st-primary" />课堂视频亮点 (限制 &le; 100MB)</label>
+              <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Video class="w-4 h-4 text-st-primary" />课堂视频亮点 (限制 &le; 100MB)</label>
               <div class="flex items-center gap-2">
                 <input
                   ref="videoInputRef"
@@ -264,8 +264,8 @@
                 <el-button type="primary" plain :loading="uploadingVideo" @click="videoInputRef?.click()">
                   {{ uploadingVideo ? '上传中…' : (form.videoUrl ? '重新上传' : '上传随堂视频') }}
                 </el-button>
-                <span v-if="form.videoUrl" class="text-xs text-emerald-600 font-bold truncate max-w-[150px] inline-flex items-center gap-1">
-                  <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
+                <span v-if="form.videoUrl" class="text-xs text-st-success font-bold truncate max-w-[150px] inline-flex items-center gap-1">
+                  <CheckCircle2 class="w-4 h-4 text-st-success" />
                   <span>{{ videoFileName || '视频已上传' }}</span>
                 </span>
                 <span v-else class="text-xs text-st-muted">单视频不得超过 100MB</span>
@@ -279,11 +279,11 @@
     <template #footer>
       <div class="flex items-center justify-between px-1">
         <div class="text-xs text-st-muted flex items-center gap-2">
-          <span class="inline-flex items-center gap-1"><Zap class="w-3.5 h-3.5 text-amber-500" />正课优先消耗 (Regular-First)</span>
-          <span class="text-gray-300">|</span>
-          <span class="inline-flex items-center gap-1"><Lock class="w-3.5 h-3.5 text-blue-500" />SHA-256 不可变数字指纹</span>
-          <span class="text-gray-300">|</span>
-          <span class="inline-flex items-center gap-1"><Shield class="w-3.5 h-3.5 text-emerald-500" />ACB 财务防腐屏障</span>
+          <span class="inline-flex items-center gap-1"><Zap class="w-4 h-4 text-st-warning" />正课优先消耗 (Regular-First)</span>
+          <span class="text-st-placeholder">|</span>
+          <span class="inline-flex items-center gap-1"><Lock class="w-4 h-4 text-st-primary" />SHA-256 不可变数字指纹</span>
+          <span class="text-st-placeholder">|</span>
+          <span class="inline-flex items-center gap-1"><Shield class="w-4 h-4 text-st-success" />ACB 财务防腐屏障</span>
         </div>
         <div class="flex items-center gap-2">
           <el-button @click="visible = false">取消</el-button>
@@ -293,7 +293,7 @@
             :class="[
               fulfillmentMode === 'FULL_SETTLE'
                 ? '!bg-gradient-to-r !from-amber-500 !to-orange-600 hover:!opacity-90 !border-none text-white font-bold'
-                : '!bg-indigo-600 text-white font-bold'
+                : '!bg-st-primary text-white font-bold'
             ]"
             @click="handleSubmitFulfillment"
           >
@@ -308,23 +308,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete } from '@element-plus/icons-vue'
-import {
-  Calendar,
-  MapPin,
-  User,
-  Zap,
-  Clock,
-  ClipboardList,
-  Lightbulb,
-  Image,
-  Video,
-  CheckCircle2,
-  Shield,
-  Lock,
-  AlertTriangle,
-  Smartphone
-} from 'lucide-vue-next'
+import { Calendar, MapPin, User, Zap, Clock, ClipboardList, Lightbulb, Image, Video, CheckCircle2, Shield, Lock, AlertTriangle, Smartphone, Trash2 as Delete, Star } from 'lucide-vue-next'
 import { educationalApi } from '@/api/modules/educational'
 import { uploadApi } from '@/api'
 import { DIALOG_SIZE } from '@/constants/ui'
@@ -594,8 +578,8 @@ async function handleSubmitFulfillment() {
       const receipt = res.data
       ElMessageBox.alert(
         `<div class="space-y-2 text-xs">
-          <p class="font-bold text-sm text-emerald-600">${receipt.message}</p>
-          <div class="bg-gray-50 p-2.5 rounded border border-gray-200 font-mono space-y-1">
+          <p class="font-bold text-sm text-st-success">${receipt.message}</p>
+          <div class="bg-st-header p-2.5 rounded border border-st-border font-mono space-y-1">
             <p>流水单号: <strong>${receipt.receiptId}</strong></p>
             <p>实消总学时: <strong>${receipt.settlement?.totalDeductedLessons ?? 0} 课时</strong> (实收正课: ${receipt.settlement?.regularBurned ?? 0}, 赠课: ${receipt.settlement?.bonusBurned ?? 0})</p>
             <p>到课打卡: <strong>${receipt.settlement?.presentCount ?? 0} 人</strong> | 请假/缺席: <strong>${(receipt.settlement?.leaveCount ?? 0) + (receipt.settlement?.absentCount ?? 0)} 人</strong></p>

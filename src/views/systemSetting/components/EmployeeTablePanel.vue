@@ -7,7 +7,7 @@
           <h3 class="text-sm font-bold text-st-title">
             {{ selectedNode ? selectedNode.name : scopeName }} - 人员管理
           </h3>
-          <span class="px-2 py-0.5 text-xs rounded bg-blue-50 text-st-primary font-medium">
+          <span class="px-2 py-0.5 text-xs rounded bg-st-primary-light text-st-primary font-medium">
             共 {{ filteredUsers.length }} 名员工
           </span>
         </div>
@@ -148,8 +148,8 @@
 </template>
 
 <script setup lang="ts">
-import { Search } from '@element-plus/icons-vue'
 import { ref, computed } from 'vue'
+import { Search } from 'lucide-vue-next'
 import type { SystemUser, OrgNode, RoleItem, DataScope, SectionLoadState } from '@/types/system'
 
 const props = defineProps<{
@@ -208,11 +208,11 @@ function getDataScopeLabel(scope: DataScope): string {
 
 function getDataScopeBadgeClass(scope: DataScope): string {
   switch (scope) {
-    case 'all': return 'bg-purple-50 text-purple-600 border border-purple-200'
-    case 'campus': return 'bg-blue-50 text-st-primary border border-blue-200'
-    case 'department': return 'bg-amber-50 text-amber-600 border border-amber-200'
-    case 'self': return 'bg-slate-100 text-slate-600 border border-slate-200'
-    default: return 'bg-gray-50 text-gray-600'
+    case 'all': return 'bg-st-purple-light text-st-purple border border-st-purple-border'
+    case 'campus': return 'bg-st-primary-light text-st-primary border border-st-primary-border'
+    case 'department': return 'bg-st-warning-light text-st-warning border border-st-warning-border'
+    case 'self': return 'bg-st-fill text-st-secondary border border-st-border'
+    default: return 'bg-st-header text-st-secondary'
   }
 }
 

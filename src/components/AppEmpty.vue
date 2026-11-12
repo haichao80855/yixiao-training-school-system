@@ -32,7 +32,7 @@
           plain
           @click="handleAction"
         >
-          <RotateCcw class="w-3.5 h-3.5 mr-1" />
+          <RotateCcw class="w-4 h-4 mr-1" />
           {{ actionText || '重置筛选条件' }}
         </el-button>
         <el-button
@@ -40,7 +40,7 @@
           type="primary"
           @click="handleRetry"
         >
-          <RefreshCw class="w-3.5 h-3.5 mr-1" />
+          <RefreshCw class="w-4 h-4 mr-1" />
           {{ actionText || '重新加载' }}
         </el-button>
         <el-button
@@ -48,7 +48,7 @@
           type="primary"
           @click="handleAction"
         >
-          <Plus class="w-3.5 h-3.5 mr-1" />
+          <Plus class="w-4 h-4 mr-1" />
           {{ actionText }}
         </el-button>
       </slot>
@@ -96,23 +96,23 @@ const themeConfig = computed(() => {
   switch (props.type) {
     case 'search':
       return {
-        bgClass: 'bg-blue-50/70 border border-blue-100',
-        iconClass: 'text-blue-500'
+        bgClass: 'bg-st-primary-light/70 border border-st-primary-border',
+        iconClass: 'text-st-primary'
       }
     case 'error':
       return {
-        bgClass: 'bg-amber-50/70 border border-amber-100',
-        iconClass: 'text-amber-500'
+        bgClass: 'bg-amber-50/70 border border-st-warning-border',
+        iconClass: 'text-st-warning'
       }
     case 'network':
       return {
-        bgClass: 'bg-rose-50/70 border border-rose-100',
-        iconClass: 'text-rose-500'
+        bgClass: 'bg-rose-50/70 border border-st-danger-border',
+        iconClass: 'text-st-danger'
       }
     case 'data':
     default:
       return {
-        bgClass: 'bg-gray-50 border border-gray-100',
+        bgClass: 'bg-st-header border border-st-divider',
         iconClass: 'text-st-secondary'
       }
   }

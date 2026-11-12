@@ -116,26 +116,26 @@
 
       <!-- 实时 3D 冲突预警 Banner -->
       <div v-if="collisionResult && collisionResult.hasConflict" class="mb-3">
-        <div class="bg-rose-50 border border-rose-300 rounded-lg p-3 text-xs text-rose-800 space-y-1 animate-pulse">
-          <div class="font-bold flex items-center gap-1.5 text-rose-700 text-sm">
-            <AlertTriangle class="w-4 h-4 text-rose-600" />
+        <div class="bg-st-danger-light border border-st-danger-border rounded-lg p-3 text-xs text-st-danger-deep space-y-1 animate-pulse">
+          <div class="font-bold flex items-center gap-1.5 text-st-danger-deep text-sm">
+            <AlertTriangle class="w-4 h-4 text-st-danger" />
             <span>三维冲突检测告警 ({{ collisionResult.conflicts.length }}处时段碰撞)</span>
           </div>
-          <div v-for="(c, idx) in collisionResult.conflicts" :key="idx" class="pl-5 text-xs text-rose-700 leading-relaxed">
+          <div v-for="(c, idx) in collisionResult.conflicts" :key="idx" class="pl-5 text-xs text-st-danger-deep leading-relaxed">
             • <b>{{ getConflictTypeLabel(c.type) }}:</b> {{ c.reason }}
           </div>
-          <div class="pt-1 text-xs text-rose-600 flex items-center justify-between">
+          <div class="pt-1 text-xs text-st-danger flex items-center justify-between">
             <span>建议更换上课时间、更换无冲突教室或指派空闲讲师。</span>
-            <el-checkbox v-model="forceSchedule" size="small" class="!text-rose-700">
-              <span class="text-xs font-semibold text-rose-700">强制排课 (标记为红色冲突)</span>
+            <el-checkbox v-model="forceSchedule" size="small" class="!text-st-danger-deep">
+              <span class="text-xs font-semibold text-st-danger-deep">强制排课 (标记为红色冲突)</span>
             </el-checkbox>
           </div>
         </div>
       </div>
 
       <div v-else-if="form.startTime && form.endTime && form.date && form.teacherId && form.classroomId" class="mb-3">
-        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-2.5 text-xs text-emerald-700 flex items-center gap-2">
-          <CheckCircle2 class="w-4 h-4 text-emerald-600 shrink-0" />
+        <div class="bg-st-success-light border border-st-success-border rounded-lg p-2.5 text-xs text-st-success flex items-center gap-2">
+          <CheckCircle2 class="w-4 h-4 text-st-success shrink-0" />
           <span>三维排课防撞校验通过：讲师、教室与学员在当前时段均无冲突，符合 07:00-22:00 运营规则。</span>
         </div>
       </div>

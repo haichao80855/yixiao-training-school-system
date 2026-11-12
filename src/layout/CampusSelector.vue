@@ -6,15 +6,15 @@
       :disabled="!tenantStore.canSwitchCampus"
       @click="openDialog"
       class="inline-flex items-center gap-2 h-9 pl-2.5 pr-2 rounded-lg border border-st-border bg-white text-[13px] text-st-regular transition-colors select-none max-w-[280px]"
-      :class="[customClass, tenantStore.canSwitchCampus ? 'hover:border-st-border-dark hover:bg-slate-50 cursor-pointer' : 'cursor-default']"
+      :class="[customClass, tenantStore.canSwitchCampus ? 'hover:border-st-border-dark hover:bg-st-header cursor-pointer' : 'cursor-default']"
       :title="tenantStore.canSwitchCampus ? '切换工作校区' : '当前校区'"
     >
       <MapPin class="w-4 h-4 text-st-primary shrink-0" />
       <span class="font-medium truncate">{{ currentCampus.name }}</span>
-      <span v-if="currentCampus.isHeadquarter" class="text-xs leading-[18px] px-1.5 rounded bg-amber-50 text-amber-700 font-medium shrink-0">
+      <span v-if="currentCampus.isHeadquarter" class="text-xs leading-[18px] px-1.5 rounded bg-st-warning-light text-st-warning-deep font-medium shrink-0">
         总部
       </span>
-      <ChevronsUpDown v-if="tenantStore.canSwitchCampus" class="w-3.5 h-3.5 text-st-placeholder shrink-0" />
+      <ChevronsUpDown v-if="tenantStore.canSwitchCampus" class="w-4 h-4 text-st-placeholder shrink-0" />
     </button>
 
     <!-- 校区切换弹窗 -->
@@ -30,7 +30,7 @@
           切换校区将实时重载系统所有模块（教研课程授权、学员档案、7x15 排课看板、财务营收流水）的数据作用域。
         </p>
 
-        <div class="divide-y divide-gray-100 border border-st-border rounded-lg overflow-hidden">
+        <div class="divide-y divide-st-divider border border-st-border rounded-lg overflow-hidden">
           <div
             v-for="campus in campuses"
             :key="campus.id"
@@ -39,7 +39,7 @@
               'p-3.5 flex items-center justify-between cursor-pointer transition-colors text-xs',
               campus.id === currentCampus.id
                 ? 'bg-st-primary-light text-st-primary font-bold border-l-4 border-st-primary'
-                : 'hover:bg-gray-50 text-st-regular'
+                : 'hover:bg-st-header text-st-regular'
             ]"
           >
             <div class="space-y-0.5">
@@ -56,7 +56,7 @@
             </div>
 
             <div v-if="campus.id === currentCampus.id" class="text-st-primary font-bold flex items-center space-x-1">
-              <Check class="w-3.5 h-3.5" />
+              <Check class="w-4 h-4" />
               <span>当前激活</span>
             </div>
             <div v-else class="text-xs text-st-muted">

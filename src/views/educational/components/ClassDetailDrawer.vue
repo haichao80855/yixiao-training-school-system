@@ -7,7 +7,7 @@
   >
     <div v-if="classItem" class="space-y-4">
       <!-- 班级核心卡片 -->
-      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 space-y-2">
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-st-primary-border rounded-lg p-4 space-y-2">
         <div class="flex items-start justify-between">
           <div>
             <div class="flex items-center gap-2">
@@ -23,7 +23,7 @@
           </el-tag>
         </div>
 
-        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-blue-200 text-xs">
+        <div class="grid grid-cols-3 gap-2 pt-2 border-t border-st-primary-border text-xs">
           <div><span class="text-st-muted">主讲讲师：</span><span class="font-bold text-st-title">{{ classItem.teacherName }}</span></div>
           <div><span class="text-st-muted">班主任：</span><span class="font-medium text-st-title">{{ classItem.assistantName || '张学管' }}</span></div>
           <div><span class="text-st-muted">固定教室：</span><span class="font-medium text-st-title">{{ classItem.classroomName }}</span></div>
@@ -54,12 +54,12 @@
         <el-tab-pane label="在读学员花名册" name="students">
           <div class="space-y-3">
             <!-- 班级消课健康指数横条 (权威SSOT) -->
-            <div v-if="rosterHealth" class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs flex flex-wrap items-center justify-between gap-2">
+            <div v-if="rosterHealth" class="bg-st-header border border-st-border rounded-lg p-3 text-xs flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center space-x-2">
                 <span class="text-st-muted">班级综合消课健康指数：</span>
                 <span
                   class="font-extrabold text-sm font-mono"
-                  :class="rosterHealth.classHealthIndex >= 80 ? 'text-emerald-600' : rosterHealth.classHealthIndex >= 60 ? 'text-amber-500' : 'text-rose-600'"
+                  :class="rosterHealth.classHealthIndex >= 80 ? 'text-st-success' : rosterHealth.classHealthIndex >= 60 ? 'text-st-warning' : 'text-st-danger'"
                 >
                   {{ rosterHealth.classHealthIndex }} 分
                 </span>
@@ -72,19 +72,19 @@
               </div>
 
               <div class="flex items-center space-x-3 text-xs">
-                <span v-if="rosterHealth.statistics.criticalCount > 0" class="text-rose-600 font-bold flex items-center gap-1">
-                  <AlertCircle class="w-3.5 h-3.5 inline-block shrink-0" />
+                <span v-if="rosterHealth.statistics.criticalCount > 0" class="text-st-danger font-bold flex items-center gap-1">
+                  <AlertCircle class="w-4 h-4 inline-block shrink-0" />
                   极度枯竭: {{ rosterHealth.statistics.criticalCount }}人
                 </span>
-                <span v-if="rosterHealth.statistics.warningCount > 0" class="text-amber-600 font-bold flex items-center gap-1">
-                  <AlertTriangle class="w-3.5 h-3.5 inline-block shrink-0" />
+                <span v-if="rosterHealth.statistics.warningCount > 0" class="text-st-warning font-bold flex items-center gap-1">
+                  <AlertTriangle class="w-4 h-4 inline-block shrink-0" />
                   预警跟进: {{ rosterHealth.statistics.warningCount }}人
                 </span>
-                <span v-if="rosterHealth.statistics.dormantCount > 0" class="text-purple-600 font-bold flex items-center gap-1">
-                  <Moon class="w-3.5 h-3.5 inline-block shrink-0" />
+                <span v-if="rosterHealth.statistics.dormantCount > 0" class="text-st-purple font-bold flex items-center gap-1">
+                  <Moon class="w-4 h-4 inline-block shrink-0" />
                   停消休眠: {{ rosterHealth.statistics.dormantCount }}人
                 </span>
-                <span class="text-slate-500">
+                <span class="text-st-muted">
                   正常在读: {{ rosterHealth.statistics.normalCount }}人
                 </span>
               </div>
@@ -115,12 +115,12 @@
                       >
                         {{ row.visualBadge.text }}
                       </el-tag>
-                      <span v-else class="font-bold font-mono text-emerald-600">
+                      <span v-else class="font-bold font-mono text-st-success">
                         {{ row.remainingLessons }} 课时
                       </span>
                     </div>
-                    <div v-if="row.isDormant" class="text-xs text-purple-600 font-semibold flex items-center gap-0.5">
-                      <Moon class="w-3 h-3 inline-block shrink-0" />
+                    <div v-if="row.isDormant" class="text-xs text-st-purple font-semibold flex items-center gap-0.5">
+                      <Moon class="w-4 h-4 inline-block shrink-0" />
                       停消 {{ row.inactiveDays }} 天
                     </div>
                   </div>
@@ -210,8 +210,8 @@
               <el-table-column label="出勤情况" width="140">
                 <template #default="{ row }">
                   <span class="text-xs">
-                    出勤: <b class="text-emerald-600">{{ row.presentCount }}</b> /
-                    请假: <b class="text-amber-600">{{ row.leaveCount }}</b>
+                    出勤: <b class="text-st-success">{{ row.presentCount }}</b> /
+                    请假: <b class="text-st-warning">{{ row.leaveCount }}</b>
                   </span>
                 </template>
               </el-table-column>
@@ -238,7 +238,7 @@
             type="success"
             @click="handleActivateClass"
           >
-            <template #icon><Rocket class="w-3.5 h-3.5" /></template>
+            <template #icon><Rocket class="w-4 h-4" /></template>
             正式开班
           </el-button>
           <el-button
@@ -246,7 +246,7 @@
             type="warning"
             @click="handleCompleteClass"
           >
-            <template #icon><GraduationCap class="w-3.5 h-3.5" /></template>
+            <template #icon><GraduationCap class="w-4 h-4" /></template>
             正常结课
           </el-button>
           <el-button
@@ -255,7 +255,7 @@
             plain
             @click="handleCancelClass"
           >
-            <template #icon><AlertTriangle class="w-3.5 h-3.5" /></template>
+            <template #icon><AlertTriangle class="w-4 h-4" /></template>
             异常解散
           </el-button>
         </div>

@@ -1,12 +1,12 @@
 <template>
   <div class="p-5 space-y-4 bg-st-bg min-h-[calc(100vh-60px)]">
     <!-- 头部说明条 -->
-    <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 flex flex-wrap items-center justify-between gap-3">
+    <div class="bg-white rounded-lg p-5 shadow-sm border border-st-border flex flex-wrap items-center justify-between gap-3">
       <div>
         <div class="flex items-center space-x-2">
-          <h2 class="text-base font-bold text-gray-800">科目体系设置 (教研中心)</h2>
+          <h2 class="text-base font-bold text-st-title">科目体系设置 (教研中心)</h2>
         </div>
-        <p class="text-xs text-gray-500 mt-1">
+        <p class="text-xs text-st-muted mt-1">
           科目目录为系统预设，关联课程数按课程库实时统计。科目暂不支持在线新增或修改。
         </p>
       </div>
@@ -21,31 +21,31 @@
         @click="selectedCategory = stat.key"
         :class="[
           'bg-white rounded-lg p-4 border transition-all cursor-pointer shadow-sm hover:shadow-md flex items-center justify-between',
-          selectedCategory === stat.key ? 'border-st-primary ring-1 ring-st-primary/20 bg-st-primary/5' : 'border-gray-200 hover:border-gray-300'
+          selectedCategory === stat.key ? 'border-st-primary ring-1 ring-st-primary/20 bg-st-primary/5' : 'border-st-border hover:border-st-border-dark'
         ]"
       >
         <div class="space-y-1">
-          <div class="text-xs text-gray-500 flex items-center space-x-1.5">
+          <div class="text-xs text-st-muted flex items-center space-x-1.5">
             <component :is="stat.icon" class="w-4 h-4 text-st-primary" />
-            <span class="font-medium text-gray-700">{{ stat.title }}</span>
+            <span class="font-medium text-st-regular">{{ stat.title }}</span>
           </div>
-          <div class="text-2xl font-bold font-mono text-gray-800">
+          <div class="text-2xl font-bold font-mono text-st-title">
             {{ stat.count }} <span class="text-xs font-normal text-st-secondary">个科目</span>
           </div>
           <div class="text-xs text-st-secondary">涵盖 {{ stat.courseTotal }} 门标准化课系</div>
         </div>
-        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 text-st-primary">
+        <div class="w-10 h-10 rounded-full flex items-center justify-center bg-st-primary-light text-st-primary">
           <component :is="stat.icon" class="w-5 h-5" />
         </div>
       </div>
     </div>
 
     <!-- 主体：分类筛选与科目明细表格 -->
-    <div class="bg-white rounded-lg p-5 shadow-sm border border-gray-200/80 space-y-4">
+    <div class="bg-white rounded-lg p-5 shadow-sm border border-st-border space-y-4">
       <!-- 表格上方过滤栏 -->
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-st-divider">
         <div class="flex items-center space-x-2 text-xs">
-          <span class="text-gray-500 font-medium">分类过滤：</span>
+          <span class="text-st-muted font-medium">分类过滤：</span>
           <el-radio-group v-model="selectedCategory">
             <el-radio-button label="all">全部科目 ({{ subjects.length }})</el-radio-button>
             <el-radio-button label="programming">软件编程 (3)</el-radio-button>
@@ -75,7 +75,7 @@
       >
         <el-table-column prop="code" label="科目编码" width="150">
           <template #default="{ row }">
-            <span class="font-mono font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs">
+            <span class="font-mono font-semibold text-st-regular bg-st-fill px-2 py-0.5 rounded text-xs">
               {{ row.code }}
             </span>
           </template>
@@ -83,7 +83,7 @@
 
         <el-table-column prop="name" label="科目名称" min-width="180">
           <template #default="{ row }">
-            <div class="font-bold text-gray-800 text-sm hover:text-st-primary transition-colors">
+            <div class="font-bold text-st-title text-sm hover:text-st-primary transition-colors">
               {{ row.name }}
             </div>
             <div class="text-xs text-st-secondary mt-0.5">{{ row.description }}</div>
@@ -95,10 +95,10 @@
             <span
               :class="[
                 'px-2 py-0.5 rounded text-xs font-medium border',
-                row.category === 'programming' ? 'bg-blue-50 text-st-primary border-blue-200' :
-                row.category === 'robotics' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                row.category === 'science' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                'bg-emerald-50 text-emerald-700 border-emerald-200'
+                row.category === 'programming' ? 'bg-st-primary-light text-st-primary border-st-primary-border' :
+                row.category === 'robotics' ? 'bg-st-warning-light text-st-warning-deep border-st-warning-border' :
+                row.category === 'science' ? 'bg-st-purple-light text-st-purple border-st-purple-border' :
+                'bg-st-success-light text-st-success border-st-success-border'
               ]"
             >
               {{ row.categoryName }}
@@ -118,7 +118,7 @@
 
         <el-table-column prop="courseCount" label="关联课程数" width="120" align="center">
           <template #default="{ row }">
-            <span class="font-mono font-bold text-gray-700">{{ row.courseCount }}</span>
+            <span class="font-mono font-bold text-st-regular">{{ row.courseCount }}</span>
             <span class="text-xs text-st-secondary ml-0.5">门</span>
           </template>
         </el-table-column>

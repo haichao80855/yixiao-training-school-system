@@ -5,9 +5,9 @@
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">待财务核销总金额</div>
-          <div class="text-2xl font-bold font-mono text-amber-600 mt-1">¥ {{ pendingTotalFee.toFixed(2) }}</div>
+          <div class="text-2xl font-bold font-mono text-st-warning mt-1">¥ {{ pendingTotalFee.toFixed(2) }}</div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-warning-light text-st-warning flex items-center justify-center font-bold text-lg">
           <Clock class="w-5 h-5" />
         </div>
       </div>
@@ -15,9 +15,9 @@
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">已核销入账总金额</div>
-          <div class="text-2xl font-bold font-mono text-emerald-600 mt-1">¥ {{ verifiedTotalFee.toFixed(2) }}</div>
+          <div class="text-2xl font-bold font-mono text-st-success mt-1">¥ {{ verifiedTotalFee.toFixed(2) }}</div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-success-light text-st-success flex items-center justify-center font-bold text-lg">
           <CheckCircle2 class="w-5 h-5" />
         </div>
       </div>
@@ -27,7 +27,7 @@
           <div class="text-xs text-st-muted">本月代报考人次</div>
           <div class="text-2xl font-bold font-mono text-st-primary mt-1">{{ records.length }} <span class="text-xs font-normal">人次</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-primary-light text-st-primary flex items-center justify-center font-bold text-lg">
           <Trophy class="w-5 h-5" />
         </div>
       </div>
@@ -36,11 +36,11 @@
         <div>
           <div class="text-xs text-st-muted">易快报费控系统连接</div>
           <div class="flex items-center space-x-2 mt-1.5">
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-            <span class="text-xs font-bold text-emerald-700">实时联通 (API 正常)</span>
+            <span class="w-2.5 h-2.5 rounded-full bg-st-success animate-ping"></span>
+            <span class="text-xs font-bold text-st-success">实时联通 (API 正常)</span>
           </div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-primary-light text-st-primary flex items-center justify-center font-bold text-lg">
           <Link2 class="w-5 h-5" />
         </div>
       </div>
@@ -144,7 +144,7 @@
           <el-table-column prop="invoiceTitle" label="发票抬头" min-width="150" />
           <el-table-column label="核销编号" width="160">
             <template #default="{ row }">
-              <span v-if="row.yikuaibaoVoucherNo" class="font-mono text-xs text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded">
+              <span v-if="row.yikuaibaoVoucherNo" class="font-mono text-xs text-st-primary bg-st-primary-light px-1.5 py-0.5 rounded">
                 {{ row.yikuaibaoVoucherNo }}
               </span>
               <span v-else class="text-st-muted text-xs">待报销生成</span>
@@ -179,7 +179,7 @@
     <!-- 凭证查看弹窗 -->
     <el-dialog v-model="voucherDialogVisible" title="考级报考与易快报核销对账凭证" :width="DIALOG_SIZE.md">
       <div v-if="activeRecord" class="space-y-4 text-xs">
-        <div class="border rounded p-4 bg-slate-50 space-y-2">
+        <div class="border rounded p-4 bg-st-header space-y-2">
           <div class="flex justify-between border-b pb-2">
             <span class="font-bold text-sm text-st-title">代报项目：{{ activeRecord.examType }}</span>
             <span class="text-st-danger-deep font-bold font-mono text-sm">¥ {{ activeRecord.fee.toFixed(2) }}</span>
@@ -189,12 +189,12 @@
             <div>学员: <b>{{ activeRecord.studentName }} ({{ activeRecord.studentNo }})</b></div>
             <div>归属校区: <b>{{ activeRecord.campusName }}</b></div>
             <div>发票抬头: <b>{{ activeRecord.invoiceTitle }}</b></div>
-            <div>易快报单号: <b class="font-mono text-indigo-700">{{ activeRecord.yikuaibaoVoucherNo || '暂无' }}</b></div>
+            <div>易快报单号: <b class="font-mono text-st-primary">{{ activeRecord.yikuaibaoVoucherNo || '暂无' }}</b></div>
             <div>核销时间: <b class="font-mono">{{ activeRecord.verifyTime || '待核销' }}</b></div>
           </div>
         </div>
 
-        <div class="border rounded p-3 text-center bg-gray-50 space-y-2">
+        <div class="border rounded p-3 text-center bg-st-header space-y-2">
           <div class="text-st-muted text-xs">电子凭证与发票扫描附件：</div>
           <img
             :src="activeRecord.voucherImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400'"
@@ -251,7 +251,7 @@
     <!-- 单条核销登记弹窗 -->
     <el-dialog v-model="singleVerifyDialog" title="易快报财务核销入账登记" :width="DIALOG_SIZE.sm">
       <div v-if="verifyTarget" class="space-y-3 text-xs">
-        <div class="p-3 bg-blue-50 border border-blue-200 rounded text-blue-900">
+        <div class="p-3 bg-st-primary-light border border-st-primary-border rounded text-st-primary-active">
           为学员 <b class="font-bold">{{ verifyTarget.studentName }}</b> 的报考项目 [{{ verifyTarget.examType }}] 登记核销，金额 ¥{{ verifyTarget.fee }}。
         </div>
         <el-form label-position="top">

@@ -49,7 +49,7 @@
           <span
             :class="[
               'text-xs px-1.5 py-0.2 rounded-full font-mono ml-1.5',
-              activeBusinessTab === biz.key ? 'bg-white text-st-primary' : 'bg-gray-200 text-st-muted'
+              activeBusinessTab === biz.key ? 'bg-white text-st-primary' : 'bg-st-border text-st-muted'
             ]"
           >
             {{ businessCounts[biz.key] || 0 }}
@@ -140,7 +140,7 @@
             <span
               :class="[
                 'font-bold font-mono text-sm',
-                row.businessType === 'refund' ? 'text-st-danger' : 'text-emerald-600'
+                row.businessType === 'refund' ? 'text-st-danger' : 'text-st-success'
               ]"
             >
               ¥ {{ row.amount.toFixed(2) }}
@@ -223,7 +223,7 @@
       destroy-on-close
     >
       <div v-if="currentActiveRecord" class="space-y-3 text-xs">
-        <div class="bg-blue-50/70 p-3 rounded border border-blue-100 space-y-1">
+        <div class="bg-st-primary-light/70 p-3 rounded border border-st-primary-border space-y-1">
           <div><span class="text-st-muted">审批单号：</span><strong class="font-mono text-st-title">{{ currentActiveRecord.approvalNo }}</strong></div>
           <div><span class="text-st-muted">业务类型：</span><span>{{ getBusinessLabel(currentActiveRecord.businessType) }}</span></div>
           <div><span class="text-st-muted">学员及校区：</span><span>{{ currentActiveRecord.studentName }} ({{ currentActiveRecord.campusName }})</span></div>
@@ -263,7 +263,7 @@
           :closable="false"
         />
 
-        <div class="bg-gray-50 p-3 rounded border border-gray-200">
+        <div class="bg-st-header p-3 rounded border border-st-border">
           <div><span class="text-st-muted">审批单号：</span><span class="font-mono">{{ currentActiveRecord.approvalNo }}</span></div>
           <div><span class="text-st-muted">学员姓名：</span><span>{{ currentActiveRecord.studentName }}</span></div>
           <div><span class="text-st-muted">涉及金额：</span><span class="font-mono font-bold text-st-danger">¥ {{ currentActiveRecord.amount.toFixed(2) }}</span></div>
@@ -294,7 +294,7 @@
       destroy-on-close
     >
       <div v-if="currentActiveRecord" class="space-y-4 text-xs">
-        <div class="bg-gray-50 p-3 rounded border border-gray-200 grid grid-cols-2 gap-2">
+        <div class="bg-st-header p-3 rounded border border-st-border grid grid-cols-2 gap-2">
           <div><span class="text-st-muted">单据编号：</span><span class="font-mono font-bold">{{ currentActiveRecord.approvalNo }}</span></div>
           <div><span class="text-st-muted">当前状态：</span><el-tag size="small" :type="currentActiveRecord.status === 'approved' ? 'success' : currentActiveRecord.status === 'rejected' ? 'danger' : 'warning'">{{ currentActiveRecord.status }}</el-tag></div>
           <div><span class="text-st-muted">申请人：</span><span>{{ currentActiveRecord.applicantName }}</span></div>
@@ -332,7 +332,7 @@
               <div class="text-xs text-st-regular mt-1">
                 操作人：<strong class="text-st-title">{{ node.operator }}</strong>
               </div>
-              <div v-if="node.comment" class="text-xs text-st-muted mt-0.5 bg-gray-50 p-1.5 rounded border border-gray-100">
+              <div v-if="node.comment" class="text-xs text-st-muted mt-0.5 bg-st-header p-1.5 rounded border border-st-divider">
                 审核附言：{{ node.comment }}
               </div>
             </el-timeline-item>
@@ -349,8 +349,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { Check, X as Close, Copy as DocumentCopy } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Check, Close, DocumentCopy } from '@element-plus/icons-vue'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi } from '@/api'
 import type { ApprovalRecord, ApprovalBusinessType } from '@/types/financial'

@@ -7,34 +7,34 @@
           <div class="text-xs text-st-muted">待分班学员总数</div>
           <div class="text-2xl font-bold font-mono text-st-primary mt-1">{{ summary.totalStudents }} <span class="text-xs font-normal">人</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-blue-50 text-st-primary flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-primary-light text-st-primary flex items-center justify-center font-bold text-lg">
           <ClipboardList class="w-5 h-5" />
         </div>
       </div>
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">待分配总课时数</div>
-          <div class="text-2xl font-bold font-mono text-emerald-600 mt-1">{{ summary.totalUnassignedLessons }} <span class="text-xs font-normal">课时</span></div>
+          <div class="text-2xl font-bold font-mono text-st-success mt-1">{{ summary.totalUnassignedLessons }} <span class="text-xs font-normal">课时</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-success-light text-st-success flex items-center justify-center font-bold text-lg">
           <Clock class="w-5 h-5" />
         </div>
       </div>
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">本月签约待入班新生</div>
-          <div class="text-2xl font-bold font-mono text-indigo-600 mt-1">{{ summary.monthlyNewCount }} <span class="text-xs font-normal">人</span></div>
+          <div class="text-2xl font-bold font-mono text-st-primary mt-1">{{ summary.monthlyNewCount }} <span class="text-xs font-normal">人</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-primary-light text-st-primary flex items-center justify-center font-bold text-lg">
           <GraduationCap class="w-5 h-5" />
         </div>
       </div>
       <div class="bg-white p-4 rounded-lg border border-st-border shadow-card flex items-center justify-between">
         <div>
           <div class="text-xs text-st-muted">平均入班响应时长</div>
-          <div class="text-2xl font-bold font-mono text-amber-600 mt-1">{{ summary.avgWaitDays }} <span class="text-xs font-normal">天</span></div>
+          <div class="text-2xl font-bold font-mono text-st-warning mt-1">{{ summary.avgWaitDays }} <span class="text-xs font-normal">天</span></div>
         </div>
-        <div class="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-lg">
+        <div class="w-10 h-10 rounded-full bg-st-warning-light text-st-warning flex items-center justify-center font-bold text-lg">
           <Zap class="w-5 h-5" />
         </div>
       </div>
@@ -136,7 +136,7 @@
           <el-table-column prop="preferredTime" label="意向上课时段" min-width="170" />
           <el-table-column label="测评报告得分" width="120" align="center">
             <template #default="{ row }">
-              <span v-if="row.assessmentScore" class="font-mono font-bold text-indigo-600">{{ row.assessmentScore }} 分</span>
+              <span v-if="row.assessmentScore" class="font-mono font-bold text-st-primary">{{ row.assessmentScore }} 分</span>
               <span v-else class="text-st-placeholder">—</span>
             </template>
           </el-table-column>
@@ -168,7 +168,7 @@
     <!-- 测评报告弹窗 -->
     <el-dialog v-model="reportDialogVisible" title="学员学科能力测评与智能分班报告" :width="DIALOG_SIZE.md">
       <div v-if="activeItem" class="space-y-4 text-xs">
-        <div class="p-3 bg-slate-50 border rounded flex justify-between items-center">
+        <div class="p-3 bg-st-header border rounded flex justify-between items-center">
           <div>
             <div class="font-bold text-sm text-st-title">{{ activeItem.name }} ({{ activeItem.studentNo }})</div>
             <div class="text-st-secondary mt-0.5">报读课程：{{ activeItem.courseName }}</div>
@@ -184,24 +184,24 @@
           <div class="space-y-1.5 text-st-secondary">
             <div class="flex justify-between">
               <span>空间抽象与几何思维:</span>
-              <span class="font-bold text-emerald-600">95% (前 5%)</span>
+              <span class="font-bold text-st-success">95% (前 5%)</span>
             </div>
             <div class="flex justify-between">
               <span>算法流程与分支循环:</span>
-              <span class="font-bold text-emerald-600">90% (前 10%)</span>
+              <span class="font-bold text-st-success">90% (前 10%)</span>
             </div>
             <div class="flex justify-between">
               <span>代码规范与排错纠错:</span>
-              <span class="font-bold text-blue-600">88% (前 15%)</span>
+              <span class="font-bold text-st-primary">88% (前 15%)</span>
             </div>
             <div class="flex justify-between">
               <span>课堂专注度与动手实操:</span>
-              <span class="font-bold text-amber-600">92% (前 8%)</span>
+              <span class="font-bold text-st-warning">92% (前 8%)</span>
             </div>
           </div>
         </div>
 
-        <div class="p-3 bg-blue-50 border border-blue-200 rounded text-blue-900 space-y-1">
+        <div class="p-3 bg-st-primary-light border border-st-primary-border rounded text-st-primary-active space-y-1">
           <div class="font-bold">智能推荐分班建议：</div>
           <div>{{ activeItem.assessmentSummary || '学员整体逻辑思维严密，建议编入进度适中的周末创意1班。' }}</div>
         </div>
@@ -215,14 +215,14 @@
     <!-- 加入班级弹窗 -->
     <el-dialog v-model="assignDialogVisible" :title="activeItem ? '分配入班排课' : '批量分配入班排课'" :width="DIALOG_SIZE.md" destroy-on-close>
       <div v-if="activeItem || selectedRows.length > 0" class="space-y-3 text-xs">
-        <div v-if="activeItem" class="p-3 bg-blue-50/60 border border-blue-100 rounded-lg flex items-center justify-between">
+        <div v-if="activeItem" class="p-3 bg-st-primary-light/60 border border-st-primary-border rounded-lg flex items-center justify-between">
           <div>
             正在为学员 <b class="text-st-title font-bold text-sm">{{ activeItem.name }}</b> 分配班级
             <div class="text-st-muted mt-0.5">待排课包：<span class="text-st-primary font-semibold">{{ activeItem.courseName }}</span> (待分配 {{ activeItem.unassignedLessons }} 课时)</div>
           </div>
           <el-tag size="small" type="primary">{{ activeItem.campusName }}</el-tag>
         </div>
-        <div v-else class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-lg flex items-center justify-between">
+        <div v-else class="p-3 bg-st-primary-light/60 border border-st-primary-border rounded-lg flex items-center justify-between">
           <div>
             正在批量为 <b class="text-st-title font-bold text-sm">{{ selectedRows.length }} 名学员</b> 统一分配班级
             <div class="text-st-muted mt-0.5">待分班学员：{{ selectedRows.map(r => r.name).join('、') }}</div>
@@ -262,7 +262,7 @@
                   </div>
                   <span
                     class="text-xs font-mono flex-shrink-0 ml-2"
-                    :class="c.currentCount >= c.capacity ? 'text-rose-500 font-bold' : 'text-emerald-600'"
+                    :class="c.currentCount >= c.capacity ? 'text-st-danger font-bold' : 'text-st-success'"
                   >
                     {{ c.currentCount }}/{{ c.capacity }}人 {{ c.currentCount >= c.capacity ? '(已满)' : '' }}
                   </span>
@@ -272,16 +272,16 @@
           </el-form-item>
         </el-form>
 
-        <div v-if="chosenClass" class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 space-y-1">
+        <div v-if="chosenClass" class="p-3 bg-st-success-light border border-st-success-border rounded-lg text-st-success-deep space-y-1">
           <div class="font-bold flex items-center justify-between">
             <span>目标班级：{{ chosenClass.name }}</span>
             <span class="font-mono text-xs">当前在读: {{ chosenClass.currentCount }} / 容量: {{ chosenClass.capacity }} 人</span>
           </div>
-          <div class="text-xs text-emerald-700">
+          <div class="text-xs text-st-success">
             授课老师：{{ chosenClass.teacherName }} | 归属校区：{{ chosenClass.campusName || '校区' }} | 所属课程：{{ chosenClass.courseName }}
           </div>
-          <div class="text-xs text-emerald-600 mt-0.5 flex items-center gap-1">
-            <Check class="w-3.5 h-3.5 shrink-0" />
+          <div class="text-xs text-st-success mt-0.5 flex items-center gap-1">
+            <Check class="w-4 h-4 shrink-0" />
             <span>确认分班后，该学员将自动解除待分班状态，正式编入班级花名册并排入教学考勤日历。</span>
           </div>
         </div>

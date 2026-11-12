@@ -56,7 +56,7 @@
             <!-- 右侧信息与操作按钮组 -->
             <div class="flex items-center space-x-1.5 shrink-0 ml-2">
               <span
-                class="text-xs font-mono px-1.5 py-0.5 rounded-full bg-slate-100 text-st-muted group-hover:hidden"
+                class="text-xs font-mono px-1.5 py-0.5 rounded-full bg-st-fill text-st-muted group-hover:hidden"
                 :title="`在职员工：直属 ${data.boundUserCount || 0}人 / 全子树 ${data.subtreeUserCount || data.boundUserCount || 0}人`"
               >
                 {{ data.subtreeUserCount || data.boundUserCount || 0 }}人
@@ -96,17 +96,17 @@
     <!-- 底部提示 -->
     <div
       v-if="loadState !== 'forbidden'"
-      class="mt-3 pt-2 border-t border-slate-100 text-xs text-st-muted flex items-center justify-between"
+      class="mt-3 pt-2 border-t border-st-divider text-xs text-st-muted flex items-center justify-between"
     >
       <span>点击节点联动右侧人员</span>
-      <span class="text-amber-600 font-medium">根节点/含下级/含在职员工严禁删除</span>
+      <span class="text-st-warning font-medium">根节点/含下级/含在职员工严禁删除</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Plus, Delete } from '@element-plus/icons-vue'
+import { Plus, Trash2 as Delete } from 'lucide-vue-next'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import type { OrgNode, SectionLoadState } from '@/types/system'
 import { RBACEngine } from '@/utils/rbacEngine'
@@ -148,12 +148,12 @@ function getLevelName(level: number): string {
 
 function getLevelTagClass(level: number): string {
   switch (level) {
-    case 1: return 'bg-purple-100 text-purple-700'
-    case 2: return 'bg-blue-100 text-blue-700'
-    case 3: return 'bg-emerald-100 text-emerald-700'
-    case 4: return 'bg-amber-100 text-amber-700'
-    case 5: return 'bg-slate-100 text-slate-700'
-    default: return 'bg-gray-100 text-gray-700'
+    case 1: return 'bg-st-purple-light text-st-purple'
+    case 2: return 'bg-st-primary-light text-st-primary'
+    case 3: return 'bg-st-success-light text-st-success'
+    case 4: return 'bg-st-warning-light text-st-warning-deep'
+    case 5: return 'bg-st-fill text-st-regular'
+    default: return 'bg-st-fill text-st-regular'
   }
 }
 

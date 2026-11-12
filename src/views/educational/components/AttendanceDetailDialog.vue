@@ -10,7 +10,7 @@
       <div
         :class="[
           'p-4 rounded-lg border space-y-2',
-          record.isReversed ? 'bg-amber-50 border-amber-300' : 'bg-emerald-50 border-emerald-300'
+          record.isReversed ? 'bg-st-warning-light border-st-warning-border' : 'bg-st-success-light border-st-success-border'
         ]"
       >
         <div class="flex items-start justify-between">
@@ -30,18 +30,18 @@
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-black/10 text-xs">
           <div><span class="text-st-muted">上课时间：</span><span class="font-mono text-st-title">{{ record.date }} {{ record.startTime }}</span></div>
-          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ record.teacherName }}</span></div>
+          <div><span class="text-st-muted">授课讲师：</span><span class="font-bold text-st-title inline-flex items-center gap-1"><User class="w-4 h-4 text-st-primary" />{{ record.teacherName }}</span></div>
           <div><span class="text-st-muted">应到/实到：</span><span class="font-medium text-st-title">{{ record.totalStudents }} / {{ record.presentCount + record.lateCount }} 人</span></div>
-          <div><span class="text-st-muted">消课课时：</span><span class="font-bold text-emerald-700">{{ record.deductedLessonsTotal }} 课时</span></div>
+          <div><span class="text-st-muted">消课课时：</span><span class="font-bold text-st-success">{{ record.deductedLessonsTotal }} 课时</span></div>
         </div>
 
         <!-- 反结课冲正警示条 -->
-        <div v-if="record.isReversed" class="mt-2 bg-white/90 p-2.5 rounded border border-amber-300 text-xs text-amber-900 space-y-1">
-          <div class="font-bold flex items-center gap-1 text-amber-800">
-            <Undo2 class="w-4 h-4 text-amber-700" />
+        <div v-if="record.isReversed" class="mt-2 bg-white/90 p-2.5 rounded border border-st-warning-border text-xs text-st-warning-deep space-y-1">
+          <div class="font-bold flex items-center gap-1 text-st-warning-deep">
+            <Undo2 class="w-4 h-4 text-st-warning-deep" />
             <span>反结课冲正记录 (红字冲正完成)</span>
           </div>
-          <div class="text-xs text-amber-800 space-y-0.5">
+          <div class="text-xs text-st-warning-deep space-y-0.5">
             <div>冲正时间：<span class="font-mono">{{ record.reversedAt }}</span> | 操作人：{{ record.reversedBy || '教务主管' }}</div>
             <div>冲正事由：{{ record.reversalReason || '家长客诉申请退回已扣减课时' }}</div>
           </div>
@@ -71,7 +71,7 @@
           </el-table-column>
           <el-table-column label="消课扣减" width="90">
             <template #default="{ row }">
-              <span class="font-semibold text-emerald-700">{{ row.deductionLessons }} 课时</span>
+              <span class="font-semibold text-st-success">{{ row.deductionLessons }} 课时</span>
             </template>
           </el-table-column>
           <el-table-column prop="remark" label="课堂表现 / 备注" min-width="140" />

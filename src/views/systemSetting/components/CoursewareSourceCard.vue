@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <div v-if="loadError" class="text-xs text-red-500">{{ loadError }}</div>
+    <div v-if="loadError" class="text-xs text-st-danger">{{ loadError }}</div>
     <div v-else-if="status" class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <div
         v-for="item in providerRows"
@@ -34,7 +34,7 @@
         </div>
         <div class="text-st-secondary">
           当前使用：
-          <span :class="item.p.effective === 'mirror' ? 'text-amber-600 font-semibold' : 'text-st-title'">
+          <span :class="item.p.effective === 'mirror' ? 'text-st-warning font-semibold' : 'text-st-title'">
             {{ item.p.effective === 'mirror' ? item.mirrorLabel : '原平台链接' }}
           </span>
         </div>

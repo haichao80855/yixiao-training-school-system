@@ -7,13 +7,13 @@
     destroy-on-close
   >
     <div class="text-xs space-y-3 pt-2">
-      <div class="p-2.5 bg-blue-50 border border-blue-200 rounded text-blue-900 leading-relaxed">
+      <div class="p-2.5 bg-st-primary-light border border-st-primary-border rounded text-st-primary-active leading-relaxed">
         正在为员工 <span class="font-bold text-st-primary">{{ user?.name }}</span> (账号：<span class="font-mono font-medium">{{ user?.account }}</span>) 设置新的登录密码。重置后旧密码立即失效。
       </div>
 
       <div>
         <label class="block font-medium text-st-title mb-1">
-          <span class="text-rose-500 mr-0.5">*</span>新登录密码
+          <span class="text-st-danger mr-0.5">*</span>新登录密码
         </label>
         <el-input
           v-model="password"
@@ -25,7 +25,7 @@
 
       <div>
         <label class="block font-medium text-st-title mb-1">
-          <span class="text-rose-500 mr-0.5">*</span>确认新密码
+          <span class="text-st-danger mr-0.5">*</span>确认新密码
         </label>
         <el-input
           v-model="confirmPassword"

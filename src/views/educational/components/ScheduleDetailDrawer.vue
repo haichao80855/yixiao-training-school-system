@@ -24,9 +24,9 @@
         </div>
 
         <!-- 冲突告警条目 -->
-        <div v-if="event.hasConflict" class="mt-3 bg-white/80 p-2.5 rounded border border-rose-300 text-xs text-rose-700 space-y-1">
+        <div v-if="event.hasConflict" class="mt-3 bg-white/80 p-2.5 rounded border border-st-danger-border text-xs text-st-danger-deep space-y-1">
           <div class="font-bold flex items-center gap-1.5">
-            <AlertTriangle class="w-3.5 h-3.5 text-rose-600" />
+            <AlertTriangle class="w-4 h-4 text-st-danger" />
             <span>冲突原因排查 ({{ event.conflictType || '时段重叠' }})</span>
           </div>
           <p class="leading-relaxed">{{ event.conflictReason || '与同校区其他课次存在时间、教师或教室资源争抢冲突' }}</p>
@@ -39,16 +39,16 @@
       </div>
 
       <!-- 基本信息网格 -->
-      <div class="bg-gray-50 p-3.5 rounded-lg border border-st-border text-xs space-y-2">
+      <div class="bg-st-header p-3.5 rounded-lg border border-st-border text-xs space-y-2">
         <div class="grid grid-cols-2 gap-2">
           <div><span class="text-st-muted">上课日期：</span><span class="font-medium text-st-title">{{ event.date }}</span></div>
           <div><span class="text-st-muted">上课时段：</span><span class="font-medium text-st-title">{{ event.startTime }} - {{ event.endTime }} ({{ event.durationMinutes }}分钟)</span></div>
-          <div><span class="text-st-muted">授课讲师：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><User class="w-3.5 h-3.5 text-st-primary" />{{ event.teacherName }}</span></div>
-          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />{{ event.classroomName }}</span></div>
+          <div><span class="text-st-muted">授课讲师：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><User class="w-4 h-4 text-st-primary" />{{ event.teacherName }}</span></div>
+          <div><span class="text-st-muted">上课教室：</span><span class="font-medium text-st-title inline-flex items-center gap-1"><MapPin class="w-4 h-4 text-st-warning" />{{ event.classroomName }}</span></div>
           <div><span class="text-st-muted">课次讲数：</span><span class="font-medium text-st-title">{{ event.lessonNumber ? `第 ${event.lessonNumber} 讲` : '—' }}</span></div>
           <div><span class="text-st-muted">课次类型：</span><span class="font-medium text-st-title">{{ event.classType === 'formal' ? '正式课' : event.classType === 'make_up' ? '补课' : '公开试听' }}</span></div>
         </div>
-        <div v-if="event.lessonTitle" class="pt-1 border-t border-gray-200">
+        <div v-if="event.lessonTitle" class="pt-1 border-t border-st-border">
           <span class="text-st-muted">讲次主题：</span><span class="font-medium text-st-title">{{ event.lessonTitle }}</span>
         </div>
       </div>
@@ -118,7 +118,7 @@ const emit = defineEmits<{
 }>()
 
 const chipStyle = computed(() => {
-  if (!event.value) return { background: '#fff', borderColor: '#ccc', badge: '正' }
+  if (!event.value) return { background: 'var(--st-color-card)', borderColor: 'var(--st-color-border-dark)', badge: '正' }
   return EducationalCollisionEngine.getSemanticChipStyle(event.value)
 })
 

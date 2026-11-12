@@ -85,8 +85,8 @@
 
       <!-- 用户信息与下拉菜单 -->
       <el-dropdown trigger="click" placement="bottom-end" @command="handleUserCommand">
-        <div class="flex items-center gap-2 cursor-pointer pl-1 pr-2 py-1 rounded-lg hover:bg-slate-100 transition-colors">
-          <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-semibold', isTeacher ? 'bg-emerald-50 text-emerald-700' : 'bg-st-primary-light text-st-primary']">
+        <div class="flex items-center gap-2 cursor-pointer pl-1 pr-2 py-1 rounded-lg hover:bg-st-fill transition-colors">
+          <div :class="['w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-semibold', isTeacher ? 'bg-st-success-light text-st-success' : 'bg-st-primary-light text-st-primary']">
             {{ avatarChar }}
           </div>
           <div class="hidden lg:block text-left leading-tight">
@@ -119,7 +119,7 @@
     <!-- 测试数据管理弹窗 -->
     <el-dialog v-model="testDataModalVisible" title="测试数据与 Mock 数据管理中枢" :width="DIALOG_SIZE.md" destroy-on-close>
       <div class="space-y-4 text-xs">
-        <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-lg text-blue-900 leading-relaxed">
+        <div class="p-3.5 bg-st-primary-light border border-st-primary-border rounded-lg text-st-primary-active leading-relaxed">
           <div class="font-bold text-sm mb-1 flex items-center gap-1.5">
             <Settings class="w-4 h-4 text-st-primary" />
             <span>系统业务测试数据状态（已为您清空初始 Mock 数据）</span>
@@ -129,41 +129,41 @@
 
         <!-- 实时数据看板 -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-xs text-gray-500">学员总数</div>
+          <div class="p-2.5 bg-st-header border rounded-lg text-center">
+            <div class="text-xs text-st-muted">学员总数</div>
             <div class="text-lg font-bold text-st-primary font-mono">{{ liveStats.studentCount }}</div>
           </div>
-          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-xs text-gray-500">班级总数</div>
-            <div class="text-lg font-bold text-emerald-600 font-mono">{{ liveStats.classCount }}</div>
+          <div class="p-2.5 bg-st-header border rounded-lg text-center">
+            <div class="text-xs text-st-muted">班级总数</div>
+            <div class="text-lg font-bold text-st-success font-mono">{{ liveStats.classCount }}</div>
           </div>
-          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-xs text-gray-500">排课日程</div>
-            <div class="text-lg font-bold text-purple-600 font-mono">{{ liveStats.scheduleCount }}</div>
+          <div class="p-2.5 bg-st-header border rounded-lg text-center">
+            <div class="text-xs text-st-muted">排课日程</div>
+            <div class="text-lg font-bold text-st-purple font-mono">{{ liveStats.scheduleCount }}</div>
           </div>
-          <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-xs text-gray-500">财务订单</div>
-            <div class="text-lg font-bold text-amber-600 font-mono">{{ liveStats.orderCount }}</div>
+          <div class="p-2.5 bg-st-header border rounded-lg text-center">
+            <div class="text-xs text-st-muted">财务订单</div>
+            <div class="text-lg font-bold text-st-warning font-mono">{{ liveStats.orderCount }}</div>
           </div>
         </div>
 
         <!-- 明细统计 -->
-        <div class="p-3 bg-gray-50 rounded border text-gray-600 space-y-1 text-xs">
+        <div class="p-3 bg-st-header rounded border text-st-secondary space-y-1 text-xs">
           <div class="flex justify-between">
             <span>• 待分班学员调度池：</span>
-            <b class="text-gray-800">{{ liveStats.unassignedCount }} 人</b>
+            <b class="text-st-title">{{ liveStats.unassignedCount }} 人</b>
           </div>
           <div class="flex justify-between">
             <span>• 待办财务审批工单：</span>
-            <b class="text-gray-800">{{ liveStats.approvalCount }} 笔</b>
+            <b class="text-st-title">{{ liveStats.approvalCount }} 笔</b>
           </div>
           <div class="flex justify-between">
             <span>• 考勤消课打卡记录：</span>
-            <b class="text-gray-800">{{ liveStats.attendanceCount }} 条</b>
+            <b class="text-st-title">{{ liveStats.attendanceCount }} 条</b>
           </div>
           <div class="flex justify-between">
             <span>• 教研标准课程库：</span>
-            <b class="text-gray-800">{{ liveStats.courseCount }} 门</b>
+            <b class="text-st-title">{{ liveStats.courseCount }} 门</b>
           </div>
         </div>
 
@@ -194,8 +194,7 @@
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Database, LogOut, Settings } from 'lucide-vue-next'
-import { Fold, Bell, FullScreen, ArrowDown } from '@element-plus/icons-vue'
+import { Database, LogOut, Settings, PanelLeftClose as Fold, Bell, Maximize as FullScreen, ChevronDown as ArrowDown } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
 import { DIALOG_SIZE } from '@/constants/ui'
@@ -389,7 +388,7 @@ function handleUserCommand(command: string) {
   transition: background-color 0.15s, color 0.15s;
 }
 .header-icon-btn:hover {
-  background-color: #F1F5F9;
+  background-color: var(--st-color-fill);
   color: var(--st-color-title);
 }
 .notice-item {
@@ -404,7 +403,7 @@ function handleUserCommand(command: string) {
   line-height: 1.5;
 }
 .notice-item:hover {
-  background-color: #F8FAFC;
+  background-color: var(--st-color-header);
 }
 .notice-count {
   font-variant-numeric: tabular-nums;

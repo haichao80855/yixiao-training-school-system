@@ -23,7 +23,7 @@
           <span class="text-sm font-semibold truncate max-w-[450px]" :title="lessonName">
             {{ lessonName }}
           </span>
-          <span v-if="pptFileName" class="text-xs text-gray-300 hidden sm:inline truncate max-w-[260px]">
+          <span v-if="pptFileName" class="text-xs text-st-placeholder hidden sm:inline truncate max-w-[260px]">
             ({{ pptFileName }})
           </span>
         </div>
@@ -34,7 +34,7 @@
             size="small"
             type="info"
             link
-            class="!text-xs !text-gray-300 hover:!text-white"
+            class="!text-xs !text-st-placeholder hover:!text-white"
             @click="handleDownload"
           >
             <el-icon class="mr-1"><Download /></el-icon> 下载课件
@@ -52,7 +52,7 @@
 
       <!-- 课件主展示区域 -->
       <div ref="containerRef" class="flex-1 w-full h-full relative flex items-center justify-center bg-slate-950 overflow-hidden">
-        <div v-if="resolving" class="text-sm text-gray-400">正在打开课件...</div>
+        <div v-if="resolving" class="text-sm text-st-placeholder">正在打开课件...</div>
 
         <!-- 在线白板 / 备份课件预览 -->
         <iframe
@@ -64,8 +64,8 @@
         ></iframe>
 
         <!-- 兜底状态 -->
-        <div v-else class="text-center p-8 text-gray-300 space-y-4">
-          <el-icon class="text-5xl text-gray-600"><Document /></el-icon>
+        <div v-else class="text-center p-8 text-st-placeholder space-y-4">
+          <el-icon class="text-5xl text-st-secondary"><Document /></el-icon>
           <p class="text-base">{{ viewMessage || '该课次暂未生成在线白板交互课件或正在转码中' }}</p>
           <el-button v-if="downloadUrl && viewSource !== 'unavailable'" type="primary" @click="handleDownload">
             下载课件源文件
@@ -78,7 +78,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Download, FullScreen, Document } from '@element-plus/icons-vue'
+import { Download, Maximize as FullScreen, FileText as Document } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { coursewareSourceApi } from '@/api/modules/coursewareSource'
 

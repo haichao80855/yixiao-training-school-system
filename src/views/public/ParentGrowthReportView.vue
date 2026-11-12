@@ -1,22 +1,22 @@
 <template>
-  <div class="min-h-screen bg-slate-100 text-slate-800 pb-16 font-sans antialiased">
+  <div class="min-h-screen bg-st-fill text-st-title pb-16 font-sans antialiased">
     <!-- 状态 1: 加载中 -->
     <div v-if="loading" class="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-      <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      <p class="text-xs text-slate-600">正在开启学员专属学情档案...</p>
+      <div class="w-10 h-10 border-4 border-st-primary border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-xs text-st-secondary">正在开启学员专属学情档案...</p>
     </div>
 
     <!-- 状态 2: 错误状态 (令牌过期或签名不合法) -->
     <div v-else-if="errorMessage" class="max-w-md mx-auto p-6 pt-20 text-center space-y-4">
-      <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
+      <div class="w-16 h-16 bg-st-danger-light text-st-danger rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
         <Lock class="w-8 h-8" />
       </div>
-      <h3 class="text-base font-bold text-slate-800">无法访问该学情报告</h3>
-      <p class="text-xs text-slate-500 leading-relaxed px-4">
+      <h3 class="text-base font-bold text-st-title">无法访问该学情报告</h3>
+      <p class="text-xs text-st-muted leading-relaxed px-4">
         {{ errorMessage }}
       </p>
       <div class="pt-4">
-        <span class="text-xs text-slate-600">如需查看最新随堂成长档案，请联系校区授课老师或教务班主任重新获取分享链接。</span>
+        <span class="text-xs text-st-secondary">如需查看最新随堂成长档案，请联系校区授课老师或教务班主任重新获取分享链接。</span>
       </div>
     </div>
 
@@ -48,36 +48,36 @@
         <div
           v-for="(lesson, idx) in lessonList"
           :key="lesson.lessonId || idx"
-          class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4 transition"
+          class="bg-white rounded-2xl p-5 shadow-sm border border-st-divider space-y-4 transition"
         >
           <!-- 课次标题与日期 -->
-          <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+          <div class="flex justify-between items-start border-b border-st-divider pb-3">
             <div>
-              <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+              <span class="text-xs font-bold text-st-primary bg-st-primary-light px-2 py-0.5 rounded-full">
                 {{ lesson.courseName }}
               </span>
-              <h3 class="text-base font-bold text-slate-900 mt-1.5 leading-snug">
+              <h3 class="text-base font-bold text-st-title mt-1.5 leading-snug">
                 {{ lesson.lessonTitle }}
               </h3>
             </div>
             <div class="text-right">
-              <div class="text-xs font-mono text-slate-500">{{ lesson.dateFormatted }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">{{ lesson.timeSlot }}</div>
+              <div class="text-xs font-mono text-st-muted">{{ lesson.dateFormatted }}</div>
+              <div class="text-xs text-st-muted mt-0.5">{{ lesson.timeSlot }}</div>
             </div>
           </div>
 
           <!-- 教师寄语与表现标签 -->
           <div class="bg-gradient-to-r from-blue-50/70 to-indigo-50/40 p-3.5 rounded-xl border border-blue-100/60 space-y-2">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-blue-900 flex items-center gap-1.5">
-                <User class="w-4 h-4 text-blue-700" />
+              <span class="text-xs font-bold text-st-primary-active flex items-center gap-1.5">
+                <User class="w-4 h-4 text-st-primary" />
                 <span>{{ lesson.teacherName }} 老师随堂寄语</span>
               </span>
-              <span v-if="lesson.performanceTag" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+              <span v-if="lesson.performanceTag" class="text-xs bg-st-success-light text-st-success-deep font-bold px-2 py-0.5 rounded-full">
                 {{ lesson.performanceTag }}
               </span>
             </div>
-            <p class="text-xs text-slate-700 leading-relaxed">
+            <p class="text-xs text-st-regular leading-relaxed">
               {{ lesson.personalizedComment }}
             </p>
           </div>
@@ -85,7 +85,7 @@
           <!-- 随堂原声语音条组件 (支持播放与动态波形) -->
           <div
             v-if="lesson.voice"
-            class="bg-emerald-500 text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-xs"
+            class="bg-st-success text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-xs"
           >
             <div class="flex items-center space-x-2.5">
               <Mic class="w-5 h-5 text-white" />
@@ -102,8 +102,8 @@
 
           <!-- 9 宫格精彩照片流 -->
           <div v-if="lesson.photos && lesson.photos.length > 0" class="space-y-1.5">
-            <div class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-              <Image class="w-4 h-4 text-slate-600" />
+            <div class="text-xs text-st-muted font-medium flex items-center gap-1.5">
+              <Image class="w-4 h-4 text-st-secondary" />
               <span>课堂精彩瞬间 ({{ lesson.photos.length }} 张)</span>
             </div>
             <div
@@ -116,7 +116,7 @@
                 :src="photo.thumbnailUrl"
                 :preview-src-list="photo.previewList"
                 preview-teleported
-                class="w-full aspect-square object-cover rounded-xl shadow-2xs border border-slate-100 cursor-pointer"
+                class="w-full aspect-square object-cover rounded-xl shadow-2xs border border-st-divider cursor-pointer"
                 fit="cover"
                 loading="lazy"
               />
@@ -124,18 +124,18 @@
           </div>
 
           <!-- 随堂视频入口 -->
-          <div v-if="lesson.video" class="bg-slate-50 p-3 rounded-xl border border-slate-100 flex items-center justify-between">
+          <div v-if="lesson.video" class="bg-st-header p-3 rounded-xl border border-st-divider flex items-center justify-between">
             <div class="flex items-center space-x-2">
-              <Video class="w-5 h-5 text-slate-700" />
+              <Video class="w-5 h-5 text-st-regular" />
               <div>
-                <div class="text-xs font-bold text-slate-800">课堂实操编程视频作品</div>
-                <div class="text-xs text-slate-500">见证孩子亲手实现的编程奇迹</div>
+                <div class="text-xs font-bold text-st-title">课堂实操编程视频作品</div>
+                <div class="text-xs text-st-muted">见证孩子亲手实现的编程奇迹</div>
               </div>
             </div>
             <a
               :href="lesson.video.videoUrl"
               target="_blank"
-              class="text-xs bg-blue-600 text-white font-medium px-3 py-1.5 rounded-lg shadow-xs hover:bg-blue-700 active:scale-95 transition"
+              class="text-xs bg-st-primary text-white font-medium px-3 py-1.5 rounded-lg shadow-xs hover:bg-st-primary active:scale-95 transition"
             >
               立即播放
             </a>
@@ -143,21 +143,21 @@
 
           <!-- 教学重难点大纲富文本 -->
           <div v-if="lesson.studyContentHtml" class="pt-1">
-            <div class="text-xs font-bold text-slate-700 mb-1">【本课核心素养知识点】</div>
+            <div class="text-xs font-bold text-st-regular mb-1">【本课核心素养知识点】</div>
             <div
               v-html="lesson.studyContentHtml"
-              class="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed"
+              class="text-xs text-st-muted bg-st-header p-3 rounded-xl border border-st-divider leading-relaxed"
             />
           </div>
 
           <!-- 激励徽章脚印 -->
-          <div v-if="lesson.badges && lesson.badges.length > 0" class="flex flex-wrap gap-2 pt-1 border-t border-slate-100">
+          <div v-if="lesson.badges && lesson.badges.length > 0" class="flex flex-wrap gap-2 pt-1 border-t border-st-divider">
             <div
               v-for="b in lesson.badges"
               :key="b.id"
-              class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/60 px-2.5 py-1 rounded-full text-xs"
+              class="inline-flex items-center gap-1.5 bg-st-warning-light text-st-warning-deep border border-amber-200/60 px-2.5 py-1 rounded-full text-xs"
             >
-              <Trophy class="w-3.5 h-3.5 text-amber-600" />
+              <Trophy class="w-4 h-4 text-st-warning" />
               <span class="font-bold">{{ b.title }}</span>
             </div>
           </div>
@@ -165,7 +165,7 @@
       </main>
 
       <!-- 底部校区安全标识 -->
-      <footer class="text-center py-6 text-xs text-slate-500 space-y-1">
+      <footer class="text-center py-6 text-xs text-st-muted space-y-1">
         <p>一校教培系统 · 家校共育数字化平台</p>
         <p>教学资产由校区不可变存证链安全护航</p>
       </footer>

@@ -5,7 +5,7 @@
       <div>
         <div class="flex items-center space-x-3">
           <h1 class="text-lg font-bold text-st-title">角色管理与 4 级细粒度 RBAC 权限矩阵</h1>
-          <span class="px-2.5 py-0.5 text-xs font-mono rounded bg-blue-50 text-st-primary border border-blue-200">
+          <span class="px-2.5 py-0.5 text-xs font-mono rounded bg-st-primary-light text-st-primary border border-st-primary-border">
             RBAC 2.0 中台标准
           </span>
         </div>
@@ -37,8 +37,8 @@
             :class="[
               'p-3.5 rounded-lg cursor-pointer transition-all border text-xs relative flex flex-col justify-between group',
               activeRoleId === role.id
-                ? 'bg-blue-50/60 border-st-primary shadow-sm'
-                : 'border-slate-200 hover:bg-slate-50/80 hover:border-slate-300'
+                ? 'bg-st-primary-light/60 border-st-primary shadow-sm'
+                : 'border-st-border hover:bg-st-header hover:border-st-border-dark'
             ]"
           >
             <!-- 选中高亮左边条 -->
@@ -55,7 +55,7 @@
                   </span>
                   <span
                     v-if="role.isSystem"
-                    class="text-xs px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200"
+                    class="text-xs px-1.5 py-0.2 rounded bg-st-fill text-st-secondary border border-st-border"
                   >
                     系统内置
                   </span>
@@ -64,7 +64,7 @@
                   编码：{{ role.code }}
                 </div>
               </div>
-              <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-blue-100 text-st-primary font-medium">
+              <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-st-primary-light text-st-primary font-medium">
                 {{ role.userCount }} 人
               </span>
             </div>
@@ -73,7 +73,7 @@
               {{ role.description }}
             </p>
 
-            <div class="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-xs">
+            <div class="flex items-center justify-between mt-3 pt-2 border-t border-st-divider text-xs">
               <span
                 :class="[
                   'px-1.5 py-0.5 rounded font-mono',
@@ -115,7 +115,7 @@
                 </span>
                 <span
                   v-if="isSuperAdmin"
-                  class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
+                  class="text-xs px-2 py-0.5 rounded bg-st-purple-light text-st-purple font-medium"
                 >
                   * 全通配最高特权 (放行一切操作)
                 </span>
@@ -139,22 +139,22 @@
           </div>
 
           <!-- 层级图例条 -->
-          <div class="py-2.5 px-3 bg-slate-50/80 rounded border border-slate-100 flex flex-wrap items-center gap-4 text-xs text-st-secondary my-3">
+          <div class="py-2.5 px-3 bg-st-header rounded border border-st-divider flex flex-wrap items-center gap-4 text-xs text-st-secondary my-3">
             <span class="font-medium text-st-title text-xs">4 级层级图例：</span>
             <div class="flex items-center space-x-1">
-              <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-st-purple"></span>
               <span>1级 系统 (System)</span>
             </div>
             <div class="flex items-center space-x-1">
-              <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-st-primary"></span>
               <span>2级 业务模块 (Module)</span>
             </div>
             <div class="flex items-center space-x-1">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-st-success"></span>
               <span>3级 业务页面 (Page)</span>
             </div>
             <div class="flex items-center space-x-1">
-              <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-st-warning"></span>
               <span>4级 按钮控制 (Button)</span>
             </div>
           </div>
@@ -199,7 +199,7 @@
               <h3 class="text-sm font-bold text-st-title">数据透视隔离范围 (Data Scope Matrix)</h3>
               <p class="text-xs text-st-muted mt-0.5">控制该角色用户在登录系统时，跨校区、跨部门数据的透视与过滤深度</p>
             </div>
-            <span class="px-2 py-0.5 text-xs rounded bg-slate-100 font-mono text-st-title font-medium">
+            <span class="px-2 py-0.5 text-xs rounded bg-st-fill font-mono text-st-title font-medium">
               当前选择：{{ getDataScopeLabel(currentDataScope) }}
             </span>
           </div>
@@ -213,8 +213,8 @@
               :class="[
                 'p-3.5 rounded-lg border-2 cursor-pointer transition-all flex flex-col justify-between space-y-2 relative',
                 currentDataScope === scope.value
-                  ? 'border-st-primary bg-blue-50/40 shadow-sm'
-                  : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  ? 'border-st-primary bg-st-primary-light/40 shadow-sm'
+                  : 'border-st-border hover:border-st-border-dark hover:bg-st-header'
               ]"
             >
               <div class="flex items-center justify-between">
@@ -226,7 +226,7 @@
               <p class="text-xs text-st-secondary leading-relaxed">
                 {{ scope.description }}
               </p>
-              <div class="text-xs font-mono text-st-muted pt-1 border-t border-slate-200">
+              <div class="text-xs font-mono text-st-muted pt-1 border-t border-st-border">
                 适用：{{ scope.targetRole }}
               </div>
             </div>
@@ -518,11 +518,11 @@ function getPermLevelName(level: string): string {
 
 function getPermLevelBadge(level: string): string {
   switch (level) {
-    case 'system': return 'bg-purple-100 text-purple-700 border border-purple-200'
-    case 'module': return 'bg-blue-100 text-blue-700 border border-blue-200'
-    case 'page': return 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-    case 'button': return 'bg-amber-100 text-amber-700 border border-amber-200'
-    default: return 'bg-gray-100 text-gray-700'
+    case 'system': return 'bg-st-purple-light text-st-purple border border-st-purple-border'
+    case 'module': return 'bg-st-primary-light text-st-primary border border-st-primary-border'
+    case 'page': return 'bg-st-success-light text-st-success border border-st-success-border'
+    case 'button': return 'bg-st-warning-light text-st-warning-deep border border-st-warning-border'
+    default: return 'bg-st-fill text-st-regular'
   }
 }
 
@@ -538,11 +538,11 @@ function getDataScopeLabel(scope: DataScope): string {
 
 function getDataScopeBadgeClass(scope: DataScope): string {
   switch (scope) {
-    case 'all': return 'bg-purple-50 text-purple-600 border border-purple-200'
-    case 'campus': return 'bg-blue-50 text-st-primary border border-blue-200'
-    case 'department': return 'bg-amber-50 text-amber-600 border border-amber-200'
-    case 'self': return 'bg-slate-100 text-slate-600 border border-slate-200'
-    default: return 'bg-gray-50 text-gray-600'
+    case 'all': return 'bg-st-purple-light text-st-purple border border-st-purple-border'
+    case 'campus': return 'bg-st-primary-light text-st-primary border border-st-primary-border'
+    case 'department': return 'bg-st-warning-light text-st-warning border border-st-warning-border'
+    case 'self': return 'bg-st-fill text-st-secondary border border-st-border'
+    default: return 'bg-st-header text-st-secondary'
   }
 }
 

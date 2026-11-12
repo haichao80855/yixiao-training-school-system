@@ -1,5 +1,5 @@
 <template>
-  <div class="p-5 space-y-4 bg-gray-50/70 min-h-screen">
+  <div class="p-5 space-y-4 bg-st-header min-h-screen">
     <!-- 顶部状态栏与校区上下文 -->
     <div class="bg-white rounded-lg px-5 py-3.5 shadow-xs border border-st-border flex items-center justify-between">
       <div class="flex items-center gap-2">
@@ -25,7 +25,7 @@
           {{ isDataScopeSelf ? '仅本人数据 (已锁定只看本人课程)' : (currentDataScope === 'all' ? '全部校区数据透视' : '本校数据透视') }}
         </el-tag>
         <!-- 仅看我的课程开关：仅当非本人专属数据（即本校/全校数据权限）时允许自由切换；本人权限已锁定只看本人课程 -->
-        <div v-if="isTeacher && !isSuperAdminUser && !isDataScopeSelf" class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-emerald-200">
+        <div v-if="isTeacher && !isSuperAdminUser && !isDataScopeSelf" class="flex items-center gap-1.5 bg-emerald-50/80 px-2 py-0.5 rounded-md border border-st-success-border">
           <el-switch
             v-model="onlyMyLessons"
             size="small"
@@ -41,7 +41,7 @@
 
     <!-- 7 维高密度运营指标看板 (1:1 复刻截图 1) -->
     <div class="bg-white rounded-lg px-6 py-4 shadow-xs border border-st-border">
-      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-100 text-center">
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-st-divider text-center">
         <!-- 1. 课次数量 -->
         <div class="px-3 py-1">
           <div class="text-2xl font-extrabold text-st-primary font-mono tracking-tight">
@@ -68,7 +68,7 @@
 
         <!-- 4. 到课人次 -->
         <div class="px-3 py-1">
-          <div class="text-2xl font-extrabold text-emerald-600 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-success font-mono tracking-tight">
             {{ stats.attendedTimes }}
           </div>
           <div class="text-xs text-st-secondary mt-1 font-medium">到课人次</div>
@@ -76,7 +76,7 @@
 
         <!-- 5. 未到人次 -->
         <div class="px-3 py-1">
-          <div class="text-2xl font-extrabold text-amber-600 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-warning font-mono tracking-tight">
             {{ stats.absentTimes }}
           </div>
           <div class="text-xs text-st-secondary mt-1 font-medium">未到人次</div>
@@ -84,7 +84,7 @@
 
         <!-- 6. 未签到人次 -->
         <div class="px-3 py-1">
-          <div class="text-2xl font-extrabold text-rose-500 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-danger font-mono tracking-tight">
             {{ stats.unsignedTimes }}
           </div>
           <div class="text-xs text-st-secondary mt-1 font-medium">未签到人次</div>
@@ -92,7 +92,7 @@
 
         <!-- 7. 已签到人次 / 出勤率 -->
         <div class="px-3 py-1">
-          <div class="text-2xl font-extrabold text-indigo-600 font-mono tracking-tight">
+          <div class="text-2xl font-extrabold text-st-primary font-mono tracking-tight">
             {{ stats.attendedTimes }} <span class="text-xs font-normal text-st-muted">({{ stats.signedRate }}%)</span>
           </div>
           <div class="text-xs text-st-secondary mt-1 font-medium">已签到人次</div>
@@ -232,8 +232,8 @@
             :class="[
               'absolute transform rotate-45 text-center text-xs font-bold py-0.5 right-[-32px] top-[14px] w-[110px] text-white shadow-xs',
               card.status === 'completed'
-                ? 'bg-purple-600'
-                : (card.status === 'in_progress' ? 'bg-blue-600 animate-pulse' : 'bg-st-primary')
+                ? 'bg-st-purple'
+                : (card.status === 'in_progress' ? 'bg-st-primary animate-pulse' : 'bg-st-primary')
             ]"
           >
             {{ card.status === 'completed' ? '已上课' : (card.status === 'in_progress' ? '上课中' : '未上课') }}
@@ -262,7 +262,7 @@
 
           <!-- 班级胶囊标签 -->
           <div>
-            <span class="inline-flex items-center text-xs text-st-primary bg-blue-50 px-2.5 py-0.5 rounded font-medium border border-blue-200">
+            <span class="inline-flex items-center text-xs text-st-primary bg-st-primary-light px-2.5 py-0.5 rounded font-medium border border-st-primary-border">
               正常班 | {{ card.className }}
             </span>
           </div>
@@ -315,7 +315,7 @@
         </div>
 
         <!-- 卡片底部 4 大操作常态图标栏 (下边框分割横排) -->
-        <div class="border-t border-st-border bg-gray-50/50 px-2 py-2 grid grid-cols-3 divide-x divide-gray-200 text-center select-none">
+        <div class="border-t border-st-border bg-st-header px-2 py-2 grid grid-cols-3 divide-x divide-st-border text-center select-none">
           <!-- 1. 备课 -->
           <el-button
             link
@@ -339,14 +339,14 @@
           <!-- 3. 课评 (核心高亮) -->
           <el-button
             link
-            class="!h-auto !py-1 !px-0 flex flex-col items-center justify-center gap-1 text-st-secondary hover:!text-indigo-600 transition-colors group"
+            class="!h-auto !py-1 !px-0 flex flex-col items-center justify-center gap-1 text-st-secondary hover:!text-st-primary transition-colors group"
             @click="handleOpenEvaluation(card)"
           >
             <div class="relative">
-              <Sparkles class="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
-              <span v-if="card.evaluationStatus === 'published'" class="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-emerald-500"></span>
+              <Sparkles class="w-4 h-4 text-st-warning group-hover:scale-110 transition-transform" />
+              <span v-if="card.evaluationStatus === 'published'" class="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-st-success"></span>
             </div>
-            <span class="text-xs font-semibold text-indigo-700 group-hover:underline">课评</span>
+            <span class="text-xs font-semibold text-st-primary group-hover:underline">课评</span>
           </el-button>
 
         </div>
@@ -414,7 +414,7 @@
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
             <div class="space-x-1 text-xs">
-              <el-button link type="primary" size="small" @click="handleOpenEvaluation(row as any)">⭐ 课评</el-button>
+              <el-button link type="primary" size="small" @click="handleOpenEvaluation(row as any)">课评</el-button>
               <el-button link type="primary" size="small" @click="handleOpenSignIn(row as any)">签到</el-button>
               <el-button link type="primary" size="small" @click="handleOpenLessonPlan(row as any)">备课</el-button>
               <el-button link :type="row.status === 'completed' ? 'info' : 'success'" size="small" @click="handleFinishLesson(row as any)">
@@ -451,13 +451,13 @@
       destroy-on-close
     >
       <div v-if="activeLessonForSignIn" class="space-y-4 text-xs">
-        <div class="bg-blue-50/70 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
+        <div class="bg-st-primary-light/70 p-3 rounded-lg border border-st-primary-border flex items-center justify-between">
           <div>
             <div class="font-bold text-st-title">{{ lessonLabel(activeLessonForSignIn) }}</div>
             <div class="text-st-muted mt-0.5">授课老师: {{ activeLessonForSignIn.teacherName }} | 教室: {{ activeLessonForSignIn.classroomName }}</div>
           </div>
           <div class="text-right">
-            <div class="text-emerald-600 font-bold text-sm">{{ tempAttendanceList.filter(s => s.status === 'present' || s.status === 'late').length }} / {{ tempAttendanceList.length }} 人实到</div>
+            <div class="text-st-success font-bold text-sm">{{ tempAttendanceList.filter(s => s.status === 'present' || s.status === 'late').length }} / {{ tempAttendanceList.length }} 人实到</div>
             <div class="text-xs text-st-muted">扣减标准: 1.0课时/人</div>
           </div>
         </div>
@@ -476,7 +476,7 @@
           </el-table-column>
           <el-table-column label="扣减课时" width="90" align="center">
             <template #default="{ row }">
-              <span :class="row.status === 'leave' ? 'text-st-secondary' : 'font-bold text-emerald-600'">
+              <span :class="row.status === 'leave' ? 'text-st-secondary' : 'font-bold text-st-success'">
                 {{ row.status === 'leave' ? '0' : '-1.0' }}
               </span>
             </template>

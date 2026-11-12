@@ -20,9 +20,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ChevronRight as ArrowRight } from 'lucide-vue-next'
 import { useRoute } from 'vue-router'
-import { ArrowRight } from '@element-plus/icons-vue'
-
 const route = useRoute()
 
 interface CrumbItem {
