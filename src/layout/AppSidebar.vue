@@ -70,6 +70,7 @@ import { ref, computed, type Component } from 'vue'
 import { Monitor, BookOpen as Reading, Users as UserFilled, Calendar, Wallet as Money, Settings as Setting, MapPin as Location, ArrowLeftRight as Switch } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
+import { canAccessRoute } from '@/router/access'
 import { useTenantStore } from '@/stores/tenantStore'
 import CampusSelector from './CampusSelector.vue'
 
@@ -129,6 +130,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { path: '/financial/orderManagement', title: '订单营收流水' },
       { path: '/financial/chargingLedger', title: '收费流水账本' },
       { path: '/financial/approvalFlow', title: '业务审批工作台' },
+      { path: '/financial/teacherPay', title: '老师课酬' },
     ],
   },
   {
@@ -145,8 +147,7 @@ const MENU_GROUPS: MenuGroup[] = [
 
 /** 页面所需权限写在路由 meta.requiresPermission 上，菜单和路由守卫用同一份 */
 function canOpen(path: string): boolean {
-  const required = router.resolve(path).meta.requiresPermission as string | string[] | undefined
-  return !required || authStore.hasAnyPermission(required)
+  return canAccessRoute(router.resolve(path), authStore)
 }
 
 const visibleGroups = computed(() =>

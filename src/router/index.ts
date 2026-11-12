@@ -117,6 +117,13 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/financial/approvalFlow.vue'),
         meta: { title: '业务审批工作台', module: '财务中心', requiresPermission: 'financial:approvalFlow' }
       },
+      {
+        path: 'financial/teacherPay',
+        name: 'TeacherPay',
+        component: () => import('@/views/financial/teacherPay.vue'),
+        // 只有校区负责人及以上能看，财务、老师、教务都看不到
+        meta: { title: '老师课酬', module: '财务中心', requiresLeader: true }
+      },
       // 5. 系统设置 (SystemSetting)
       {
         path: 'systemSetting',
@@ -247,6 +254,7 @@ export const router = createRouter({
 
 import { useAuthStore } from '@/stores/authStore'
 import { safeLoginRedirect } from '@/utils/loginRedirect'
+import { canAccessRoute } from './access'
 
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
@@ -266,9 +274,8 @@ router.beforeEach((to, _from, next) => {
       // 默认入口 (含 / 与未知路径) 对纯教师账号落到教师端
       next('/teacher')
     } else {
-      const requiredPermission = to.matched.find((r) => r.meta.requiresPermission)?.meta.requiresPermission as string | string[] | undefined
       // 没有页面权限时回首页 (菜单里本来也不显示这些页面)
-      if (requiredPermission && !authStore.hasAnyPermission(requiredPermission)) {
+      if (!canAccessRoute(to, authStore)) {
         next('/dashboard')
       } else {
         next()
