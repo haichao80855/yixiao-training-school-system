@@ -21,11 +21,13 @@ html, body, #app {
   text-rendering: optimizeLegibility;
 }
 
-/* 数字统一使用等宽数字（而非等宽字体），金额 / 编码对齐且不失优雅 */
+/* 数字统一使用等宽数字（而非等宽字体），金额 / 课时 / 编码对齐且不失优雅 */
 .font-mono {
   font-family: var(--st-font-sans);
 }
 .font-mono,
+.st-num,
+.tabular-nums,
 .el-table .cell,
 .el-statistic__number {
   font-variant-numeric: tabular-nums;
@@ -76,81 +78,125 @@ select,
 
 /* ==========================================================================
  * Element Plus 细节对齐
+ * 组件样式按需加载、排在本文件之后，并在同名选择器上重新声明自己的变量
+ * (例如 .el-card{--el-card-border-radius:4px})。这里统一加 :root 前缀提高优先级，
+ * 不用 !important。
  * ========================================================================== */
 /* 表格 */
-.el-table {
-  --el-table-header-bg-color: #F8FAFC;
-  --el-table-border-color: #EEF0F3;
-  --el-table-row-hover-bg-color: #F5F8FF;
-  --el-table-header-text-color: #475569;
-  font-size: 13px;
+:root .el-table {
+  --el-table-header-bg-color: var(--st-color-header);
+  --el-table-border-color: var(--st-color-divider);
+  --el-table-row-hover-bg-color: var(--st-color-primary-bg);
+  --el-table-header-text-color: var(--st-color-secondary);
+  font-size: var(--st-font-size-table);
 }
-.el-table th.el-table__cell {
-  background-color: #F8FAFC !important;
-  color: #475569;
+:root .el-table th.el-table__cell {
+  background-color: var(--st-color-header) !important;
+  color: var(--st-color-secondary);
   font-weight: 600;
-  height: 44px;
+  height: var(--st-table-header-height);
 }
-.el-table .el-table__cell {
+:root .el-table .el-table__cell {
   padding: 9px 0;
 }
 
-/* 卡片与弹窗 */
-.el-card {
+/* 卡片：1px 细描边 + 极淡阴影，悬停略升 */
+:root .el-card {
   --el-card-border-radius: var(--st-radius-lg);
   --el-card-border-color: var(--st-color-border);
+  transition: box-shadow var(--st-transition);
 }
-.el-card.is-always-shadow,
-.el-card.is-hover-shadow:hover {
+:root .el-card.is-always-shadow {
   box-shadow: var(--st-shadow-card);
 }
-.el-dialog {
-  --el-dialog-border-radius: var(--st-radius-lg);
-  --el-dialog-padding-primary: 20px;
+:root .el-card.is-hover-shadow:hover {
+  box-shadow: var(--st-shadow-hover);
 }
-.el-dialog__title {
+
+/* 弹窗与抽屉 */
+:root .el-dialog {
+  --el-dialog-border-radius: var(--st-radius-xl);
+  --el-dialog-padding-primary: 20px;
+  --el-dialog-box-shadow: var(--st-shadow-dialog);
+  box-shadow: var(--st-shadow-dialog);
+}
+:root .el-dialog__title {
   font-size: 16px;
   font-weight: 600;
   color: var(--st-color-title);
 }
-.el-message-box {
-  --el-messagebox-border-radius: var(--st-radius-lg);
+:root .el-message-box {
+  --el-messagebox-border-radius: var(--st-radius-xl);
+  box-shadow: var(--st-shadow-dialog);
 }
-.el-drawer__header {
+/* 抽屉只圆贴屏幕内侧的两个角 */
+:root .el-drawer.rtl {
+  border-radius: var(--st-radius-xl) 0 0 var(--st-radius-xl);
+}
+:root .el-drawer.ltr {
+  border-radius: 0 var(--st-radius-xl) var(--st-radius-xl) 0;
+}
+:root .el-drawer.ttb {
+  border-radius: 0 0 var(--st-radius-xl) var(--st-radius-xl);
+}
+:root .el-drawer.btt {
+  border-radius: var(--st-radius-xl) var(--st-radius-xl) 0 0;
+}
+:root .el-drawer__header {
   margin-bottom: 0;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--st-color-border);
 }
 
-/* 按钮：中等字重，主按钮更有质感 */
-.el-button {
+/* 按钮、输入框、下拉框的圆角走 --el-border-radius-base (10px)，见 tokens.css。
+ * 主按钮不加阴影，保持平面 */
+:root .el-button {
   font-weight: 500;
 }
-.el-button--primary:not(.is-plain):not(.is-link):not(.is-text) {
-  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25);
+/* 复选框只有 14px，跟随小控件 8px 会变成圆点，保持 4px */
+:root .el-checkbox {
+  --el-checkbox-border-radius: 4px;
 }
 
-/* 标签：更轻的描边 */
-.el-tag {
-  --el-tag-border-radius: 4px;
+/* 标签：小控件圆角、更轻的描边 */
+:root .el-tag {
+  --el-tag-border-radius: var(--st-radius-sm);
   font-weight: 500;
 }
 
 /* 下拉 / 气泡 */
-.el-dropdown-menu__item {
+:root .el-dropdown-menu__item {
   font-size: 13px;
   padding: 7px 16px;
 }
-.el-popper.is-light,
-.el-popover.el-popper {
+:root .el-popper.is-light,
+:root .el-popover.el-popper {
   border-color: var(--st-color-border);
   box-shadow: var(--st-shadow-popover);
   border-radius: var(--st-radius-md);
 }
 
 /* 分页 */
-.el-pagination {
-  --el-pagination-border-radius: 6px;
+:root .el-pagination {
+  --el-pagination-border-radius: var(--st-radius-sm);
+}
+
+/* ==========================================================================
+ * 连续圆角 (squircle) 渐进增强：支持 corner-shape 的浏览器显示苹果式平滑圆角，
+ * 不支持的浏览器保持普通圆角，半径数值不变。
+ * ========================================================================== */
+@supports (corner-shape: squircle) {
+  .el-card,
+  .el-dialog,
+  .el-message-box,
+  .el-drawer,
+  .el-button,
+  .rounded-lg,
+  .rounded-xl,
+  .rounded-card,
+  .rounded-dialog {
+    corner-shape: squircle;
+  }
 }
 
 /* ==========================================================================
@@ -161,13 +207,13 @@ select,
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: var(--st-color-border-dark);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: var(--st-color-placeholder);
   background-clip: content-box;
 }
 ::-webkit-scrollbar-track {

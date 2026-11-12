@@ -1,6 +1,8 @@
 /* ==========================================================================
  * 一校教培系统 · 设计令牌 (Design Tokens)
- * 所有颜色、圆角、阴影、字体统一在此定义；Tailwind `st-*` 与 Element Plus 均引用这些变量。
+ * 所有颜色、圆角、阴影、字号、动效统一在此定义。
+ * Tailwind `st-*`、Element Plus 和老师端 teacher.css (`--tp-*`) 都引用这里的变量；
+ * 家长端 package-parent/styles/tokens.scss 按同一套数值对齐 (rpx = px × 2)。
  * ========================================================================== */
 :root {
   /* ---------- 品牌主色：沉稳学院蓝 ---------- */
@@ -14,9 +16,10 @@
   --st-color-primary-border: #C7D7FE;
   --st-color-primary-bg: #F5F8FF;
 
-  /* ---------- 语义功能色 (均满足白底 AA 对比度) ---------- */
+  /* ---------- 语义功能色 (均满足白底 AA 对比度；只做浅底标签，不做大面积色块) ---------- */
   --st-color-success: #16A34A;
   --st-color-success-light: #ECFDF3;
+  --st-color-success-deep: #15803D;
   --st-color-warning: #D97706;
   --st-color-warning-light: #FFF7E8;
   --st-color-warning-deep: #B45309;
@@ -26,17 +29,20 @@
   --st-color-purple: #7C3AED;
   --st-color-purple-light: #F5F3FF;
 
-  /* ---------- 中性色阶 (Slate) ---------- */
-  --st-color-bg: #F5F6F8;
+  /* ---------- 中性色：只用 Slate 一套 ---------- */
+  --st-color-bg: #F5F5F7;
   --st-color-header: #F8FAFC;
   --st-color-card: #FFFFFF;
+  --st-color-fill: #F1F5F9;
   --st-color-title: #0F172A;
-  --st-color-regular: #1E293B;
+  --st-color-regular: #334155;
   --st-color-secondary: #475569;
   --st-color-muted: #64748B;
   --st-color-placeholder: #94A3B8;
-  --st-color-border: #E5E7EB;
-  --st-color-border-dark: #D1D5DB;
+  --st-color-disabled: #94A3B8;
+  --st-color-border: #E2E8F0;
+  --st-color-border-dark: #CBD5E1;
+  --st-color-divider: #EEF2F6;
   --st-color-border-light: #EFF4FF;
 
   /* 历史别名 (部分组件直接引用，保持兼容) */
@@ -49,15 +55,36 @@
   --st-color-text-title: var(--st-color-title);
   --st-color-text-secondary: var(--st-color-secondary);
 
-  /* ---------- 字体 / 圆角 / 阴影 ---------- */
+  /* ---------- 字体 ---------- */
   --st-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
     'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --st-radius-sm: 6px;
-  --st-radius-md: 8px;
-  --st-radius-lg: 12px;
+
+  /* ---------- 字号：后台最小 12px ---------- */
+  --st-font-size-caption: 12px;  /* 辅助说明 */
+  --st-font-size-table: 13px;    /* 表格 */
+  --st-font-size-body: 14px;     /* 正文 */
+  --st-font-size-subtitle: 16px; /* 小标题 */
+  --st-font-size-title: 20px;    /* 页面标题 */
+  --st-font-size-figure: 28px;   /* 数字 */
+
+  /* ---------- 圆角 ---------- */
+  --st-radius-sm: 8px;      /* 小控件：标签、徽标、复选框 */
+  --st-radius-md: 10px;     /* 按钮、输入框 */
+  --st-radius-lg: 14px;     /* 卡片 */
+  --st-radius-xl: 20px;     /* 弹窗、抽屉 */
+  --st-radius-pill: 999px;  /* 胶囊 */
+
+  /* ---------- 描边与阴影：1px 细描边 + 极淡阴影，悬停略升 ---------- */
+  --st-hairline: 1px solid var(--st-color-border);
   --st-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04);
-  --st-shadow-hover: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --st-shadow-hover: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.16);
   --st-shadow-popover: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --st-shadow-dialog: 0 24px 64px -16px rgba(15, 23, 42, 0.24);
+
+  /* ---------- 动效 ---------- */
+  --st-duration: 200ms;
+  --st-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --st-transition: var(--st-duration) var(--st-ease);
 
   /* ---------- 尺寸及布局规范 ---------- */
   --st-header-height: 60px;
@@ -70,7 +97,9 @@
    * Element Plus 主题覆盖
    * ====================================================================== */
   --el-font-family: var(--st-font-sans);
-  --el-font-size-base: 14px;
+  --el-font-size-base: var(--st-font-size-body);
+  --el-font-size-small: var(--st-font-size-table);
+  --el-font-size-extra-small: var(--st-font-size-caption);
 
   --el-color-primary: #2563EB;
   --el-color-primary-light-3: #6692F1;
@@ -119,28 +148,41 @@
   --el-color-info-light-9: #F1F5F9;
   --el-color-info-dark-2: #505D6F;
 
-  --el-text-color-primary: #0F172A;
-  --el-text-color-regular: #334155;
-  --el-text-color-secondary: #64748B;
-  --el-text-color-placeholder: #94A3B8;
-  --el-text-color-disabled: #A8B1BF;
+  /* 文字与描边直接引用 st-*，两套不再各写各的色值 */
+  --el-text-color-primary: var(--st-color-title);
+  --el-text-color-regular: var(--st-color-regular);
+  --el-text-color-secondary: var(--st-color-muted);
+  --el-text-color-placeholder: var(--st-color-placeholder);
+  --el-text-color-disabled: var(--st-color-disabled);
 
-  --el-border-color: #E2E8F0;
-  --el-border-color-light: #E5E7EB;
-  --el-border-color-lighter: #EEF0F3;
-  --el-border-color-extra-light: #F3F4F6;
-  --el-border-color-dark: #D1D5DB;
-  --el-border-color-darker: #CBD5E1;
+  --el-border-color: var(--st-color-border);
+  --el-border-color-light: var(--st-color-border);
+  --el-border-color-lighter: var(--st-color-divider);
+  --el-border-color-extra-light: var(--st-color-fill);
+  --el-border-color-dark: var(--st-color-border-dark);
+  --el-border-color-darker: var(--st-color-border-dark);
+  --el-border-color-hover: var(--st-color-placeholder);
 
-  --el-fill-color: #F1F5F9;
-  --el-fill-color-light: #F8FAFC;
-  --el-fill-color-lighter: #F8FAFC;
-  --el-fill-color-blank: #FFFFFF;
-  --el-bg-color-page: #F5F6F8;
+  --el-fill-color: var(--st-color-fill);
+  --el-fill-color-light: var(--st-color-header);
+  --el-fill-color-lighter: var(--st-color-header);
+  --el-fill-color-blank: var(--st-color-card);
+  --el-bg-color-page: var(--st-color-bg);
 
-  --el-border-radius-base: 6px;
-  --el-border-radius-small: 4px;
-  --el-border-radius-round: 20px;
-  --el-box-shadow-light: 0 4px 16px rgba(15, 23, 42, 0.08);
-  --el-box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --el-border-radius-small: var(--st-radius-sm);
+  --el-border-radius-base: var(--st-radius-md);
+  --el-border-radius-round: var(--st-radius-pill);
+  --el-box-shadow-light: var(--st-shadow-popover);
+  --el-box-shadow: var(--st-shadow-popover);
+
+  --el-transition-duration: var(--st-duration);
+  --el-transition-function-ease-in-out-bezier: var(--st-ease);
+}
+
+/* 尊重系统「减弱动态效果」：令牌层面把时长归零 (index.css 另有兜底) */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --st-duration: 0ms;
+    --el-transition-duration: 0s;
+  }
 }

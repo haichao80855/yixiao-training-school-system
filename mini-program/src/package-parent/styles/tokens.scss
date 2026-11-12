@@ -1,11 +1,12 @@
 /* ==========================================================================
  * 家长端设计令牌 (Parent Design Tokens)
  * 与小程序教职工端同一套系统：沉稳学术蓝 + Slate 中性色，克制、专业。
- * 1px 设计稿 = 2rpx (750rpx 宽)。
+ * 1px 设计稿 = 2rpx (750rpx 宽)。数值与后台 src/assets/styles/tokens.css 对齐：
+ * 底色 #F5F5F7；圆角 小控件 8 / 按钮输入框 10 / 卡片 14 / 弹窗 20 / 胶囊 999 (px)；最小字号 12px = 24rpx。
  * ========================================================================== */
 
 // 中性色 (与 uni.scss 的 Slate 文本层级一致)
-$p-canvas: #F4F6FA;
+$p-canvas: #F5F5F7;
 $p-surface: #FFFFFF;
 $p-ink: #0F172A;
 $p-ink-2: #475569;
@@ -38,9 +39,11 @@ $p-peach: $p-sky;
 $p-peach-50: $p-sky-50;
 
 // 形状与阴影
-$p-r-card: 32rpx;
-$p-r-inner: 20rpx;
-$p-r-sm: 16rpx;
+$p-r-sm: 16rpx;      // 小控件 8px
+$p-r-inner: 20rpx;   // 按钮、输入框、卡片内的块 10px
+$p-r-card: 28rpx;    // 卡片 14px
+$p-r-sheet: 40rpx;   // 弹窗、底部面板 20px
+$p-r-pill: 999rpx;   // 胶囊
 $p-shadow: 0 2rpx 4rpx rgba(15, 23, 42, 0.04), 0 16rpx 40rpx -28rpx rgba(15, 23, 42, 0.18);
 $p-shadow-float: 0 20rpx 48rpx -24rpx rgba(15, 23, 42, 0.28), 0 0 0 1rpx rgba(15, 23, 42, 0.06);
 
@@ -105,7 +108,7 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
 }
 
 @mixin p-skeleton {
-  background: linear-gradient(90deg, #E9EDF3 25%, #F4F6FA 50%, #E9EDF3 75%);
+  background: linear-gradient(90deg, #EBEBF0 25%, $p-canvas 50%, #EBEBF0 75%);
   background-size: 400% 100%;
   animation: p-shimmer 1.4s ease infinite;
 }
@@ -115,8 +118,8 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
   align-items: center;
   height: 44rpx;
   padding: 0 16rpx;
-  border-radius: 8rpx;
-  font-size: 23rpx;
+  border-radius: $p-r-sm;
+  font-size: 24rpx;
   font-weight: 600;
   white-space: nowrap;
 }
