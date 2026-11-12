@@ -184,8 +184,8 @@
             "navigationBarTitleText": "课评",
             "navigationStyle": "custom",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         },
@@ -194,8 +194,8 @@
           "style": {
             "navigationBarTitleText": "课评详情",
             "navigationStyle": "custom",
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         },
@@ -204,8 +204,8 @@
           "style": {
             "navigationBarTitleText": "课表",
             "navigationStyle": "custom",
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         },
@@ -214,8 +214,8 @@
           "style": {
             "navigationBarTitleText": "课程",
             "navigationStyle": "custom",
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         },
@@ -224,8 +224,8 @@
           "style": {
             "navigationBarTitleText": "课时明细",
             "navigationStyle": "custom",
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         },
@@ -235,8 +235,8 @@
             "navigationBarTitleText": "成长",
             "navigationStyle": "custom",
             "enablePullDownRefresh": true,
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         },
@@ -245,8 +245,8 @@
           "style": {
             "navigationBarTitleText": "历史档案",
             "navigationStyle": "custom",
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         },
@@ -255,8 +255,8 @@
           "style": {
             "navigationBarTitleText": "我的",
             "navigationStyle": "custom",
-            "backgroundColor": "#F5F3EF",
-            "backgroundColorTop": "#F5F3EF",
+            "backgroundColor": "#F5F5F7",
+            "backgroundColorTop": "#F5F5F7",
             "backgroundTextStyle": "dark"
           }
         }

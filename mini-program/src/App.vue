@@ -181,7 +181,7 @@ view, text, image, input, button, scroll-view {
 /* #ifdef H5 */
 /* 网页家长端：手机上铺满；在平板 / 电脑上收成 480px 宽的居中手机版面 */
 body {
-  background-color: #E7E3DC;
+  background-color: #E8E8ED;
 }
 
 uni-page-body {
@@ -189,7 +189,8 @@ uni-page-body {
   max-width: 480px;
   min-height: 100vh;
   margin: 0 auto;
-  background-color: #F5F3EF;
+  /* 与家长端令牌 $p-canvas 一致 */
+  background-color: #F5F5F7;
   box-shadow: 0 0 40px rgba(15, 23, 42, 0.06);
 }
 /* #endif */

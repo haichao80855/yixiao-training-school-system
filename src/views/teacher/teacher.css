@@ -11,30 +11,32 @@
  * 断点：手机 <768 底部标签；平板 768-1023 图标栏；电脑 >=1024 侧边栏 + 双栏。
  * ========================================================================== */
 :root {
-  /* 颜色：所有文字色在 --tp-bg 与 --tp-surface 上都达到 WCAG AA (4.5:1) */
-  --tp-bg: #f4f6fa;
-  --tp-surface: #ffffff;
-  --tp-surface-sunken: #eceef2;
-  --tp-surface-hover: #f8f9fb;
-  --tp-line: rgba(15, 23, 42, 0.09);
-  --tp-line-strong: rgba(15, 23, 42, 0.2);
-  --tp-text-1: #0f172a;
-  --tp-text-2: #475569;
+  /* 颜色：引用后台设计令牌 (src/assets/styles/tokens.css)，品牌蓝与后台统一为 #2563EB。
+   * 所有文字色在 --tp-bg 与 --tp-surface 上都达到 WCAG AA (4.5:1)。 */
+  --tp-bg: var(--st-color-bg);
+  --tp-surface: var(--st-color-card);
+  --tp-surface-sunken: var(--st-color-fill);
+  --tp-surface-hover: var(--st-color-header);
+  --tp-line: var(--st-color-border);
+  --tp-line-strong: var(--st-color-border-dark);
+  --tp-text-1: var(--st-color-title);
+  --tp-text-2: var(--st-color-secondary);
+  /* slate-500 (#64748B) 在 #F5F5F7 底色上只有 4.4:1，三级文字和占位符用略深一档的 slate */
   --tp-text-3: #5a6678;
   --tp-text-placeholder: #636f81;
-  --tp-accent: #2f54eb;
-  --tp-accent-hover: #1d39c4;
-  --tp-accent-soft: #eef2ff;
+  --tp-accent: var(--st-color-primary);
+  --tp-accent-hover: var(--st-color-primary-active);
+  --tp-accent-soft: var(--st-color-primary-light);
   /* 只给主角卡片用 */
-  --tp-hero-from: #1d39c4;
-  --tp-hero-to: #13235b;
-  --tp-success: #15803d;
-  --tp-success-soft: #ecfdf3;
-  --tp-warning: #b45309;
-  --tp-warning-soft: #fff7e8;
-  --tp-danger: #b91c1c;
-  --tp-danger-soft: #fef2f2;
-  --tp-rating: #d97706;
+  --tp-hero-from: var(--st-color-primary-active);
+  --tp-hero-to: #172554;
+  --tp-success: var(--st-color-success-deep);
+  --tp-success-soft: var(--st-color-success-light);
+  --tp-warning: var(--st-color-warning-deep);
+  --tp-warning-soft: var(--st-color-warning-light);
+  --tp-danger: var(--st-color-danger-deep);
+  --tp-danger-soft: var(--st-color-danger-light);
+  --tp-rating: var(--st-color-warning);
 
   /* 字号 */
   --tp-fs-caption: 12px;
@@ -58,13 +60,13 @@
   --tp-space-6: 24px;
   --tp-space-8: 32px;
 
-  --tp-radius-sm: 8px;
-  --tp-radius-md: 10px;
-  --tp-radius-lg: 16px;
+  --tp-radius-sm: var(--st-radius-sm);
+  --tp-radius-md: var(--st-radius-md);
+  --tp-radius-lg: var(--st-radius-lg);
   --tp-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px -14px rgba(15, 23, 42, 0.18);
 
   --tp-control: 44px;
-  --tp-motion: 120ms ease;
+  --tp-motion: var(--st-transition);
 }
 
 /* ---------- 外壳与导航 ---------- */
@@ -197,7 +199,7 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  font-size: 11px;
+  font-size: var(--tp-fs-caption);
   color: var(--tp-text-3);
   text-decoration: none;
 }
@@ -296,7 +298,7 @@
     letter-spacing: -0.01em;
   }
   .tp-nav-item {
-    min-height: 40px;
+    min-height: var(--tp-control);
     flex-direction: row;
     justify-content: flex-start;
     gap: var(--tp-space-3);
@@ -653,6 +655,7 @@ a.tp-row {
   color: var(--tp-danger);
 }
 .tp-btn-sm {
+  min-height: var(--tp-control);
   padding: 0 var(--tp-space-3);
   font-size: 14px;
   border-radius: var(--tp-radius-sm);
@@ -969,7 +972,7 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
 .tp-skeleton {
   display: block;
   border-radius: var(--tp-radius-sm);
-  background: linear-gradient(90deg, #e9edf3 25%, #f4f6fa 50%, #e9edf3 75%);
+  background: linear-gradient(90deg, var(--tp-surface-sunken) 25%, var(--tp-surface-hover) 50%, var(--tp-surface-sunken) 75%);
   background-size: 400% 100%;
   animation: tp-shimmer 1.4s ease infinite;
 }
