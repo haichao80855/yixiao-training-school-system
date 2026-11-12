@@ -38,9 +38,8 @@
       />
     </div>
 
-    <!-- 3x8 高密度紧凑筛选矩阵 (恰好 24 个查询参数与控件，全 32px small) -->
+    <!-- 筛选区：只保留后端真正支持的条件 (其余条件后端没有对应字段，已移除) -->
     <HighDensityGrid :cols="8">
-      <!-- Row 1 (8 控件) -->
       <!-- 1. 学员关键字 -->
       <el-input
         v-model="filterForm.studentKeyword"
@@ -49,15 +48,7 @@
         @keyup.enter="handleSearch"
       />
 
-      <!-- 2. 提交人 -->
-      <el-input
-        v-model="filterForm.submitter"
-        placeholder="提交人"
-        clearable
-        @keyup.enter="handleSearch"
-      />
-
-      <!-- 3. 业绩归属人 -->
+      <!-- 2. 业绩归属人 -->
       <el-input
         v-model="filterForm.salesOwner"
         placeholder="业绩归属人"
@@ -65,7 +56,7 @@
         @keyup.enter="handleSearch"
       />
 
-      <!-- 4. 渠道来源 -->
+      <!-- 3. 渠道来源 -->
       <el-select v-model="filterForm.channel" placeholder="渠道来源" clearable>
         <el-option label="全部渠道" value="all" />
         <el-option label="线下地推" value="ground" />
@@ -76,31 +67,7 @@
         <el-option label="异业合作" value="cooperate" />
       </el-select>
 
-      <!-- 5. 班级选择 (带弹窗/快捷输入) -->
-      <el-input
-        v-model="classDisplayName"
-        placeholder="班级选择..."
-        readonly
-        clearable
-        @click="openClassSelectModal"
-        @clear="clearClassSelection"
-      >
-        <template #append>
-          <el-button @click="openClassSelectModal">•••</el-button>
-        </template>
-      </el-input>
-
-      <!-- 6. 课程类型 -->
-      <el-select v-model="filterForm.courseType" placeholder="课程类型" clearable>
-        <el-option label="全部类型" value="all" />
-        <el-option label="常规课程" value="regular" />
-        <el-option label="扩展培优" value="extended" />
-        <el-option label="体验试听" value="trial" />
-        <el-option label="集训营地" value="training" />
-        <el-option label="赛考活动" value="activity" />
-      </el-select>
-
-      <!-- 7. 收费类型 -->
+      <!-- 4. 收费类型 -->
       <el-select v-model="filterForm.chargeType" placeholder="收费类型" clearable>
         <el-option label="全部收费类型" value="all" />
         <el-option label="常规收费" value="regular" />
@@ -111,7 +78,7 @@
         <el-option label="电子钱包充值" value="wallet_recharge" />
       </el-select>
 
-      <!-- 8. 订单状态 -->
+      <!-- 5. 订单状态 -->
       <el-select v-model="filterForm.orderStatus" placeholder="订单状态" clearable>
         <el-option label="全部订单状态" value="all" />
         <el-option label="已支付" value="paid" />
@@ -120,28 +87,7 @@
         <el-option label="已作废" value="void" />
       </el-select>
 
-      <!-- Row 2 (8 控件) -->
-      <!-- 9. 学员状态 -->
-      <el-select v-model="filterForm.studentStatus" placeholder="学员状态" clearable>
-        <el-option label="全部学员状态" value="all" />
-        <el-option label="在读" value="reading" />
-        <el-option label="休学" value="suspended" />
-        <el-option label="转校" value="transferred" />
-        <el-option label="结业" value="graduated" />
-      </el-select>
-
-      <!-- 10. 异动状态 -->
-      <el-select v-model="filterForm.abnormalStatus" placeholder="异动状态" clearable>
-        <el-option label="全部异动状态" value="all" />
-        <el-option label="正常" value="normal" />
-        <el-option label="转班" value="transfer_class" />
-        <el-option label="换课" value="change_course" />
-        <el-option label="停课" value="suspend" />
-        <el-option label="退费" value="refund" />
-        <el-option label="转校" value="transfer_campus" />
-      </el-select>
-
-      <!-- 11. 商品出库状态 -->
+      <!-- 6. 商品出库状态 -->
       <el-select v-model="filterForm.goodsDelivery" placeholder="商品出库状态" clearable>
         <el-option label="全部出库状态" value="all" />
         <el-option label="已出库" value="delivered" />
@@ -149,7 +95,7 @@
         <el-option label="无需出库" value="none" />
       </el-select>
 
-      <!-- 12. 支付方式 -->
+      <!-- 7. 支付方式 -->
       <el-select v-model="filterForm.paymentMethod" placeholder="支付方式" clearable>
         <el-option label="全部支付方式" value="all" />
         <el-option label="微信支付" value="wechat" />
@@ -159,7 +105,7 @@
         <el-option label="学员钱包" value="wallet" />
       </el-select>
 
-      <!-- 13. 最低金额 -->
+      <!-- 8. 最低金额 -->
       <el-input-number
         v-model="filterForm.minAmount"
         :min="0"
@@ -168,7 +114,7 @@
         class="!w-full"
       />
 
-      <!-- 14. 最高金额 -->
+      <!-- 9. 最高金额 -->
       <el-input-number
         v-model="filterForm.maxAmount"
         :min="0"
@@ -177,7 +123,7 @@
         class="!w-full"
       />
 
-      <!-- 15. 发票开具状态 -->
+      <!-- 10. 发票开具状态 -->
       <el-select v-model="filterForm.invoiceStatus" placeholder="发票开具状态" clearable>
         <el-option label="全部发票状态" value="all" />
         <el-option label="未开票" value="unissued" />
@@ -185,61 +131,25 @@
         <el-option label="开票中" value="processing" />
       </el-select>
 
-      <!-- 16. 归属校区 -->
-      <el-select v-model="filterForm.campusId" placeholder="归属校区" clearable>
-        <el-option v-for="c in tenantStore.campuses" :key="c.id" :label="c.name" :value="c.id" />
-      </el-select>
-
-      <!-- Row 3 (8 控件) -->
-      <!-- 17. 日期类型 -->
-      <el-select v-model="filterForm.dateRangeType" placeholder="日期类型">
-        <el-option label="支付时间" value="payTime" />
-        <el-option label="报名时间" value="signupTime" />
-        <el-option label="审核时间" value="auditTime" />
-      </el-select>
-
-      <!-- 18. 开始日期 -->
+      <!-- 11. 开始日期 -->
       <el-date-picker
         v-model="filterForm.startDate"
         type="date"
         value-format="YYYY-MM-DD"
-        placeholder="开始日期"
+        placeholder="下单开始日期"
         class="!w-full"
       />
 
-      <!-- 19. 结束日期 -->
+      <!-- 12. 结束日期 -->
       <el-date-picker
         v-model="filterForm.endDate"
         type="date"
         value-format="YYYY-MM-DD"
-        placeholder="结束日期"
+        placeholder="下单结束日期"
         class="!w-full"
       />
 
-      <!-- 20. 优惠券使用 -->
-      <el-select v-model="filterForm.couponUsed" placeholder="优惠券使用" clearable>
-        <el-option label="全部优惠券" value="all" />
-        <el-option label="使用优惠券" value="yes" />
-        <el-option label="未用优惠券" value="no" />
-      </el-select>
-
-      <!-- 21. 审核人 -->
-      <el-input
-        v-model="filterForm.auditor"
-        placeholder="审核人"
-        clearable
-        @keyup.enter="handleSearch"
-      />
-
-      <!-- 22. 合同签署状态 -->
-      <el-select v-model="filterForm.contractSigned" placeholder="合同签署状态" clearable>
-        <el-option label="全部合同状态" value="all" />
-        <el-option label="已签署" value="signed" />
-        <el-option label="未签署" value="unsigned" />
-        <el-option label="已作废" value="void" />
-      </el-select>
-
-      <!-- 23. 搜索与重置按钮 -->
+      <!-- 13. 搜索与重置按钮 -->
       <div class="flex items-center space-x-1.5">
         <el-button type="primary" class="flex-1" @click="handleSearch">
           <el-icon class="mr-0.5"><Search /></el-icon>
@@ -250,7 +160,7 @@
         </el-button>
       </div>
 
-      <!-- 24. 导出 Excel -->
+      <!-- 14. 导出 Excel -->
       <el-button type="primary" plain class="w-full" @click="handleExport">
         <el-icon class="mr-1"><Download /></el-icon>
         导出 Excel
@@ -277,10 +187,6 @@
               {{ statusCounts[tab.key] || 0 }}
             </span>
           </el-button>
-        </div>
-
-        <div class="text-xs text-st-muted">
-          * 筛选控件严格支持 24 项参数矩阵与复合精确计算
         </div>
       </template>
     </HighDensityGrid>
@@ -708,46 +614,6 @@
       </template>
     </el-dialog>
 
-    <!-- 弹窗 3: 班级弹窗选择器 (Class Select Dialog) -->
-    <el-dialog
-      v-model="classSelectDialogVisible"
-      title="选择报读班级"
-      :width="DIALOG_SIZE.md"
-      destroy-on-close
-    >
-      <div class="space-y-3">
-        <el-input
-          v-model="classSearchKeyword"
-          placeholder="搜索班级名称/执教老师"
-          clearable
-          :prefix-icon="Search"
-        />
-        <el-table
-          :data="filteredClassList"
-          style="width: 100%"
-          size="small"
-          max-height="300"
-          highlight-current-row
-          @current-change="handleClassCurrentChange"
-        >
-          <el-table-column prop="name" label="班级名称" min-width="180" />
-          <el-table-column prop="teacherName" label="授课老师" width="90" />
-          <el-table-column prop="capacity" label="班级容额" width="90">
-            <template #default="{ row }">
-              <span class="font-mono text-xs">{{ row.currentCount }}/{{ row.capacity }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-
-      <template #footer>
-        <el-button @click="classSelectDialogVisible = false">取消</el-button>
-        <el-button type="primary" :disabled="!selectedClassRow" @click="confirmClassSelection">
-          确定选择
-        </el-button>
-      </template>
-    </el-dialog>
-
     <!-- 抽屉: 学员详细画像 (Student Profile Drawer) -->
     <el-drawer
       v-model="studentDrawerVisible"
@@ -806,7 +672,7 @@ import { Search, Download, Copy as DocumentCopy, User, Image as Picture, Upload 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
-import { financialApi, studentApi, educationalApi, uploadApi } from '@/api'
+import { financialApi, studentApi, uploadApi } from '@/api'
 import { pickFile, checkFileSize } from '@/utils/pickFile'
 import { FinanceAggregator } from '@/utils/financeAggregator'
 import SummaryStrip from '@/components/SummaryStrip.vue'
@@ -856,7 +722,7 @@ const statusTabs = [
   { key: 'void', name: '订单作废' }
 ]
 
-// 3x8 矩阵响应式表单 (包含恰好 24 个字段)
+// 筛选表单
 const filterForm = reactive<FinanceFilterForm>(FinanceAggregator.getDefaultFilterForm())
 
 // 表格列配置 (支持显隐勾选与 localStorage 记忆)
@@ -994,13 +860,12 @@ function handleSearch() {
   })
 }
 
-// 重置操作 (恢复 24 个默认值)
+// 重置筛选条件
 function handleReset() {
   const defaults = FinanceAggregator.resetFilterForm(tenantStore.currentCampusId)
   Object.assign(filterForm, defaults)
   activeMainTab.value = 'regular'
   activeStatusTab.value = 'all'
-  classDisplayName.value = ''
   filterForm.page = 1
   loadOrders()
   ElMessage.info('已恢复默认筛选条件')
@@ -1188,54 +1053,6 @@ async function saveOrderModification() {
   } catch (err: any) {
     ElMessage.error(err.message || '更新失败')
   }
-}
-
-// 弹窗 3: 班级弹窗选择逻辑
-const classSelectDialogVisible = ref(false)
-const classDisplayName = ref('')
-const classSearchKeyword = ref('')
-const selectedClassRow = ref<any>(null)
-const classList = ref<any[]>([])
-
-const filteredClassList = computed(() => {
-  if (!classSearchKeyword.value.trim()) return classList.value
-  const kw = classSearchKeyword.value.trim().toLowerCase()
-  return classList.value.filter(c =>
-    (c.name || '').toLowerCase().includes(kw) || (c.teacherName || '').toLowerCase().includes(kw)
-  )
-})
-
-async function openClassSelectModal() {
-  classSelectDialogVisible.value = true
-  if (classList.value.length === 0) {
-    try {
-      const res = await educationalApi.getClasses({ campusId: tenantStore.currentCampusId })
-      if (res && res.data) {
-        const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-        classList.value = list
-      }
-    } catch (err: any) {
-      ElMessage.error(err.message || '加载班级列表失败')
-      classList.value = []
-    }
-  }
-}
-
-function handleClassCurrentChange(row: any) {
-  selectedClassRow.value = row
-}
-
-function confirmClassSelection() {
-  if (selectedClassRow.value) {
-    filterForm.classId = selectedClassRow.value.id
-    classDisplayName.value = selectedClassRow.value.name
-    classSelectDialogVisible.value = false
-  }
-}
-
-function clearClassSelection() {
-  filterForm.classId = ''
-  classDisplayName.value = ''
 }
 
 // 抽屉: 学员详情逻辑
