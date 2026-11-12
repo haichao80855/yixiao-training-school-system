@@ -10,7 +10,6 @@
       <div class="flex items-center gap-2">
         <el-radio-group
           :model-value="status?.mode"
-          size="small"
           :disabled="!canEdit || saving || !status"
           @change="(v: string | number | boolean | undefined) => changeMode(v as CoursewareSourceMode)"
         >
@@ -18,7 +17,7 @@
           <el-radio-button value="origin">固定原平台</el-radio-button>
           <el-radio-button value="mirror">固定备份</el-radio-button>
         </el-radio-group>
-        <el-button v-if="canEdit" size="small" :loading="probing" :disabled="!status" @click="probe">立即检测</el-button>
+        <el-button v-if="canEdit" :loading="probing" :disabled="!status" @click="probe">立即检测</el-button>
       </div>
     </div>
 
@@ -47,7 +46,7 @@
         </div>
       </div>
     </div>
-    <p v-if="status && !status.probeEnabled" class="text-[11px] text-st-muted">
+    <p v-if="status && !status.probeEnabled" class="text-xs text-st-muted">
       当前环境未开启自动检测（本地开发默认关闭），「自动切换」会一直使用原平台。
     </p>
   </div>

@@ -34,8 +34,8 @@
 
       <!-- 右侧操作按钮同行排列 -->
       <div class="flex items-center space-x-2 shrink-0">
-        <el-button size="small" @click="$emit('openTransferAdmin')">转让管理员</el-button>
-        <el-button type="primary" size="small" @click="$emit('openEditOrg')">编辑机构信息</el-button>
+        <el-button @click="$emit('openTransferAdmin')">转让管理员</el-button>
+        <el-button type="primary" @click="$emit('openEditOrg')">编辑机构信息</el-button>
       </div>
     </div>
 

@@ -2,7 +2,7 @@
   <div class="p-4 space-y-3.5 bg-st-bg min-h-full">
     <!-- 顶部主分段 Tab (常规收费订单 | 季度扣费流水) 与校区环境 -->
     <div class="bg-white rounded-lg px-4 py-2.5 shadow-card border border-st-border flex flex-wrap items-center justify-between gap-3">
-      <el-button-group size="small">
+      <el-button-group>
         <el-button
           :type="(filterForm.chargeType === 'regular' || (filterForm.chargeType === 'all' && activeMainTab === 'regular')) ? 'primary' : 'default'"
           @click="handleMainTabChange('regular')"
@@ -45,7 +45,6 @@
       <el-input
         v-model="filterForm.studentKeyword"
         placeholder="姓名/学号/手机号"
-        size="small"
         clearable
         @keyup.enter="handleSearch"
       />
@@ -54,7 +53,6 @@
       <el-input
         v-model="filterForm.submitter"
         placeholder="提交人"
-        size="small"
         clearable
         @keyup.enter="handleSearch"
       />
@@ -63,13 +61,12 @@
       <el-input
         v-model="filterForm.salesOwner"
         placeholder="业绩归属人"
-        size="small"
         clearable
         @keyup.enter="handleSearch"
       />
 
       <!-- 4. 渠道来源 -->
-      <el-select v-model="filterForm.channel" placeholder="渠道来源" size="small" clearable>
+      <el-select v-model="filterForm.channel" placeholder="渠道来源" clearable>
         <el-option label="全部渠道" value="all" />
         <el-option label="线下地推" value="ground" />
         <el-option label="转介绍" value="referral" />
@@ -83,19 +80,18 @@
       <el-input
         v-model="classDisplayName"
         placeholder="班级选择..."
-        size="small"
         readonly
         clearable
         @click="openClassSelectModal"
         @clear="clearClassSelection"
       >
         <template #append>
-          <el-button size="small" @click="openClassSelectModal">•••</el-button>
+          <el-button @click="openClassSelectModal">•••</el-button>
         </template>
       </el-input>
 
       <!-- 6. 课程类型 -->
-      <el-select v-model="filterForm.courseType" placeholder="课程类型" size="small" clearable>
+      <el-select v-model="filterForm.courseType" placeholder="课程类型" clearable>
         <el-option label="全部类型" value="all" />
         <el-option label="常规课程" value="regular" />
         <el-option label="扩展培优" value="extended" />
@@ -105,7 +101,7 @@
       </el-select>
 
       <!-- 7. 收费类型 -->
-      <el-select v-model="filterForm.chargeType" placeholder="收费类型" size="small" clearable>
+      <el-select v-model="filterForm.chargeType" placeholder="收费类型" clearable>
         <el-option label="全部收费类型" value="all" />
         <el-option label="常规收费" value="regular" />
         <el-option label="季度扣费" value="quarterly" />
@@ -116,7 +112,7 @@
       </el-select>
 
       <!-- 8. 订单状态 -->
-      <el-select v-model="filterForm.orderStatus" placeholder="订单状态" size="small" clearable>
+      <el-select v-model="filterForm.orderStatus" placeholder="订单状态" clearable>
         <el-option label="全部订单状态" value="all" />
         <el-option label="已支付" value="paid" />
         <el-option label="未支付" value="unpaid" />
@@ -126,7 +122,7 @@
 
       <!-- Row 2 (8 控件) -->
       <!-- 9. 学员状态 -->
-      <el-select v-model="filterForm.studentStatus" placeholder="学员状态" size="small" clearable>
+      <el-select v-model="filterForm.studentStatus" placeholder="学员状态" clearable>
         <el-option label="全部学员状态" value="all" />
         <el-option label="在读" value="reading" />
         <el-option label="休学" value="suspended" />
@@ -135,7 +131,7 @@
       </el-select>
 
       <!-- 10. 异动状态 -->
-      <el-select v-model="filterForm.abnormalStatus" placeholder="异动状态" size="small" clearable>
+      <el-select v-model="filterForm.abnormalStatus" placeholder="异动状态" clearable>
         <el-option label="全部异动状态" value="all" />
         <el-option label="正常" value="normal" />
         <el-option label="转班" value="transfer_class" />
@@ -146,7 +142,7 @@
       </el-select>
 
       <!-- 11. 商品出库状态 -->
-      <el-select v-model="filterForm.goodsDelivery" placeholder="商品出库状态" size="small" clearable>
+      <el-select v-model="filterForm.goodsDelivery" placeholder="商品出库状态" clearable>
         <el-option label="全部出库状态" value="all" />
         <el-option label="已出库" value="delivered" />
         <el-option label="未出库" value="undelivered" />
@@ -154,7 +150,7 @@
       </el-select>
 
       <!-- 12. 支付方式 -->
-      <el-select v-model="filterForm.paymentMethod" placeholder="支付方式" size="small" clearable>
+      <el-select v-model="filterForm.paymentMethod" placeholder="支付方式" clearable>
         <el-option label="全部支付方式" value="all" />
         <el-option label="微信支付" value="wechat" />
         <el-option label="支付宝" value="alipay" />
@@ -169,7 +165,6 @@
         :min="0"
         :controls="false"
         placeholder="最低金额 (¥)"
-        size="small"
         class="!w-full"
       />
 
@@ -179,12 +174,11 @@
         :min="0"
         :controls="false"
         placeholder="最高金额 (¥)"
-        size="small"
         class="!w-full"
       />
 
       <!-- 15. 发票开具状态 -->
-      <el-select v-model="filterForm.invoiceStatus" placeholder="发票开具状态" size="small" clearable>
+      <el-select v-model="filterForm.invoiceStatus" placeholder="发票开具状态" clearable>
         <el-option label="全部发票状态" value="all" />
         <el-option label="未开票" value="unissued" />
         <el-option label="已开票" value="issued" />
@@ -192,13 +186,13 @@
       </el-select>
 
       <!-- 16. 归属校区 -->
-      <el-select v-model="filterForm.campusId" placeholder="归属校区" size="small" clearable>
+      <el-select v-model="filterForm.campusId" placeholder="归属校区" clearable>
         <el-option v-for="c in tenantStore.campuses" :key="c.id" :label="c.name" :value="c.id" />
       </el-select>
 
       <!-- Row 3 (8 控件) -->
       <!-- 17. 日期类型 -->
-      <el-select v-model="filterForm.dateRangeType" placeholder="日期类型" size="small">
+      <el-select v-model="filterForm.dateRangeType" placeholder="日期类型">
         <el-option label="支付时间" value="payTime" />
         <el-option label="报名时间" value="signupTime" />
         <el-option label="审核时间" value="auditTime" />
@@ -210,7 +204,6 @@
         type="date"
         value-format="YYYY-MM-DD"
         placeholder="开始日期"
-        size="small"
         class="!w-full"
       />
 
@@ -220,12 +213,11 @@
         type="date"
         value-format="YYYY-MM-DD"
         placeholder="结束日期"
-        size="small"
         class="!w-full"
       />
 
       <!-- 20. 优惠券使用 -->
-      <el-select v-model="filterForm.couponUsed" placeholder="优惠券使用" size="small" clearable>
+      <el-select v-model="filterForm.couponUsed" placeholder="优惠券使用" clearable>
         <el-option label="全部优惠券" value="all" />
         <el-option label="使用优惠券" value="yes" />
         <el-option label="未用优惠券" value="no" />
@@ -235,13 +227,12 @@
       <el-input
         v-model="filterForm.auditor"
         placeholder="审核人"
-        size="small"
         clearable
         @keyup.enter="handleSearch"
       />
 
       <!-- 22. 合同签署状态 -->
-      <el-select v-model="filterForm.contractSigned" placeholder="合同签署状态" size="small" clearable>
+      <el-select v-model="filterForm.contractSigned" placeholder="合同签署状态" clearable>
         <el-option label="全部合同状态" value="all" />
         <el-option label="已签署" value="signed" />
         <el-option label="未签署" value="unsigned" />
@@ -250,17 +241,17 @@
 
       <!-- 23. 搜索与重置按钮 -->
       <div class="flex items-center space-x-1.5">
-        <el-button type="primary" size="small" class="flex-1" @click="handleSearch">
+        <el-button type="primary" class="flex-1" @click="handleSearch">
           <el-icon class="mr-0.5"><Search /></el-icon>
           搜索
         </el-button>
-        <el-button size="small" class="flex-1" @click="handleReset">
+        <el-button class="flex-1" @click="handleReset">
           重置
         </el-button>
       </div>
 
       <!-- 24. 导出 Excel -->
-      <el-button type="primary" size="small" plain class="w-full" @click="handleExport">
+      <el-button type="primary" plain class="w-full" @click="handleExport">
         <el-icon class="mr-1"><Download /></el-icon>
         导出 Excel
       </el-button>
@@ -271,7 +262,6 @@
           <el-button
             v-for="tab in statusTabs"
             :key="tab.key"
-            size="small"
             :type="activeStatusTab === tab.key ? 'primary' : 'default'"
             :plain="activeStatusTab === tab.key"
             class="!m-0"
@@ -280,7 +270,7 @@
             <span>{{ tab.name }}</span>
             <span
               :class="[
-                'text-[10px] px-1.5 py-0.2 rounded-full font-mono ml-1',
+                'text-xs px-1.5 py-0.2 rounded-full font-mono ml-1',
                 activeStatusTab === tab.key ? 'bg-st-primary text-white' : 'bg-gray-100 text-st-muted'
               ]"
             >
@@ -341,7 +331,7 @@
               @click="openStudentDrawer(row as any)"
             >
               <span>{{ row.studentName }}</span>
-              <el-icon class="text-[11px]"><User /></el-icon>
+              <el-icon class="text-xs"><User /></el-icon>
             </span>
           </template>
         </el-table-column>
@@ -520,7 +510,7 @@
           <template #default="{ row }">
             <div class="text-xs">
               <div>{{ row.creator }}</div>
-              <div class="text-[11px] text-st-muted">{{ row.performanceOwner || row.salesOwner || '--' }}</div>
+              <div class="text-xs text-st-muted">{{ row.performanceOwner || row.salesOwner || '--' }}</div>
             </div>
           </template>
         </el-table-column>
@@ -641,20 +631,19 @@
             type="textarea"
             :rows="2"
             placeholder="填写收款凭证核对备注（如：银行流水匹配成功/微信到账核销等）"
-            size="small"
           />
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-between items-center">
-          <el-button size="small" type="primary" plain :loading="uploadingVoucher" @click="handleUploadVoucher">
+          <el-button type="primary" plain :loading="uploadingVoucher" @click="handleUploadVoucher">
             <el-icon class="mr-1"><Upload /></el-icon>
             {{ currentVoucherOrder?.voucherUrl ? '重新上传凭证' : '上传收款凭证' }}
           </el-button>
           <div>
-            <el-button size="small" @click="voucherDialogVisible = false">取消</el-button>
-            <el-button size="small" type="primary" @click="saveVoucherAudit">保存核验信息</el-button>
+            <el-button @click="voucherDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="saveVoucherAudit">保存核验信息</el-button>
           </div>
         </div>
       </template>
@@ -679,11 +668,11 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-st-muted mb-1">经办人 (创建人)</label>
-            <el-input v-model="editOrderForm.creator" size="small" :disabled="currentEditOrder.isLocked" />
+            <el-input v-model="editOrderForm.creator" :disabled="currentEditOrder.isLocked" />
           </div>
           <div>
             <label class="block text-st-muted mb-1">业绩归属人</label>
-            <el-input v-model="editOrderForm.performanceOwner" size="small" :disabled="currentEditOrder.isLocked" />
+            <el-input v-model="editOrderForm.performanceOwner" :disabled="currentEditOrder.isLocked" />
           </div>
         </div>
 
@@ -693,7 +682,6 @@
             v-model="editOrderForm.actualAmount"
             :min="0"
             :precision="2"
-            size="small"
             class="!w-full"
             :disabled="currentEditOrder.isLocked"
           />
@@ -701,7 +689,7 @@
 
         <div>
           <label class="block text-st-muted mb-1">物品出库状态</label>
-          <el-select v-model="editOrderForm.goodsDelivery" size="small" class="w-full">
+          <el-select v-model="editOrderForm.goodsDelivery" class="w-full">
             <el-option label="已出库" value="delivered" />
             <el-option label="未出库" value="undelivered" />
             <el-option label="无需出库" value="none" />
@@ -710,13 +698,13 @@
 
         <div>
           <label class="block text-st-muted mb-1">修改备注</label>
-          <el-input v-model="editOrderForm.remark" type="textarea" :rows="2" size="small" placeholder="请输入修改说明" />
+          <el-input v-model="editOrderForm.remark" type="textarea" :rows="2" placeholder="请输入修改说明" />
         </div>
       </div>
 
       <template #footer>
-        <el-button size="small" @click="modifyDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="saveOrderModification">确认修改</el-button>
+        <el-button @click="modifyDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveOrderModification">确认修改</el-button>
       </template>
     </el-dialog>
 
@@ -731,7 +719,6 @@
         <el-input
           v-model="classSearchKeyword"
           placeholder="搜索班级名称/执教老师"
-          size="small"
           clearable
           :prefix-icon="Search"
         />
@@ -754,8 +741,8 @@
       </div>
 
       <template #footer>
-        <el-button size="small" @click="classSelectDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" :disabled="!selectedClassRow" @click="confirmClassSelection">
+        <el-button @click="classSelectDialogVisible = false">取消</el-button>
+        <el-button type="primary" :disabled="!selectedClassRow" @click="confirmClassSelection">
           确定选择
         </el-button>
       </template>
@@ -776,7 +763,7 @@
           <div>
             <div class="text-sm font-bold text-st-title">{{ currentSelectedStudent.name }}</div>
             <div class="text-st-muted font-mono mt-0.5">学号: {{ currentSelectedStudent.studentNo }} | 电话: {{ currentSelectedStudent.phone }}</div>
-            <div class="text-[11px] text-st-primary mt-0.5">归属: {{ currentSelectedStudent.campusName }}</div>
+            <div class="text-xs text-st-primary mt-0.5">归属: {{ currentSelectedStudent.campusName }}</div>
           </div>
         </div>
 
@@ -799,11 +786,11 @@
             >
               <div>
                 <div class="font-mono">{{ ord.orderNo }}</div>
-                <div class="text-st-muted text-[11px]">{{ ord.courseName }}</div>
+                <div class="text-st-muted text-xs">{{ ord.courseName }}</div>
               </div>
               <div class="text-right">
                 <div class="font-bold font-mono text-st-danger">¥ {{ ord.actualAmount.toFixed(2) }}</div>
-                <div class="text-[11px] text-st-muted">{{ ord.payTime || ord.signupTime }}</div>
+                <div class="text-xs text-st-muted">{{ ord.payTime || ord.signupTime }}</div>
               </div>
             </div>
           </div>

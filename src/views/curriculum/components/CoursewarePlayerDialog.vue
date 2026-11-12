@@ -41,7 +41,6 @@
           </el-button>
 
           <el-button
-            size="small"
             type="primary"
             class="!text-xs"
             @click="toggleFullscreen"
@@ -68,7 +67,7 @@
         <div v-else class="text-center p-8 text-gray-300 space-y-4">
           <el-icon class="text-5xl text-gray-600"><Document /></el-icon>
           <p class="text-base">{{ viewMessage || '该课次暂未生成在线白板交互课件或正在转码中' }}</p>
-          <el-button v-if="downloadUrl && viewSource !== 'unavailable'" type="primary" size="small" @click="handleDownload">
+          <el-button v-if="downloadUrl && viewSource !== 'unavailable'" type="primary" @click="handleDownload">
             下载课件源文件
           </el-button>
         </div>

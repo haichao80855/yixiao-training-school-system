@@ -17,15 +17,15 @@
             </div>
             <div>
               <h4 class="font-bold text-st-title">{{ prod.name }}</h4>
-              <span class="text-[11px] text-st-muted">{{ prod.code }}</span>
+              <span class="text-xs text-st-muted">{{ prod.code }}</span>
             </div>
           </div>
           <el-tag :type="prod.status === 'active' ? 'success' : 'info'" size="small">
             {{ prod.status === 'active' ? '服务生效中' : '未开通' }}
           </el-tag>
         </div>
-        <p class="text-st-secondary text-[11px] leading-relaxed">{{ prod.desc }}</p>
-        <div class="text-[11px] text-st-muted border-t border-slate-200 pt-2 flex justify-between">
+        <p class="text-st-secondary text-xs leading-relaxed">{{ prod.desc }}</p>
+        <div class="text-xs text-st-muted border-t border-slate-200 pt-2 flex justify-between">
           <span>授权终端：{{ prod.terminal }}</span>
           <span class="font-mono text-emerald-600">至 {{ prod.expire }}</span>
         </div>

@@ -24,21 +24,21 @@
               <span>续费开单智能预填草案已就绪</span>
               <el-tag size="small" type="warning" effect="dark">{{ props.renewalDraft.draftId }}</el-tag>
             </div>
-            <div class="text-[11px] text-amber-700 mt-0.5">
+            <div class="text-xs text-amber-700 mt-0.5">
               原课程: {{ props.renewalDraft.quote.courseName }} | 单价: ¥{{ props.renewalDraft.quote.pricePerLesson }}/课时 | 课时: {{ props.renewalDraft.quote.totalLessons }}讲 (+赠{{ props.renewalDraft.quote.bonusLessons }}讲)
             </div>
           </div>
         </div>
         <div class="text-right">
           <div class="font-bold text-amber-800">立减 ¥{{ props.renewalDraft.quote.suggestedDiscount }}</div>
-          <div class="text-[11px] text-amber-600 font-mono">应收: ¥{{ props.renewalDraft.quote.actualPayAmount }}</div>
+          <div class="text-xs text-amber-600 font-mono">应收: ¥{{ props.renewalDraft.quote.actualPayAmount }}</div>
         </div>
       </div>
 
       <!-- Step 1: 确认学员与校区 -->
       <div v-if="currentStep === 0" class="border border-st-border rounded-lg p-5 bg-white space-y-4">
         <h4 class="text-sm font-bold text-st-title border-b pb-2">第 1 步：确认报读学员与合同签约校区</h4>
-        <el-form label-position="top" size="small">
+        <el-form label-position="top">
           <!-- 从学员行 / 续费草案进入时学员已确定，只展示不再选择 -->
           <el-form-item v-if="!studentLocked" label="选择签约报读学员" required>
             <el-select
@@ -89,7 +89,7 @@
       <!-- Step 2: 选择课程与配置课时 -->
       <div v-if="currentStep === 1" class="border border-st-border rounded-lg p-5 bg-white space-y-4">
         <h4 class="text-sm font-bold text-st-title border-b pb-2">第 2 步：选择报读课程包与课时配置</h4>
-        <el-form label-position="top" size="small">
+        <el-form label-position="top">
           <el-form-item label="选择报读课程" required>
             <el-select v-model="formData.courseId" placeholder="请选择教研课程库课程" class="w-full" @change="handleCourseChange">
               <el-option
@@ -141,7 +141,7 @@
       <!-- Step 3: 折扣减免与核算 -->
       <div v-if="currentStep === 2" class="border border-st-border rounded-lg p-5 bg-white space-y-4">
         <h4 class="text-sm font-bold text-st-title border-b pb-2">第 3 步：优惠减免与实收应收账务核算</h4>
-        <el-form label-position="top" size="small">
+        <el-form label-position="top">
           <div class="grid grid-cols-2 gap-4">
             <el-form-item label="选择大促优惠券">
               <el-select v-model="formData.couponAmount" placeholder="请选择适用优惠券" class="w-full">
@@ -181,7 +181,7 @@
       <!-- Step 4: 支付结算方式与提交 -->
       <div v-if="currentStep === 3" class="border border-st-border rounded-lg p-5 bg-white space-y-4">
         <h4 class="text-sm font-bold text-st-title border-b pb-2">第 4 步：确认结算支付方式并生成合同订单</h4>
-        <el-form label-position="top" size="small">
+        <el-form label-position="top">
           <el-form-item label="选择收款支付渠道" required>
             <el-radio-group v-model="formData.paymentMethod" size="default" class="w-full grid grid-cols-3 gap-2">
               <el-radio-button value="wechat">微信支付</el-radio-button>

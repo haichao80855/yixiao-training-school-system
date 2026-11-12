@@ -31,7 +31,7 @@
         <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
           <slot>
             <span class="text-xs font-bold font-mono text-st-title leading-none">{{ percentage }}%</span>
-            <span v-if="label" class="text-[9px] text-st-secondary mt-0.5 leading-none">{{ label }}</span>
+            <span v-if="label" class="text-xs text-st-secondary mt-0.5 leading-none">{{ label }}</span>
           </slot>
         </div>
       </div>

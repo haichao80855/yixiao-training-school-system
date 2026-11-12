@@ -7,7 +7,6 @@
       <el-button
         v-for="item in normalizedOptions"
         :key="String(item.value)"
-        size="small"
         round
         :disabled="item.disabled"
         :type="isSelected(item.value) ? 'primary' : 'default'"
@@ -18,7 +17,7 @@
         <span
           v-if="item.count !== undefined"
           :class="[
-            'text-[10px] px-1 py-0.2 rounded-full ml-1',
+            'text-xs px-1 py-0.2 rounded-full ml-1',
             isSelected(item.value) ? 'bg-white/25 text-white' : 'bg-gray-100 text-st-muted'
           ]"
         >

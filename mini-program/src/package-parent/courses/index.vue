@@ -185,7 +185,7 @@ watch(() => parentStore.currentStudentId, load);
 
 .ring-label {
   margin-top: 6rpx;
-  font-size: 20rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
@@ -204,7 +204,7 @@ watch(() => parentStore.currentStudentId, load);
 .class-name {
   display: block;
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-3;
 }
 
@@ -212,7 +212,7 @@ watch(() => parentStore.currentStudentId, load);
   @include p-chip;
   margin-top: 16rpx;
   height: 40rpx;
-  font-size: 21rpx;
+  font-size: 24rpx;
   background: $p-fill;
   color: $p-ink-2;
 
@@ -248,12 +248,12 @@ watch(() => parentStore.currentStudentId, load);
   font-weight: 700;
 
   &.small {
-    font-size: 28rpx;
+    font-size: 30rpx;
   }
 }
 
 .kv-label {
-  font-size: 21rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
@@ -265,7 +265,7 @@ watch(() => parentStore.currentStudentId, load);
   padding: 20rpx 24rpx;
   border-radius: 24rpx;
   background: $p-amber-50;
-  font-size: 25rpx;
+  font-size: 28rpx;
   line-height: 1.6;
   color: $p-amber-ink;
 }
@@ -276,7 +276,7 @@ watch(() => parentStore.currentStudentId, load);
   justify-content: flex-end;
   gap: 4rpx;
   margin-top: 20rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-3;
 }
 

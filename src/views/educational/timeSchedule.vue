@@ -17,7 +17,7 @@
           @click="handleSubTabChange(tab.key)"
         >
           {{ tab.name }}
-          <span v-if="tab.key === 'conflictRecord' && campusConflictCount > 0" class="ml-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px]">
+          <span v-if="tab.key === 'conflictRecord' && campusConflictCount > 0" class="ml-1 px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-xs">
             {{ campusConflictCount }}
           </span>
         </el-button>
@@ -47,7 +47,6 @@
           :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '全部讲师'"
           :disabled="isDataScopeSelf"
           clearable
-          size="small"
           class="w-full"
         >
           <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
@@ -58,7 +57,7 @@
       <!-- 教务/班主任 -->
       <div class="sm:col-span-2">
         <label class="block text-xs text-st-secondary mb-1">教务班主任</label>
-        <el-select v-model="filterAdvisor" placeholder="全部教务" clearable size="small" class="w-full">
+        <el-select v-model="filterAdvisor" placeholder="全部教务" clearable class="w-full">
           <el-option v-for="a in advisors" :key="a.id" :label="a.name" :value="a.id" />
         </el-select>
       </div>
@@ -66,7 +65,7 @@
       <!-- 全部课程 -->
       <div class="sm:col-span-2">
         <label class="block text-xs text-st-secondary mb-1">报读课程</label>
-        <el-select v-model="filterCourse" placeholder="全部课程" clearable size="small" class="w-full">
+        <el-select v-model="filterCourse" placeholder="全部课程" clearable class="w-full">
           <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
       </div>
@@ -74,25 +73,25 @@
       <!-- 教室 -->
       <div class="sm:col-span-2">
         <label class="block text-xs text-st-secondary mb-1">物理教室</label>
-        <el-select v-model="filterClassroom" placeholder="全部教室" clearable size="small" class="w-full">
+        <el-select v-model="filterClassroom" placeholder="全部教室" clearable class="w-full">
           <el-option v-for="r in classrooms" :key="r.id" :label="r.name" :value="r.id" />
         </el-select>
       </div>
 
       <template #footer>
         <div class="space-x-2">
-          <el-button size="small" @click="handleReset">重置</el-button>
-          <el-button type="primary" size="small" @click="handleSearch">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
         </div>
         <div class="flex items-center space-x-2">
-          <el-button type="danger" plain size="small" @click="openConflictCenter">
+          <el-button type="danger" plain @click="openConflictCenter">
             <template #icon><Zap class="w-3.5 h-3.5" /></template>
             冲突检测中心 ({{ campusConflictCount }})
           </el-button>
-          <el-button size="small" @click="handleExport">
+          <el-button @click="handleExport">
             导出课表
           </el-button>
-          <el-button type="primary" size="small" @click="openQuickSchedule()">
+          <el-button type="primary" @click="openQuickSchedule()">
             + 快速排课
           </el-button>
         </div>
@@ -111,35 +110,21 @@
           <b class="text-rose-600 text-sm font-extrabold mx-0.5">{{ campusConflictCount }}</b> 处日程重叠冲突（讲师/物理教室时段碰撞），排课卡片已自动红框警示！
         </span>
       </div>
-      <el-button size="small" type="danger" plain @click="openConflictCenter">
+      <el-button type="danger" plain @click="openConflictCenter">
         立即查看冲突详情
       </el-button>
     </div>
 
-    <!-- 周次控制器与四色图例栏 (对标截图: < 2026年9月21日 - 27日 > 返回本周 + 图例) -->
+    <!-- 周次控制器与四色图例栏 -->
     <div class="bg-white rounded-lg px-5 py-3 shadow-sm border border-st-border flex flex-col md:flex-row md:items-center justify-between gap-3">
       <!-- 周次切换控件 -->
       <div class="flex items-center space-x-2.5">
-        <el-button
-          size="small"
-          class="!w-7 !h-7 !p-0"
-          title="上一周"
-          @click="prevWeek"
-        >
-          <el-icon><ArrowLeft /></el-icon>
-        </el-button>
+        <el-button circle :icon="ArrowLeft" title="上一周" aria-label="上一周" @click="prevWeek" />
         <span class="font-bold text-st-title text-sm min-w-[210px] text-center tracking-wide">
           {{ currentWeekDisplay }}
         </span>
-        <el-button
-          size="small"
-          class="!w-7 !h-7 !p-0"
-          title="下一周"
-          @click="nextWeek"
-        >
-          <el-icon><ArrowRight /></el-icon>
-        </el-button>
-        <el-button size="small" plain @click="resetToCurrentWeek">
+        <el-button circle :icon="ArrowRight" title="下一周" aria-label="下一周" @click="nextWeek" />
+        <el-button plain @click="resetToCurrentWeek">
           返回本周
         </el-button>
       </div>
@@ -184,7 +169,7 @@
         >
           <div class="flex items-center justify-center gap-1">
             <span>{{ day.label }}</span>
-            <span v-if="day.isToday" class="px-1.5 py-0.2 rounded bg-st-primary text-white text-[10px] font-bold">今天</span>
+            <span v-if="day.isToday" class="px-1.5 py-0.2 rounded bg-st-primary text-white text-xs font-bold">今天</span>
           </div>
         </div>
       </div>
@@ -199,7 +184,7 @@
             class="grid grid-cols-[80px_repeat(7,1fr)] h-[60px] border-b border-gray-200 relative"
           >
             <!-- 左侧时间刻度标签 -->
-            <div class="border-r border-st-border bg-gray-50/80 text-[11px] font-mono text-st-muted flex items-start justify-center pt-1 select-none">
+            <div class="border-r border-st-border bg-gray-50/80 text-xs font-mono text-st-muted flex items-start justify-center pt-1 select-none">
               {{ String(hour).padStart(2, '0') }}:00
             </div>
 
@@ -215,7 +200,7 @@
 
               <!-- 悬浮微小提示 -->
               <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <span class="text-[10px] text-st-primary/80 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-sky-100">
+                <span class="text-xs text-st-primary/80 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-sky-100">
                   + 点击排课
                 </span>
               </div>
@@ -259,23 +244,23 @@
                 <div class="space-y-0.5">
                   <div class="flex items-center gap-1">
                     <span
-                      class="text-[10px] px-1 py-0.2 rounded font-bold shrink-0 leading-none"
+                      class="text-xs px-1 py-0.2 rounded font-bold shrink-0 leading-none"
                       :style="getBadgeStyle(laneEvt.event)"
                     >
                       {{ getBadgeText(laneEvt.event) }}
                     </span>
-                    <span class="font-bold truncate text-[11px] leading-tight" :title="laneEvt.event.className">
+                    <span class="font-bold truncate text-xs leading-tight" :title="laneEvt.event.className">
                       {{ laneEvt.event.className }}
                     </span>
                   </div>
                   <!-- 时段 -->
-                  <div class="text-[10px] opacity-85 font-mono">
+                  <div class="text-xs opacity-85 font-mono">
                     {{ laneEvt.event.startTime }} - {{ laneEvt.event.endTime }}
                   </div>
                 </div>
 
                 <!-- 底部：地点与讲师 -->
-                <div class="text-[10px] space-y-0.5 pt-0.5 border-t border-black/5 opacity-90 truncate">
+                <div class="text-xs space-y-0.5 pt-0.5 border-t border-black/5 opacity-90 truncate">
                   <div class="truncate flex items-center gap-1"><MapPin class="w-3 h-3 shrink-0" /> {{ laneEvt.event.classroomName }}</div>
                   <div class="truncate flex items-center gap-1"><User class="w-3 h-3 shrink-0" /> {{ laneEvt.event.teacherName }}</div>
                 </div>
@@ -315,7 +300,7 @@
                 <span class="truncate">{{ evt.className }}</span>
                 <span :class="evt.hasConflict ? 'text-st-danger' : 'text-st-primary'">{{ evt.date }}</span>
               </div>
-              <div class="text-[11px] text-st-muted flex justify-between">
+              <div class="text-xs text-st-muted flex justify-between">
                 <span>{{ evt.startTime }}-{{ evt.endTime }}</span>
                 <span class="flex items-center gap-1"><User class="w-3 h-3" /> {{ evt.teacherName }}</span>
               </div>
@@ -355,7 +340,7 @@
                 <span class="truncate">{{ evt.className }}</span>
                 <span :class="evt.hasConflict ? 'text-st-danger' : 'text-st-success'">{{ evt.date }}</span>
               </div>
-              <div class="text-[11px] text-st-muted flex justify-between">
+              <div class="text-xs text-st-muted flex justify-between">
                 <span>{{ evt.startTime }}-{{ evt.endTime }}</span>
                 <span class="inline-flex items-center gap-0.5"><MapPin class="w-3 h-3 text-amber-500" />{{ evt.classroomName }}</span>
               </div>

@@ -6,7 +6,7 @@
     :width="DIALOG_SIZE.sm"
     destroy-on-close
   >
-    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
+    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" class="pt-2">
       <el-form-item label="上级节点">
         <el-input :value="parent ? parent.name : '集团总部 (顶级)'" disabled />
       </el-form-item>
@@ -32,8 +32,8 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button size="small" @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" size="small" :loading="loading" @click="handleSubmit">确定新建</el-button>
+      <el-button @click="$emit('update:modelValue', false)">取消</el-button>
+      <el-button type="primary" :loading="loading" @click="handleSubmit">确定新建</el-button>
     </template>
   </el-dialog>
 </template>

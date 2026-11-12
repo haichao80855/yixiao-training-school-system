@@ -3,13 +3,13 @@
     <div class="flex items-center justify-between mb-3 pb-2 border-b border-st-border">
       <div>
         <h3 class="text-sm font-bold text-st-title">5 级组织架构树</h3>
-        <p class="text-[11px] text-st-muted mt-0.5">集团 > 大区 > 校区 > 部门 > 岗位职务</p>
+        <p class="text-xs text-st-muted mt-0.5">集团 > 大区 > 校区 > 部门 > 岗位职务</p>
       </div>
       <div v-if="loadState !== 'forbidden'" class="space-x-1">
         <el-button link type="primary" size="small" @click="expandAll = !expandAll">
           {{ expandAll ? '全部折叠' : '全部展开' }}
         </el-button>
-        <el-button type="primary" size="small" @click="$emit('openAddNode', null)">
+        <el-button type="primary" @click="$emit('openAddNode', null)">
           + 新增节点
         </el-button>
       </div>
@@ -35,7 +35,7 @@
               <!-- 层级 Badge -->
               <span
                 :class="[
-                  'text-[10px] px-1.5 py-0.2 rounded font-medium shrink-0',
+                  'text-xs px-1.5 py-0.2 rounded font-medium shrink-0',
                   getLevelTagClass(data.level)
                 ]"
               >
@@ -56,7 +56,7 @@
             <!-- 右侧信息与操作按钮组 -->
             <div class="flex items-center space-x-1.5 shrink-0 ml-2">
               <span
-                class="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-100 text-st-muted group-hover:hidden"
+                class="text-xs font-mono px-1.5 py-0.5 rounded-full bg-slate-100 text-st-muted group-hover:hidden"
                 :title="`在职员工：直属 ${data.boundUserCount || 0}人 / 全子树 ${data.subtreeUserCount || data.boundUserCount || 0}人`"
               >
                 {{ data.subtreeUserCount || data.boundUserCount || 0 }}人
@@ -70,7 +70,7 @@
                   type="primary"
                   size="small"
                   class="!text-xs !p-0.5"
-                  title="添加下级子节点"
+                  title="添加下级子节点" aria-label="添加下级子节点"
                   @click.stop="$emit('openAddNode', data)"
                 >
                   <el-icon><Plus /></el-icon>
@@ -81,7 +81,7 @@
                   type="danger"
                   size="small"
                   class="!text-xs !p-0.5"
-                  title="删除该节点 (触发风控校验)"
+                  title="删除该节点 (触发风控校验)" aria-label="删除该节点 (触发风控校验)"
                   @click.stop="handleDeleteNode(data)"
                 >
                   <el-icon><Delete /></el-icon>
@@ -96,7 +96,7 @@
     <!-- 底部提示 -->
     <div
       v-if="loadState !== 'forbidden'"
-      class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-st-muted flex items-center justify-between"
+      class="mt-3 pt-2 border-t border-slate-100 text-xs text-st-muted flex items-center justify-between"
     >
       <span>点击节点联动右侧人员</span>
       <span class="text-amber-600 font-medium">根节点/含下级/含在职员工严禁删除</span>

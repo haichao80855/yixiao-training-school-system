@@ -20,7 +20,7 @@
             <img v-if="form.logoUrl" :src="form.logoUrl" class="w-full h-full object-contain p-1" alt="Logo" />
             <template v-else>
               <el-icon class="text-xl text-st-muted"><Plus /></el-icon>
-              <span class="text-[11px] text-st-muted mt-1">点击上传 LOGO</span>
+              <span class="text-xs text-st-muted mt-1">点击上传 LOGO</span>
             </template>
           </div>
           <div class="text-xs text-st-muted leading-relaxed">
@@ -64,7 +64,7 @@
             <img v-if="form.reportLogoUrl" :src="form.reportLogoUrl" class="w-full h-full object-contain p-1" alt="Report Logo" />
             <template v-else>
               <el-icon class="text-xl text-st-muted"><Plus /></el-icon>
-              <span class="text-[11px] text-st-muted mt-1">点击上传报告抬头 LOGO</span>
+              <span class="text-xs text-st-muted mt-1">点击上传报告抬头 LOGO</span>
             </template>
           </div>
           <div class="text-xs text-st-muted leading-relaxed">
@@ -75,7 +75,7 @@
       </div>
 
       <div class="pt-4">
-        <el-button type="primary" size="small" :loading="saving" @click="handleSave">保存品牌配置</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">保存品牌配置</el-button>
       </div>
     </div>
   </div>

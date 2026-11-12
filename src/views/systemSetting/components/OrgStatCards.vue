@@ -6,7 +6,7 @@
         <div class="text-2xl font-bold text-st-title mt-1 font-mono">
           {{ campusCount }} <span class="text-xs font-normal text-st-muted">个实体校区</span>
         </div>
-        <div class="text-[11px] text-emerald-600 mt-1">100% 覆盖核心教学商圈</div>
+        <div class="text-xs text-emerald-600 mt-1">100% 覆盖核心教学商圈</div>
       </div>
       <div class="w-11 h-11 rounded-lg bg-blue-50 text-st-primary flex items-center justify-center text-xl">
         <el-icon><School /></el-icon>
@@ -19,7 +19,7 @@
         <div class="text-2xl font-bold text-st-title mt-1 font-mono">
           {{ userCount }} <span class="text-xs font-normal text-st-muted">/ {{ memberLimit }} 人</span>
         </div>
-        <div class="text-[11px] text-st-muted mt-1">在职在岗已全量实名</div>
+        <div class="text-xs text-st-muted mt-1">在职在岗已全量实名</div>
       </div>
       <div class="w-11 h-11 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
         <el-icon><User /></el-icon>
@@ -32,7 +32,7 @@
         <div class="text-2xl font-bold text-st-title mt-1 font-mono">
           {{ subjectCount }} <span class="text-xs font-normal text-st-muted">大科目体系</span>
         </div>
-        <div class="text-[11px] text-st-muted mt-1">乐高创客/Scratch/Python/C++</div>
+        <div class="text-xs text-st-muted mt-1">乐高创客/Scratch/Python/C++</div>
       </div>
       <div class="w-11 h-11 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
         <el-icon><Reading /></el-icon>
@@ -46,7 +46,7 @@
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>正常运行</span>
         </div>
-        <div class="text-[11px] text-st-muted mt-1 font-mono">99.99% 高可用服务</div>
+        <div class="text-xs text-st-muted mt-1 font-mono">99.99% 高可用服务</div>
       </div>
       <div class="w-11 h-11 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
         <el-icon><Monitor /></el-icon>

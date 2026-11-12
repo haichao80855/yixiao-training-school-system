@@ -71,7 +71,7 @@
                 </el-tag>
               </div>
 
-              <div class="flex items-center space-x-3 text-[11px]">
+              <div class="flex items-center space-x-3 text-xs">
                 <span v-if="rosterHealth.statistics.criticalCount > 0" class="text-rose-600 font-bold flex items-center gap-1">
                   <AlertCircle class="w-3.5 h-3.5 inline-block shrink-0" />
                   极度枯竭: {{ rosterHealth.statistics.criticalCount }}人
@@ -92,7 +92,7 @@
 
             <div class="flex items-center justify-between text-xs text-st-muted">
               <span>在读学员共 <b>{{ effectiveStudentList.length }}</b> 人</span>
-              <span class="text-[11px] text-st-secondary">统一风控三色徽标驱动，智能识别停消休眠与续费窗口</span>
+              <span class="text-xs text-st-secondary">统一风控三色徽标驱动，智能识别停消休眠与续费窗口</span>
             </div>
 
             <el-table :data="effectiveStudentList" size="small" border stripe max-height="360px">
@@ -119,7 +119,7 @@
                         {{ row.remainingLessons }} 课时
                       </span>
                     </div>
-                    <div v-if="row.isDormant" class="text-[10px] text-purple-600 font-semibold flex items-center gap-0.5">
+                    <div v-if="row.isDormant" class="text-xs text-purple-600 font-semibold flex items-center gap-0.5">
                       <Moon class="w-3 h-3 inline-block shrink-0" />
                       停消 {{ row.inactiveDays }} 天
                     </div>
@@ -166,7 +166,7 @@
           <div class="space-y-3">
             <div class="flex items-center justify-between text-xs">
               <span class="text-st-muted">已生成排课课次：<b>{{ classSchedules.length }}</b> 次</span>
-              <el-button type="primary" size="small" @click="handleOpenBatchSchedule">
+              <el-button type="primary" @click="handleOpenBatchSchedule">
                 + 为本班批量排课
               </el-button>
             </div>
@@ -230,13 +230,12 @@
     <template #footer>
       <div class="flex items-center justify-between border-t pt-3">
         <div class="space-x-2">
-          <el-button type="primary" plain size="small" @click="handleOpenBatchSchedule">
+          <el-button type="primary" plain @click="handleOpenBatchSchedule">
             批量排课
           </el-button>
           <el-button
             v-if="classItem?.status === 'recruiting'"
             type="success"
-            size="small"
             @click="handleActivateClass"
           >
             <template #icon><Rocket class="w-3.5 h-3.5" /></template>
@@ -245,7 +244,6 @@
           <el-button
             v-if="classItem?.status === 'in_progress'"
             type="warning"
-            size="small"
             @click="handleCompleteClass"
           >
             <template #icon><GraduationCap class="w-3.5 h-3.5" /></template>
@@ -255,7 +253,6 @@
             v-if="classItem?.status !== 'completed' && classItem?.status !== 'cancelled'"
             type="danger"
             plain
-            size="small"
             @click="handleCancelClass"
           >
             <template #icon><AlertTriangle class="w-3.5 h-3.5" /></template>

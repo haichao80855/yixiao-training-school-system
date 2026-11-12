@@ -124,15 +124,15 @@
               {{ previewSummary.conflictCount > 0 ? `检测到 ${previewSummary.conflictCount} 处时段冲突` : '无时段冲突' }}
             </span>
           </div>
-          <div class="text-st-muted text-[11px]">
+          <div class="text-st-muted text-xs">
             排课跨度：{{ previewSummary.start }} 至 {{ previewSummary.end }}，每周循环一次。
           </div>
           <div v-if="previewData?.collisions?.length" class="max-h-24 overflow-y-auto space-y-1 pt-1 border-t border-gray-200">
-            <div v-for="(c, idx) in previewData.collisions.slice(0, 5)" :key="idx" class="text-[11px] text-rose-600 flex items-center gap-1">
+            <div v-for="(c, idx) in previewData.collisions.slice(0, 5)" :key="idx" class="text-xs text-rose-600 flex items-center gap-1">
               <AlertTriangle class="w-3 h-3 text-rose-500 shrink-0" />
               <span>[{{ c.date }}] {{ c.message }}</span>
             </div>
-            <div v-if="previewData.collisions.length > 5" class="text-[10px] text-stone-400">
+            <div v-if="previewData.collisions.length > 5" class="text-xs text-stone-400">
               ...以及另外 {{ previewData.collisions.length - 5 }} 处冲突
             </div>
           </div>

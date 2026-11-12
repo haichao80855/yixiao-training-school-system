@@ -109,7 +109,7 @@
         </div>
 
         <!-- 视图切换 -->
-        <el-button-group size="small">
+        <el-button-group>
           <el-button
             :type="viewMode === 'card' ? 'primary' : 'default'"
             @click="viewMode = 'card'"
@@ -230,7 +230,7 @@
         >
           <div
             :class="[
-              'absolute transform rotate-45 text-center text-[10px] font-bold py-0.5 right-[-32px] top-[14px] w-[110px] text-white shadow-xs',
+              'absolute transform rotate-45 text-center text-xs font-bold py-0.5 right-[-32px] top-[14px] w-[110px] text-white shadow-xs',
               card.status === 'completed'
                 ? 'bg-purple-600'
                 : (card.status === 'in_progress' ? 'bg-blue-600 animate-pulse' : 'bg-st-primary')
@@ -244,7 +244,7 @@
         <div class="p-4 space-y-2.5">
           <!-- 标签与时间 -->
           <div class="flex items-center gap-2 pr-12">
-            <span class="bg-st-warning text-white text-[11px] font-semibold px-2 py-0.5 rounded shadow-xs">
+            <span class="bg-st-warning text-white text-xs font-semibold px-2 py-0.5 rounded shadow-xs">
               线下课
             </span>
             <span class="text-xs text-st-secondary font-mono">
@@ -262,7 +262,7 @@
 
           <!-- 班级胶囊标签 -->
           <div>
-            <span class="inline-flex items-center text-[11px] text-st-primary bg-blue-50 px-2.5 py-0.5 rounded font-medium border border-blue-200">
+            <span class="inline-flex items-center text-xs text-st-primary bg-blue-50 px-2.5 py-0.5 rounded font-medium border border-blue-200">
               正常班 | {{ card.className }}
             </span>
           </div>
@@ -296,7 +296,6 @@
           <div class="flex items-center justify-end gap-2 pt-2">
             <el-button
               type="primary"
-              size="small"
               round
               :class="card.status === 'in_progress' ? 'ring-2 ring-blue-300' : ''"
               @click="handleStartLesson(card)"
@@ -306,7 +305,6 @@
 
             <el-button
               :type="card.status === 'completed' ? 'info' : 'warning'"
-              size="small"
               round
               :disabled="card.status === 'completed'"
               @click="handleFinishLesson(card)"
@@ -325,7 +323,7 @@
             @click="handleOpenLessonPlan(card)"
           >
             <BookOpen class="w-4 h-4 text-st-secondary group-hover:text-st-primary transition-transform group-hover:scale-110" />
-            <span class="text-[11px] font-medium text-st-secondary group-hover:text-st-primary">备课</span>
+            <span class="text-xs font-medium text-st-secondary group-hover:text-st-primary">备课</span>
           </el-button>
 
           <!-- 2. 签到 -->
@@ -335,7 +333,7 @@
             @click="handleOpenSignIn(card)"
           >
             <Calendar class="w-4 h-4 text-st-secondary group-hover:text-st-primary transition-transform group-hover:scale-110" />
-            <span class="text-[11px] font-medium text-st-secondary group-hover:text-st-primary">签到</span>
+            <span class="text-xs font-medium text-st-secondary group-hover:text-st-primary">签到</span>
           </el-button>
 
           <!-- 3. 课评 (核心高亮) -->
@@ -348,7 +346,7 @@
               <Sparkles class="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform" />
               <span v-if="card.evaluationStatus === 'published'" class="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-emerald-500"></span>
             </div>
-            <span class="text-[11px] font-semibold text-indigo-700 group-hover:underline">课评</span>
+            <span class="text-xs font-semibold text-indigo-700 group-hover:underline">课评</span>
           </el-button>
 
         </div>
@@ -358,13 +356,13 @@
         <el-empty :description="isSuperAdminUser ? '当前校区所选筛选条件下暂无排课安排' : '当前讲师在所选排课日期暂无执教排课安排'">
           <template #extra>
             <div class="flex items-center justify-center gap-2">
-              <el-button v-if="onlyMyLessons && !isSuperAdminUser && !isDataScopeSelf" type="primary" plain size="small" @click="onlyMyLessons = false; loadData()">
+              <el-button v-if="onlyMyLessons && !isSuperAdminUser && !isDataScopeSelf" type="primary" plain @click="onlyMyLessons = false; loadData()">
                 切换查看全校区所有排课
               </el-button>
-              <el-button v-if="filters.date" type="primary" plain size="small" @click="handleSelectAllDates">
+              <el-button v-if="filters.date" type="primary" plain @click="handleSelectAllDates">
                 查看全部排课
               </el-button>
-              <el-button v-if="filters.date || (!isDataScopeSelf && filters.teacherId) || filters.status || filters.search || filters.classroomId || filters.mode" size="small" @click="handleResetFilters">
+              <el-button v-if="filters.date || (!isDataScopeSelf && filters.teacherId) || filters.status || filters.search || filters.classroomId || filters.mode" @click="handleResetFilters">
                 重置全部筛选条件
               </el-button>
             </div>
@@ -385,7 +383,7 @@
         <el-table-column label="课次名称" min-width="180">
           <template #default="{ row }">
             <div class="font-bold text-st-title">{{ lessonLabel(row) }}</div>
-            <div v-if="row.lessonTitle" class="text-[11px] text-st-muted">{{ row.lessonTitle }}</div>
+            <div v-if="row.lessonTitle" class="text-xs text-st-muted">{{ row.lessonTitle }}</div>
           </template>
         </el-table-column>
 
@@ -460,7 +458,7 @@
           </div>
           <div class="text-right">
             <div class="text-emerald-600 font-bold text-sm">{{ tempAttendanceList.filter(s => s.status === 'present' || s.status === 'late').length }} / {{ tempAttendanceList.length }} 人实到</div>
-            <div class="text-[11px] text-st-muted">扣减标准: 1.0课时/人</div>
+            <div class="text-xs text-st-muted">扣减标准: 1.0课时/人</div>
           </div>
         </div>
 
@@ -488,7 +486,7 @@
 
       <template #footer>
         <div class="flex justify-between items-center">
-          <el-button size="small" @click="handleBatchAllPresent">全员设为到课</el-button>
+          <el-button @click="handleBatchAllPresent">全员设为到课</el-button>
           <div class="space-x-2">
             <el-button @click="signInDialogVisible = false">取消</el-button>
             <el-button type="primary" @click="handleSaveSignIn">确认打卡消课</el-button>

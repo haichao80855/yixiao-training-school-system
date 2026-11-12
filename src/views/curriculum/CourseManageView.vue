@@ -38,7 +38,6 @@
             v-model="selectedSubject"
             placeholder="科目"
             clearable
-            size="small"
             class="w-full"
             @change="handleFilterChange"
           >
@@ -58,7 +57,6 @@
             v-model="selectedCourseType"
             placeholder="课程类型"
             clearable
-            size="small"
             class="w-full"
             @change="handleFilterChange"
           >
@@ -76,7 +74,6 @@
             v-model="selectedYear"
             placeholder="年份"
             clearable
-            size="small"
             class="w-full"
             @change="handleFilterChange"
           >
@@ -93,7 +90,6 @@
             v-model="selectedPeriod"
             placeholder="期段"
             clearable
-            size="small"
             class="w-full"
             @change="handleFilterChange"
           >
@@ -112,7 +108,6 @@
             v-model="searchKeyword"
             placeholder="请输入课程名称或编码搜索..."
             clearable
-            size="small"
             class="w-full"
             @keyup.enter="handleSearch"
           />
@@ -123,8 +118,8 @@
             检索结果：当前匹配到 <b class="text-st-primary">{{ filteredCourses.length }}</b> 门标准化课系
           </div>
           <div class="space-x-2">
-            <el-button size="small" @click="handleReset">重置</el-button>
-            <el-button type="primary" size="small" @click="handleSearch">搜索</el-button>
+            <el-button @click="handleReset">重置</el-button>
+            <el-button type="primary" @click="handleSearch">搜索</el-button>
           </div>
         </template>
       </HighDensityGrid>
@@ -137,10 +132,10 @@
         <span class="text-xs text-st-secondary">共检索到 {{ filteredCourses.length }} 门课程</span>
       </div>
       <div class="flex items-center space-x-2.5">
-        <el-button size="small" class="!border-st-primary/40 !text-st-primary hover:!bg-st-primary/10" @click="handleBatchAuthorize">
+        <el-button class="!border-st-primary/40 !text-st-primary hover:!bg-st-primary/10" @click="handleBatchAuthorize">
           授权
         </el-button>
-        <el-button type="primary" size="small" class="!px-4 font-medium" @click="openCreateDialog">
+        <el-button type="primary" class="!px-4 font-medium" @click="openCreateDialog">
           + 新增
         </el-button>
       </div>
@@ -168,7 +163,7 @@
           <!-- 左上角黄色微立体角标 -->
           <div
             :class="[
-              'absolute top-2 left-2 px-2 py-0.5 rounded text-[11px] font-bold text-white shadow-sm transition-all',
+              'absolute top-2 left-2 px-2 py-0.5 rounded text-xs font-bold text-white shadow-sm transition-all',
               getAttributeBadgeClass(course.attribute)
             ]"
           >
@@ -176,9 +171,9 @@
           </div>
 
           <!-- 底部半透明底条 (课程编号/体系归属) -->
-          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-1 px-2.5 text-[11px] text-white flex items-center justify-between">
+          <div class="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent p-1 px-2.5 text-xs text-white flex items-center justify-between">
             <span class="font-medium truncate max-w-[85%]">{{ course.code || course.name }}</span>
-            <span v-if="course.totalLessons" class="text-[10px] text-gray-200 shrink-0 font-mono">{{ course.totalLessons }}课时</span>
+            <span v-if="course.totalLessons" class="text-xs text-gray-200 shrink-0 font-mono">{{ course.totalLessons }}课时</span>
           </div>
         </div>
 
@@ -195,13 +190,13 @@
 
             <!-- 标签行：[授权] 橙色标签 + 蓝色体系胶囊 -->
             <div class="flex flex-wrap gap-1.5 mt-2.5 items-center">
-              <span class="px-1.5 py-0.5 text-[10px] rounded border border-orange-400 bg-orange-50 text-orange-600 font-semibold">
+              <span class="px-1.5 py-0.5 text-xs rounded border border-orange-400 bg-orange-50 text-orange-600 font-semibold">
                 授权
               </span>
               <span
                 v-for="(tag, tIdx) in getDisplayTags(course)"
                 :key="tIdx"
-                class="px-1.5 py-0.5 text-[10px] rounded border border-st-primary/30 bg-blue-50/80 text-st-primary font-normal truncate max-w-[170px]"
+                class="px-1.5 py-0.5 text-xs rounded border border-st-primary/30 bg-blue-50/80 text-st-primary font-normal truncate max-w-[170px]"
               >
                 {{ tag }}
               </span>
@@ -214,7 +209,7 @@
             <span class="text-lg font-extrabold text-st-danger ml-0.5 font-mono">
               {{ formatPrice(course.pricePerLesson) }}
             </span>
-            <span class="text-[11px] text-st-secondary ml-0.5">元/次</span>
+            <span class="text-xs text-st-secondary ml-0.5">元/次</span>
           </div>
 
           <!-- 底部 Switch 开关状态条 -->
@@ -303,8 +298,8 @@
       </div>
       <template #footer>
         <div class="flex justify-end space-x-2">
-          <el-button size="small" @click="batchAuthVisible = false">取消</el-button>
-          <el-button size="small" type="primary" @click="confirmBatchAuth">确认授权</el-button>
+          <el-button @click="batchAuthVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmBatchAuth">确认授权</el-button>
         </div>
       </template>
     </el-dialog>

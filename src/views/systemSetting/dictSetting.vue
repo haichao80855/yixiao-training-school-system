@@ -14,7 +14,7 @@
         </p>
       </div>
       <div class="flex items-center space-x-2">
-        <el-button type="primary" size="small" @click="openAddDictModal">
+        <el-button type="primary" @click="openAddDictModal">
           + 新增字典项
         </el-button>
       </div>
@@ -42,18 +42,17 @@
             v-model="searchQuery"
             placeholder="搜索字典键 (Key) 或显示标签 (Label)"
             :prefix-icon="Search"
-            size="small"
             clearable
             class="!w-64"
           />
-          <el-select v-model="filterStatus" placeholder="状态筛选" size="small" clearable class="!w-28">
+          <el-select v-model="filterStatus" placeholder="状态筛选" clearable class="!w-28">
             <el-option label="全部状态" value="" />
             <el-option label="启用中" :value="true" />
             <el-option label="已停用" :value="false" />
           </el-select>
         </div>
 
-        <div class="text-st-muted text-[11px]">
+        <div class="text-st-muted text-xs">
           共筛选出 <span class="font-bold text-st-primary font-mono">{{ filteredDictList.length }}</span> 个业务字典项
         </div>
       </div>
@@ -91,7 +90,7 @@
 
         <el-table-column prop="order" label="排序权重" width="90" align="center">
           <template #default="{ row }">
-            <span class="font-mono px-2 py-0.5 rounded-full bg-slate-100 text-st-title font-medium text-[11px]">
+            <span class="font-mono px-2 py-0.5 rounded-full bg-slate-100 text-st-title font-medium text-xs">
               {{ row.order }}
             </span>
           </template>
@@ -99,7 +98,7 @@
 
         <el-table-column prop="remark" label="业务说明" min-width="180">
           <template #default="{ row }">
-            <span class="text-st-muted text-[11px]">{{ row.remark || '-' }}</span>
+            <span class="text-st-muted text-xs">{{ row.remark || '-' }}</span>
           </template>
         </el-table-column>
 
@@ -136,7 +135,7 @@
       :width="DIALOG_SIZE.sm"
       destroy-on-close
     >
-      <el-form :model="dictForm" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
+      <el-form :model="dictForm" :label-width="FORM_LABEL_WIDTH.md" class="pt-2">
         <el-form-item label="字典分类" required>
           <el-select v-model="dictForm.category" class="w-full" :disabled="isEditMode">
             <el-option label="学员异动原因字典 (trans_reason)" value="trans_reason" />
@@ -173,8 +172,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="showDictModal = false">取消</el-button>
-        <el-button type="primary" size="small" @click="submitDictForm">
+        <el-button @click="showDictModal = false">取消</el-button>
+        <el-button type="primary" @click="submitDictForm">
           {{ isEditMode ? '保存修改' : '确认新增' }}
         </el-button>
       </template>

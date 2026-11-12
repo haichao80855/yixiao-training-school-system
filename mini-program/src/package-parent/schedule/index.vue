@@ -238,7 +238,7 @@ watch(() => parentStore.currentStudentId, reload);
 
 .next-label {
   display: block;
-  font-size: 22rpx;
+  font-size: 24rpx;
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -256,7 +256,7 @@ watch(() => parentStore.currentStudentId, reload);
   display: block;
   margin-top: 8rpx;
   padding-right: 150rpx;
-  font-size: 25rpx;
+  font-size: 28rpx;
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -276,7 +276,7 @@ watch(() => parentStore.currentStudentId, reload);
   }
 
   .cd-unit {
-    font-size: 24rpx;
+    font-size: 26rpx;
     color: rgba(255, 255, 255, 0.7);
   }
 
@@ -284,7 +284,7 @@ watch(() => parentStore.currentStudentId, reload);
     padding: 8rpx 20rpx;
     border-radius: 9999rpx;
     background: rgba(255, 255, 255, 0.16);
-    font-size: 26rpx;
+    font-size: 28rpx;
     font-weight: 600;
   }
 }
@@ -298,7 +298,7 @@ watch(() => parentStore.currentStudentId, reload);
 }
 
 .week-label {
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 650;
   color: $p-ink;
 }
@@ -311,11 +311,12 @@ watch(() => parentStore.currentStudentId, reload);
 
 .today-link {
   margin-right: 8rpx;
-  font-size: 25rpx;
+  font-size: 28rpx;
   color: $p-brand;
 }
 
 .nav-btn {
+  position: relative;
   width: 60rpx;
   height: 60rpx;
   border-radius: 50%;
@@ -324,6 +325,8 @@ watch(() => parentStore.currentStudentId, reload);
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @include p-hit-area(60rpx);
 
   &:active {
     transform: scale(0.92);
@@ -362,7 +365,7 @@ watch(() => parentStore.currentStudentId, reload);
   transition: background-color 0.24s $p-ease-out;
 
   .weekday {
-    font-size: 22rpx;
+    font-size: 24rpx;
     color: $p-ink-3;
   }
 
@@ -434,7 +437,7 @@ watch(() => parentStore.currentStudentId, reload);
   .t-start {
     @include p-num;
     display: block;
-    font-size: 28rpx;
+    font-size: 30rpx;
     font-weight: 700;
     color: $p-ink;
   }
@@ -442,7 +445,7 @@ watch(() => parentStore.currentStudentId, reload);
   .t-end {
     @include p-num;
     display: block;
-    font-size: 22rpx;
+    font-size: 24rpx;
     color: $p-ink-3;
   }
 }
@@ -495,7 +498,7 @@ watch(() => parentStore.currentStudentId, reload);
 
   .course {
     display: block;
-    font-size: 30rpx;
+    font-size: 32rpx;
     font-weight: 650;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -505,7 +508,7 @@ watch(() => parentStore.currentStudentId, reload);
   .sub {
     display: block;
     margin-top: 6rpx;
-    font-size: 24rpx;
+    font-size: 26rpx;
     color: $p-ink-3;
   }
 }
@@ -533,7 +536,7 @@ watch(() => parentStore.currentStudentId, reload);
 .chip {
   @include p-chip;
   height: 40rpx;
-  font-size: 21rpx;
+  font-size: 24rpx;
   background: $p-fill;
   color: $p-ink-2;
 
@@ -563,7 +566,7 @@ watch(() => parentStore.currentStudentId, reload);
   display: flex;
   align-items: center;
   gap: 2rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
   color: $p-brand;
 }

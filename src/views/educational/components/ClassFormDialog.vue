@@ -128,7 +128,7 @@
     append-to-body
     class="rounded-xl"
   >
-    <el-form ref="classroomFormRef" :model="classroomForm" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
+    <el-form ref="classroomFormRef" :model="classroomForm" :label-width="FORM_LABEL_WIDTH.md" class="pt-2">
       <el-form-item label="教室名称" required>
         <el-input v-model="classroomForm.name" placeholder="例如：创新AI机房9号 / 创客实训室3" />
       </el-form-item>
@@ -146,8 +146,8 @@
     </el-form>
     <template #footer>
       <div class="flex justify-end space-x-2">
-        <el-button size="small" @click="showAddClassroomModal = false">取消</el-button>
-        <el-button type="primary" size="small" @click="handleCreateClassroom">确认创建并选用</el-button>
+        <el-button @click="showAddClassroomModal = false">取消</el-button>
+        <el-button type="primary" @click="handleCreateClassroom">确认创建并选用</el-button>
       </div>
     </template>
   </el-dialog>

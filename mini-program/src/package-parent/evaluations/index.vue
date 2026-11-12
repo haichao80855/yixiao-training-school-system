@@ -222,7 +222,7 @@ function openDetail(item: FeedItem) {
 .new-num {
   @include p-num;
   color: #FFFFFF;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
 }
 
@@ -233,7 +233,7 @@ function openDetail(item: FeedItem) {
 
 .new-title {
   display: block;
-  font-size: 27rpx;
+  font-size: 30rpx;
   font-weight: 600;
   color: #1E3A8A;
 }
@@ -241,7 +241,7 @@ function openDetail(item: FeedItem) {
 .new-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: #475569;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -253,7 +253,7 @@ function openDetail(item: FeedItem) {
   align-items: center;
   gap: 16rpx;
   margin: 8rpx 4rpx 20rpx;
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 700;
   color: $p-ink-2;
 
@@ -277,7 +277,7 @@ function openDetail(item: FeedItem) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-3;
 }
 
@@ -285,7 +285,7 @@ function openDetail(item: FeedItem) {
   @include p-chip;
   height: 36rpx;
   padding: 0 14rpx;
-  font-size: 21rpx;
+  font-size: 24rpx;
   background: $p-rose;
   color: #FFFFFF;
 }
@@ -321,7 +321,7 @@ function openDetail(item: FeedItem) {
 .course {
   display: block;
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-3;
 }
 
@@ -341,7 +341,7 @@ function openDetail(item: FeedItem) {
   border-radius: 50%;
   background: $p-brand-50;
   color: $p-brand;
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -351,7 +351,7 @@ function openDetail(item: FeedItem) {
 
 .quote-text {
   flex: 1;
-  font-size: 28rpx;
+  font-size: 30rpx;
   line-height: 1.65;
   color: $p-ink-2;
 }
@@ -375,7 +375,7 @@ function openDetail(item: FeedItem) {
   align-items: center;
   gap: 18rpx;
   padding: 4rpx 8rpx 32rpx 12rpx;
-  font-size: 25rpx;
+  font-size: 28rpx;
   color: $p-ink-3;
 }
 
@@ -404,7 +404,7 @@ function openDetail(item: FeedItem) {
 .slim-status {
   @include p-chip;
   height: 40rpx;
-  font-size: 21rpx;
+  font-size: 24rpx;
   font-weight: 500;
   background: $p-fill;
   color: $p-ink-2;
@@ -423,7 +423,7 @@ function openDetail(item: FeedItem) {
 .list-footer {
   padding: 16rpx 0 8rpx;
   text-align: center;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
   letter-spacing: 0.1em;
 }

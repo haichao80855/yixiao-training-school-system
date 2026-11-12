@@ -32,7 +32,7 @@
           trigger="click"
         >
           <template #reference>
-            <el-button size="small" plain class="!border-st-primary !text-st-primary hover:!bg-blue-50">
+            <el-button plain class="!border-st-primary !text-st-primary hover:!bg-blue-50">
               <el-icon class="mr-1"><Setting /></el-icon>
               选择列
             </el-button>
@@ -64,7 +64,6 @@
 
         <!-- 导出操作 -->
         <el-button
-          size="small"
           plain
           :loading="loading"
           class="!border-st-primary !text-st-primary hover:!bg-blue-50"

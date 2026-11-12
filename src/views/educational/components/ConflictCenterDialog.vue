@@ -47,7 +47,7 @@
               <span class="inline-flex items-center gap-1"><MapPin class="w-3.5 h-3.5 text-amber-500" />教室：{{ item.classroomName }}</span>
               <span class="inline-flex items-center gap-1"><Users class="w-3.5 h-3.5 text-st-primary" />学员数：{{ item.studentIds?.length || 0 }}人</span>
             </div>
-            <el-button type="danger" size="small" @click="handleResolve(item)">
+            <el-button type="danger" @click="handleResolve(item)">
               调整课次解决冲突
             </el-button>
           </div>

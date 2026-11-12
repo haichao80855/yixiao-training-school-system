@@ -31,7 +31,7 @@
           </div>
           <p class="leading-relaxed">{{ event.conflictReason || '与同校区其他课次存在时间、教师或教室资源争抢冲突' }}</p>
           <div class="pt-1 flex items-center justify-end">
-            <el-button size="small" type="danger" plain @click="handleResolveConflict">
+            <el-button type="danger" plain @click="handleResolveConflict">
               立即调课消冲突
             </el-button>
           </div>
@@ -61,7 +61,7 @@
             <span>本班应到学员</span>
             <span class="text-st-muted font-normal">({{ studentList.length }} 人)</span>
           </h4>
-          <span class="text-[11px] text-st-muted">实到已出勤: {{ event.attendanceCount || 0 }} 人</span>
+          <span class="text-xs text-st-muted">实到已出勤: {{ event.attendanceCount || 0 }} 人</span>
         </div>
 
         <el-table :data="studentList" size="small" border stripe max-height="260px">
@@ -85,12 +85,12 @@
 
     <template #footer>
       <div class="flex items-center justify-between border-t pt-3">
-        <el-button type="danger" plain size="small" @click="handleDelete">
+        <el-button type="danger" plain @click="handleDelete">
           取消/删除排课
         </el-button>
         <div class="space-x-2">
-          <el-button size="small" @click="handleEdit">编辑排课</el-button>
-          <el-button type="primary" size="small" @click="handleGoAttendance">
+          <el-button @click="handleEdit">编辑排课</el-button>
+          <el-button type="primary" @click="handleGoAttendance">
             进入点名工作台
           </el-button>
         </div>

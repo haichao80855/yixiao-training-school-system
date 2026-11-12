@@ -50,7 +50,7 @@
     <div class="bg-white rounded-lg p-5 shadow-card border border-st-border space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-4 border-b pb-4">
         <!-- 多 Tab -->
-        <el-radio-group v-model="activeTab" size="small">
+        <el-radio-group v-model="activeTab">
           <el-radio-button value="all">全部报考记录 ({{ records.length }})</el-radio-button>
           <el-radio-button value="pending">待财务核销 ({{ pendingList.length }})</el-radio-button>
           <el-radio-button value="verified">已核销入账 ({{ verifiedList.length }})</el-radio-button>
@@ -60,16 +60,16 @@
       <!-- 检索项 -->
       <div class="flex flex-wrap items-center gap-3">
         <div class="w-64">
-          <el-input v-model="keyword" placeholder="搜索单号、学员姓名或赛事名称..." size="small" clearable />
+          <el-input v-model="keyword" placeholder="搜索单号、学员姓名或赛事名称..." clearable />
         </div>
         <div class="w-48">
-          <el-select v-model="selectedCategory" size="small" placeholder="类型过滤" clearable class="w-full">
+          <el-select v-model="selectedCategory" placeholder="类型过滤" clearable class="w-full">
             <el-option label="全部类型" value="" />
             <el-option label="等级考试" value="certification" />
             <el-option label="白名单赛事" value="competition" />
           </el-select>
         </div>
-        <el-button size="small" @click="handleReset">重置</el-button>
+        <el-button @click="handleReset">重置</el-button>
       </div>
     </div>
 
@@ -82,16 +82,15 @@
       :summary-text="`当前筛选条件下：共计 ${filteredRecords.length} 人次代报考，服务费总额 ¥ ${filteredFeeSum} 元 (待财务核销 ¥ ${pendingTotalFee.toFixed(2)} 元，已核销入账 ¥ ${verifiedTotalFee.toFixed(2)} 元)`"
     >
       <template #right>
-        <el-button size="small" plain :disabled="filteredRecords.length === 0" @click="handleExportReport">导出对账单</el-button>
+        <el-button plain :disabled="filteredRecords.length === 0" @click="handleExportReport">导出对账单</el-button>
         <el-button
-          size="small"
           type="warning"
           :disabled="selectedRows.length === 0"
           @click="handleBatchVerify"
         >
           批量核销 (已选 {{ selectedRows.length }})
         </el-button>
-        <el-button type="primary" size="small" @click="showAddDialog = true">
+        <el-button type="primary" @click="showAddDialog = true">
           + 新增报考记录
         </el-button>
       </template>
@@ -196,7 +195,7 @@
         </div>
 
         <div class="border rounded p-3 text-center bg-gray-50 space-y-2">
-          <div class="text-st-muted text-[11px]">电子凭证与发票扫描附件：</div>
+          <div class="text-st-muted text-xs">电子凭证与发票扫描附件：</div>
           <img
             :src="activeRecord.voucherImage || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400'"
             class="mx-auto rounded border shadow-sm max-h-48 object-cover"
@@ -210,7 +209,7 @@
 
     <!-- 新增报考记录弹窗 -->
     <el-dialog v-model="showAddDialog" title="新增考级 / 赛事代报名记录" :width="DIALOG_SIZE.md">
-      <el-form label-position="top" size="small">
+      <el-form label-position="top">
         <div class="grid grid-cols-2 gap-3">
           <el-form-item label="报考学员" required>
             <el-select v-model="newRecordForm.studentId" filterable class="w-full" @change="handleStudentSelect">
@@ -255,7 +254,7 @@
         <div class="p-3 bg-blue-50 border border-blue-200 rounded text-blue-900">
           为学员 <b class="font-bold">{{ verifyTarget.studentName }}</b> 的报考项目 [{{ verifyTarget.examType }}] 登记核销，金额 ¥{{ verifyTarget.fee }}。
         </div>
-        <el-form label-position="top" size="small">
+        <el-form label-position="top">
           <el-form-item label="易快报费控报销凭证单号" required>
             <el-input v-model="verifyVoucherNo" placeholder="如：YKB-20260921-0899" />
           </el-form-item>

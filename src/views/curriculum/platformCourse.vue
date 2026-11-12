@@ -53,7 +53,6 @@
             v-model="keyword"
             placeholder="搜索课程名称或别名..."
             :prefix-icon="Search"
-            size="small"
             clearable
             class="!w-64"
           />
@@ -61,7 +60,6 @@
           <el-select
             v-model="selectedType"
             placeholder="课程类型"
-            size="small"
             clearable
             class="!w-40"
           >
@@ -77,7 +75,6 @@
           <el-select
             v-model="selectedSubject"
             placeholder="更多学科筛选"
-            size="small"
             clearable
             class="!w-48"
           >
@@ -90,10 +87,10 @@
             />
           </el-select>
 
-          <el-button size="small" type="primary" @click="handleFilter">
+          <el-button type="primary" @click="handleFilter">
             查询
           </el-button>
-          <el-button size="small" @click="handleReset">
+          <el-button @click="handleReset">
             重置
           </el-button>
         </div>
@@ -124,13 +121,13 @@
           <!-- 课程类型角标 -->
           <span
             v-if="course.configCourseTypeName"
-            class="absolute top-2 left-2 px-2 py-0.5 text-[11px] rounded bg-black/60 text-white backdrop-blur-xs font-medium"
+            class="absolute top-2 left-2 px-2 py-0.5 text-xs rounded bg-black/60 text-white backdrop-blur-xs font-medium"
           >
             {{ course.configCourseTypeName }}
           </span>
 
           <!-- 授权来源 -->
-          <span class="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] rounded bg-st-primary/90 text-white font-medium">
+          <span class="absolute top-2 right-2 px-1.5 py-0.5 text-xs rounded bg-st-primary/90 text-white font-medium">
             盛通授权
           </span>
         </div>
@@ -148,10 +145,10 @@
             </p>
 
             <div class="flex flex-wrap gap-1 mb-2">
-              <span class="text-[11px] px-2 py-0.5 rounded bg-blue-50 text-st-primary border border-blue-100">
+              <span class="text-xs px-2 py-0.5 rounded bg-blue-50 text-st-primary border border-blue-100">
                 {{ course.configCourseSubjectName || '综合素养' }}
               </span>
-              <span v-if="course.planLessonTotal" class="text-[11px] px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+              <span v-if="course.planLessonTotal" class="text-xs px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
                 {{ course.planLessonTotal }} 课时
               </span>
             </div>
@@ -161,7 +158,6 @@
             <span>创建人: {{ course.createUserName || '教研组' }}</span>
             <el-button
               type="primary"
-              size="small"
               class="!text-xs !px-2.5 !py-1"
               @click.stop="openCoursewareDrawer(course)"
             >

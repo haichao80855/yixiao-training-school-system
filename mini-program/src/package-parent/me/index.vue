@@ -210,14 +210,14 @@ function dateTimeText(iso: string) {
 .sub {
   display: block;
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-3;
 }
 
 .group-title {
   display: block;
   margin: 44rpx 8rpx 16rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 650;
   color: $p-ink-3;
   letter-spacing: 0.04em;
@@ -235,7 +235,7 @@ function dateTimeText(iso: string) {
 .group-note {
   display: block;
   margin: 14rpx 8rpx 0;
-  font-size: 22rpx;
+  font-size: 24rpx;
   line-height: 1.6;
   color: $p-ink-3;
 }
@@ -266,14 +266,14 @@ function dateTimeText(iso: string) {
 
 .row-title {
   display: block;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
 }
 
 .row-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
@@ -281,7 +281,7 @@ function dateTimeText(iso: string) {
   @include p-chip;
   height: 34rpx;
   padding: 0 12rpx;
-  font-size: 19rpx;
+  font-size: 24rpx;
   background: $p-brand-50;
   color: $p-brand;
 }
@@ -321,7 +321,7 @@ function dateTimeText(iso: string) {
   padding: 10rpx 20rpx;
   border-radius: 9999rpx;
   background: $p-rose-50;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
   color: $p-rose;
 }
@@ -335,7 +335,7 @@ function dateTimeText(iso: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 600;
   color: $p-rose;
 }

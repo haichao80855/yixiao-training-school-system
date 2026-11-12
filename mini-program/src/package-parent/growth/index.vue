@@ -269,7 +269,7 @@ onPullDownRefresh(async () => {
 .stat-label {
   display: block;
   margin-top: 8rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-2;
 }
 
@@ -300,7 +300,7 @@ onPullDownRefresh(async () => {
 
 .archive-title {
   display: block;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 650;
   color: $p-ink;
 }
@@ -308,7 +308,7 @@ onPullDownRefresh(async () => {
 .archive-sub {
   display: block;
   margin-top: 6rpx;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: $p-ink-2;
 }
 
@@ -344,7 +344,7 @@ onPullDownRefresh(async () => {
   height: 68rpx;
   line-height: 68rpx;
   text-align: center;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: $p-ink-2;
   transition: color 0.2s ease;
 
@@ -372,12 +372,12 @@ onPullDownRefresh(async () => {
 }
 
 .week-range {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
 }
 
 .week-meta {
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
@@ -425,7 +425,7 @@ onPullDownRefresh(async () => {
   border-radius: 12rpx;
   background: rgba(255, 255, 255, 0.92);
   color: $p-brand;
-  font-size: 20rpx;
+  font-size: 24rpx;
   font-weight: 700;
 }
 
@@ -465,7 +465,7 @@ onPullDownRefresh(async () => {
 
 .video-title {
   display: block;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -475,14 +475,14 @@ onPullDownRefresh(async () => {
 .video-sub {
   display: block;
   margin-top: 6rpx;
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
 .list-footer {
   padding: 8rpx 0;
   text-align: center;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
   letter-spacing: 0.1em;
 }

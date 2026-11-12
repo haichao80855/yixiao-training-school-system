@@ -90,7 +90,7 @@ onLoad(async (query: any) => {
 
 .sum-course {
   display: block;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 650;
 }
 
@@ -119,7 +119,7 @@ onLoad(async (query: any) => {
 }
 
 .sum-label {
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
@@ -167,7 +167,7 @@ onLoad(async (query: any) => {
   }
 
   .d-month {
-    font-size: 19rpx;
+    font-size: 24rpx;
     color: $p-ink-3;
   }
 }
@@ -179,7 +179,7 @@ onLoad(async (query: any) => {
 
 .entry-title {
   display: block;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -189,7 +189,7 @@ onLoad(async (query: any) => {
 .entry-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
