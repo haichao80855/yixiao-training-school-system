@@ -11,6 +11,7 @@ const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
 const { BASE_URL } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 const prisma = new PrismaClient();
 const RUN = Date.now().toString().slice(-6);
 const PHONE_A = `1770${RUN}1`.slice(0, 11); // 家庭 A (多个子女)
@@ -229,7 +230,7 @@ async function run() {
   assert(Array.isArray(sessions.body) && sessions.body.length >= 2, '会话列表包含两个登录设备');
 
   console.log('— 令牌边界');
-  const staffLogin = await request('POST', '/api/auth/login', { account: 'donghaichao', password: '123456' });
+  const staffLogin = await request('POST', '/api/auth/login', { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD });
   const staffToken = staffLogin.body?.accessToken || staffLogin.body?.token;
   const p1 = await request('GET', '/api/students', null, auth(tokenA1));
   const p2 = await request('GET', '/api/educational/schedules', null, auth(tokenA1));

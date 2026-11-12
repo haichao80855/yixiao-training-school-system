@@ -41,6 +41,7 @@ async function runTests() {
   }
 
   const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
   const HOST = '127.0.0.1';
 
   // 1. 登录超管账号获取 Token
@@ -52,7 +53,7 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     },
-    { account: 'donghaichao', password: '123456' },
+    { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD },
   );
   assert(loginRes.status === 200 || loginRes.status === 201, '超管登录成功获取 Token');
   const token = loginRes.body.data.accessToken;

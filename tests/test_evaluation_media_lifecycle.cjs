@@ -3,6 +3,7 @@
  */
 const assert = require('assert');
 const { BASE_URL } = require('../server/test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('../server/test-utils/accounts');
 const http = require('http');
 
 function postJson(url, data, token) {
@@ -76,8 +77,8 @@ async function run() {
   console.log('='.repeat(80));
 
   const loginRes = await postJson(BASE_URL + '/api/auth/login', {
-    account: 'donghaichao',
-    password: '123456',
+    account: ACCOUNTS.superAdmin,
+    password: SEED_PASSWORD,
   });
   const token = loginRes.data?.data?.accessToken || loginRes.data?.token || loginRes.data?.accessToken;
 

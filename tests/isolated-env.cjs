@@ -102,6 +102,7 @@ async function main() {
     UPLOADS_DIR: uploadDir,
     PORT: String(port),
     TEST_BASE_URL: baseUrl,
+    TEST_ISOLATED: '1',
     NODE_ENV: 'test',
     STORAGE_ENGINE: 'local',
     COURSEWARE_PROBE: 'off',

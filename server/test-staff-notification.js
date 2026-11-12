@@ -15,6 +15,7 @@ const {
 
 const prisma = new PrismaClient();
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD } = require('./test-utils/accounts');
 const HOST = '127.0.0.1';
 
 function request(path, { method = 'GET', token, body, campusId } = {}) {
@@ -50,7 +51,7 @@ function request(path, { method = 'GET', token, body, campusId } = {}) {
 }
 
 async function login(account) {
-  const res = await request('/api/auth/login', { method: 'POST', body: { account, password: '123456' } });
+  const res = await request('/api/auth/login', { method: 'POST', body: { account, password: SEED_PASSWORD } });
   const data = res.body && res.body.data;
   return { token: data && (data.accessToken || data.token), campusId: data && data.user && data.user.campusId };
 }

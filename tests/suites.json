@@ -5,136 +5,570 @@
       "name": "权限与数据隔离",
       "scope": "server",
       "tests": [
-        { "file": "server/test-auth-and-system.js", "needs": ["server"] },
-        { "file": "server/test-rbac-permissions.js", "needs": ["server"] },
-        { "file": "server/test-role-permission-contract.js", "needs": ["server"] },
-        { "file": "server/test-staff-admin-boundary.js", "needs": ["server"] },
-        { "file": "server/test-teacher-page-permissions.js", "needs": ["server"] },
-        { "file": "server/test-data-scope-security.js", "needs": ["server"] },
-        { "file": "server/test-campus-switch-scope.js", "needs": ["server"] },
-        { "file": "server/test-user-phone-login.js", "needs": ["server"] },
-        { "file": "server/test-admin-reset-pwd-flow.js", "needs": ["server"] },
-        { "file": "server/test-stats-health-access.js", "needs": ["server"] },
-        { "file": "server/src/modules/data-scope/tests/data-scope-policy.spec.ts", "needs": [] }
+        {
+          "file": "server/test-auth-and-system.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-rbac-permissions.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-role-permission-contract.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-staff-admin-boundary.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-teacher-page-permissions.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-data-scope-security.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-campus-switch-scope.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-user-phone-login.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-admin-reset-pwd-flow.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-stats-health-access.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/src/modules/data-scope/tests/data-scope-policy.spec.ts",
+          "needs": []
+        }
       ]
     },
     {
       "name": "资金与结算",
       "scope": "server",
       "tests": [
-        { "file": "server/test-financial-and-approval.js", "needs": ["server"] },
-        { "file": "server/test-financial-approval-orchestrator.js", "needs": ["server"] },
-        { "file": "server/test-lesson-settlement-engine.js", "needs": ["server"] },
-        { "file": "server/test-teacher-pay.js", "needs": ["server"] },
-        { "file": "server/test-admin-dashboard-aggregator.js", "needs": ["server"] }
+        {
+          "file": "server/test-financial-and-approval.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-financial-approval-orchestrator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-lesson-settlement-engine.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-teacher-pay.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-admin-dashboard-aggregator.js",
+          "needs": [
+            "server"
+          ]
+        }
       ]
     },
     {
       "name": "课时、点名与课评",
       "scope": "server",
       "tests": [
-        { "file": "server/test-lesson-fulfillment-coordinator.js", "needs": ["server"] },
-        { "file": "server/test-course-delivery-engine.js", "needs": ["server"] },
-        { "file": "server/test-lesson-evaluation-coordinator.js", "needs": ["server"] },
-        { "file": "server/test-student-centric-evaluation-matrix.js", "needs": ["server"] },
-        { "file": "server/test-educational-and-attendance.js", "needs": ["server"] },
-        { "file": "server/test-teaching-metrics-aggregator.js", "needs": ["server"] },
-        { "file": "server/test-staff-notification.js", "needs": ["server"] }
+        {
+          "file": "server/test-lesson-fulfillment-coordinator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-course-delivery-engine.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-lesson-evaluation-coordinator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-student-centric-evaluation-matrix.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-educational-and-attendance.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-teaching-metrics-aggregator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-staff-notification.js",
+          "needs": [
+            "server"
+          ]
+        }
       ]
     },
     {
       "name": "教务与学员",
       "scope": "server",
       "tests": [
-        { "file": "server/test-curriculum-and-student.js", "needs": ["server"] },
-        { "file": "server/test-student-enrollment-coordinator.js", "needs": ["server"] },
-        { "file": "server/test-student-movement-deep-module.js", "needs": ["server"] },
-        { "file": "server/test-batch-scheduling-deep-module.js", "needs": ["server"] },
-        { "file": "server/test-class-roster-coordinator.js", "needs": ["server"] },
-        { "file": "server/test-class-schedule-summary.js", "needs": ["server"] },
-        { "file": "server/test-class-lifecycle-coordinator.js", "needs": ["server"] },
-        { "file": "server/test-lesson-renewal-coordinator.js", "needs": ["server"] },
-        { "file": "server/test-renewal-class-seat.js", "needs": ["server"] },
-        { "file": "server/test-student-archive-import.js", "needs": [] }
+        {
+          "file": "server/test-curriculum-and-student.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-student-enrollment-coordinator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-student-movement-deep-module.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-batch-scheduling-deep-module.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-class-roster-coordinator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-class-schedule-summary.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-class-lifecycle-coordinator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-lesson-renewal-coordinator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-renewal-class-seat.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-student-archive-import.js",
+          "needs": []
+        }
       ]
     },
     {
       "name": "组织与系统设置",
       "scope": "server",
       "tests": [
-        { "file": "server/test-organization-campus-unification.js", "needs": ["server"] },
-        { "file": "server/test-org-admin-persistence.js", "needs": ["server"] },
-        { "file": "server/test-dict-cache-and-binding.js", "needs": ["server"] }
+        {
+          "file": "server/test-organization-campus-unification.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-org-admin-persistence.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-dict-cache-and-binding.js",
+          "needs": [
+            "server"
+          ]
+        }
       ]
     },
     {
       "name": "家长端、教师端与成长档案",
       "scope": "server",
       "tests": [
-        { "file": "server/test-parent-portal.js", "needs": ["server"] },
-        { "file": "server/test-teacher-portal.js", "needs": ["server"] },
-        { "file": "server/test-learning-growth-projector.js", "needs": ["server"] },
-        { "file": "server/test-learning-growth-multimedia-projector.js", "needs": ["server"] }
+        {
+          "file": "server/test-parent-portal.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-teacher-portal.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-learning-growth-projector.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-learning-growth-multimedia-projector.js",
+          "needs": [
+            "server"
+          ]
+        }
       ]
     },
     {
       "name": "媒体、课件与运维配置",
       "scope": "server",
       "tests": [
-        { "file": "server/test-staff-media-links.js", "needs": ["server"] },
-        { "file": "server/test-media-upload-coordinator.js", "needs": ["server"] },
-        { "file": "server/test-aliyun-oss-storage-adapter.js", "needs": ["server-dist"] },
-        { "file": "server/test-courseware-source.js", "needs": ["server-dist"] },
-        { "file": "server/test-production-config.js", "needs": ["server-dist"] }
+        {
+          "file": "server/test-staff-media-links.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-media-upload-coordinator.js",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "server/test-aliyun-oss-storage-adapter.js",
+          "needs": [
+            "server-dist"
+          ]
+        },
+        {
+          "file": "server/test-courseware-source.js",
+          "needs": [
+            "server-dist"
+          ]
+        },
+        {
+          "file": "server/test-production-config.js",
+          "needs": [
+            "server-dist"
+          ]
+        }
       ]
     },
     {
       "name": "全栈与点名课评集成",
       "scope": "integration",
       "tests": [
-        { "file": "tests/e2e_full_stack_integration.cjs", "needs": ["server"] },
-        { "file": "tests/adversarial_challenger_m1_request.cjs", "needs": ["server"] },
-        { "file": "tests/test_mp_rollcall_evaluation_state.cjs", "needs": ["server"], "skip": "写死了开发库里的一个排课 ID，临时库里没有这条数据 (第 2 期改成自建夹具)" },
-        { "file": "tests/test_student_evaluation_isolation.cjs", "needs": ["server"] },
-        { "file": "tests/test_evaluation_media_lifecycle.cjs", "needs": ["server"] },
-        { "file": "tests/test_evaluation_attendance_draft_lifecycle.cjs", "needs": ["server"] },
-        { "file": "tests/test_mp_rollcall_attendance_persistence.cjs", "needs": ["server"] },
-        { "file": "tests/test_workbench_attendance_headcount_verification.cjs", "needs": ["server"] }
+        {
+          "file": "tests/e2e_full_stack_integration.cjs",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "tests/adversarial_challenger_m1_request.cjs",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "tests/test_mp_rollcall_evaluation_state.cjs",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "tests/test_student_evaluation_isolation.cjs",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "tests/test_evaluation_media_lifecycle.cjs",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "tests/test_evaluation_attendance_draft_lifecycle.cjs",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "tests/test_mp_rollcall_attendance_persistence.cjs",
+          "needs": [
+            "server"
+          ]
+        },
+        {
+          "file": "tests/test_workbench_attendance_headcount_verification.cjs",
+          "needs": [
+            "server"
+          ]
+        }
       ]
     },
     {
       "name": "源码契约与静态检查",
       "scope": "offline",
       "tests": [
-        { "file": "tests/adversarial_challenger_m1_swallowed_errors.cjs", "needs": [] },
-        { "file": "tests/adversarial_m1_2_suite.cjs", "needs": [] },
-        { "file": "tests/test_mp_phase5_contracts.cjs", "needs": [] },
-        { "file": "tests/test_mp_login_error_toast.cjs", "needs": [] },
-        { "file": "tests/test_evaluation_override_payload.cjs", "needs": [] }
+        {
+          "file": "tests/adversarial_challenger_m1_swallowed_errors.cjs",
+          "needs": []
+        },
+        {
+          "file": "tests/adversarial_m1_2_suite.cjs",
+          "needs": []
+        },
+        {
+          "file": "tests/test_mp_phase5_contracts.cjs",
+          "needs": []
+        },
+        {
+          "file": "tests/test_mp_login_error_toast.cjs",
+          "needs": []
+        },
+        {
+          "file": "tests/test_evaluation_override_payload.cjs",
+          "needs": []
+        },
+        {
+          "file": "tests/test_client_media_pipeline.cjs",
+          "needs": []
+        }
       ]
     },
     {
       "name": "小程序与家长端构建产物 (下个周期整理)",
       "scope": "offline",
       "tests": [
-        { "file": "tests/test_mp_phase1_contracts.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_phase2_contracts.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_phase3_contracts.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_phase4_contracts.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_fulfillment_coordinator.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_student_projector.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_enrollment_coordinator.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_class_coordinator.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_renewal_coordinator.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_mp_no_mock_fallback.cjs", "needs": ["mp-dist"] },
-        { "file": "tests/test_parent_h5_build.cjs", "needs": ["h5-dist"] }
+        {
+          "file": "tests/test_mp_phase1_contracts.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_phase2_contracts.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_phase3_contracts.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_phase4_contracts.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_fulfillment_coordinator.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_student_projector.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_enrollment_coordinator.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_class_coordinator.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_renewal_coordinator.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_no_mock_fallback.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_parent_h5_build.cjs",
+          "needs": [
+            "h5-dist"
+          ]
+        },
+        {
+          "file": "tests/adversarial_mp_p1_deep_verify.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_challenger_phase2_empirical_probes.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_challenger_phase4_deep_stress.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_challenger_r2_targeted_stress.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_challenger_adversarial.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_draft_storage.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_evaluation_roster_projector.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_learning_growth_projector.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_phase1_runtime_adversarial.cjs",
+          "needs": [
+            "mp-dist"
+          ],
+          "skip": "断言写的是旧的 401 提示文案 (Unauthorized)，后端现在返回 Invalid credentials (下个周期整理小程序时更新)"
+        },
+        {
+          "file": "tests/test_mp_phase2_adversarial_challenger.cjs",
+          "needs": [
+            "mp-dist"
+          ],
+          "skip": "断言请求地址是 127.0.0.1:3001，现在的小程序构建指向生产域名 (下个周期整理)"
+        },
+        {
+          "file": "tests/test_mp_phase3_adversarial_challenger.cjs",
+          "needs": [
+            "mp-dist"
+          ],
+          "skip": "断言请求地址是 127.0.0.1:3001，现在的小程序构建指向生产域名 (下个周期整理)"
+        },
+        {
+          "file": "tests/test_mp_phase4_adversarial_deep.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_phase5_adversarial_challenger.cjs",
+          "needs": [
+            "mp-dist"
+          ]
+        },
+        {
+          "file": "tests/test_mp_phase3_deep_adversarial.cjs",
+          "needs": [
+            "mp-dist",
+            "server"
+          ],
+          "skip": "用种子数据里第一个班级报读第一门课程，违反「班级课程须与报读课程一致」的新规则 (下个周期改成自建夹具)"
+        },
+        {
+          "file": "tests/test_mp_admin_period_switch.cjs",
+          "needs": [
+            "server"
+          ],
+          "skip": "依赖开发库里本周已有订单，临时库里「今日」和「本周」金额相同 (下个周期改成自建夹具)"
+        }
       ]
     },
     {
-      "name": "分层模型用例 (第 2 期清理)",
+      "name": "前端工具函数单元测试 (src/utils 真实代码)",
       "scope": "offline",
       "tests": [
-        { "file": "tests/runner.js", "needs": [] }
+        {
+          "file": "tests/runner.js",
+          "needs": []
+        }
       ]
     }
   ]

@@ -41,6 +41,7 @@ async function runTests() {
   }
 
   const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
   const HOST = '127.0.0.1';
 
   // 1. 验证公开接口存活
@@ -71,7 +72,7 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     },
-    { account: 'donghaichao', password: 'wrong_password' },
+    { account: ACCOUNTS.superAdmin, password: 'wrong_password' },
   );
   assert(wrongPassRes.status === 401, '错误密码登录被准确拦截 (401)');
 
@@ -84,7 +85,7 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     },
-    { account: 'donghaichao', password: '123456' },
+    { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD },
   );
   assert(loginRes.status === 200 || loginRes.status === 201, '超管账号 [donghaichao/123456] 登录成功');
   const token = loginRes.body.data.accessToken;

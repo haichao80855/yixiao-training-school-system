@@ -15,6 +15,7 @@ const {
 
 const prisma = new PrismaClient();
 const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 const HOST = '127.0.0.1';
 
 function request(path, { method = 'GET', token, body } = {}) {
@@ -81,12 +82,12 @@ async function onlineTests() {
   console.log('\n【2】看板接口真实汇总 (在线，自建夹具)');
   const login = await request('/api/auth/login', {
     method: 'POST',
-    body: { account: 'donghaichao', password: '123456' },
+    body: { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD },
   });
   check(login.status === 200 || login.status === 201, '超管登录成功');
   const token = login.body.data.accessToken;
 
-  const admin = await prisma.user.findUniqueOrThrow({ where: { account: 'donghaichao' } });
+  const admin = await prisma.user.findUniqueOrThrow({ where: { account: ACCOUNTS.superAdmin } });
   const campusId = admin.campusId;
   const regularCourse = await prisma.course.findFirstOrThrow({ where: { attribute: 'regular' } });
   const extendedCourse = await prisma.course.findFirstOrThrow({ where: { attribute: 'extended' } });

@@ -23,7 +23,7 @@ export function isCampusMatch(orderCampusId?: string, filterCampusId?: string): 
 
 /**
  * 财务中心 3x8 高密度筛选矩阵、汇总小计与审批流算法引擎
- * 严格对标 tests/contracts/financeAggregator.js
+ * 单元测试：tests/unit/t1_20_* ~ t3_05_* (直接加载本文件)
  */
 export class FinanceAggregator {
   // 3x8 筛选矩阵初始默认表单字段 (严格恰好 24 项)

@@ -41,6 +41,7 @@ async function runTests() {
   }
 
   const { PORT } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
   const HOST = '127.0.0.1';
 
   // 1. 超管登录获取凭证
@@ -52,7 +53,7 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     },
-    { account: 'donghaichao', password: '123456' },
+    { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD },
   );
   assert(loginRes.status === 200 || loginRes.status === 201, '超管 [donghaichao] 成功登录');
   const token = loginRes.body.data.accessToken;
@@ -199,7 +200,7 @@ async function runTests() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     },
-    { account: 'zhaolp', password: '123456' },
+    { account: ACCOUNTS.teacher, password: SEED_PASSWORD },
   );
   assert(teacherLoginRes.status === 200 || teacherLoginRes.status === 201, '普通讲师 [zhaolp] 登录成功');
   const teacherToken = teacherLoginRes.body.data.accessToken;

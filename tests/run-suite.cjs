@@ -13,7 +13,7 @@ const fs = require('fs');
 const http = require('http');
 const path = require('path');
 const { spawn } = require('child_process');
-const { checkTargetSafety } = require('./env-guard.cjs');
+const { checkTargetSafety, resolveSqlitePath } = require('./env-guard.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
 const MANIFEST = path.join(__dirname, 'suites.json');
@@ -62,6 +62,12 @@ function checkManifest(entries) {
   const serverTests = fs.readdirSync(path.join(ROOT, 'server')).filter((f) => /^test-.*\.js$/.test(f));
   for (const f of serverTests) {
     if (!seen.has(`server/${f}`)) problems.push(`server/${f} 没有登记到 tests/suites.json，不会被任何入口运行`);
+  }
+  // tests/ 顶层的脚本同样必须登记 (tests/unit/*.test.js 由 tests/runner.js 统一运行)
+  const INFRA = new Set(['run-suite.cjs', 'isolated-env.cjs', 'env-guard.cjs', 'run_all_unified.cjs']);
+  const topLevel = fs.readdirSync(__dirname).filter((f) => /\.(c?js)$/.test(f) && !INFRA.has(f));
+  for (const f of topLevel) {
+    if (!seen.has(`tests/${f}`)) problems.push(`tests/${f} 没有登记到 tests/suites.json，不会被任何入口运行`);
   }
   return problems;
 }
@@ -155,6 +161,68 @@ function runOne(entry) {
   });
 }
 
+/**
+ * 残留检查与恢复：每个需要后端的测试前后统计测试库各表的行数和最大 rowid。
+ * - 测试跑完多出来的行 = 测试没清理干净的数据，记入汇总 (「清理遗漏」)。
+ * - 随后把这些新增行删掉，让下一个测试面对的还是原来的库，测试之间互不影响。
+ * 只在隔离环境的临时 SQLite 库上运行 (isolated-env 设置 TEST_ISOLATED=1)，绝不对开发库做删除。
+ */
+function createResidueProbe() {
+  const url = process.env.DATABASE_URL || '';
+  if (!url.startsWith('file:') || process.env.TEST_ISOLATED !== '1') return null;
+  // 第二道保险：只对系统临时目录下的库做删除 (isolated-env 建的临时库都在这里)
+  const dbFile = resolveSqlitePath(url, ROOT);
+  const tmpRoot = fs.realpathSync(require('os').tmpdir());
+  if (!dbFile || !fs.existsSync(dbFile) || !fs.realpathSync(dbFile).startsWith(tmpRoot + path.sep)) return null;
+  const { PrismaClient } = require(path.join(ROOT, 'server/node_modules/@prisma/client'));
+  const prisma = new PrismaClient();
+  return {
+    async snapshot() {
+      const tables = await prisma.$queryRawUnsafe(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_prisma%'",
+      );
+      const snap = {};
+      for (const { name } of tables) {
+        const [row] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) AS n, COALESCE(MAX(rowid), 0) AS maxRowid FROM "${name}"`);
+        snap[name] = { count: Number(row.n), maxRowid: Number(row.maxRowid) };
+      }
+      return snap;
+    },
+    diff(before, after) {
+      return Object.keys(after)
+        .filter((t) => after[t].count > (before[t]?.count || 0))
+        .map((t) => `${t} +${after[t].count - (before[t]?.count || 0)}`);
+    },
+    /**
+     * 删除测试期间新增的行 (rowid 大于测试前的最大值)。
+     * 只处理「纯新增」的表：测试前已有的行一行没少。如果测试删掉过原有的行再重建 (例如重设角色权限)，
+     * 新 rowid 的行里就包含了替换后的正式数据，删掉会破坏测试库，这种表只报告、不动。
+     * @returns {string[]} 因为有替换而没有自动删除的表
+     */
+    async restore(before) {
+      const untouched = [];
+      await prisma.$executeRawUnsafe('PRAGMA foreign_keys = OFF');
+      try {
+        for (const [table, { count, maxRowid }] of Object.entries(before)) {
+          const [row] = await prisma.$queryRawUnsafe(
+            `SELECT COUNT(*) AS old, (SELECT COUNT(*) FROM "${table}" WHERE rowid > ${maxRowid}) AS added FROM "${table}" WHERE rowid <= ${maxRowid}`,
+          );
+          if (Number(row.added) === 0) continue;
+          if (Number(row.old) !== count) {
+            untouched.push(table);
+            continue;
+          }
+          await prisma.$executeRawUnsafe(`DELETE FROM "${table}" WHERE rowid > ${maxRowid}`);
+        }
+      } finally {
+        await prisma.$executeRawUnsafe('PRAGMA foreign_keys = ON');
+      }
+      return untouched;
+    },
+    close: () => prisma.$disconnect(),
+  };
+}
+
 function pad(s, n) {
   const width = [...String(s)].reduce((w, ch) => w + (ch.charCodeAt(0) > 0x2e80 ? 2 : 1), 0);
   return String(s) + ' '.repeat(Math.max(0, n - width));
@@ -213,6 +281,7 @@ async function main() {
 
   console.log(`▶ 运行 ${selected.length} 项测试 (scope=${opts.scope}${opts.group ? `, group~${opts.group}` : ''}${opts.file ? `, file~${opts.file}` : ''})，后端：${BASE_URL}\n`);
 
+  const probe = createResidueProbe();
   const results = [];
   for (const [i, entry] of selected.entries()) {
     const missing = missingNeeds(entry);
@@ -222,9 +291,20 @@ async function main() {
       continue;
     }
     console.log(`\n${'━'.repeat(80)}\n▶ [${i + 1}/${selected.length}] ${entry.group} · ${entry.file}\n${'━'.repeat(80)}`);
+    const before = probe && (entry.needs || []).includes('server') ? await probe.snapshot() : null;
     const r = await runOne(entry);
-    results.push({ ...entry, status: r.code === 0 ? 'passed' : 'failed', exitCode: r.code, signal: r.signal, ms: r.ms });
+    let residue = [];
+    if (before) {
+      residue = probe.diff(before, await probe.snapshot());
+      if (residue.length) {
+        const untouched = await probe.restore(before);
+        const note = untouched.length ? `；${untouched.join("、")} 改动过原有数据，没有自动恢复` : "";
+        console.log(`\n🧹 ${entry.file} 没有清理干净，测试库多出：${residue.join("，")} (纯新增的行已自动删除${note})`);
+      }
+    }
+    results.push({ ...entry, status: r.code === 0 ? 'passed' : 'failed', exitCode: r.code, signal: r.signal, ms: r.ms, residue });
   }
+  if (probe) await probe.close();
 
   const passed = results.filter((r) => r.status === 'passed');
   const failed = results.filter((r) => r.status === 'failed');
@@ -243,6 +323,11 @@ async function main() {
   const slowest = [...results].sort((a, b) => b.ms - a.ms).slice(0, 3).filter((r) => r.ms > 0);
   console.log(`\n通过 ${passed.length}，失败 ${failed.length}，跳过 ${skipped.length}，共 ${results.length} 项，用时 ${(totalMs / 1000).toFixed(1)}s`);
   if (slowest.length) console.log(`最慢：${slowest.map((r) => `${path.basename(r.file)} ${(r.ms / 1000).toFixed(1)}s`).join('，')}`);
+  const leaky = results.filter((r) => r.residue?.length);
+  if (leaky.length) {
+    console.log(`\n清理遗漏 (${leaky.length} 项测试没有删掉自己造的数据，运行器已删除其中的纯新增行；修测试时以这里为准)：`);
+    for (const r of leaky) console.log(`  🧹 ${path.basename(r.file)}：${r.residue.join('，')}`);
+  }
   if (failed.length) {
     console.log('\n失败项：');
     for (const r of failed) console.log(`  ✗ ${r.file} (exit ${r.exitCode}${r.signal ? `, ${r.signal}` : ''})`);

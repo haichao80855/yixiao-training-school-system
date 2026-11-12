@@ -1,5 +1,6 @@
 const http = require('http');
 const { PORT } = require('../server/test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('../server/test-utils/accounts');
 const assert = require('assert');
 const { PrismaClient } = require('../server/node_modules/@prisma/client');
 const prisma = new PrismaClient();
@@ -35,7 +36,7 @@ async function loginAdmin() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     },
-    { account: 'donghaichao', password: '123456' }
+    { account: ACCOUNTS.superAdmin, password: SEED_PASSWORD }
   );
   const token = res.data?.data?.accessToken || res.data?.accessToken;
   if (!token) {

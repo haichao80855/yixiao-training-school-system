@@ -1,6 +1,8 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const { BASE_URL: SERVER_URL } = require('../server/test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('../server/test-utils/accounts');
 const http = require('http');
 
 console.log('================================================================================');
@@ -538,9 +540,9 @@ async function main() {
   let testClassId = null;
 
   await runTest('5.1 登录后台获取真实 JWT AccessToken', async () => {
-    const postData = JSON.stringify({ account: 'donghaichao', password: '123456' });
+    const postData = JSON.stringify({ account: ACCOUNTS.superAdmin, password: SEED_PASSWORD });
     const res = await new Promise((resolve, reject) => {
-      const req = http.request('http://127.0.0.1:3001/api/auth/login', {
+      const req = http.request(SERVER_URL + '/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -574,6 +576,10 @@ async function main() {
         queryUrl += (queryUrl.includes('?') ? '&' : '?') + q;
       }
       const targetUrl = new URL(queryUrl);
+      // 小程序构建时写死的后端地址是 3001，转发到本次测试用的后端
+      const testServer = new URL(SERVER_URL);
+      targetUrl.protocol = testServer.protocol;
+      targetUrl.host = testServer.host;
 
       const headers = { ...opts.header };
       if (postData) {

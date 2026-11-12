@@ -13,6 +13,7 @@
 const assert = require('assert');
 
 const { BASE_URL } = require('./test-utils/target');
+const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
 
 let passed = 0;
 function logPass(msg) {
@@ -53,7 +54,7 @@ async function runTests() {
   console.log('================================================================================\n');
 
   // 1. 管理员登录
-  const adminLogin = await login('donghaichao', '123456');
+  const adminLogin = await login(ACCOUNTS.superAdmin, SEED_PASSWORD);
   assert.ok(adminLogin.token, '超级管理员登录必须成功并取得有效 JWT');
   logPass('超级管理员 [donghaichao] 成功登录并取得授权凭证');
 
@@ -74,11 +75,11 @@ async function runTests() {
   await request(`/api/system/users/${targetUser.id}/password`, {
     method: 'PATCH',
     headers: adminHeaders,
-    body: JSON.stringify({ password: '123456' }),
+    body: JSON.stringify({ password: SEED_PASSWORD }),
   });
 
   // 3. 验证原密码 (123456) 正常有效
-  const initLogin = await login(targetUser.account, '123456');
+  const initLogin = await login(targetUser.account, SEED_PASSWORD);
   assert.ok(initLogin.token, '员工初始密码 123456 必须可用');
   logPass('员工当前有效密码 [123456] 校验通过');
 
@@ -94,7 +95,7 @@ async function runTests() {
   logPass(`管理员成功为员工重置密码为 [${newPassword}]，服务端落盘成功`);
 
   // 5. 验证：旧密码登录被坚决拦截 (401 密码错误)
-  const oldLogin = await login(targetUser.account, '123456');
+  const oldLogin = await login(targetUser.account, SEED_PASSWORD);
   assert.strictEqual(oldLogin.status, 401, '旧密码登录必须被坚决拦截 401');
   assert.strictEqual(oldLogin.data?.message, '密码错误', '错误提示必须明确为密码错误');
   logPass('【安全生效】使用旧密码 [123456] 登录被坚决拦截: 401 密码错误');
@@ -118,10 +119,10 @@ async function runTests() {
   const revertRes = await request(`/api/system/users/${targetUser.id}/password`, {
     method: 'PATCH',
     headers: adminHeaders,
-    body: JSON.stringify({ password: '123456' }),
+    body: JSON.stringify({ password: SEED_PASSWORD }),
   });
   assert.strictEqual(revertRes.status, 200, '复原密码接口必须返回 200');
-  const checkRevert = await login(targetUser.account, '123456');
+  const checkRevert = await login(targetUser.account, SEED_PASSWORD);
   assert.ok(checkRevert.token, '复原后初始密码 123456 恢复可用');
   logPass('测试环境安全复原：员工密码已平滑还原为 [123456]');
 
