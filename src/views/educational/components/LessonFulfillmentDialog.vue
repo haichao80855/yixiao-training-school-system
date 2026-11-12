@@ -29,7 +29,7 @@
         <!-- 履约模式切换 -->
         <div class="flex items-center gap-2">
           <span class="text-xs font-semibold text-st-title">结课模式:</span>
-          <el-radio-group v-model="fulfillmentMode" size="small">
+          <el-radio-group v-model="fulfillmentMode">
             <el-radio-button label="FULL_SETTLE">
               一键全量结课 (消课+课评+通知)
             </el-radio-button>
@@ -43,19 +43,19 @@
       <!-- 2. 全景看板指标透视 (Zero-ceremony 就绪态) -->
       <div v-if="workbenchSummary" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-center text-xs">
         <div class="bg-white p-2 rounded border border-gray-100">
-          <div class="text-st-muted text-[11px]">参课学员总数</div>
+          <div class="text-st-muted text-xs">参课学员总数</div>
           <div class="text-base font-extrabold text-st-title font-mono">{{ workbenchSummary.totalStudents }} 人</div>
         </div>
         <div class="bg-white p-2 rounded border border-gray-100">
-          <div class="text-st-muted text-[11px]">实到打卡人次</div>
+          <div class="text-st-muted text-xs">实到打卡人次</div>
           <div class="text-base font-extrabold text-emerald-600 font-mono">{{ presentCount }} 人</div>
         </div>
         <div class="bg-white p-2 rounded border border-gray-100">
-          <div class="text-st-muted text-[11px]">预计课消学时</div>
+          <div class="text-st-muted text-xs">预计课消学时</div>
           <div class="text-base font-extrabold text-amber-600 font-mono">{{ totalEstimatedDeduct }} 课时</div>
         </div>
         <div class="bg-white p-2 rounded border border-gray-100">
-          <div class="text-st-muted text-[11px]">微信推送就绪</div>
+          <div class="text-st-muted text-xs">微信推送就绪</div>
           <div class="text-base font-extrabold text-indigo-600 font-mono">
             {{ workbenchSummary.wechatBoundCount }} / {{ workbenchSummary.totalStudents }}
           </div>
@@ -70,7 +70,7 @@
               <ClipboardList class="w-4 h-4 text-st-primary" />
               <span>学员考勤与个性化学情 (全员默认出勤打卡)</span>
             </span>
-            <span class="text-[11px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
+            <span class="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1">
               <Lightbulb class="w-3.5 h-3.5 text-emerald-600" />
               <span>90% 课堂无需逐项修改，点击异常学员即可快速切换</span>
             </span>
@@ -96,7 +96,7 @@
                 size="small"
                 type="danger"
                 effect="plain"
-                class="!text-[10px] !px-1.5 inline-flex items-center gap-0.5"
+                class="!text-xs !px-1.5 inline-flex items-center gap-0.5"
               >
                 <AlertTriangle class="w-3 h-3 text-danger" />
                 <span>余 {{ st.remainingLessons }} 课时</span>
@@ -106,20 +106,20 @@
                 size="small"
                 type="info"
                 effect="plain"
-                class="!text-[10px] !px-1.5"
+                class="!text-xs !px-1.5"
               >
                 余 {{ st.remainingLessons }} 课时
               </el-tag>
-              <span v-if="st.isWechatBound" class="text-emerald-600 text-[11px] inline-flex items-center" title="已绑定微信公众号">
+              <span v-if="st.isWechatBound" class="text-emerald-600 text-xs inline-flex items-center" title="已绑定微信公众号">
                 <Smartphone class="w-3.5 h-3.5" />
               </span>
-              <span v-else class="text-gray-300 text-[11px] inline-flex items-center" title="未绑定微信公众号">
+              <span v-else class="text-gray-300 text-xs inline-flex items-center" title="未绑定微信公众号">
                 <Smartphone class="w-3.5 h-3.5 opacity-40" />
               </span>
             </div>
 
             <!-- 出勤状态切换按钮组 -->
-            <el-button-group size="small">
+            <el-button-group>
               <el-button
                 :type="st.status === 'present' ? 'success' : 'default'"
                 @click="changeStudentStatus(st, 'present')"
@@ -148,7 +148,7 @@
 
             <!-- 扣减课时显示 -->
             <div class="flex items-center gap-1 min-w-[70px]">
-              <span class="text-st-muted text-[11px]">扣除:</span>
+              <span class="text-st-muted text-xs">扣除:</span>
               <span class="font-mono font-bold text-st-title" :class="[st.deductLessons > 0 ? 'text-indigo-600' : 'text-st-secondary']">
                 {{ st.deductLessons }} 课时
               </span>
@@ -164,7 +164,6 @@
               />
               <el-input
                 v-model="st.personalizedComment"
-                size="small"
                 placeholder="个性化学情随堂特写（可选）"
                 class="!w-48"
               />
@@ -172,7 +171,6 @@
               <el-select
                 v-model="st.performanceTag"
                 placeholder="特长标签"
-                size="small"
                 clearable
                 class="!w-24"
               >
@@ -227,10 +225,10 @@
             <div>
               <label class="text-xs font-semibold text-st-title block mb-1 inline-flex items-center gap-1"><Image class="w-3.5 h-3.5 text-st-primary" />课堂随堂相册 (最多 9 张)</label>
               <div class="flex items-center gap-2">
-                <el-button size="small" type="primary" plain :loading="uploadingPhotos" @click="handleAddPhoto">
+                <el-button type="primary" plain :loading="uploadingPhotos" @click="handleAddPhoto">
                   {{ uploadingPhotos ? '上传中…' : '添加现场照片' }}
                 </el-button>
-                <span class="text-[11px] text-st-muted">已选 {{ form.photoList.length }} 张</span>
+                <span class="text-xs text-st-muted">已选 {{ form.photoList.length }} 张</span>
               </div>
               <div v-if="form.photoList.length > 0" class="flex flex-wrap gap-2 mt-2">
                 <div
@@ -243,6 +241,8 @@
                     link
                     type="danger"
                     class="!absolute !inset-0 !m-0 !p-0 !text-white !bg-black/60 !rounded-none opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    title="移除这张照片"
+                    aria-label="移除这张照片"
                     @click="handleRemovePhoto(idx)"
                   >
                     <el-icon><Delete /></el-icon>
@@ -261,14 +261,14 @@
                   class="hidden"
                   @change="handleVideoUpload"
                 />
-                <el-button size="small" type="primary" plain :loading="uploadingVideo" @click="videoInputRef?.click()">
+                <el-button type="primary" plain :loading="uploadingVideo" @click="videoInputRef?.click()">
                   {{ uploadingVideo ? '上传中…' : (form.videoUrl ? '重新上传' : '上传随堂视频') }}
                 </el-button>
-                <span v-if="form.videoUrl" class="text-[11px] text-emerald-600 font-bold truncate max-w-[150px] inline-flex items-center gap-1">
+                <span v-if="form.videoUrl" class="text-xs text-emerald-600 font-bold truncate max-w-[150px] inline-flex items-center gap-1">
                   <CheckCircle2 class="w-3.5 h-3.5 text-emerald-600" />
                   <span>{{ videoFileName || '视频已上传' }}</span>
                 </span>
-                <span v-else class="text-[11px] text-st-muted">单视频不得超过 100MB</span>
+                <span v-else class="text-xs text-st-muted">单视频不得超过 100MB</span>
               </div>
             </div>
           </div>

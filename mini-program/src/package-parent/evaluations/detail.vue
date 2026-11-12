@@ -257,7 +257,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .hero-meta {
   display: block;
-  font-size: 24rpx;
+  font-size: 26rpx;
   opacity: 0.85;
 }
 
@@ -273,7 +273,7 @@ function preview(photos: PhotoLink[], index: number) {
 .hero-course {
   display: block;
   margin-top: 8rpx;
-  font-size: 24rpx;
+  font-size: 26rpx;
   opacity: 0.8;
 }
 
@@ -307,7 +307,7 @@ function preview(photos: PhotoLink[], index: number) {
   border-radius: 20rpx;
   background: rgba(0, 0, 0, 0.35);
   color: #FFFFFF;
-  font-size: 22rpx;
+  font-size: 24rpx;
   @include p-num;
 }
 
@@ -346,7 +346,7 @@ function preview(photos: PhotoLink[], index: number) {
 }
 
 .letter-from {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 600;
   color: $p-ink-2;
 }
@@ -368,7 +368,7 @@ function preview(photos: PhotoLink[], index: number) {
   display: block;
   margin-top: 20rpx;
   text-align: right;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-3;
 }
 
@@ -448,7 +448,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .learn-text {
   flex: 1;
-  font-size: 29rpx;
+  font-size: 32rpx;
   line-height: 1.6;
   color: $p-ink;
 }
@@ -459,7 +459,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .rich {
   padding: 12rpx 0;
-  font-size: 28rpx;
+  font-size: 30rpx;
   line-height: 1.8;
   color: $p-ink-2;
 }
@@ -469,7 +469,7 @@ function preview(photos: PhotoLink[], index: number) {
   align-items: center;
   gap: 6rpx;
   margin-top: 8rpx;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: $p-brand;
 }
 
@@ -494,7 +494,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .hw-text {
   flex: 1;
-  font-size: 29rpx;
+  font-size: 32rpx;
   line-height: 1.7;
   color: $p-ink;
 }
@@ -510,7 +510,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .class-comment {
   display: block;
-  font-size: 29rpx;
+  font-size: 32rpx;
   line-height: 1.75;
   color: $p-ink-2;
 }
@@ -526,6 +526,8 @@ function preview(photos: PhotoLink[], index: number) {
 }
 
 .voice-btn {
+  position: relative;
+  flex-shrink: 0;
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
@@ -533,6 +535,8 @@ function preview(photos: PhotoLink[], index: number) {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @include p-hit-area(56rpx);
 }
 
 .wave {
@@ -565,7 +569,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .voice-len {
   @include p-num;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-2;
 }
 
@@ -592,7 +596,7 @@ function preview(photos: PhotoLink[], index: number) {
 .end-mark {
   margin-top: 56rpx;
   text-align: center;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
   letter-spacing: 0.08em;
 }

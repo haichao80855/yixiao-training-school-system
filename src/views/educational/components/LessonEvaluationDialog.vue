@@ -32,7 +32,6 @@
           <el-select
             v-model="selectedTemplateId"
             placeholder="切换大纲模板"
-            size="small"
             class="!w-48"
             @change="handleApplyTemplate"
           >
@@ -74,7 +73,7 @@
             />
 
             <!-- 快捷筛选药丸 -->
-            <el-button-group size="small">
+            <el-button-group>
               <el-button
                 :type="filterTab === 'all' ? 'primary' : 'default'"
                 class="!px-2.5"
@@ -118,7 +117,7 @@
                   <span class="font-bold text-st-title text-sm">{{ st.studentName }}</span>
                   <span
                     v-if="st.isWechatBound"
-                    class="text-[11px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1"
+                    class="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1"
                     title="已绑定微信公众号，可接收推送"
                   >
                     <Smartphone class="w-3 h-3" />
@@ -126,7 +125,7 @@
                   </span>
                   <span
                     v-else
-                    class="text-[10px] text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-100"
+                    class="text-xs text-amber-700 bg-amber-50 px-1 py-0.2 rounded border border-amber-100"
                     title="未绑定微信"
                   >
                     未绑微信
@@ -154,7 +153,7 @@
                       ]"
                     ></span>
                     <span>{{ getAttendanceText(st.attendanceStatus) }}</span>
-                    <span class="text-[9px] opacity-60">▼</span>
+                    <span class="text-xs opacity-60">▼</span>
                   </span>
                   <template #dropdown>
                     <el-dropdown-menu>
@@ -181,29 +180,29 @@
                 <div class="flex items-center gap-1.5">
                   <span
                     v-if="st.isExempt"
-                    class="text-st-secondary text-[11px] font-medium flex items-center gap-1"
+                    class="text-st-secondary text-xs font-medium flex items-center gap-1"
                   >
                     <span class="w-1.5 h-1.5 rounded-full bg-st-secondary inline-block"></span>
                     <span>请假免评</span>
                   </span>
                   <span
                     v-else-if="st.isEvaluated"
-                    class="text-emerald-700 font-bold text-[11px] flex items-center gap-1"
+                    class="text-emerald-700 font-bold text-xs flex items-center gap-1"
                   >
                     <CheckCircle2 class="w-3 h-3 text-emerald-600 inline-block" />
                     <span>已评定</span>
-                    <span v-if="st.evaluatedSource === 'mp'" class="text-[10px] text-indigo-600 bg-indigo-50 px-1 rounded flex items-center gap-0.5">
+                    <span v-if="st.evaluatedSource === 'mp'" class="text-xs text-indigo-600 bg-indigo-50 px-1 rounded flex items-center gap-0.5">
                       <Smartphone class="w-2.5 h-2.5" />
                       手机端
                     </span>
-                    <span v-else class="text-[10px] text-gray-500 bg-gray-100 px-1 rounded flex items-center gap-0.5">
+                    <span v-else class="text-xs text-gray-500 bg-gray-100 px-1 rounded flex items-center gap-0.5">
                       <Monitor class="w-2.5 h-2.5" />
                       网页
                     </span>
                   </span>
                   <span
                     v-else
-                    class="text-amber-600 font-medium text-[11px] flex items-center gap-1"
+                    class="text-amber-600 font-medium text-xs flex items-center gap-1"
                   >
                     <Clock class="w-3 h-3 text-amber-500 inline-block" />
                     <span>待评价</span>
@@ -257,7 +256,7 @@
             <div class="text-xs text-st-muted max-w-sm mx-auto">
               未实际到课学员已由系统自动置为「请假免评」并锁定，不会扣减误消课时，也不会向家长推送随堂评价，从根源杜绝客诉风险。
             </div>
-            <el-button size="small" type="primary" plain @click="handleUpdateAttendance(activeStudent, 'present')">
+            <el-button type="primary" plain @click="handleUpdateAttendance(activeStudent, 'present')">
               若为误记，点击恢复为「到课」并开放课评
             </el-button>
           </div>
@@ -271,7 +270,7 @@
                   <div class="flex items-center gap-2 text-xs font-bold text-slate-700">
                     <BookOpen class="w-3.5 h-3.5 text-st-primary" />
                     <span>课程学习内容与知识点大纲</span>
-                    <span class="text-[11px] font-normal text-st-muted">（全班教学主题背景）</span>
+                    <span class="text-xs font-normal text-st-muted">（全班教学主题背景）</span>
                   </div>
                 </template>
                 <div class="pt-1.5 space-y-1.5">
@@ -292,7 +291,7 @@
                 <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
                   <Video class="w-3.5 h-3.5 text-st-primary" />
                   <span>{{ activeStudent.studentName }} 的专属实操视频</span>
-                  <span class="text-[11px] font-normal text-st-muted">(单视频 ≤ 100MB，独享不公开)</span>
+                  <span class="text-xs font-normal text-st-muted">(单视频 ≤ 100MB，独享不公开)</span>
                 </span>
                 <span v-if="activeStudent.videoUrl" class="text-xs text-emerald-600 font-medium flex items-center gap-1">
                   <CheckCircle2 class="w-3.5 h-3.5" />
@@ -302,7 +301,6 @@
 
               <div class="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                 <el-button
-                  size="small"
                   type="primary"
                   plain
                   :loading="uploadingVideo"
@@ -331,7 +329,7 @@
                 <span class="text-xs font-bold text-st-title flex items-center gap-1.5">
                   <ImageIcon class="w-3.5 h-3.5 text-st-primary" />
                   <span>{{ activeStudent.studentName }} 的专属现场照片</span>
-                  <span class="text-[11px] font-normal text-st-muted">(最多 9 张，每张 ≤ 10MB)</span>
+                  <span class="text-xs font-normal text-st-muted">(最多 9 张，每张 ≤ 10MB)</span>
                 </span>
                 <span class="text-xs font-mono font-semibold text-purple-700">
                   {{ activeStudent.photos.length }} / 9 张
@@ -349,7 +347,7 @@
                 >
                   <span v-if="!uploadingPhotos" class="text-xl font-light leading-none">+</span>
                   <Loader2 v-else class="w-4 h-4 animate-spin text-st-primary" />
-                  <span class="text-[10px] mt-1">{{ uploadingPhotos ? '上传中' : '添加照片' }}</span>
+                  <span class="text-xs mt-1">{{ uploadingPhotos ? '上传中' : '添加照片' }}</span>
                 </div>
 
                 <!-- 缩略图卡片 -->
@@ -376,7 +374,7 @@
                 </span>
 
                 <div class="flex items-center gap-2">
-                  <span class="text-[11px] text-st-secondary font-mono">已输入 {{ (activeStudent.comment || '').length }} 字</span>
+                  <span class="text-xs text-st-secondary font-mono">已输入 {{ (activeStudent.comment || '').length }} 字</span>
                 </div>
               </div>
 
@@ -421,7 +419,6 @@
                 <el-select
                   v-model="activeStudent.performanceTag"
                   placeholder="选择特长能力标签"
-                  size="small"
                   clearable
                   class="w-full"
                 >
@@ -437,11 +434,11 @@
 
             <!-- 6. 底部流线穿梭操作条 -->
             <div class="flex items-center justify-between pt-2 border-t border-gray-100">
-              <el-button size="small" @click="handleSaveCurrentStudentDraft">
+              <el-button @click="handleSaveCurrentStudentDraft">
                 暂存当前学员
               </el-button>
 
-              <el-button type="primary" size="small" class="!px-3.5" @click="handleSaveAndNextStudent">
+              <el-button type="primary" class="!px-3.5" @click="handleSaveAndNextStudent">
                 暂存并评下一位 →
               </el-button>
             </div>

@@ -16,7 +16,7 @@
         {{ errorMessage }}
       </p>
       <div class="pt-4">
-        <span class="text-[11px] text-slate-600">如需查看最新随堂成长档案，请联系校区授课老师或教务班主任重新获取分享链接。</span>
+        <span class="text-xs text-slate-600">如需查看最新随堂成长档案，请联系校区授课老师或教务班主任重新获取分享链接。</span>
       </div>
     </div>
 
@@ -34,7 +34,7 @@
           <div>
             <div class="flex items-center space-x-2">
               <h2 class="text-lg font-bold tracking-tight">{{ headerData.name }}</h2>
-              <span class="text-[10px] bg-white/25 px-2 py-0.5 rounded-full text-white/95">学员专属</span>
+              <span class="text-xs bg-white/25 px-2 py-0.5 rounded-full text-white/95">学员专属</span>
             </div>
             <p class="text-blue-100 text-xs mt-1">
               {{ isSingleLesson ? '随堂精彩成果报告' : `已探索 ${headerData.attendedCount} 次课 · 累计获得 5 星好评` }}
@@ -53,7 +53,7 @@
           <!-- 课次标题与日期 -->
           <div class="flex justify-between items-start border-b border-slate-100 pb-3">
             <div>
-              <span class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+              <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
                 {{ lesson.courseName }}
               </span>
               <h3 class="text-base font-bold text-slate-900 mt-1.5 leading-snug">
@@ -62,7 +62,7 @@
             </div>
             <div class="text-right">
               <div class="text-xs font-mono text-slate-500">{{ lesson.dateFormatted }}</div>
-              <div class="text-[11px] text-slate-500 mt-0.5">{{ lesson.timeSlot }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">{{ lesson.timeSlot }}</div>
             </div>
           </div>
 
@@ -73,7 +73,7 @@
                 <User class="w-4 h-4 text-blue-700" />
                 <span>{{ lesson.teacherName }} 老师随堂寄语</span>
               </span>
-              <span v-if="lesson.performanceTag" class="text-[11px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
+              <span v-if="lesson.performanceTag" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full">
                 {{ lesson.performanceTag }}
               </span>
             </div>
@@ -91,7 +91,7 @@
               <Mic class="w-5 h-5 text-white" />
               <div>
                 <div class="text-xs font-bold">随堂原声点评</div>
-                <div class="text-[10px] text-emerald-100">点击播放老师当堂语音</div>
+                <div class="text-xs text-emerald-100">点击播放老师当堂语音</div>
               </div>
             </div>
             <div class="flex items-center space-x-2">
@@ -129,7 +129,7 @@
               <Video class="w-5 h-5 text-slate-700" />
               <div>
                 <div class="text-xs font-bold text-slate-800">课堂实操编程视频作品</div>
-                <div class="text-[10px] text-slate-500">见证孩子亲手实现的编程奇迹</div>
+                <div class="text-xs text-slate-500">见证孩子亲手实现的编程奇迹</div>
               </div>
             </div>
             <a
@@ -155,7 +155,7 @@
             <div
               v-for="b in lesson.badges"
               :key="b.id"
-              class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/60 px-2.5 py-1 rounded-full text-[11px]"
+              class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200/60 px-2.5 py-1 rounded-full text-xs"
             >
               <Trophy class="w-3.5 h-3.5 text-amber-600" />
               <span class="font-bold">{{ b.title }}</span>
@@ -165,7 +165,7 @@
       </main>
 
       <!-- 底部校区安全标识 -->
-      <footer class="text-center py-6 text-[11px] text-slate-500 space-y-1">
+      <footer class="text-center py-6 text-xs text-slate-500 space-y-1">
         <p>一校教培系统 · 家校共育数字化平台</p>
         <p>教学资产由校区不可变存证链安全护航</p>
       </footer>

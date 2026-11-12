@@ -6,7 +6,7 @@
     destroy-on-close
     :close-on-click-modal="false"
   >
-    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="small">
+    <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <div class="grid grid-cols-3 gap-3">
         <el-form-item label="学员姓名" prop="name">
           <el-input v-model="form.name" placeholder="请输入姓名" />

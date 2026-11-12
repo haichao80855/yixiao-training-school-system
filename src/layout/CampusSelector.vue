@@ -11,7 +11,7 @@
     >
       <MapPin class="w-4 h-4 text-st-primary shrink-0" />
       <span class="font-medium truncate">{{ currentCampus.name }}</span>
-      <span v-if="currentCampus.isHeadquarter" class="text-[11px] leading-[18px] px-1.5 rounded bg-amber-50 text-amber-700 font-medium shrink-0">
+      <span v-if="currentCampus.isHeadquarter" class="text-xs leading-[18px] px-1.5 rounded bg-amber-50 text-amber-700 font-medium shrink-0">
         总部
       </span>
       <ChevronsUpDown v-if="tenantStore.canSwitchCampus" class="w-3.5 h-3.5 text-st-placeholder shrink-0" />
@@ -45,12 +45,12 @@
             <div class="space-y-0.5">
               <div class="flex items-center space-x-2">
                 <span class="text-sm font-semibold">{{ campus.name }}</span>
-                <span class="font-mono text-[11px] text-st-muted">({{ campus.code }})</span>
+                <span class="font-mono text-xs text-st-muted">({{ campus.code }})</span>
                 <el-tag v-if="campus.isHeadquarter" size="small" type="warning" effect="dark">
                   集团总部
                 </el-tag>
               </div>
-              <div class="text-[11px] text-st-secondary">
+              <div class="text-xs text-st-secondary">
                 {{ campus.address }}
               </div>
             </div>
@@ -69,7 +69,7 @@
       <template #footer>
         <div class="flex justify-between items-center text-xs text-st-muted">
           <span>当前法人实体：{{ tenantStore.companyName }}</span>
-          <el-button size="small" @click="dialogVisible = false">关闭</el-button>
+          <el-button @click="dialogVisible = false">关闭</el-button>
         </div>
       </template>
     </el-dialog>

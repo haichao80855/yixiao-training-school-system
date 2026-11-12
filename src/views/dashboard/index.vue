@@ -183,7 +183,7 @@
             >
               <div class="flex items-center space-x-3.5">
                 <div class="w-16 h-11 rounded-lg bg-st-primary-light text-st-primary flex flex-col items-center justify-center shrink-0 leading-tight">
-                  <span class="text-[11px] font-medium">{{ item.dateLabel }}</span>
+                  <span class="text-xs font-medium">{{ item.dateLabel }}</span>
                   <span class="font-semibold text-[13px] font-mono">{{ item.timeSlot ? item.timeSlot.split('-')[0] : '--:--' }}</span>
                 </div>
                 <div>
@@ -210,14 +210,12 @@
               <!-- 操作区 -->
               <div class="flex items-center space-x-2 shrink-0 self-end sm:self-center">
                 <el-button
-                  size="small"
                   @click="$router.push('/educational/workbench')"
                 >
                   讲台
                 </el-button>
                 <el-button
                   type="primary"
-                  size="small"
                   @click="$router.push('/educational/attendance')"
                 >
                   点名消课
@@ -230,7 +228,7 @@
           <div v-else class="py-12 flex flex-col items-center justify-center text-center text-st-muted space-y-2">
             <CalendarDays class="w-9 h-9 text-st-placeholder mx-auto" />
             <p class="text-[13px]">未来两周暂无待上课次</p>
-            <el-button size="small" type="primary" plain @click="$router.push('/educational/timeSchedule')">
+            <el-button type="primary" plain @click="$router.push('/educational/timeSchedule')">
               前往排课日历添加课次
             </el-button>
           </div>

@@ -113,13 +113,26 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
   animation: p-shimmer 1.4s ease infinite;
 }
 
+/* 点击热区：视觉尺寸不变，用透明伪元素把可点区域扩到 88rpx (约 44pt，苹果建议的最小点击尺寸)。
+ * 元素本身需要是定位元素 (relative / absolute / fixed)。 */
+@mixin p-hit-area($size) {
+  &::after {
+    content: '';
+    position: absolute;
+    top: calc((#{$size} - 88rpx) / 2);
+    left: calc((#{$size} - 88rpx) / 2);
+    width: 88rpx;
+    height: 88rpx;
+  }
+}
+
 @mixin p-chip {
   display: inline-flex;
   align-items: center;
   height: 44rpx;
   padding: 0 16rpx;
   border-radius: $p-r-sm;
-  font-size: 24rpx;
+  font-size: 26rpx;
   font-weight: 600;
   white-space: nowrap;
 }

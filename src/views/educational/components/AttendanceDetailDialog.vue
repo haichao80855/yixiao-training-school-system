@@ -41,7 +41,7 @@
             <Undo2 class="w-4 h-4 text-amber-700" />
             <span>反结课冲正记录 (红字冲正完成)</span>
           </div>
-          <div class="text-[11px] text-amber-800 space-y-0.5">
+          <div class="text-xs text-amber-800 space-y-0.5">
             <div>冲正时间：<span class="font-mono">{{ record.reversedAt }}</span> | 操作人：{{ record.reversedBy || '教务主管' }}</div>
             <div>冲正事由：{{ record.reversalReason || '家长客诉申请退回已扣减课时' }}</div>
           </div>
@@ -52,7 +52,7 @@
       <div class="space-y-2">
         <h4 class="text-xs font-bold text-st-title flex items-center justify-between">
           <span class="inline-flex items-center gap-1.5"><Users class="w-4 h-4 text-st-primary" />本次点名明细列表</span>
-          <span class="text-st-muted text-[11px]">共 {{ record.studentAttendances?.length || 0 }} 名学员</span>
+          <span class="text-st-muted text-xs">共 {{ record.studentAttendances?.length || 0 }} 名学员</span>
         </h4>
 
         <el-table :data="record.studentAttendances" size="small" border stripe max-height="300px">

@@ -30,7 +30,7 @@
           </div>
         </div>
         <div class="text-right">
-          <div class="text-[11px] text-st-muted">电子钱包可用余额</div>
+          <div class="text-xs text-st-muted">电子钱包可用余额</div>
           <div class="text-base font-bold font-mono text-st-danger-deep">
             ¥ {{ (student.wallet.principalBalance + student.wallet.bonusBalance).toFixed(2) }}
           </div>
@@ -40,7 +40,7 @@
       <!-- 异动分支选择器 -->
       <div>
         <label class="block text-xs font-bold text-st-title mb-2">选择异动分支类型</label>
-        <el-radio-group v-model="currentMovement" size="small" class="w-full grid grid-cols-4 gap-2">
+        <el-radio-group v-model="currentMovement" class="w-full grid grid-cols-4 gap-2">
           <el-radio-button value="transfer_class" label="1. 转班">转班</el-radio-button>
           <el-radio-button value="change_course" label="2. 换课">换课</el-radio-button>
           <el-radio-button value="suspend" label="3. 停课" :disabled="student.status === 'suspended'">停课</el-radio-button>
@@ -59,7 +59,7 @@
             <span>转班操作：等额课时移转，解除原班级关联并排入新班级</span>
             <el-tag size="small" type="info">容量预检</el-tag>
           </div>
-          <el-form label-position="top" size="small">
+          <el-form label-position="top">
             <el-form-item label="选择需要转班的有效课包" required>
               <el-select v-model="transferForm.packageId" placeholder="请选择学员有效课包" class="w-full">
                 <el-option
@@ -93,7 +93,7 @@
           <div class="text-xs font-bold text-st-title border-b pb-2">
             换课操作：按原课包剩余学费净值折算新课程课时，多退少补
           </div>
-          <el-form label-position="top" size="small">
+          <el-form label-position="top">
             <div class="grid grid-cols-2 gap-3">
               <el-form-item label="选择原课包" required>
                 <el-select v-model="changeCourseForm.packageId" placeholder="选择原课包" class="w-full">
@@ -145,7 +145,7 @@
           <div class="text-xs font-bold text-st-title border-b pb-2">
             停课/休学操作：冻结名下课包，顺延到期日，暂停排课
           </div>
-          <el-form label-position="top" size="small">
+          <el-form label-position="top">
             <el-form-item label="停课天数（到期日顺延天数）" required>
               <el-input-number v-model="suspendForm.days" :min="7" :max="365" class="w-full" />
             </el-form-item>
@@ -159,7 +159,7 @@
                 >
                   <div class="flex items-center justify-between w-full">
                     <span>{{ item.label }}</span>
-                    <span v-if="item.remark" class="text-[11px] text-st-muted ml-2">({{ item.remark }})</span>
+                    <span v-if="item.remark" class="text-xs text-st-muted ml-2">({{ item.remark }})</span>
                   </div>
                 </el-option>
               </el-select>
@@ -189,7 +189,7 @@
           <div class="text-xs font-bold text-st-title border-b pb-2">
             转校操作：跨校区学籍与学费净值划转，需更新校区归属
           </div>
-          <el-form label-position="top" size="small">
+          <el-form label-position="top">
             <el-form-item label="当前校区">
               <el-input :model-value="student.campusName" disabled />
             </el-form-item>
@@ -212,7 +212,7 @@
           <div class="text-xs font-bold text-st-title border-b pb-2">
             转让操作：将名下全部有效课包与电子钱包资金移交至其他学员
           </div>
-          <el-form label-position="top" size="small">
+          <el-form label-position="top">
             <el-form-item label="选择受让目标学员" required>
               <el-select v-model="transferStudentForm.targetStudentId" filterable placeholder="输入姓名或学号搜索受让学员" class="w-full">
                 <el-option
@@ -234,7 +234,7 @@
           <div class="text-xs font-bold text-st-title border-b pb-2">
             退费操作：扣除已消耗课时、教材手续费，严密执行盛通退费核算公式
           </div>
-          <el-form label-position="top" size="small">
+          <el-form label-position="top">
             <el-form-item label="选择退费课包" required>
               <el-select v-model="refundForm.packageId" placeholder="请选择退费课包" class="w-full">
                 <el-option
@@ -267,7 +267,7 @@
                 <span>盛通核算实退金额:</span>
                 <span class="text-st-danger-deep font-mono text-base">¥ {{ previewResult.financialImpact.refundableCashAmount?.toFixed(2) }}</span>
               </div>
-              <div class="text-[11px] text-slate-500 pt-0.5">
+              <div class="text-xs text-slate-500 pt-0.5">
                 * 经由盛通防腐算法核算，赠送课时不折现，实退金额将转入退费审批工单
               </div>
             </div>

@@ -48,7 +48,7 @@
 
     <template #footer>
       <div class="flex justify-between items-center">
-        <el-button size="small" @click="handleReset">重新抓拍</el-button>
+        <el-button @click="handleReset">重新抓拍</el-button>
         <div class="space-x-2">
           <el-button @click="visible = false">取消</el-button>
           <el-button type="primary" :loading="scanning" @click="handleCapture">

@@ -13,11 +13,11 @@
       </div>
 
       <div class="flex items-center space-x-2">
-        <el-button size="small" @click="handleRefresh">
+        <el-button @click="handleRefresh">
           <el-icon class="mr-1"><Refresh /></el-icon>
           刷新
         </el-button>
-        <el-button type="primary" size="small" @click="handleExportLedger">
+        <el-button type="primary" @click="handleExportLedger">
           <el-icon class="mr-1"><Download /></el-icon>
           导出对账单
         </el-button>
@@ -34,7 +34,7 @@
         <div class="text-xl font-bold font-mono text-st-title mt-1.5">
           ¥ {{ metrics.todayAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[11px] text-st-muted mt-1">
+        <div class="text-xs text-st-muted mt-1">
           今日交易笔数：<strong class="text-st-primary font-mono">{{ metrics.todayCount }}</strong> 笔
         </div>
       </div>
@@ -47,7 +47,7 @@
         <div class="text-xl font-bold font-mono text-st-danger mt-1.5">
           ¥ {{ metrics.netAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[11px] text-st-muted mt-1">
+        <div class="text-xs text-st-muted mt-1">
           累计实收订单：<strong class="text-st-title font-mono">{{ metrics.totalCount }}</strong> 笔
         </div>
       </div>
@@ -60,7 +60,7 @@
         <div class="text-xl font-bold font-mono text-emerald-600 mt-1.5">
           ¥ {{ metrics.onlineAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[11px] text-st-muted mt-1">
+        <div class="text-xs text-st-muted mt-1">
           微信商户号 + 支付宝生活号
         </div>
       </div>
@@ -73,7 +73,7 @@
         <div class="text-xl font-bold font-mono text-blue-600 mt-1.5">
           ¥ {{ metrics.bankPosAmount.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}
         </div>
-        <div class="text-[11px] text-st-muted mt-1">
+        <div class="text-xs text-st-muted mt-1">
           招商银行对公电汇 + 银联POS
         </div>
       </div>
@@ -82,12 +82,12 @@
     <!-- 筛选过滤栏 -->
     <div class="bg-white rounded-lg p-3.5 shadow-card border border-st-border flex flex-wrap items-center justify-between gap-2.5">
       <div class="flex flex-wrap items-center gap-2">
-        <el-select v-model="filterCampus" placeholder="归属校区" size="small" class="!w-36" clearable>
+        <el-select v-model="filterCampus" placeholder="归属校区" class="!w-36" clearable>
           <el-option label="全部校区" value="all" />
           <el-option v-for="c in tenantStore.campuses" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
 
-        <el-select v-model="filterMethod" placeholder="结算通道" size="small" class="!w-36" clearable>
+        <el-select v-model="filterMethod" placeholder="结算通道" class="!w-36" clearable>
           <el-option label="全部通道" value="all" />
           <el-option label="微信商户号" value="微信商户号" />
           <el-option label="支付宝生活号" value="支付宝生活号" />
@@ -95,7 +95,7 @@
           <el-option label="银联POS" value="银联POS" />
         </el-select>
 
-        <el-select v-model="filterType" placeholder="收费类型" size="small" class="!w-36" clearable>
+        <el-select v-model="filterType" placeholder="收费类型" class="!w-36" clearable>
           <el-option label="全部类型" value="all" />
           <el-option label="新签报读" value="新签报读" />
           <el-option label="续费培优" value="续费培优" />
@@ -113,20 +113,18 @@
           start-placeholder="开始日期"
           end-placeholder="结束日期"
           value-format="YYYY-MM-DD"
-          size="small"
           class="!w-56"
         />
 
         <el-input
           v-model="filterKeyword"
           placeholder="搜索学员姓名/流水单号"
-          size="small"
           class="!w-44"
           clearable
         />
 
-        <el-button type="primary" size="small" @click="handleFilter">查询</el-button>
-        <el-button size="small" @click="resetFilter">重置</el-button>
+        <el-button type="primary" @click="handleFilter">查询</el-button>
+        <el-button @click="resetFilter">重置</el-button>
       </div>
 
       <div class="text-xs text-st-muted">
@@ -142,7 +140,7 @@
       currency="元"
     >
       <template #right>
-        <el-button size="small" type="primary" plain @click="handleExportLedger">
+        <el-button type="primary" plain @click="handleExportLedger">
           <el-icon class="mr-1"><Download /></el-icon>
           导出对账单
         </el-button>
@@ -174,7 +172,7 @@
                 title="点击复制单号"
               >
                 <span>{{ row.transNo }}</span>
-                <el-icon class="text-[11px]"><DocumentCopy /></el-icon>
+                <el-icon class="text-xs"><DocumentCopy /></el-icon>
               </span>
             </template>
           </el-table-column>
@@ -193,7 +191,7 @@
             <template #default="{ row }">
               <div>
                 <span class="font-semibold text-st-title">{{ row.student }}</span>
-                <span v-if="row.studentNo" class="text-st-muted font-mono text-[11px] ml-1">({{ row.studentNo }})</span>
+                <span v-if="row.studentNo" class="text-st-muted font-mono text-xs ml-1">({{ row.studentNo }})</span>
               </div>
             </template>
           </el-table-column>
@@ -279,7 +277,7 @@
       </div>
 
       <template #footer>
-        <el-button size="small" type="primary" @click="detailDialogVisible = false">确定</el-button>
+        <el-button type="primary" @click="detailDialogVisible = false">确定</el-button>
       </template>
     </el-dialog>
   </div>

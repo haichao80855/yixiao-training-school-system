@@ -17,7 +17,6 @@
 
       <div class="flex items-center space-x-2">
         <el-button
-          size="small"
           type="primary"
           :disabled="selectedPendingRows.length === 0"
           @click="handleBatchPass"
@@ -26,7 +25,6 @@
           批量同意 ({{ selectedPendingRows.length }})
         </el-button>
         <el-button
-          size="small"
           type="danger"
           plain
           :disabled="selectedPendingRows.length === 0"
@@ -40,7 +38,7 @@
 
     <!-- 3 大业务主 Tab (常规收款确认 | 季度扣费审批 | 退费多级复核) -->
     <div class="bg-white rounded-lg px-4 py-2.5 shadow-card border border-st-border flex flex-wrap items-center justify-between gap-3">
-      <el-button-group size="small">
+      <el-button-group>
         <el-button
           v-for="biz in businessTabs"
           :key="biz.key"
@@ -50,7 +48,7 @@
           <span>{{ biz.name }}</span>
           <span
             :class="[
-              'text-[10px] px-1.5 py-0.2 rounded-full font-mono ml-1.5',
+              'text-xs px-1.5 py-0.2 rounded-full font-mono ml-1.5',
               activeBusinessTab === biz.key ? 'bg-white text-st-primary' : 'bg-gray-200 text-st-muted'
             ]"
           >
@@ -64,7 +62,6 @@
         <el-button
           v-for="st in statusTabs"
           :key="st.key"
-          size="small"
           :type="activeStatusTab === st.key ? 'primary' : 'default'"
           :plain="activeStatusTab === st.key"
           class="!m-0"
@@ -79,7 +76,7 @@
     <div class="bg-white rounded-lg p-4 shadow-card border border-st-border">
       <div class="text-xs font-bold text-st-title mb-3 flex items-center justify-between">
         <span>多级审批流转标准链路规范</span>
-        <span class="text-st-muted font-normal text-[11px]">* 任意节点驳回即终止流转，终审通过后原子级触发资金变动</span>
+        <span class="text-st-muted font-normal text-xs">* 任意节点驳回即终止流转，终审通过后原子级触发资金变动</span>
       </div>
       <el-steps :active="2" finish-status="success" align-center size="small">
         <el-step title="1. 教学课消核实" description="教学主管/学管核验排课出勤与待消课时" />
@@ -108,7 +105,7 @@
               title="点击复制单号"
             >
               <span>{{ row.approvalNo }}</span>
-              <el-icon class="text-[11px]"><DocumentCopy /></el-icon>
+              <el-icon class="text-xs"><DocumentCopy /></el-icon>
             </span>
           </template>
         </el-table-column>
@@ -130,9 +127,9 @@
           <template #default="{ row }">
             <div>
               <span class="font-medium text-st-title">{{ row.studentName }}</span>
-              <span class="text-st-muted font-mono text-[11px] ml-1">({{ row.studentNo }})</span>
+              <span class="text-st-muted font-mono text-xs ml-1">({{ row.studentNo }})</span>
             </div>
-            <div class="text-[11px] text-st-muted truncate">{{ row.reason }}</div>
+            <div class="text-xs text-st-muted truncate">{{ row.reason }}</div>
           </template>
         </el-table-column>
 
@@ -241,14 +238,13 @@
             type="textarea"
             :rows="2"
             placeholder="填写审批核准留言（如：已核验学员出勤课消无误，同意放行）"
-            size="small"
           />
         </div>
       </div>
 
       <template #footer>
-        <el-button size="small" @click="passDialogVisible = false">取消</el-button>
-        <el-button size="small" type="primary" @click="confirmPass">确认通过</el-button>
+        <el-button @click="passDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmPass">确认通过</el-button>
       </template>
     </el-dialog>
 
@@ -280,14 +276,13 @@
             type="textarea"
             :rows="3"
             placeholder="请详细说明驳回原因（如：银行流水凭证模糊/退课扣费课时计算有误，需重新核算）"
-            size="small"
           />
         </div>
       </div>
 
       <template #footer>
-        <el-button size="small" @click="rejectDialogVisible = false">取消</el-button>
-        <el-button size="small" type="danger" @click="confirmReject">确认驳回</el-button>
+        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="confirmReject">确认驳回</el-button>
       </template>
     </el-dialog>
 
@@ -316,8 +311,8 @@
               size="normal"
             >
               <div class="font-medium text-st-title">{{ currentActiveRecord.applicantName }} 发起审批</div>
-              <div class="text-[11px] text-st-muted mt-0.5">{{ currentActiveRecord.reason }}</div>
-              <div class="text-[10px] text-st-secondary font-mono mt-0.5">{{ currentActiveRecord.createdAt }}</div>
+              <div class="text-xs text-st-muted mt-0.5">{{ currentActiveRecord.reason }}</div>
+              <div class="text-xs text-st-secondary font-mono mt-0.5">{{ currentActiveRecord.createdAt }}</div>
             </el-timeline-item>
 
             <el-timeline-item
@@ -334,10 +329,10 @@
                   {{ node.status === 'passed' ? '通过' : '驳回' }}
                 </el-tag>
               </div>
-              <div class="text-[11px] text-st-regular mt-1">
+              <div class="text-xs text-st-regular mt-1">
                 操作人：<strong class="text-st-title">{{ node.operator }}</strong>
               </div>
-              <div v-if="node.comment" class="text-[11px] text-st-muted mt-0.5 bg-gray-50 p-1.5 rounded border border-gray-100">
+              <div v-if="node.comment" class="text-xs text-st-muted mt-0.5 bg-gray-50 p-1.5 rounded border border-gray-100">
                 审核附言：{{ node.comment }}
               </div>
             </el-timeline-item>
@@ -346,7 +341,7 @@
       </div>
 
       <template #footer>
-        <el-button size="small" type="primary" @click="timelineDialogVisible = false">关闭</el-button>
+        <el-button type="primary" @click="timelineDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>

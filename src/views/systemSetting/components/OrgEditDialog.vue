@@ -6,7 +6,7 @@
     :width="DIALOG_SIZE.sm"
     destroy-on-close
   >
-    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
+    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" class="pt-2">
       <el-form-item label="机构全称" required>
         <el-input v-model="form.name" placeholder="请输入机构工商登记全称" />
       </el-form-item>
@@ -27,8 +27,8 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button size="small" @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" size="small" :loading="saving" @click="handleSave">保存修改</el-button>
+      <el-button @click="$emit('update:modelValue', false)">取消</el-button>
+      <el-button type="primary" :loading="saving" @click="handleSave">保存修改</el-button>
     </template>
   </el-dialog>
 </template>

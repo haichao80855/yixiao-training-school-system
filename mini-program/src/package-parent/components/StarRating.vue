@@ -32,7 +32,7 @@ withDefaults(defineProps<{ value: number; size?: string; showValue?: boolean }>(
   .value {
     @include p-num;
     margin-left: 8rpx;
-    font-size: 26rpx;
+    font-size: 28rpx;
     font-weight: 700;
     color: $p-amber-ink;
   }

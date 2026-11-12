@@ -164,7 +164,7 @@ const goBack = () => {
 
 .overline {
   display: block;
-  font-size: 24rpx;
+  font-size: 26rpx;
   color: $p-ink-3;
 }
 
@@ -191,7 +191,7 @@ const goBack = () => {
 }
 
 .child-name {
-  font-size: 26rpx;
+  font-size: 28rpx;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -206,7 +206,7 @@ const goBack = () => {
   padding: 20rpx 24rpx;
   border-radius: $p-r-sm;
   background: $p-amber-50;
-  font-size: 24rpx;
+  font-size: 26rpx;
   line-height: 1.6;
   color: $p-amber-ink;
 }
@@ -236,6 +236,8 @@ const goBack = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+
+  @include p-hit-area(68rpx);
 
   &:active {
     transform: scale(0.94);

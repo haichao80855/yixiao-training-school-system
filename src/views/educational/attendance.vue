@@ -130,7 +130,7 @@
                 <el-table-column prop="className" label="班级名称" min-width="190">
                   <template #default="{ row }">
                     <span class="font-bold text-st-title">{{ row.className }}</span>
-                    <div class="text-[11px] text-st-muted mt-0.5">{{ row.courseName }}</div>
+                    <div class="text-xs text-st-muted mt-0.5">{{ row.courseName }}</div>
                   </template>
                 </el-table-column>
                 <el-table-column prop="teacherName" label="授课老师" width="115">
@@ -201,7 +201,7 @@
               <el-table-column prop="className" label="班级 / 课次讲题" min-width="190">
                 <template #default="{ row }">
                   <div class="font-bold text-st-title">{{ row.className }}</div>
-                  <div class="text-[11px] text-st-muted mt-0.5">{{ row.lessonTitle || `第${row.lessonNumber}讲` }}</div>
+                  <div class="text-xs text-st-muted mt-0.5">{{ row.lessonTitle || `第${row.lessonNumber}讲` }}</div>
                 </template>
               </el-table-column>
               <el-table-column prop="teacherName" label="授课老师" width="115">
@@ -245,7 +245,7 @@
                     >
                       反结课冲正
                     </el-button>
-                    <span v-else class="text-[11px] text-st-muted px-1.5 py-0.5 bg-gray-100 rounded">
+                    <span v-else class="text-xs text-st-muted px-1.5 py-0.5 bg-gray-100 rounded">
                       已冲正
                     </span>
                   </div>

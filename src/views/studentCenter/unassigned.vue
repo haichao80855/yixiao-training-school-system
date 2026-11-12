@@ -58,7 +58,6 @@
             <el-input
               v-model="keyword"
               placeholder="搜索学员姓名、学号或课程..."
-              size="small"
               clearable
               @clear="handleSearch"
               @keyup.enter="handleSearch"
@@ -67,7 +66,6 @@
           <div class="w-48">
             <el-select
               v-model="selectedTimeFilter"
-              size="small"
               placeholder="意向时段"
               clearable
               class="w-full"
@@ -80,15 +78,15 @@
               <el-option label="周日下午" value="周日下午" />
             </el-select>
           </div>
-          <el-button size="small" type="primary" plain @click="handleSearch">查询</el-button>
-          <el-button size="small" @click="handleReset">重置</el-button>
+          <el-button type="primary" plain @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置</el-button>
         </div>
 
         <div class="space-x-2">
-          <el-button size="small" plain :loading="exporting" @click="handleExport">
+          <el-button plain :loading="exporting" @click="handleExport">
             {{ selectedRows.length > 0 ? `导出选中 (${selectedRows.length})` : '导出待分班名单' }}
           </el-button>
-          <el-button type="primary" size="small" :disabled="selectedRows.length === 0" @click="handleBatchAssign">
+          <el-button type="primary" :disabled="selectedRows.length === 0" @click="handleBatchAssign">
             批量加入班级 (已选 {{ selectedRows.length }})
           </el-button>
         </div>
@@ -121,7 +119,7 @@
                 <StudentAvatar v-else :seed="row.studentId" :name="row.name" :gender="row.gender" :size="32" />
                 <div>
                   <div class="font-semibold text-st-primary text-xs">{{ row.name }}</div>
-                  <div class="text-[11px] text-st-muted font-mono">{{ row.studentNo }}</div>
+                  <div class="text-xs text-st-muted font-mono">{{ row.studentNo }}</div>
                 </div>
               </div>
             </template>
@@ -176,7 +174,7 @@
             <div class="text-st-secondary mt-0.5">报读课程：{{ activeItem.courseName }}</div>
           </div>
           <div class="text-right">
-            <div class="text-[11px] text-st-muted">综合评测得分</div>
+            <div class="text-xs text-st-muted">综合评测得分</div>
             <div class="text-xl font-bold font-mono text-st-primary">{{ activeItem.assessmentScore || 90 }} 分</div>
           </div>
         </div>
@@ -232,7 +230,7 @@
           <el-tag size="small" type="warning">批量分配</el-tag>
         </div>
 
-        <el-form label-position="top" size="small">
+        <el-form label-position="top">
           <el-form-item label="选择系统排课班级 (支持输入检索新设班级)" required>
             <el-select
               v-model="selectedClassId"
@@ -255,7 +253,7 @@
                       size="small"
                       type="success"
                       effect="light"
-                      class="!px-1 !text-[10px]"
+                      class="!px-1 !text-xs"
                     >
                       推荐匹配
                     </el-tag>
@@ -279,10 +277,10 @@
             <span>目标班级：{{ chosenClass.name }}</span>
             <span class="font-mono text-xs">当前在读: {{ chosenClass.currentCount }} / 容量: {{ chosenClass.capacity }} 人</span>
           </div>
-          <div class="text-[11px] text-emerald-700">
+          <div class="text-xs text-emerald-700">
             授课老师：{{ chosenClass.teacherName }} | 归属校区：{{ chosenClass.campusName || '校区' }} | 所属课程：{{ chosenClass.courseName }}
           </div>
-          <div class="text-[11px] text-emerald-600 mt-0.5 flex items-center gap-1">
+          <div class="text-xs text-emerald-600 mt-0.5 flex items-center gap-1">
             <Check class="w-3.5 h-3.5 shrink-0" />
             <span>确认分班后，该学员将自动解除待分班状态，正式编入班级花名册并排入教学考勤日历。</span>
           </div>

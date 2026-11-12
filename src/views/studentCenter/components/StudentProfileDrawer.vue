@@ -37,10 +37,10 @@
 
           <!-- 顶部快捷操作 -->
           <div class="flex items-center space-x-2">
-            <el-button type="primary" size="small" @click="emit('openEnroll', student)">
+            <el-button type="primary" @click="emit('openEnroll', student)">
               + 报读开单
             </el-button>
-            <el-button type="warning" size="small" plain @click="emit('openMovement', student)">
+            <el-button type="warning" plain @click="emit('openMovement', student)">
               异动流转
             </el-button>
           </div>
@@ -49,19 +49,19 @@
         <!-- 核心资产指标胶囊栏 -->
         <div class="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-slate-200/80 text-center">
           <div class="bg-white rounded-lg p-2.5 border border-slate-200 shadow-2xs">
-            <div class="text-[11px] text-st-muted">有效剩余总课时</div>
+            <div class="text-xs text-st-muted">有效剩余总课时</div>
             <div class="text-lg font-bold font-mono text-emerald-600 mt-0.5">{{ totalRemainingLessons }} <span class="text-xs font-normal">课时</span></div>
           </div>
           <div class="bg-white rounded-lg p-2.5 border border-slate-200 shadow-2xs">
-            <div class="text-[11px] text-st-muted">电子钱包总额</div>
+            <div class="text-xs text-st-muted">电子钱包总额</div>
             <div class="text-lg font-bold font-mono text-st-danger-deep mt-0.5">¥ {{ totalWalletBalance.toFixed(2) }}</div>
           </div>
           <div class="bg-white rounded-lg p-2.5 border border-slate-200 shadow-2xs">
-            <div class="text-[11px] text-st-muted">零花钱积分</div>
+            <div class="text-xs text-st-muted">零花钱积分</div>
             <div class="text-lg font-bold font-mono text-amber-600 mt-0.5">{{ student.wallet?.goldPoints || 0 }} <span class="text-xs font-normal">分</span></div>
           </div>
           <div class="bg-white rounded-lg p-2.5 border border-slate-200 shadow-2xs">
-            <div class="text-[11px] text-st-muted">已获赛事考级荣誉</div>
+            <div class="text-xs text-st-muted">已获赛事考级荣誉</div>
             <div class="text-lg font-bold font-mono text-indigo-600 mt-0.5">{{ student.competitionRecords?.length || 0 }} <span class="text-xs font-normal">项</span></div>
           </div>
         </div>
@@ -98,8 +98,8 @@
               <b v-else-if="totalRemainingLessons <= 0" class="text-slate-900">课时已用完</b>
               <b v-else class="text-slate-900">近 30 天无消课，暂无法预估</b>
             </span>
-            <span v-if="consumptionHealth.dormantRisk" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-semibold">14天未消课休眠风险</span>
-            <span v-if="consumptionHealth.renewalWindowOpen" class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-semibold">处于续费跟进黄金期</span>
+            <span v-if="consumptionHealth.dormantRisk" class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-xs font-semibold">14天未消课休眠风险</span>
+            <span v-if="consumptionHealth.renewalWindowOpen" class="bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded text-xs font-semibold">处于续费跟进黄金期</span>
           </div>
           <el-button v-if="consumptionHealth.renewalWindowOpen" size="small" type="primary" link @click="emit('openEnroll', student)">发起续费跟进</el-button>
         </div>
@@ -124,7 +124,7 @@
                 <div class="flex justify-between items-start">
                   <div>
                     <h5 class="font-bold text-xs text-st-title">{{ pkg.courseName }}</h5>
-                    <div class="text-[11px] text-st-secondary mt-0.5">
+                    <div class="text-xs text-st-secondary mt-0.5">
                       班级: <span class="font-medium text-st-primary">{{ pkg.className || '待分班入班' }}</span>
                     </div>
                   </div>
@@ -135,7 +135,7 @@
 
                 <!-- 课时进度条 -->
                 <div class="mt-3">
-                  <div class="flex justify-between text-[11px] text-st-secondary mb-1 font-mono">
+                  <div class="flex justify-between text-xs text-st-secondary mb-1 font-mono">
                     <span>消耗进度 ({{ pkg.consumedLessons || (pkg.totalLessons - pkg.remainingLessons) }} / {{ pkg.totalLessons }})</span>
                     <span class="text-emerald-700 font-bold">剩余 {{ pkg.remainingLessons }} 课时</span>
                   </div>
@@ -146,7 +146,7 @@
                   />
                 </div>
 
-                <div class="grid grid-cols-2 gap-2 text-[11px] text-st-muted mt-3 pt-2 border-t border-slate-200">
+                <div class="grid grid-cols-2 gap-2 text-xs text-st-muted mt-3 pt-2 border-t border-slate-200">
                   <div>单价: <b class="text-st-title">¥{{ pkg.pricePerLesson || 280 }}/课时</b></div>
                   <div>赠课: <b class="text-st-title">{{ pkg.bonusLessons || 0 }} 课时</b></div>
                   <div>合同单号: <span class="font-mono">{{ pkg.orderNo || 'ORD-HIST' }}</span></div>
@@ -179,23 +179,23 @@
               </div>
               <div class="grid grid-cols-5 gap-2 text-center text-xs">
                 <div class="bg-white/80 p-2 rounded border border-blue-100">
-                  <div class="text-[11px] text-st-muted">逻辑思维</div>
+                  <div class="text-xs text-st-muted">逻辑思维</div>
                   <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.logic }}</div>
                 </div>
                 <div class="bg-white/80 p-2 rounded border border-blue-100">
-                  <div class="text-[11px] text-st-muted">创新创意</div>
+                  <div class="text-xs text-st-muted">创新创意</div>
                   <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.creativity }}</div>
                 </div>
                 <div class="bg-white/80 p-2 rounded border border-blue-100">
-                  <div class="text-[11px] text-st-muted">专注自律</div>
+                  <div class="text-xs text-st-muted">专注自律</div>
                   <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.focus }}</div>
                 </div>
                 <div class="bg-white/80 p-2 rounded border border-blue-100">
-                  <div class="text-[11px] text-st-muted">动手实操</div>
+                  <div class="text-xs text-st-muted">动手实操</div>
                   <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.handsOn }}</div>
                 </div>
                 <div class="bg-white/80 p-2 rounded border border-blue-100">
-                  <div class="text-[11px] text-st-muted">表达互动</div>
+                  <div class="text-xs text-st-muted">表达互动</div>
                   <div class="text-sm font-bold font-mono text-st-title mt-1">{{ growthRadar.expression }}</div>
                 </div>
               </div>
@@ -204,7 +204,7 @@
             <!-- 工具栏：双模切换与家长端分享 -->
             <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200">
               <div class="flex items-center space-x-3">
-                <el-radio-group v-model="viewMode" size="small">
+                <el-radio-group v-model="viewMode">
                   <el-radio-button label="timeline">时间轴详案</el-radio-button>
                   <el-radio-button label="gallery">课堂相册墙 ({{ albumGallery.length }}张)</el-radio-button>
                 </el-radio-group>
@@ -212,7 +212,6 @@
               </div>
               <div class="flex items-center space-x-2">
                 <el-button
-                  size="small"
                   type="primary"
                   plain
                   class="inline-flex items-center gap-1"
@@ -221,7 +220,7 @@
                   <Link2 class="w-3.5 h-3.5" />
                   <span>复制家长端总览链接</span>
                 </el-button>
-                <el-button size="small" plain @click="handleAddRecord">+ 录入课评</el-button>
+                <el-button plain @click="handleAddRecord">+ 录入课评</el-button>
               </div>
             </div>
 
@@ -239,7 +238,7 @@
                   <div class="flex justify-between items-center">
                     <div class="flex items-center space-x-2">
                       <span class="font-bold text-st-title text-sm">{{ rec.lessonTitle || rec.lessonName }}</span>
-                      <span class="text-st-muted text-[11px]">({{ rec.courseName }})</span>
+                      <span class="text-st-muted text-xs">({{ rec.courseName }})</span>
                     </div>
                     <div class="flex items-center space-x-2">
                       <el-tag v-if="rec.isReversed" size="small" type="danger">已反结课冲正</el-tag>
@@ -260,7 +259,7 @@
                   </div>
 
                   <!-- 核心素养知识点与教学大纲富文本 -->
-                  <div v-if="rec.studyContentHtml || rec.studyContent" class="text-slate-600 bg-white/90 p-2 rounded border border-slate-100 text-[11px] leading-relaxed">
+                  <div v-if="rec.studyContentHtml || rec.studyContent" class="text-slate-600 bg-white/90 p-2 rounded border border-slate-100 text-xs leading-relaxed">
                     <span class="font-semibold text-slate-800">【教学大纲重难点】: </span>
                     <span v-if="rec.studyContentHtml" v-html="rec.studyContentHtml" class="inline" />
                     <span v-else>{{ rec.studyContent }}</span>
@@ -279,7 +278,7 @@
 
                   <!-- 开箱即用 9 宫格相册 (图片自带缩略图 thumbnailUrl 与全量预览 previewList) -->
                   <div v-if="(rec.photos && rec.photos.length > 0) || (rec.photoList && rec.photoList.length > 0)" class="pt-1">
-                    <div class="text-[11px] text-st-muted mb-1 flex items-center gap-1.5">
+                    <div class="text-xs text-st-muted mb-1 flex items-center gap-1.5">
                       <Image class="w-3.5 h-3.5 text-st-primary" />
                       <span>随堂精彩瞬间 ({{ rec.photos?.length || rec.photoList?.length }} 张)</span>
                     </div>
@@ -329,13 +328,13 @@
                   </div>
 
                   <!-- 底栏状态注记 -->
-                  <div class="flex items-center justify-between text-st-muted text-[11px] pt-1 border-t border-slate-100">
+                  <div class="flex items-center justify-between text-st-muted text-xs pt-1 border-t border-slate-100">
                     <div class="flex items-center space-x-2">
                       <span>作业评级: <el-tag size="small" type="warning">{{ rec.homeworkRating }}</el-tag></span>
                       <span v-if="rec.rating">综合星级: <el-tag size="small" type="info">{{ rec.rating }}</el-tag></span>
                       <span v-if="rec.classroomName">教室: {{ rec.classroomName }}</span>
                     </div>
-                    <div v-if="rec.isReversed" class="text-red-500 font-mono text-[10px]">
+                    <div v-if="rec.isReversed" class="text-red-500 font-mono text-xs">
                       冲正说明: {{ rec.reversalReason || '教务审核冲正' }}
                     </div>
                     <div v-else-if="rec.quizScore">随堂测验: <b class="font-mono text-st-title">{{ rec.quizScore }} 分</b></div>
@@ -362,7 +361,7 @@
                 />
                 <div class="p-2 space-y-0.5">
                   <div class="font-semibold text-xs text-slate-800 truncate">{{ photo.lessonTitle }}</div>
-                  <div class="flex justify-between text-[10px] text-st-secondary">
+                  <div class="flex justify-between text-xs text-st-secondary">
                     <span>{{ photo.date }}</span>
                     <span>{{ photo.teacherName }}</span>
                   </div>
@@ -387,7 +386,7 @@
                   <div class="text-xs text-amber-800">预存实充本金余额 (支持合规退现)</div>
                   <div class="text-2xl font-bold font-mono text-amber-950 mt-1">¥ {{ student.wallet.principalBalance.toFixed(2) }}</div>
                 </div>
-                <el-button type="primary" size="small" @click="showRechargeDialog = true">充值本金</el-button>
+                <el-button type="primary" @click="showRechargeDialog = true">充值本金</el-button>
               </div>
 
               <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-center justify-between">
@@ -395,7 +394,7 @@
                   <div class="text-xs text-blue-800">校区大促赠送金账户 (优先消费抵扣)</div>
                   <div class="text-2xl font-bold font-mono text-blue-950 mt-1">¥ {{ student.wallet.bonusBalance.toFixed(2) }}</div>
                 </div>
-                <el-button size="small" @click="showWithdrawDialog = true">本金提现</el-button>
+                <el-button @click="showWithdrawDialog = true">本金提现</el-button>
               </div>
             </div>
 
@@ -441,7 +440,7 @@
 
     <!-- 充值弹窗 -->
     <el-dialog v-model="showRechargeDialog" title="电子钱包充值" :width="DIALOG_SIZE.sm" append-to-body>
-      <el-form label-position="top" size="small">
+      <el-form label-position="top">
         <el-form-item label="充值实存本金金额 (¥)" required>
           <el-input-number v-model="rechargeForm.amount" :min="100" :step="500" class="w-full" />
         </el-form-item>
@@ -457,7 +456,7 @@
 
     <!-- 提现弹窗 -->
     <el-dialog v-model="showWithdrawDialog" title="本金合规提现" :width="DIALOG_SIZE.sm" append-to-body>
-      <el-form label-position="top" size="small">
+      <el-form label-position="top">
         <el-form-item label="提现出账金额 (¥，不可超过本金余额)" required>
           <el-input-number v-model="withdrawAmount" :min="10" :max="student?.wallet.principalBalance || 0" :step="100" class="w-full" />
         </el-form-item>

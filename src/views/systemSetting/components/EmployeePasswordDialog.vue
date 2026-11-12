@@ -20,7 +20,6 @@
           type="password"
           show-password
           placeholder="请输入重置后的新密码"
-          size="small"
         />
       </div>
 
@@ -33,11 +32,10 @@
           type="password"
           show-password
           placeholder="请再次输入新密码"
-          size="small"
         />
       </div>
 
-      <div class="flex items-center justify-between text-[11px] text-st-muted pt-1">
+      <div class="flex items-center justify-between text-xs text-st-muted pt-1">
         <span>建议密码长度为 6 位以上</span>
         <el-button link type="primary" size="small" @click="fillDefaultPassword">
           快捷填入默认密码 (123456)
@@ -45,8 +43,8 @@
       </div>
     </div>
     <template #footer>
-      <el-button size="small" @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" size="small" :loading="loading" @click="handleSubmit">确认重置</el-button>
+      <el-button @click="$emit('update:modelValue', false)">取消</el-button>
+      <el-button type="primary" :loading="loading" @click="handleSubmit">确认重置</el-button>
     </template>
   </el-dialog>
 </template>

@@ -11,12 +11,12 @@
             共 {{ filteredUsers.length }} 名员工
           </span>
         </div>
-        <p class="text-[11px] text-st-muted mt-0.5">
+        <p class="text-xs text-st-muted mt-0.5">
           当前筛选范围：{{ selectedNode ? `${getLevelName(selectedNode.level)} [${selectedNode.name}] 及其直属岗位人员` : `${scopeName}在职人员` }}
         </p>
       </div>
       <div class="flex items-center space-x-2">
-        <el-button v-if="selectedNode" size="small" @click="$emit('resetNodeSelection')">
+        <el-button v-if="selectedNode" @click="$emit('resetNodeSelection')">
           重置查看全员
         </el-button>
         <el-tooltip :content="addUserBlockedReason" :disabled="!addUserBlockedReason">
@@ -24,7 +24,6 @@
           <span>
             <el-button
               type="primary"
-              size="small"
               :disabled="!!addUserBlockedReason"
               @click="$emit('openAddUser')"
             >
@@ -41,11 +40,10 @@
         v-model="searchKeyword"
         placeholder="搜索姓名、账号或手机号"
         :prefix-icon="Search"
-        size="small"
         clearable
         class="!w-48"
       />
-      <el-select v-model="filterCampusId" placeholder="管辖校区" size="small" clearable class="!w-36">
+      <el-select v-model="filterCampusId" placeholder="管辖校区" clearable class="!w-36">
         <el-option label="全部校区" value="" />
         <el-option
           v-for="c in campuses"
@@ -57,7 +55,6 @@
       <el-select
         v-model="filterRoleId"
         placeholder="角色组"
-        size="small"
         clearable
         :disabled="roles.length === 0"
         class="!w-32"
@@ -65,7 +62,7 @@
         <el-option label="全部角色" value="" />
         <el-option v-for="r in roles" :key="r.id" :label="r.name" :value="r.id" />
       </el-select>
-      <el-select v-model="filterStatus" placeholder="账号状态" size="small" clearable class="!w-24">
+      <el-select v-model="filterStatus" placeholder="账号状态" clearable class="!w-24">
         <el-option label="全部" value="" />
         <el-option label="正常" value="active" />
         <el-option label="锁定" value="locked" />
@@ -102,14 +99,14 @@
         </el-table-column>
         <el-table-column prop="postName" label="岗位职务" min-width="120">
           <template #default="{ row }">
-            <span class="text-st-secondary text-[11px]">{{ row.departmentName }} / {{ row.postName }}</span>
+            <span class="text-st-secondary text-xs">{{ row.departmentName }} / {{ row.postName }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="dataScope" label="数据范围" width="85">
           <template #default="{ row }">
             <span
               :class="[
-                'text-[10px] px-1.5 py-0.5 rounded font-mono',
+                'text-xs px-1.5 py-0.5 rounded font-mono',
                 getDataScopeBadgeClass(row.dataScope)
               ]"
             >

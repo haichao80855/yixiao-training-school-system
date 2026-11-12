@@ -165,7 +165,7 @@ onReachBottom(() => load(false));
   height: 68rpx;
   line-height: 68rpx;
   text-align: center;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: $p-ink-2;
 
   &.active {
@@ -188,13 +188,13 @@ onReachBottom(() => load(false));
 }
 
 .month-title {
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 650;
   color: $p-ink;
 }
 
 .month-meta {
-  font-size: 23rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
 }
 
@@ -254,13 +254,13 @@ onReachBottom(() => load(false));
   padding: 24rpx 16rpx 10rpx;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
   color: #FFFFFF;
-  font-size: 22rpx;
+  font-size: 24rpx;
 }
 
 .list-footer {
   padding: 8rpx 0;
   text-align: center;
-  font-size: 22rpx;
+  font-size: 24rpx;
   color: $p-ink-3;
   letter-spacing: 0.1em;
 }
@@ -268,7 +268,7 @@ onReachBottom(() => load(false));
 .load-more {
   display: inline-block;
   padding: 16rpx 32rpx;
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: $p-brand;
   letter-spacing: 0;
 }

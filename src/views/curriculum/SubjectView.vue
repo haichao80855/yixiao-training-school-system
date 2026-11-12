@@ -32,7 +32,7 @@
           <div class="text-2xl font-bold font-mono text-gray-800">
             {{ stat.count }} <span class="text-xs font-normal text-st-secondary">个科目</span>
           </div>
-          <div class="text-[11px] text-st-secondary">涵盖 {{ stat.courseTotal }} 门标准化课系</div>
+          <div class="text-xs text-st-secondary">涵盖 {{ stat.courseTotal }} 门标准化课系</div>
         </div>
         <div class="w-10 h-10 rounded-full flex items-center justify-center bg-blue-50 text-st-primary">
           <component :is="stat.icon" class="w-5 h-5" />
@@ -46,7 +46,7 @@
       <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-100">
         <div class="flex items-center space-x-2 text-xs">
           <span class="text-gray-500 font-medium">分类过滤：</span>
-          <el-radio-group v-model="selectedCategory" size="small">
+          <el-radio-group v-model="selectedCategory">
             <el-radio-button label="all">全部科目 ({{ subjects.length }})</el-radio-button>
             <el-radio-button label="programming">软件编程 (3)</el-radio-button>
             <el-radio-button label="robotics">硬件机器人 (1)</el-radio-button>
@@ -59,7 +59,6 @@
           <el-input
             v-model="searchKeyword"
             placeholder="搜索科目名称、编码或适用学段..."
-            size="small"
             clearable
             class="!w-64"
           />
@@ -76,7 +75,7 @@
       >
         <el-table-column prop="code" label="科目编码" width="150">
           <template #default="{ row }">
-            <span class="font-mono font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-[11px]">
+            <span class="font-mono font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded text-xs">
               {{ row.code }}
             </span>
           </template>
@@ -87,7 +86,7 @@
             <div class="font-bold text-gray-800 text-sm hover:text-st-primary transition-colors">
               {{ row.name }}
             </div>
-            <div class="text-[11px] text-st-secondary mt-0.5">{{ row.description }}</div>
+            <div class="text-xs text-st-secondary mt-0.5">{{ row.description }}</div>
           </template>
         </el-table-column>
 
@@ -95,7 +94,7 @@
           <template #default="{ row }">
             <span
               :class="[
-                'px-2 py-0.5 rounded text-[11px] font-medium border',
+                'px-2 py-0.5 rounded text-xs font-medium border',
                 row.category === 'programming' ? 'bg-blue-50 text-st-primary border-blue-200' :
                 row.category === 'robotics' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                 row.category === 'science' ? 'bg-purple-50 text-purple-700 border-purple-200' :
@@ -120,7 +119,7 @@
         <el-table-column prop="courseCount" label="关联课程数" width="120" align="center">
           <template #default="{ row }">
             <span class="font-mono font-bold text-gray-700">{{ row.courseCount }}</span>
-            <span class="text-[11px] text-st-secondary ml-0.5">门</span>
+            <span class="text-xs text-st-secondary ml-0.5">门</span>
           </template>
         </el-table-column>
 

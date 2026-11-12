@@ -18,7 +18,6 @@
         <el-input
           v-model="keyword"
           placeholder="输入姓名、S948918 或手机号..."
-          size="small"
           clearable
           @keyup.enter="handleSearch"
         />
@@ -27,7 +26,7 @@
       <!-- 所属校区 -->
       <div class="sm:col-span-2">
         <label class="block text-xs text-st-secondary mb-1">所属校区</label>
-        <el-select v-model="selectedCampus" size="small" placeholder="全部校区" class="w-full">
+        <el-select v-model="selectedCampus" placeholder="全部校区" class="w-full">
           <el-option label="全部校区 (全集团)" value="all" />
           <el-option
             v-for="c in tenantStore.campuses"
@@ -41,7 +40,7 @@
       <!-- 年级筛选 -->
       <div>
         <label class="block text-xs text-st-secondary mb-1">在读公立年级</label>
-        <el-select v-model="selectedGrade" size="small" placeholder="全部年级" class="w-full" clearable>
+        <el-select v-model="selectedGrade" placeholder="全部年级" class="w-full" clearable>
           <el-option label="全部年级" value="" />
           <el-option label="幼儿园大班" value="幼儿园大班" />
           <el-option label="小学一年级" value="小学一年级" />
@@ -58,7 +57,7 @@
       <!-- 课消风控与续费决策 -->
       <div>
         <label class="block text-xs text-st-secondary mb-1">课消风控与续约</label>
-        <el-select v-model="selectedWarningLevel" size="small" placeholder="全部风控" class="w-full" clearable>
+        <el-select v-model="selectedWarningLevel" placeholder="全部风控" class="w-full" clearable>
           <el-option label="全部风控状态" value="all" />
           <el-option label="紧急续约 (<=4课时)" value="critical" />
           <el-option label="预警跟进 (<=8课时)" value="warning" />
@@ -76,7 +75,6 @@
           range-separator="至"
           start-placeholder="开始"
           end-placeholder="结束"
-          size="small"
           class="!w-full"
           value-format="YYYY-MM-DD"
         />
@@ -91,8 +89,8 @@
           </span>
         </div>
         <div class="space-x-2">
-          <el-button size="small" @click="handleReset">重置筛选</el-button>
-          <el-button type="primary" size="small" @click="handleSearch">查询</el-button>
+          <el-button @click="handleReset">重置筛选</el-button>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
         </div>
       </template>
     </HighDensityGrid>
@@ -104,10 +102,10 @@
       :summary-text="`当前校区学员：共计 ${campusStats.total} 名，其中正常在读 ${campusStats.normal} 名，未报读 ${campusStats.notEnrolled} 名，停课休学 ${campusStats.suspended} 名，待分班 ${campusStats.unassigned} 名`"
     >
       <template #right>
-        <el-button type="primary" size="small" @click="handleAddStudent">
+        <el-button type="primary" @click="handleAddStudent">
           + 新增学员建档
         </el-button>
-        <el-button size="small" plain :loading="exporting" @click="handleExportFiltered">
+        <el-button plain :loading="exporting" @click="handleExportFiltered">
           导出学员
         </el-button>
       </template>
@@ -141,9 +139,9 @@
                 <div>
                   <div class="font-bold text-st-primary hover:underline text-xs flex items-center space-x-1">
                     <span>{{ row.name }}</span>
-                    <span class="text-[10px] text-st-secondary font-normal">({{ row.gender === 'male' ? '男' : '女' }}{{ row.age ? `/${row.age}岁` : '' }})</span>
+                    <span class="text-xs text-st-secondary font-normal">({{ row.gender === 'male' ? '男' : '女' }}{{ row.age ? `/${row.age}岁` : '' }})</span>
                   </div>
-                  <div class="text-[11px] text-st-muted font-mono font-semibold">{{ row.studentNo }}</div>
+                  <div class="text-xs text-st-muted font-mono font-semibold">{{ row.studentNo }}</div>
                 </div>
               </div>
             </template>
@@ -165,7 +163,7 @@
                     <Phone class="w-3.5 h-3.5 ml-0.5" />
                   </a>
                 </div>
-                <div class="text-[11px] text-st-secondary mt-0.5 flex items-center space-x-1">
+                <div class="text-xs text-st-secondary mt-0.5 flex items-center space-x-1">
                   <span v-if="row.wechatBound" class="text-emerald-600">● 微信已绑</span>
                   <span v-else class="text-st-secondary">○ 微信未绑</span>
                 </div>
@@ -178,7 +176,7 @@
           <template #default="{ row }">
             <div class="text-xs">
               <span class="font-medium text-st-title">{{ row.parentName || '家长' }}</span>
-              <div class="text-[11px] text-st-muted font-mono">{{ row.parentPhone || row.phone }}</div>
+              <div class="text-xs text-st-muted font-mono">{{ row.parentPhone || row.phone }}</div>
             </div>
           </template>
         </el-table-column>
@@ -197,7 +195,7 @@
           <template #default="{ row }">
             <div class="text-xs">
               <div class="font-medium text-st-title">{{ row.grade || '年级未录入' }}</div>
-              <div class="text-[11px] text-st-muted truncate max-w-[130px]">{{ row.school || row.publicSchool || '未录入' }}</div>
+              <div class="text-xs text-st-muted truncate max-w-[130px]">{{ row.school || row.publicSchool || '未录入' }}</div>
             </div>
           </template>
         </el-table-column>
@@ -214,21 +212,21 @@
                   {{ g.courseName }}
                 </div>
                 <div
-                  class="text-[11px] text-st-muted truncate max-w-[170px]"
+                  class="text-xs text-st-muted truncate max-w-[170px]"
                   :title="[g.classNames, g.hasUnassigned ? '含待分班课包' : '', g.packageCount > 1 ? `${g.packageCount} 个课包` : ''].filter(Boolean).join(' · ')"
                 >
                   <span v-if="g.packageCount > 1">{{ g.packageCount }} 个课包 · </span>
                   <span v-if="g.classNames">{{ g.classNames }}</span>
                   <span v-if="g.hasUnassigned" class="text-st-warning">{{ g.classNames ? ' · 含待分班' : '待分班' }}</span>
                 </div>
-                <div class="text-[11px] flex items-center justify-between text-st-secondary">
+                <div class="text-xs flex items-center justify-between text-st-secondary">
                   <span>剩余: <b class="text-emerald-600 font-bold font-mono">{{ g.remainingLessons }}</b> / {{ g.totalLessons }} 课时</span>
                   <el-tag size="small" :type="g.status === 'active' ? 'success' : 'warning'" class="scale-90">
                     {{ g.status === 'active' ? '正常' : g.status === 'frozen' ? '冻结' : '结课' }}
                   </el-tag>
                 </div>
               </div>
-              <div v-if="groupCoursePackages(row.coursePackages).length > 2" class="text-[10px] text-st-primary">
+              <div v-if="groupCoursePackages(row.coursePackages).length > 2" class="text-xs text-st-primary">
                 + 查看其余 {{ groupCoursePackages(row.coursePackages).length - 2 }} 门课程...
               </div>
             </div>
@@ -274,14 +272,14 @@
                 >
                   充沛正常
                 </el-tag>
-                <span class="font-mono text-st-muted text-[11px]">
+                <span class="font-mono text-st-muted text-xs">
                   余 {{ remainingOf(row) }} 课时
                 </span>
               </div>
-              <div v-if="row.consumptionHealth?.dormantRisk && row.consumptionHealth.dormantRisk !== 'active'" class="text-[10px] text-purple-600 font-semibold">
+              <div v-if="row.consumptionHealth?.dormantRisk && row.consumptionHealth.dormantRisk !== 'active'" class="text-xs text-purple-600 font-semibold">
                 停消休眠 {{ typeof row.consumptionHealth.inactiveDays === 'number' ? `${row.consumptionHealth.inactiveDays} 天` : '超 14 天' }}
               </div>
-              <div v-else-if="typeof row.consumptionHealth?.estimatedDepletionDays === 'number' && remainingOf(row) > 0" class="text-[10px] text-st-muted">
+              <div v-else-if="typeof row.consumptionHealth?.estimatedDepletionDays === 'number' && remainingOf(row) > 0" class="text-xs text-st-muted">
                 预计 {{ row.consumptionHealth.estimatedDepletionDays }} 天后课时耗尽
               </div>
             </div>
@@ -295,7 +293,7 @@
               <div class="font-mono font-bold text-st-danger-deep">
                 ¥ {{ ((row.wallet?.principalBalance || 0) + (row.wallet?.bonusBalance || 0)).toFixed(2) }}
               </div>
-              <div class="text-[10px] text-st-muted">
+              <div class="text-xs text-st-muted">
                 本 ¥{{ (row.wallet?.principalBalance || 0).toFixed(0) }} / 赠 ¥{{ (row.wallet?.bonusBalance || 0).toFixed(0) }}
               </div>
             </div>
@@ -373,7 +371,7 @@
           <template #left>
             <div class="flex items-center space-x-2">
               <span class="text-xs text-st-muted">批量操作：</span>
-              <el-button size="small" :disabled="selectedRows.length === 0" @click="handleExportSelected">导出选中 ({{ selectedRows.length }})</el-button>
+              <el-button :disabled="selectedRows.length === 0" @click="handleExportSelected">导出选中 ({{ selectedRows.length }})</el-button>
             </div>
           </template>
         </AppPagination>

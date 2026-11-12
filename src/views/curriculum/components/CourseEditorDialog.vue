@@ -185,7 +185,6 @@
                   <el-button
                     v-for="(url, key) in presetCovers"
                     :key="key"
-                    size="small"
                     :type="form.cover === url ? 'primary' : 'default'"
                     :plain="form.cover === url"
                     class="!m-0"
@@ -196,7 +195,7 @@
                 </div>
               </div>
             </div>
-            <el-input v-model="form.cover" placeholder="或输入自定义封面图片 URL (建议 16:9 比例)" size="small">
+            <el-input v-model="form.cover" placeholder="或输入自定义封面图片 URL (建议 16:9 比例)">
               <template #prepend>封面 URL</template>
             </el-input>
           </div>
@@ -223,13 +222,13 @@
           被勾选授权的实体校区，其学员中心可报名该课，教务排课可指派该课。总部校区拥有超级排课权。
         </div>
         <div class="flex items-center space-x-2">
-          <el-button size="small" type="primary" plain @click="selectAllCampuses">
+          <el-button type="primary" plain @click="selectAllCampuses">
             一键全选
           </el-button>
-          <el-button size="small" @click="clearCampuses">
+          <el-button @click="clearCampuses">
             一键清空
           </el-button>
-          <el-button size="small" @click="selectHqOnly">
+          <el-button @click="selectHqOnly">
             仅留总部
           </el-button>
         </div>
@@ -263,7 +262,7 @@
                 <span class="font-bold text-sm text-gray-800">{{ campus.name }}</span>
                 <span
                   v-if="campus.isHeadquarter"
-                  class="px-1.5 py-0.2 text-[10px] rounded bg-orange-100 text-orange-700 font-semibold border border-orange-200"
+                  class="px-1.5 py-0.2 text-xs rounded bg-orange-100 text-orange-700 font-semibold border border-orange-200"
                 >
                   总部直属
                 </span>
@@ -292,14 +291,14 @@
           <h4 class="text-sm font-bold text-gray-800">课程教学次序与大纲编排</h4>
           <p class="text-xs text-gray-500">支持建立“单元 (Unit) → 课次 (Lesson)”二级层级目录与上下移动重新排序</p>
         </div>
-        <el-button type="primary" size="small" @click="addUnit">
+        <el-button type="primary" @click="addUnit">
           + 新增单元
         </el-button>
       </div>
 
       <div v-if="!form.units || form.units.length === 0" class="py-12 text-center text-st-secondary text-xs">
         <div class="mb-2">暂无编排单元目录</div>
-        <el-button size="small" type="primary" plain @click="addUnit">
+        <el-button type="primary" plain @click="addUnit">
           创建第一个单元
         </el-button>
       </div>
@@ -312,7 +311,6 @@
             <el-input
               v-model="unit.title"
               placeholder="单元标题，例如：第一单元：基础语法"
-              size="small"
               class="font-semibold text-sm max-w-sm"
             />
             <span class="text-xs text-gray-500 font-normal">({{ unit.lessons ? unit.lessons.length : 0 }} 课次)</span>
@@ -365,7 +363,6 @@
               <el-input
                 v-model="lesson.title"
                 placeholder="课次名称，例如：第 1 讲：变量与基本运算"
-                size="small"
                 class="flex-1"
               />
               <el-input-number
@@ -373,7 +370,6 @@
                 :min="15"
                 :max="240"
                 :step="15"
-                size="small"
                 class="!w-24 shrink-0"
               >
                 <template #suffix>分</template>
@@ -381,7 +377,6 @@
               <el-input
                 v-model="lesson.objective"
                 placeholder="教学目标/重点"
-                size="small"
                 class="w-56 shrink-0"
               />
             </div>
@@ -391,21 +386,25 @@
                 type="primary"
                 size="small"
                 :disabled="lIdx === 0"
+                title="上移"
+                aria-label="上移课次"
                 @click="moveLesson(unit, lIdx, -1)"
               >
-                ↑
+                <ArrowUp class="w-4 h-4" />
               </el-button>
               <el-button
                 link
                 type="primary"
                 size="small"
                 :disabled="lIdx === unit.lessons.length - 1"
+                title="下移"
+                aria-label="下移课次"
                 @click="moveLesson(unit, lIdx, 1)"
               >
-                ↓
+                <ArrowDown class="w-4 h-4" />
               </el-button>
-              <el-button link type="danger" size="small" @click="deleteLesson(unit, lIdx)">
-                <Trash2 class="w-3.5 h-3.5" />
+              <el-button link type="danger" size="small" title="删除课次" aria-label="删除课次" @click="deleteLesson(unit, lIdx)">
+                <Trash2 class="w-4 h-4" />
               </el-button>
             </div>
           </div>
@@ -436,7 +435,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Check, Trash2 } from 'lucide-vue-next'
+import { Check, Trash2, ArrowUp, ArrowDown } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { curriculumApi } from '@/api'
 import { COURSE_COVERS } from '@/constants/curriculum'
@@ -740,6 +739,6 @@ async function handleSave() {
   font-size: 13px;
 }
 .course-editor-dialog :deep(.el-step__description) {
-  font-size: 11px;
+  font-size: 12px;
 }
 </style>

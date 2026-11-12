@@ -6,7 +6,7 @@
     :width="DIALOG_SIZE.md"
     destroy-on-close
   >
-    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
+    <el-form :model="form" :label-width="FORM_LABEL_WIDTH.md" class="pt-2">
       <div class="grid grid-cols-2 gap-x-3">
         <el-form-item label="员工姓名" required>
           <el-input v-model="form.name" placeholder="真实姓名" />
@@ -60,8 +60,8 @@
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button size="small" @click="$emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" size="small" :loading="loading" @click="handleSubmit">确认录入</el-button>
+      <el-button @click="$emit('update:modelValue', false)">取消</el-button>
+      <el-button type="primary" :loading="loading" @click="handleSubmit">确认录入</el-button>
     </template>
   </el-dialog>
 </template>

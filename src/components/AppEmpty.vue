@@ -29,7 +29,6 @@
       <slot name="action">
         <el-button
           v-if="type === 'search'"
-          size="small"
           plain
           @click="handleAction"
         >
@@ -38,7 +37,6 @@
         </el-button>
         <el-button
           v-else-if="type === 'error' || type === 'network'"
-          size="small"
           type="primary"
           @click="handleRetry"
         >
@@ -47,7 +45,6 @@
         </el-button>
         <el-button
           v-else-if="actionText"
-          size="small"
           type="primary"
           @click="handleAction"
         >

@@ -68,7 +68,7 @@ withDefaults(defineProps<{ icon?: string; title: string; description?: string }>
 
 .desc {
   margin-top: 12rpx;
-  font-size: 26rpx;
+  font-size: 28rpx;
   line-height: 1.65;
   color: $p-ink-3;
 }

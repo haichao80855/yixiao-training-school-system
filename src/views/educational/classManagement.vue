@@ -81,7 +81,6 @@
           v-model="searchQuery"
           placeholder="搜索班级名称 / 编号"
           clearable
-          size="small"
           @clear="loadData"
           @keyup.enter="loadData"
         >
@@ -91,7 +90,7 @@
 
       <div class="sm:col-span-2">
         <label class="block text-xs text-st-secondary mb-1">班级状态</label>
-        <el-select v-model="statusFilter" placeholder="班级状态" clearable size="small" class="w-full" @change="loadData">
+        <el-select v-model="statusFilter" placeholder="班级状态" clearable class="w-full" @change="loadData">
           <el-option label="全部状态" value="" />
           <el-option label="招生中" value="recruiting" />
           <el-option label="开班中" value="in_progress" />
@@ -106,7 +105,6 @@
           :placeholder="isDataScopeSelf ? `仅本人 (${currentTeacherName})` : '授课讲师'"
           :disabled="isDataScopeSelf"
           clearable
-          size="small"
           class="w-full"
           @change="loadData"
         >
@@ -131,8 +129,8 @@
           <span>匹配结果：共 <b>{{ classList.length }}</b> 个教学班级</span>
         </div>
         <div class="space-x-2">
-          <el-button size="small" @click="handleResetFilters">重置</el-button>
-          <el-button type="primary" size="small" @click="loadData">查询</el-button>
+          <el-button @click="handleResetFilters">重置</el-button>
+          <el-button type="primary" @click="loadData">查询</el-button>
         </div>
       </template>
     </HighDensityGrid>
@@ -144,13 +142,12 @@
       :summary-text="`当前校区班级：共计 ${classStats.totalClasses} 个班级，在读学员 ${classStats.totalStudents} 人，综合满班率 ${classStats.avgFillRate}%，秋季在招 ${classStats.recruitingClasses} 个`"
     >
       <template #right>
-        <el-button size="small" @click="showClassroomManageModal = true">
+        <el-button @click="showClassroomManageModal = true">
           <template #icon><Building2 class="w-3.5 h-3.5" /></template>
           教室管理
         </el-button>
         <el-button
           type="success"
-          size="small"
           plain
           :disabled="selectedRows.length === 0"
           @click="handleBatchScheduleSelected"
@@ -158,7 +155,7 @@
           <template #icon><Calendar class="w-3.5 h-3.5" /></template>
           批量排课 {{ selectedRows.length > 0 ? `(已选 ${selectedRows.length} 班)` : '' }}
         </el-button>
-        <el-button type="primary" size="small" @click="handleCreateClass">
+        <el-button type="primary" @click="handleCreateClass">
           + 新设教学班级
         </el-button>
       </template>
@@ -195,7 +192,7 @@
             <div class="cursor-pointer hover:text-st-primary font-bold text-st-title" @click="handleViewDetail(row as any)">
               {{ row.name }}
             </div>
-            <div class="text-[11px] text-st-muted mt-0.5">
+            <div class="text-xs text-st-muted mt-0.5">
               {{ row.scheduleDesc || '未排课' }}
             </div>
           </template>
@@ -404,16 +401,16 @@
         <!-- 快速新增教室表单 -->
         <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-lg flex items-center justify-between gap-2">
           <div class="flex items-center gap-2 flex-1">
-            <el-input v-model="newRoomName" placeholder="教室名称（如：人工智能创客室）" size="small" class="!w-48" />
-            <el-input-number v-model="newRoomCapacity" :min="1" :max="100" placeholder="容量" size="small" class="!w-24" />
-            <el-select v-model="newRoomType" placeholder="类型" size="small" class="!w-32">
+            <el-input v-model="newRoomName" placeholder="教室名称（如：人工智能创客室）" class="!w-48" />
+            <el-input-number v-model="newRoomCapacity" :min="1" :max="100" placeholder="容量" class="!w-24" />
+            <el-select v-model="newRoomType" placeholder="类型" class="!w-32">
               <el-option label="创客实验室" value="maker" />
               <el-option label="编程机房" value="computer" />
               <el-option label="多媒体大班" value="regular" />
               <el-option label="VIP辅导室" value="vip" />
             </el-select>
           </div>
-          <el-button type="primary" size="small" @click="handleAddNewRoom">
+          <el-button type="primary" @click="handleAddNewRoom">
             + 立即建室
           </el-button>
         </div>
@@ -436,7 +433,7 @@
         </el-table>
       </div>
       <template #footer>
-        <el-button size="small" @click="showClassroomManageModal = false">关闭</el-button>
+        <el-button @click="showClassroomManageModal = false">关闭</el-button>
       </template>
     </el-dialog>
   </div>

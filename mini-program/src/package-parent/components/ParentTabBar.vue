@@ -81,7 +81,7 @@ const go = (tab: (typeof tabs)[number]) => {
   gap: 4rpx;
 
   .tab-label {
-    font-size: 21rpx;
+    font-size: 24rpx;
     color: #6B7280;
     transition: color 0.2s ease;
   }
@@ -104,16 +104,16 @@ const go = (tab: (typeof tabs)[number]) => {
   position: absolute;
   top: -8rpx;
   left: 28rpx;
-  min-width: 32rpx;
-  height: 32rpx;
+  min-width: 36rpx;
+  height: 36rpx;
   padding: 0 8rpx;
   box-sizing: border-box;
-  border-radius: 16rpx;
+  border-radius: 18rpx;
   background: $p-rose;
   color: #FFFFFF;
-  font-size: 19rpx;
+  font-size: 24rpx;
   font-weight: 700;
-  line-height: 28rpx;
+  line-height: 32rpx;
   text-align: center;
   border: 2rpx solid #FFFFFF;
 }

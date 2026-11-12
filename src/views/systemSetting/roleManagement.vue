@@ -14,7 +14,7 @@
         </p>
       </div>
       <div class="flex items-center space-x-2">
-        <el-button type="primary" size="small" @click="showAddRoleModal = true">
+        <el-button type="primary" @click="showAddRoleModal = true">
           + 新建角色组
         </el-button>
       </div>
@@ -26,7 +26,7 @@
       <div class="lg:col-span-4 bg-white rounded-lg p-4 shadow-card border border-st-border flex flex-col">
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-st-border">
           <h3 class="text-sm font-bold text-st-title">系统角色清单 ({{ roles.length }})</h3>
-          <span class="text-[11px] text-st-muted">点击选择进行授权</span>
+          <span class="text-xs text-st-muted">点击选择进行授权</span>
         </div>
 
         <div class="space-y-2 flex-1 overflow-y-auto max-h-[660px] pr-1">
@@ -55,12 +55,12 @@
                   </span>
                   <span
                     v-if="role.isSystem"
-                    class="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200"
+                    class="text-xs px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200"
                   >
                     系统内置
                   </span>
                 </div>
-                <div class="text-[11px] text-st-muted font-mono mt-0.5">
+                <div class="text-xs text-st-muted font-mono mt-0.5">
                   编码：{{ role.code }}
                 </div>
               </div>
@@ -69,11 +69,11 @@
               </span>
             </div>
 
-            <p class="text-[11px] text-st-secondary line-clamp-2 mt-2 leading-relaxed">
+            <p class="text-xs text-st-secondary line-clamp-2 mt-2 leading-relaxed">
               {{ role.description }}
             </p>
 
-            <div class="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-[11px]">
+            <div class="flex items-center justify-between mt-3 pt-2 border-t border-slate-100 text-xs">
               <span
                 :class="[
                   'px-1.5 py-0.5 rounded font-mono',
@@ -115,7 +115,7 @@
                 </span>
                 <span
                   v-if="isSuperAdmin"
-                  class="text-[11px] px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
+                  class="text-xs px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium"
                 >
                   * 全通配最高特权 (放行一切操作)
                 </span>
@@ -126,13 +126,13 @@
             </div>
 
             <div class="flex items-center space-x-2">
-              <el-button size="small" @click="handleCheckAll">
+              <el-button @click="handleCheckAll">
                 全选子树
               </el-button>
-              <el-button size="small" @click="handleUncheckAll">
+              <el-button @click="handleUncheckAll">
                 全不选
               </el-button>
-              <el-button size="small" @click="isExpandAll = !isExpandAll">
+              <el-button @click="isExpandAll = !isExpandAll">
                 {{ isExpandAll ? '折叠全部' : '展开全部' }}
               </el-button>
             </div>
@@ -140,7 +140,7 @@
 
           <!-- 层级图例条 -->
           <div class="py-2.5 px-3 bg-slate-50/80 rounded border border-slate-100 flex flex-wrap items-center gap-4 text-xs text-st-secondary my-3">
-            <span class="font-medium text-st-title text-[11px]">4 级层级图例：</span>
+            <span class="font-medium text-st-title text-xs">4 级层级图例：</span>
             <div class="flex items-center space-x-1">
               <span class="w-2.5 h-2.5 rounded-full bg-purple-600"></span>
               <span>1级 系统 (System)</span>
@@ -177,7 +177,7 @@
                   <div class="flex items-center space-x-2">
                     <span
                       :class="[
-                        'text-[10px] px-1.5 py-0.2 rounded font-medium',
+                        'text-xs px-1.5 py-0.2 rounded font-medium',
                         getPermLevelBadge(data.level)
                       ]"
                     >
@@ -185,7 +185,7 @@
                     </span>
                     <span class="text-xs font-medium text-st-title">{{ data.label }}</span>
                   </div>
-                  <span class="text-[10px] font-mono text-st-muted mr-2">{{ data.code }}</span>
+                  <span class="text-xs font-mono text-st-muted mr-2">{{ data.code }}</span>
                 </div>
               </template>
             </el-tree>
@@ -223,10 +223,10 @@
                 </span>
                 <el-radio :value="scope.value" :model-value="currentDataScope" class="!mr-0" />
               </div>
-              <p class="text-[11px] text-st-secondary leading-relaxed">
+              <p class="text-xs text-st-secondary leading-relaxed">
                 {{ scope.description }}
               </p>
-              <div class="text-[10px] font-mono text-st-muted pt-1 border-t border-slate-200">
+              <div class="text-xs font-mono text-st-muted pt-1 border-t border-slate-200">
                 适用：{{ scope.targetRole }}
               </div>
             </div>
@@ -238,10 +238,10 @@
               已选中 <span class="font-bold text-st-primary font-mono">{{ checkedKeysCount }}</span> 项细粒度权限码
             </div>
             <div class="space-x-3">
-              <el-button size="small" @click="resetCurrentRolePerms">
+              <el-button @click="resetCurrentRolePerms">
                 重置修改
               </el-button>
-              <el-button type="primary" size="small" @click="handleSaveRoleAuth">
+              <el-button type="primary" @click="handleSaveRoleAuth">
                 保存角色授权配置
               </el-button>
             </div>
@@ -252,7 +252,7 @@
 
     <!-- 弹窗: 新建角色组 -->
     <el-dialog v-model="showAddRoleModal" title="新建系统业务角色组" :width="DIALOG_SIZE.sm" destroy-on-close>
-      <el-form :model="newRoleForm" :label-width="FORM_LABEL_WIDTH.md" size="small" class="pt-2">
+      <el-form :model="newRoleForm" :label-width="FORM_LABEL_WIDTH.md" class="pt-2">
         <el-form-item label="角色名称" required>
           <el-input v-model="newRoleForm.name" placeholder="如：教务排课助理" />
         </el-form-item>
@@ -277,8 +277,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button size="small" @click="showAddRoleModal = false">取消</el-button>
-        <el-button type="primary" size="small" @click="submitAddRole">确认创建</el-button>
+        <el-button @click="showAddRoleModal = false">取消</el-button>
+        <el-button type="primary" @click="submitAddRole">确认创建</el-button>
       </template>
     </el-dialog>
   </div>

@@ -8,7 +8,7 @@
     <div v-if="localUser" class="space-y-4 text-xs">
       <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
         <div class="font-bold text-st-title text-sm">{{ localUser.name }}</div>
-        <div class="text-st-muted mt-1 font-mono text-[11px]">
+        <div class="text-st-muted mt-1 font-mono text-xs">
           账号：{{ localUser.account }} | 手机：{{ localUser.phone }}
         </div>
         <div class="text-st-secondary mt-1">
@@ -18,7 +18,7 @@
 
       <div>
         <label class="block font-medium text-st-title mb-2">手机号码 (可用于登录)</label>
-        <el-input v-model="localUser.phone" size="small" placeholder="11位手机号码" maxlength="20" />
+        <el-input v-model="localUser.phone" placeholder="11位手机号码" maxlength="20" />
       </div>
 
       <div>
@@ -26,7 +26,6 @@
         <el-select
           v-model="localUser.roleId"
           class="w-full"
-          size="small"
           :disabled="roles.length === 0"
           @change="onRoleChange"
         >
@@ -38,7 +37,7 @@
             :value="localUser.roleId"
           />
         </el-select>
-        <p v-if="roles.length === 0" class="text-[11px] text-st-muted mt-1">
+        <p v-if="roles.length === 0" class="text-xs text-st-muted mt-1">
           当前账号无法查看角色列表，不能更换角色，其他配置可正常保存
         </p>
       </div>
@@ -60,15 +59,15 @@
             <el-radio :value="scope.value" :model-value="localUser.dataScope" class="!mr-0 mt-0.5" />
             <div>
               <div class="font-bold text-xs">{{ scope.label }}</div>
-              <div class="text-[11px] text-st-muted mt-0.5">{{ scope.desc }}</div>
+              <div class="text-xs text-st-muted mt-0.5">{{ scope.desc }}</div>
             </div>
           </div>
         </div>
       </div>
 
       <div class="pt-4 border-t border-slate-100 flex justify-end space-x-2">
-        <el-button size="small" @click="$emit('update:modelValue', false)">取消</el-button>
-        <el-button type="primary" size="small" :loading="saving" @click="handleSave">保存配置</el-button>
+        <el-button @click="$emit('update:modelValue', false)">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
       </div>
     </div>
   </el-drawer>

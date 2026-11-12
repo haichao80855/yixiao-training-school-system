@@ -97,7 +97,7 @@
       <div class="grid grid-cols-2 gap-3">
         <!-- 课程类型 -->
         <el-form-item label="课次性质" prop="classType">
-          <el-radio-group v-model="form.classType" size="small">
+          <el-radio-group v-model="form.classType">
             <el-radio-button label="formal">正式课 [正]</el-radio-button>
             <el-radio-button label="make_up">补课班 [补]</el-radio-button>
             <el-radio-button label="trial">公开试听 [试]</el-radio-button>
@@ -124,7 +124,7 @@
           <div v-for="(c, idx) in collisionResult.conflicts" :key="idx" class="pl-5 text-xs text-rose-700 leading-relaxed">
             • <b>{{ getConflictTypeLabel(c.type) }}:</b> {{ c.reason }}
           </div>
-          <div class="pt-1 text-[11px] text-rose-600 flex items-center justify-between">
+          <div class="pt-1 text-xs text-rose-600 flex items-center justify-between">
             <span>建议更换上课时间、更换无冲突教室或指派空闲讲师。</span>
             <el-checkbox v-model="forceSchedule" size="small" class="!text-rose-700">
               <span class="text-xs font-semibold text-rose-700">强制排课 (标记为红色冲突)</span>

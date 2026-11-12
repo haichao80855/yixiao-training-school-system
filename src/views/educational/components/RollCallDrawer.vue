@@ -40,7 +40,7 @@
           <span class="text-blue-600">迟到: {{ countStatus('late') }}</span>
         </div>
 
-        <el-button type="success" size="small" plain @click="handleAllPresent" class="inline-flex items-center gap-1">
+        <el-button type="success" plain @click="handleAllPresent" class="inline-flex items-center gap-1">
           <Zap class="w-3.5 h-3.5" />
           <span>一键全勤</span>
         </el-button>
@@ -52,7 +52,7 @@
           <el-table-column prop="studentName" label="学员姓名" width="105">
             <template #default="{ row }">
               <span class="font-bold text-st-title">{{ row.studentName }}</span>
-              <div class="text-[10px] text-st-muted font-mono">{{ row.studentNo }}</div>
+              <div class="text-xs text-st-muted font-mono">{{ row.studentNo }}</div>
             </template>
           </el-table-column>
 
@@ -101,7 +101,7 @@
         <div class="text-st-secondary">
           本次结算将真实扣减学员课包总计：<b class="text-emerald-700 text-sm">{{ totalDeductLessons }}</b> 课时。
         </div>
-        <div class="text-[11px] text-st-muted">
+        <div class="text-xs text-st-muted">
           结算后系统将自动生成考勤记录并支持后续反结课冲正
         </div>
       </div>

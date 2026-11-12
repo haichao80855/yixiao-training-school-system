@@ -130,25 +130,25 @@
         <!-- 实时数据看板 -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-[11px] text-gray-500">学员总数</div>
+            <div class="text-xs text-gray-500">学员总数</div>
             <div class="text-lg font-bold text-st-primary font-mono">{{ liveStats.studentCount }}</div>
           </div>
           <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-[11px] text-gray-500">班级总数</div>
+            <div class="text-xs text-gray-500">班级总数</div>
             <div class="text-lg font-bold text-emerald-600 font-mono">{{ liveStats.classCount }}</div>
           </div>
           <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-[11px] text-gray-500">排课日程</div>
+            <div class="text-xs text-gray-500">排课日程</div>
             <div class="text-lg font-bold text-purple-600 font-mono">{{ liveStats.scheduleCount }}</div>
           </div>
           <div class="p-2.5 bg-gray-50 border rounded-lg text-center">
-            <div class="text-[11px] text-gray-500">财务订单</div>
+            <div class="text-xs text-gray-500">财务订单</div>
             <div class="text-lg font-bold text-amber-600 font-mono">{{ liveStats.orderCount }}</div>
           </div>
         </div>
 
         <!-- 明细统计 -->
-        <div class="p-3 bg-gray-50 rounded border text-gray-600 space-y-1 text-[11px]">
+        <div class="p-3 bg-gray-50 rounded border text-gray-600 space-y-1 text-xs">
           <div class="flex justify-between">
             <span>• 待分班学员调度池：</span>
             <b class="text-gray-800">{{ liveStats.unassignedCount }} 人</b>
@@ -167,20 +167,20 @@
           </div>
         </div>
 
-        <div class="text-[11px] text-st-secondary">
+        <div class="text-xs text-st-secondary">
           提示：点击“一键清空全部业务数据”可将学员、班级、课表与订单全部重置为 0；需要恢复官方演示数据时可随时点击“恢复初始演示Mock数据”。
         </div>
       </div>
       <template #footer>
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <el-button size="small" type="danger" plain @click="handleClearBusinessData">
+          <el-button type="danger" plain @click="handleClearBusinessData">
             清空全部业务数据
           </el-button>
           <div class="space-x-2">
-            <el-button size="small" type="warning" plain @click="handleClearLocalStorage">
+            <el-button type="warning" plain @click="handleClearLocalStorage">
               清空本地缓存
             </el-button>
-            <el-button size="small" type="primary" @click="handleRestorePresetData">
+            <el-button type="primary" @click="handleRestorePresetData">
               恢复初始演示Mock数据
             </el-button>
           </div>

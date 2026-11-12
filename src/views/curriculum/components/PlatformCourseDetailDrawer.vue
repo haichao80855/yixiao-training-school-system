@@ -73,13 +73,13 @@
                 <div class="flex items-center gap-1.5">
                   <span
                     v-if="lesson.pptUrl"
-                    class="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30"
+                    class="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30"
                   >
                     在线白板
                   </span>
                   <span
                     v-else-if="lesson.downloadUrl"
-                    class="text-[10px] px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-300"
+                    class="text-xs px-1.5 py-0.5 rounded bg-gray-700/50 text-gray-300"
                   >
                     源文件
                   </span>
@@ -93,7 +93,7 @@
                   >
                     <button
                       type="button"
-                      title="下载程序"
+                      title="下载程序" aria-label="下载程序"
                       class="w-6 h-6 rounded-md bg-white/10 hover:bg-st-primary text-gray-200 hover:text-white flex items-center justify-center transition-colors"
                       @click.stop
                     >
@@ -122,7 +122,7 @@
 
             <!-- 底部播放按钮与状态 -->
             <div class="flex items-center justify-between pt-2 border-t border-white/5">
-              <span class="text-[11px] text-gray-300 truncate max-w-[130px]">
+              <span class="text-xs text-gray-300 truncate max-w-[130px]">
                 {{ lesson.pptFileName ? '含课件PPT' : '授课资料' }}
               </span>
 
