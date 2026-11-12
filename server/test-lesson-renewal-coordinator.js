@@ -458,9 +458,10 @@ async function runTests() {
     assert(draft.quote.paymentMethod === 'wallet', '默认结算渠道智能匹配为 wallet');
 
     // 验证原班级满员 CAS 准入预检
-    assert(draft.validation.isClassFull === true, 'CAS 准入成功预检出原班级当前已满员 (2/2 人)');
-    assert(draft.quote.classId === null, '原班级满员时，草案班级自动置为 null 安全降级为待分班池以防超编');
-    assert(typeof draft.validation.warningMessage === 'string' && draft.validation.warningMessage.includes('已达上限'), '包含明确的满班提示 warningMessage');
+    // 学员本人就在原班 (占着名额)：续费并入原班，不占新名额，原班满员 (2/2) 也不降级为待分班
+    assert(draft.validation.isClassFull === false, '原班已满员 (2/2 人)，但学员本人在班，续费不判为满员');
+    assert(draft.quote.classId === testClass.id, '续费草案沿用原班级');
+    assert(!draft.validation.warningMessage, '续费并入原班无满班警告');
     assert(draft.enrollCommand.channel === 'renewal', 'enrollCommand 自动打标 channel=renewal');
 
     console.log('\n--- 阶段五：ACB 财务防腐硬阻断验证 ---');

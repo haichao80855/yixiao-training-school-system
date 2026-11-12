@@ -145,6 +145,15 @@ export const studentApi = {
   deleteStudent: (id: string) =>
     request(`/api/students/${id}`, { method: 'DELETE' }),
 
+  /** 报读预检：老学员续报同一课程时返回将并入的班级 */
+  enrollPreview: (studentId: string, courseId: string) =>
+    request<{
+      isRenewal: boolean
+      classId: string | null
+      className: string | null
+      remainingLessons: number
+      livePackageCount: number
+    }>(`/api/students/${encodeURIComponent(studentId)}/enroll-preview?courseId=${encodeURIComponent(courseId)}`),
   enroll: (data: any) =>
     request('/api/students/enroll', { method: 'POST', body: JSON.stringify(data) }),
 

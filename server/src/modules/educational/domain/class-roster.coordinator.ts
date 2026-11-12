@@ -22,6 +22,12 @@ import {
   PackageNotEligibleException,
   StudentStatusBlockedException,
 } from './class-roster.types';
+import {
+  groupPackagesByStudent,
+  holdsSeatInClass,
+  releaseSeatIfLast,
+  SEAT_HOLDING_PACKAGE_STATUSES,
+} from './class-seat.policy';
 
 @Injectable()
 export class ClassRosterCoordinator {
@@ -75,9 +81,10 @@ export class ClassRosterCoordinator {
         }
 
         // 1.3 逐个学员校验业务不变量并匹配课包
-        const previousClassDeductions = new Map<string, number>();
+        // 原班级名额释放：学员在原班没有其他在读课包时才减人数 (见 class-seat.policy)
+        const previousClassReleases: Array<{ studentId: string; classId: string; packageId: string }> = [];
         const studentAssignResults: StudentAssignItemResult[] = [];
-        const packagesToUpdate: Array<{ packageId: string; studentId: string }> = [];
+        const packagesToUpdate: Array<{ packageId: string; studentId: string; takesSeat: boolean }> = [];
 
         for (const student of students) {
           // 学籍状态检查
@@ -115,10 +122,13 @@ export class ClassRosterCoordinator {
             continue;
           }
 
-          // 跨班重编检查：若原先已有班级，登记原班人数核销
+          // 跨班重编检查：若原先已有班级，登记原班名额释放
           if (matchedPkg.classId) {
-            const currentDec = previousClassDeductions.get(matchedPkg.classId) || 0;
-            previousClassDeductions.set(matchedPkg.classId, currentDec + 1);
+            previousClassReleases.push({
+              studentId: student.id,
+              classId: matchedPkg.classId,
+              packageId: matchedPkg.id,
+            });
             studentAssignResults.push({
               studentId: student.id,
               studentName: student.name,
@@ -138,17 +148,20 @@ export class ClassRosterCoordinator {
             });
           }
 
+          // 续费课包：学员已凭其他课包在目标班，并入即可，不占新名额
+          const takesSeat = !(await holdsSeatInClass(tx, student.id, targetClass.id, [matchedPkg.id]));
           packagesToUpdate.push({
             packageId: matchedPkg.id,
             studentId: student.id,
+            takesSeat,
           });
         }
 
-        // 1.4 计算有效需要新增的人数 (排除幂等无害跳过项)
-        const effectiveIncoming = packagesToUpdate.length;
+        // 1.4 计算有效需要新增的人数 (排除幂等项与并入原班的续费课包)
+        const effectiveIncoming = packagesToUpdate.filter((p) => p.takesSeat).length;
 
         // 若全部为幂等无害项，直接返回
-        if (effectiveIncoming === 0) {
+        if (packagesToUpdate.length === 0) {
           return {
             success: true,
             classId: targetClass.id,
@@ -191,7 +204,7 @@ export class ClassRosterCoordinator {
 
         // 1.6 行级 CAS 条件并发锁 (Row-Level Optimistic Lock Guard)
         // 确保原子自增的同时，严格守卫 currentStudentCount + effectiveIncoming <= capacity
-        const casResult = await tx.class.updateMany({
+        const casResult = effectiveIncoming === 0 ? { count: 1 } : await tx.class.updateMany({
           where: {
             id: targetClass.id,
             currentStudentCount: { lte: targetClass.capacity - effectiveIncoming },
@@ -207,15 +220,12 @@ export class ClassRosterCoordinator {
           );
         }
 
-        // 1.7 原班级人数原子核销
-        for (const [oldClassId, decCount] of previousClassDeductions.entries()) {
-          await tx.class.update({
-            where: { id: oldClassId },
-            data: {
-              currentStudentCount: { decrement: decCount },
-            },
-          });
-          this.logger.log(`原班级 (ID: ${oldClassId}) 已原子核销 ${decCount} 名学员在读名额`);
+        // 1.7 原班级名额释放
+        for (const rel of previousClassReleases) {
+          const released = await releaseSeatIfLast(tx, rel.studentId, rel.classId, [rel.packageId]);
+          if (released) {
+            this.logger.log(`原班级 (ID: ${rel.classId}) 已释放学员 ${rel.studentId} 的在读名额`);
+          }
         }
 
         // 1.8 批量绑定课包并推进学员学籍状态
@@ -295,8 +305,13 @@ export class ClassRosterCoordinator {
       }
 
       // 2.3 课包解绑班级 (恢复为 classId = null)
-      await tx.studentCoursePackage.update({
-        where: { id: pkg.id },
+      // 移出的是学员：他在本班的所有课包 (含续费课包、已用完的课包) 一起解绑，班级只减一个名额
+      await tx.studentCoursePackage.updateMany({
+        where: {
+          studentId: student.id,
+          classId: targetClass.id,
+          status: { in: SEAT_HOLDING_PACKAGE_STATUSES },
+        },
         data: { classId: null },
       });
 
@@ -508,20 +523,27 @@ export class ClassRosterCoordinator {
       throw new NotFoundException(`未找到班级 ID: ${classId}`);
     }
 
-    const students: ClassRosterStudentView[] = cls.studentPackages.map((pkg) => ({
-      studentId: pkg.student.id,
-      packageId: pkg.id,
-      name: pkg.student.name,
-      studentNo: pkg.student.studentNo,
-      phone: pkg.student.phone,
-      avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=60',
-      remainingLessons: pkg.remainingLessons,
-      consumedLessons: pkg.consumedLessons,
-      bonusLessons: pkg.bonusLessons,
-      isLessonDeficit: pkg.remainingLessons <= 3,
-      joinDate: pkg.updatedAt.toISOString().slice(0, 10),
-      status: pkg.student.status,
-    }));
+    // 续费学员在本班有多个课包：按学员合并为一行，课时取合计，packageId 为先扣的最早课包
+    const students: ClassRosterStudentView[] = Array.from(
+      groupPackagesByStudent(cls.studentPackages).values(),
+    ).map((group) => {
+      const pkg = group.current;
+      const first = group.packages[0];
+      return {
+        studentId: pkg.student.id,
+        packageId: pkg.id,
+        name: pkg.student.name,
+        studentNo: pkg.student.studentNo,
+        phone: pkg.student.phone,
+        avatar: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=60',
+        remainingLessons: group.remainingLessons,
+        consumedLessons: group.packages.reduce((sum, p) => sum + p.consumedLessons, 0),
+        bonusLessons: group.bonusLessons,
+        isLessonDeficit: group.remainingLessons <= 3,
+        joinDate: first.updatedAt.toISOString().slice(0, 10),
+        status: pkg.student.status,
+      };
+    });
 
     const occupancyRate =
       cls.capacity > 0

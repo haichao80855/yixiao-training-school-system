@@ -33,7 +33,21 @@ export interface EnrollmentReceipt {
   totalLessons: number;
   bonusLessons: number;
   assignedClass: boolean;
+  /** 老学员续报同一课程，新课包并入原班级 (不占新名额) */
+  renewalMerged: boolean;
   walletPaid: boolean;
+}
+
+/** 报读预检结果 */
+export interface EnrollmentPreview {
+  /** 学员在这门课已有在读课包或仍在班 (续费) */
+  isRenewal: boolean;
+  /** 新课包将并入的班级；null 表示进待分班 */
+  classId: string | null;
+  className: string | null;
+  /** 这门课在读课包 (active / frozen) 的剩余课时合计 */
+  remainingLessons: number;
+  livePackageCount: number;
 }
 
 export interface RefundInitiationCommand {

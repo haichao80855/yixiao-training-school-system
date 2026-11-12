@@ -20,6 +20,7 @@ import {
   VisualHealthBadge,
 } from './lesson-renewal.types';
 import { RefundLockedException } from '../../educational/domain/learning-growth.types';
+import { CLOSED_CLASS_STATUSES, holdsSeatInClass } from '../../educational/domain/class-seat.policy';
 
 @Injectable()
 export class LessonRenewalCoordinator {
@@ -688,7 +689,12 @@ export class LessonRenewalCoordinator {
       const freshClass = await this.prisma.class.findUnique({
         where: { id: targetClass.id },
       });
-      if (freshClass && freshClass.currentStudentCount >= freshClass.capacity) {
+      // 学员本人已在原班 (占着名额)，续费并入原班不占新名额，不受满员限制
+      const alreadySeated = await holdsSeatInClass(this.prisma, student.id, targetClass.id);
+      if (freshClass && CLOSED_CLASS_STATUSES.includes(freshClass.status)) {
+        warningMessage = `原在读班级 [${freshClass.name}] 已结班，续费草案已自动置为待分班状态以待重新排班`;
+        targetClass = null;
+      } else if (freshClass && !alreadySeated && freshClass.currentStudentCount >= freshClass.capacity) {
         isClassFull = true;
         warningMessage = `原在读班级 [${freshClass.name}] 当前在读已达上限 (${freshClass.capacity}人)，续费草案已自动置为待分班状态以防超编`;
         targetClass = null; // 安全降级为待分班池

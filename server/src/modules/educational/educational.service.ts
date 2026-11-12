@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { groupPackagesByStudent } from './domain/class-seat.policy';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateClassroomDto, UpdateClassroomDto } from './dto/classroom.dto';
 import { CreateClassDto, UpdateClassDto } from './dto/class.dto';
@@ -203,7 +204,8 @@ export class EducationalService {
           advisor: { select: { id: true, realName: true, phone: true } },
           classroom: { select: { id: true, name: true, code: true, capacity: true } },
           schedules: { select: { date: true, startTime: true, endTime: true, status: true, classType: true } },
-          _count: { select: { studentPackages: true, schedules: true } },
+          _count: { select: { schedules: true } },
+          studentPackages: { select: { studentId: true } },
         },
       }),
     ]);
@@ -212,11 +214,12 @@ export class EducationalService {
       total,
       page,
       pageSize,
-      list: list.map(({ schedules, ...c }) => ({
+      list: list.map(({ schedules, studentPackages, ...c }) => ({
         ...c,
         ...summarizeClassSchedules(schedules),
         totalLessons: c.course.totalLessons,
-        enrolledCount: c._count.studentPackages,
+        // 续费学员在同一班可能有多个课包，报读人数按学员去重
+        enrolledCount: new Set(studentPackages.map((p) => p.studentId)).size,
         scheduleCount: c._count.schedules,
       })),
     };
@@ -249,8 +252,25 @@ export class EducationalService {
     if (!cls) {
       throw new NotFoundException(`未找到班级 ID: ${id}`);
     }
+    // 续费学员在本班有多个课包：按学员合并为一条，课时取合计，避免班级详情里同一学员出现两次
+    const STATUS_RANK: Record<string, number> = { active: 0, frozen: 1, completed: 2, refunded: 3 };
+    const studentPackages = Array.from(groupPackagesByStudent(cls.studentPackages).values()).map((group) => {
+      const status = group.packages
+        .map((p) => p.status)
+        .sort((a, b) => (STATUS_RANK[a] ?? 9) - (STATUS_RANK[b] ?? 9))[0];
+      return {
+        ...group.current,
+        status,
+        remainingLessons: group.remainingLessons,
+        bonusLessons: group.bonusLessons,
+        totalLessons: group.totalLessons,
+        consumedLessons: group.packages.reduce((sum, p) => sum + p.consumedLessons, 0),
+        packageCount: group.packages.length,
+      };
+    });
     return {
       ...cls,
+      studentPackages,
       ...summarizeClassSchedules(cls.schedules),
       totalLessons: cls.course.totalLessons,
     };

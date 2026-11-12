@@ -7,6 +7,7 @@ import {
   Param,
   Body,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { StudentService } from './student.service';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
@@ -135,6 +136,18 @@ export class StudentController {
         operatorName: user?.realName || user?.account || body.operatorName || body.operator?.operatorName || '教务顾问',
       },
     });
+  }
+
+  @Get(':id/enroll-preview')
+  @RequirePermissions('student:enroll')
+  async previewEnrollment(
+    @Param('id') id: string,
+    @Query('courseId') courseId: string,
+  ) {
+    if (!courseId) {
+      throw new BadRequestException('请指定报读课程');
+    }
+    return this.studentService.previewEnrollment(id, courseId);
   }
 
   @Get(':id')

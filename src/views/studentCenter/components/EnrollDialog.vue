@@ -101,6 +101,18 @@
             </el-select>
           </el-form-item>
 
+          <el-alert
+            v-if="enrollPreview?.isRenewal"
+            type="success"
+            :closable="false"
+            show-icon
+            class="!mb-3"
+            :title="enrollPreview.className
+              ? `老学员续费：将并入原班「${enrollPreview.className}」，不占新名额`
+              : '老学员续费：该学员已有这门课的在读课包，新课包将进入待分班'"
+            :description="`这门课当前剩余 ${enrollPreview.remainingLessons} 课时。新课时单独成一个课包（单价、赠课、有效期按本次订单），上课先扣原有课时，再扣新课时。`"
+          />
+
           <div class="grid grid-cols-2 gap-4">
             <el-form-item label="购买正课课时数" required>
               <el-input-number v-model="formData.lessonCount" :min="1" :max="200" :step="4" class="w-full" />
@@ -393,6 +405,26 @@ watch(
   }
 )
 
+// 报读预检：老学员续报同一课程时提示将并入的原班
+type EnrollPreview = Awaited<ReturnType<typeof studentApi.enrollPreview>>['data']
+const enrollPreview = ref<EnrollPreview | null>(null)
+let previewSeq = 0
+watch(
+  () => [visible.value, formData.studentId, formData.courseId] as const,
+  async ([open, studentId, courseId]) => {
+    const seq = ++previewSeq
+    enrollPreview.value = null
+    if (!open || !studentId || !courseId) return
+    try {
+      const res = await studentApi.enrollPreview(studentId, courseId)
+      if (seq === previewSeq) enrollPreview.value = res?.data ?? null
+    } catch {
+      // 预检失败不影响开单，后端提交时仍会按同一规则并入原班
+    }
+  },
+  { immediate: true }
+)
+
 function handleCourseChange(courseId: string) {
   const c = availableCourses.value.find(item => item.id === courseId)
   if (c) {
@@ -464,7 +496,12 @@ async function handleSubmit() {
     const apiRes = await studentApi.enroll(payload)
 
     const orderNo = apiRes?.data?.orderNo || ''
-    ElMessage.success(orderNo ? `签约开单成功！订单已落盘：${orderNo}` : '签约开单成功！')
+    const mergedClass = apiRes?.data?.renewalMerged ? apiRes?.data?.className : ''
+    ElMessage.success(
+      mergedClass
+        ? `续费成功，已并入原班「${mergedClass}」${orderNo ? `，订单号：${orderNo}` : ''}`
+        : orderNo ? `签约开单成功！订单已落盘：${orderNo}` : '签约开单成功！'
+    )
     emit('success')
     visible.value = false
     currentStep.value = 0
