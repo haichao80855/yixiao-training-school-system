@@ -205,20 +205,31 @@
         <!-- 有效课包与剩余课时 -->
         <el-table-column label="在读课包与剩余课时" min-width="180">
           <template #default="{ row }">
-            <div v-if="row.coursePackages && row.coursePackages.length > 0" class="text-xs space-y-1">
-              <div v-for="pkg in row.coursePackages.slice(0, 2)" :key="pkg.packageId">
-                <div class="font-medium text-st-title truncate max-w-[170px]" :title="pkg.courseName">
-                  {{ pkg.courseName }}
+            <div v-if="groupCoursePackages(row.coursePackages).length > 0" class="text-xs space-y-1">
+              <div v-for="g in groupCoursePackages(row.coursePackages).slice(0, 2)" :key="g.key">
+                <div
+                  class="font-medium text-st-title truncate max-w-[170px]"
+                  :title="g.classNames ? `${g.courseName} · ${g.classNames}` : g.courseName"
+                >
+                  {{ g.courseName }}
+                </div>
+                <div
+                  class="text-[11px] text-st-muted truncate max-w-[170px]"
+                  :title="[g.classNames, g.hasUnassigned ? '含待分班课包' : '', g.packageCount > 1 ? `${g.packageCount} 个课包` : ''].filter(Boolean).join(' · ')"
+                >
+                  <span v-if="g.packageCount > 1">{{ g.packageCount }} 个课包 · </span>
+                  <span v-if="g.classNames">{{ g.classNames }}</span>
+                  <span v-if="g.hasUnassigned" class="text-st-warning">{{ g.classNames ? ' · 含待分班' : '待分班' }}</span>
                 </div>
                 <div class="text-[11px] flex items-center justify-between text-st-secondary">
-                  <span>剩余: <b class="text-emerald-600 font-bold font-mono">{{ pkg.remainingLessons }}</b> / {{ pkg.totalLessons }} 课时</span>
-                  <el-tag size="small" :type="pkg.status === 'active' ? 'success' : 'warning'" class="scale-90">
-                    {{ pkg.status === 'active' ? '正常' : pkg.status === 'frozen' ? '冻结' : '结课' }}
+                  <span>剩余: <b class="text-emerald-600 font-bold font-mono">{{ g.remainingLessons }}</b> / {{ g.totalLessons }} 课时</span>
+                  <el-tag size="small" :type="g.status === 'active' ? 'success' : 'warning'" class="scale-90">
+                    {{ g.status === 'active' ? '正常' : g.status === 'frozen' ? '冻结' : '结课' }}
                   </el-tag>
                 </div>
               </div>
-              <div v-if="row.coursePackages.length > 2" class="text-[10px] text-st-primary">
-                + 查看其余 {{ row.coursePackages.length - 2 }} 个课包...
+              <div v-if="groupCoursePackages(row.coursePackages).length > 2" class="text-[10px] text-st-primary">
+                + 查看其余 {{ groupCoursePackages(row.coursePackages).length - 2 }} 门课程...
               </div>
             </div>
             <span v-else class="text-xs text-st-muted">暂无有效课包</span>
@@ -413,6 +424,7 @@ import { Phone } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useAuthStore } from '@/stores/authStore'
 import { studentApi } from '@/api'
+import { groupCoursePackages } from '@/utils/coursePackageGroups'
 import AppPagination from '@/components/AppPagination.vue'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import SummaryStrip from '@/components/SummaryStrip.vue'
