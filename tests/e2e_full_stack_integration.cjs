@@ -429,9 +429,8 @@ async function runFullStackIntegration() {
   try {
     const path = require('path');
     const { PrismaClient } = require(path.resolve(__dirname, '../server/node_modules/@prisma/client'));
-    const prisma = new PrismaClient({
-      datasources: { db: { url: 'file:' + path.resolve(__dirname, '../server/prisma/dev.db') } },
-    });
+    // 和被测后端用同一个库 (DATABASE_URL)，不能写死 dev.db，否则隔离运行时会去清理开发库
+    const prisma = new PrismaClient();
     if (approvalFlowId) {
       await prisma.approvalNode.deleteMany({ where: { approvalFlowId } }).catch(() => {});
       await prisma.approvalFlow.deleteMany({ where: { id: approvalFlowId } }).catch(() => {});

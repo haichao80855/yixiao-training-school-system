@@ -7,7 +7,10 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const ts = require(path.resolve(__dirname, '../mini-program/node_modules/typescript'));
+// 优先用小程序自己的 TypeScript；没装小程序依赖时 (例如 CI) 用仓库根目录的
+const ts = require(require.resolve('typescript', {
+  paths: [path.resolve(__dirname, '../mini-program'), path.resolve(__dirname, '..')],
+}));
 
 const src = fs
   .readFileSync(path.resolve(__dirname, '../mini-program/src/utils/request.ts'), 'utf8')
