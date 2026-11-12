@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException } from '@nes
 import * as crypto from 'crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { OutboxNotificationDispatcher } from './notification/outbox-notification.dispatcher';
+import { StaffNotificationService } from '../../staff-notification/domain/staff-notification.service';
 import {
   HydrateEvaluationQuery,
   HydratedEvaluationWorkbench,
@@ -44,6 +45,7 @@ export class LessonEvaluationCoordinator {
   constructor(
     private readonly prisma: PrismaService,
     private readonly outboxDispatcher: OutboxNotificationDispatcher,
+    private readonly staffNotifications: StaffNotificationService,
   ) {}
 
   /**
@@ -405,7 +407,7 @@ export class LessonEvaluationCoordinator {
       !payload.voiceUrl &&
       !studentOverrides.some((ov) => ov.isEvaluated !== undefined || overrideHasEvaluationContent(ov));
 
-    return this.prisma.$transaction(async (tx) => {
+    const receipt = await this.prisma.$transaction(async (tx): Promise<EvaluationCommitReceipt> => {
       let evalRecord: any = null;
       if (!isAttendanceOnlyDraft) {
       // 1. 落盘课评聚合根 LessonEvaluation (单学员修改时保留排课公共内容)
@@ -868,5 +870,19 @@ export class LessonEvaluationCoordinator {
           : '课评草稿已持久化暂存成功。',
       };
     });
+
+    // 事务提交后通知校区负责人：课评发布、点名扣课后课时不足 (失败只记日志，不影响课评保存)
+    if (publish) {
+      await this.staffNotifications.notifyEvaluationPublished({ scheduleEventId: schedule.id });
+    }
+    const studentIds = studentOverrides.map((ov) => ov.studentId).filter(Boolean);
+    if (studentIds.length && schedule.class?.courseId) {
+      await this.staffNotifications.notifyLowBalance({
+        campusId: schedule.campusId,
+        courseId: schedule.class.courseId,
+        studentIds,
+      });
+    }
+    return receipt;
   }
 }

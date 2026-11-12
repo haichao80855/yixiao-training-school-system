@@ -11,7 +11,7 @@ This repository contains three clients and one backend for the **一校教培系
   - Web parent portal (`build:h5`, deployed at `/parent/`): `package-parent`.
   - Business logic lives in `coordinators/`, `projectors/`, and `services/`; keep pages thin.
 - `server/`: NestJS 10 backend (Prisma 5, JWT auth).
-  - `server/src/modules/`: `auth`, `curriculum`, `student`, `educational`, `financial`, `system`, `data-scope` (campus data-permission policy), `parent` (parent portal and WeChat login), `teacher-portal`, `upload` (media upload and Aliyun OSS links).
+  - `server/src/modules/`: `auth`, `curriculum`, `student`, `educational`, `financial`, `system`, `data-scope` (campus data-permission policy), `parent` (parent portal and WeChat login), `teacher-portal`, `upload` (media upload and Aliyun OSS links), `staff-notification` (in-app notices for principals and above: evaluation published, low lesson balance; shown in the admin header bell).
   - Most modules keep their domain logic in `domain/` (coordinators, engines, projectors); controllers and services stay thin. The ADRs in `docs/adr/` describe these modules.
   - `server/prisma/`: `schema.prisma` (the active schema), `schema.sqlite.prisma` / `schema.postgresql.prisma` (the sources it is copied from), and `seed.ts`. There is no migrations folder; schema changes go through `prisma db push`. The local database `server/prisma/dev.db` is git-ignored.
 - `tests/`: Tiered suites (`tier1_core` … `tier4_e2e_scenarios`, `tier5_adversarial_suite_*.cjs`), adversarial/challenger scripts, mini-program contract tests (`test_mp_*.cjs`), and E2E runners.

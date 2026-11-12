@@ -32,19 +32,46 @@
       </div>
 
       <!-- 待办消息与通知 -->
-      <el-popover placement="bottom-end" :width="300" trigger="click" @show="loadTodoCounts">
+      <el-popover placement="bottom-end" :width="340" trigger="click" @show="refreshBell">
         <template #reference>
-          <button type="button" class="header-icon-btn relative" title="待办" :aria-label="todoTotal > 0 ? `待办 ${todoTotal} 项` : '待办'">
+          <button type="button" class="header-icon-btn relative" title="通知与待办" :aria-label="badgeTotal > 0 ? `通知与待办 ${badgeTotal} 项` : '通知与待办'">
             <el-icon :size="18"><Bell /></el-icon>
             <span
-              v-if="todoTotal > 0"
+              v-if="badgeTotal > 0"
               class="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full bg-st-danger text-white text-xs leading-4 font-semibold text-center ring-2 ring-white"
             >
-              {{ todoTotal > 99 ? '99+' : todoTotal }}
+              {{ badgeTotal > 99 ? '99+' : badgeTotal }}
             </span>
           </button>
         </template>
         <div class="text-[13px]">
+          <!-- 站内通知：课评发布、学员课时不足 (校区负责人及以上) -->
+          <template v-if="notices.enabled">
+            <div class="pb-2 mb-1 border-b border-st-border flex items-center justify-between">
+              <span class="font-semibold text-st-title">
+                通知<span v-if="notices.unreadCount > 0" class="ml-1 text-st-danger">{{ notices.unreadCount }}</span>
+              </span>
+              <el-button v-if="notices.unreadCount > 0" link type="primary" size="small" @click="markAllNoticesRead">全部已读</el-button>
+            </div>
+            <div v-if="notices.items.length" class="max-h-[280px] overflow-y-auto -mx-1 px-1 mb-3">
+              <button
+                v-for="item in notices.items"
+                :key="item.id"
+                type="button"
+                class="notice-item"
+                @click="openNotice(item)"
+              >
+                <span :class="['notice-dot', item.read ? 'bg-transparent' : item.type === 'low_balance' ? 'bg-st-warning' : 'bg-st-primary']"></span>
+                <span class="flex-1 min-w-0">
+                  <span :class="['block truncate', item.read ? 'text-st-secondary' : 'font-medium text-st-title']">{{ item.title }}</span>
+                  <span class="block text-xs text-st-muted line-clamp-2">{{ item.content }}</span>
+                  <span class="block text-xs text-st-placeholder mt-0.5">{{ formatNoticeTime(item.createdAt) }}</span>
+                </span>
+              </button>
+            </div>
+            <p v-else class="py-3 mb-2 text-center text-xs text-st-muted">暂无通知</p>
+          </template>
+
           <div class="pb-2 mb-1 border-b border-st-border font-semibold text-st-title">待办</div>
           <button
             v-if="todoCounts.approvals !== null"
@@ -194,7 +221,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Database, LogOut, Settings, PanelLeftClose as Fold, Bell, Maximize as FullScreen, ChevronDown as ArrowDown } from 'lucide-vue-next'
@@ -202,6 +229,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
 import { DIALOG_SIZE } from '@/constants/ui'
 import CampusSelector from './CampusSelector.vue'
+import type { StaffNotification } from '@/api/modules/notification'
 // 顶栏随 MainLayout 首屏加载：改密码弹窗和待办数量接口按需加载，不计入首屏体积
 const ChangePasswordDialog = defineAsyncComponent(() => import('./ChangePasswordDialog.vue'))
 
@@ -247,7 +275,62 @@ async function loadTodoCounts() {
   }
 }
 
-onMounted(loadTodoCounts)
+/** 站内通知：只有校区负责人及以上 enabled 为 true */
+const notices = ref<{ enabled: boolean; items: StaffNotification[]; unreadCount: number }>({ enabled: false, items: [], unreadCount: 0 })
+const badgeTotal = computed(() => todoTotal.value + notices.value.unreadCount)
+
+async function loadNotices() {
+  const { notificationApi } = await import('@/api/modules/notification')
+  const res = await notificationApi.list(20).catch(() => null)
+  if (res?.data) notices.value = res.data
+}
+
+function refreshBell() {
+  loadTodoCounts()
+  loadNotices()
+}
+
+async function openNotice(item: StaffNotification) {
+  if (!item.read) {
+    item.read = true
+    notices.value.unreadCount = Math.max(0, notices.value.unreadCount - 1)
+    const { notificationApi } = await import('@/api/modules/notification')
+    notificationApi.markRead(item.id).catch(() => {})
+  }
+  if (item.link) router.push(item.link)
+}
+
+async function markAllNoticesRead() {
+  const { notificationApi } = await import('@/api/modules/notification')
+  try {
+    await notificationApi.markAllRead()
+    notices.value.items.forEach((i) => (i.read = true))
+    notices.value.unreadCount = 0
+  } catch {
+    ElMessage.error('标记已读失败，请稍后重试')
+  }
+}
+
+function formatNoticeTime(iso: string) {
+  const d = new Date(iso)
+  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000)
+  if (diffMin < 1) return '刚刚'
+  if (diffMin < 60) return `${diffMin} 分钟前`
+  if (diffMin < 24 * 60) return `${Math.floor(diffMin / 60)} 小时前`
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// 每 2 分钟刷新一次未读数；页面在后台时不刷新
+const NOTICE_POLL_MS = 120_000
+let noticeTimer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+  refreshBell()
+  noticeTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') loadNotices()
+  }, NOTICE_POLL_MS)
+})
+onBeforeUnmount(() => clearInterval(noticeTimer))
 
 function handleGoHome() {
   router.push('/dashboard')
