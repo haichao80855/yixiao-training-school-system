@@ -19,7 +19,7 @@
           <RefreshCw v-if="!refreshing" class="w-4 h-4 mr-1.5" />
           {{ refreshing ? '正在同步…' : '刷新数据' }}
         </el-button>
-        <el-button type="primary" @click="$router.push('/educational/workbench')">
+        <el-button v-if="canOpen('/educational/workbench')" type="primary" @click="$router.push('/educational/workbench')">
           <Monitor class="w-4 h-4 mr-1.5" />
           进入教学讲台
         </el-button>
@@ -123,6 +123,9 @@
       </div>
     </div>
 
+    <!-- 教学经营指标：到课率、请假率、课评查看率、满班率 (需要考勤查看权限) -->
+    <TeachingMetricsPanel v-if="authStore.hasPermission('educational:attendance')" />
+
     <!-- 核心业务高频入口网格 (经过精炼的9大真实业务枢纽) -->
     <div class="panel-card">
       <div class="flex items-center justify-between mb-4">
@@ -134,7 +137,7 @@
 
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-3">
         <div
-          v-for="item in quickAccessList"
+          v-for="item in visibleQuickAccess"
           :key="item.name"
           @click="$router.push(item.path)"
           class="flex flex-col items-center px-2 py-3.5 rounded-lg hover:bg-st-header transition-colors cursor-pointer group text-center"
@@ -166,6 +169,7 @@
               link
               type="primary"
               size="small"
+              v-if="canOpen('/educational/timeSchedule')"
               class="flex items-center gap-1"
               @click="$router.push('/educational/timeSchedule')"
             >
@@ -210,11 +214,13 @@
               <!-- 操作区 -->
               <div class="flex items-center space-x-2 shrink-0 self-end sm:self-center">
                 <el-button
+                  v-if="canOpen('/educational/workbench')"
                   @click="$router.push('/educational/workbench')"
                 >
                   讲台
                 </el-button>
                 <el-button
+                  v-if="canOpen('/educational/attendance')"
                   type="primary"
                   @click="$router.push('/educational/attendance')"
                 >
@@ -228,7 +234,7 @@
           <div v-else class="py-12 flex flex-col items-center justify-center text-center text-st-muted space-y-2">
             <CalendarDays class="w-9 h-9 text-st-placeholder mx-auto" />
             <p class="text-[13px]">未来两周暂无待上课次</p>
-            <el-button type="primary" plain @click="$router.push('/educational/timeSchedule')">
+            <el-button v-if="canOpen('/educational/timeSchedule')" type="primary" plain @click="$router.push('/educational/timeSchedule')">
               前往排课日历添加课次
             </el-button>
           </div>
@@ -253,6 +259,7 @@
           <div class="space-y-1 text-[13px]">
             <!-- 待审批工单 -->
             <div
+              v-if="canOpen('/financial/approvalFlow')"
               @click="$router.push('/financial/approvalFlow')"
               class="todo-row group"
             >
@@ -272,6 +279,7 @@
 
             <!-- 待分班学员池 -->
             <div
+              v-if="canOpen('/studentCenter/unassigned')"
               @click="$router.push('/studentCenter/unassigned')"
               class="todo-row group"
             >
@@ -291,6 +299,7 @@
 
             <!-- 冲突排课预警 -->
             <div
+              v-if="canOpen('/educational/timeSchedule')"
               @click="$router.push('/educational/timeSchedule')"
               class="todo-row group"
             >
@@ -341,6 +350,7 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi, studentApi, curriculumApi, educationalApi } from '@/api'
+import TeachingMetricsPanel from './components/TeachingMetricsPanel.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -480,6 +490,15 @@ const quickAccessList = [
   { name: '财务流水', desc: '营收订单与核验', icon: CircleDollarSign, bgClass: 'bg-st-warning-light text-st-warning', path: '/financial/orderManagement' },
   { name: '审批中心', desc: '业务退费审批单', icon: ClipboardCheck, bgClass: 'bg-st-danger-light text-st-danger', path: '/financial/approvalFlow' }
 ]
+
+/** 当前账号能否打开这个页面 (页面权限写在路由 meta.requiresPermission 上) */
+function canOpen(path: string): boolean {
+  const required = router.resolve(path).meta.requiresPermission as string | string[] | undefined
+  return !required || authStore.hasAnyPermission(required)
+}
+
+// 只显示当前账号有权限打开的入口
+const visibleQuickAccess = computed(() => quickAccessList.filter((item) => canOpen(item.path)))
 </script>
 
 <style scoped>

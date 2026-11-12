@@ -97,6 +97,12 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value.permissions.includes(permCode)
   }
 
+  /** 满足任意一个权限码即可 (页面和菜单用) */
+  function hasAnyPermission(permCodes: string | string[]): boolean {
+    const codes = Array.isArray(permCodes) ? permCodes : [permCodes]
+    return codes.some((code) => hasPermission(code))
+  }
+
   const dataScope = computed<'all' | 'campus' | 'department' | 'self'>(() => user.value?.dataScope || 'self')
   const isDataScopeSelf = computed(() => dataScope.value === 'self')
   const isDataScopeCampus = computed(() => dataScope.value === 'campus')
@@ -160,6 +166,8 @@ export const useAuthStore = defineStore('auth', () => {
           user.value.campusId = u.campusId || user.value.campusId
           user.value.campusName = u.campusName || user.value.campusName
           if (u.dataScope) user.value.dataScope = u.dataScope
+          // 角色权限在后台被调整后，重新打开页面即按新权限显示菜单
+          if (Array.isArray(u.permissions)) user.value.permissions = u.permissions
           if (typeof window !== 'undefined') {
             localStorage.setItem(USER_KEY, JSON.stringify(user.value))
           }
@@ -188,6 +196,7 @@ export const useAuthStore = defineStore('auth', () => {
     refreshProfile,
     logout,
     hasPermission,
+    hasAnyPermission,
     dataScope,
     isDataScopeSelf,
     isDataScopeCampus,
