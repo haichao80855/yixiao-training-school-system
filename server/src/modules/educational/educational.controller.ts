@@ -35,6 +35,8 @@ import { CampusScope, CampusScopeResult } from '../../common/campus-scope.policy
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 
+import { TeachingMetricsAggregator } from './domain/teaching-metrics.aggregator';
+
 @Controller('api/educational')
 export class EducationalController {
   constructor(
@@ -46,7 +48,19 @@ export class EducationalController {
     private readonly lifecycleCoordinator: ClassLifecycleCoordinator,
     private readonly evaluationCoordinator: LessonEvaluationCoordinator,
     private readonly fulfillmentCoordinator: LessonFulfillmentCoordinator,
+    private readonly teachingMetrics: TeachingMetricsAggregator,
   ) {}
+
+  /** 首页教学经营指标：到课率、请假率、课评查看率、满班率 (start / end 为 YYYY-MM-DD) */
+  @Get('dashboard/teaching-metrics')
+  @RequirePermissions('educational:attendance')
+  async getTeachingMetrics(
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @CampusScope() scope?: CampusScopeResult,
+  ) {
+    return this.teachingMetrics.aggregate({ campusId: scope?.targetCampusId, start, end });
+  }
 
   // ----------------------------------------------------------------
   // 0. 授课教师/讲师列表（教务业务专用端点，无需人事系统最高权限）
