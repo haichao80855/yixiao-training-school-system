@@ -8,7 +8,7 @@
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
         </span>
-        <span class="text-[16px] font-semibold text-st-title tracking-tight whitespace-nowrap">一校教培系统</span>
+        <span class="hidden sm:inline text-[16px] font-semibold text-st-title tracking-tight whitespace-nowrap">一校教培系统</span>
       </button>
 
       <!-- 侧边栏折叠/展开按钮 -->
@@ -26,7 +26,10 @@
     <!-- 右侧：校区、通知、全屏与用户 -->
     <div class="flex items-center gap-1.5 shrink-0">
       <!-- 多校区切换选择器 -->
-      <CampusSelector ref="campusSelectorRef" class="mr-2" />
+      <!-- 手机宽度放不下校区选择器：在侧边栏底部切换校区 -->
+      <div class="hidden md:block mr-2">
+        <CampusSelector ref="campusSelectorRef" />
+      </div>
 
       <!-- 待办消息与通知 -->
       <el-popover placement="bottom-end" :width="300" trigger="click" @show="loadTodoCounts">

@@ -165,7 +165,7 @@
     <div class="bg-white rounded-lg shadow-sm border border-st-border overflow-hidden">
       <div class="overflow-x-auto w-full min-w-0">
         <el-table
-          :data="classList"
+          :data="classList" v-loading="listLoading"
           stripe
           border
           size="default"
@@ -174,7 +174,9 @@
         >
           <template #empty>
             <AppEmpty
-              :type="searchQuery || statusFilter || teacherFilter ? 'search' : 'data'"
+              :type="listError ? 'error' : (searchQuery || statusFilter || teacherFilter ? 'search' : 'data')"
+              :description="listError || undefined"
+              @retry="loadData"
               action-text="重置筛选"
               @action="handleResetFilters"
             />
@@ -440,6 +442,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Building2, Calendar, Search, Users, TrendingUp, Target, User, MapPin } from 'lucide-vue-next'
@@ -453,6 +456,9 @@ import AppEmpty from '@/components/AppEmpty.vue'
 import ClassDetailDrawer from './components/ClassDetailDrawer.vue'
 import BatchScheduleDialog from './components/BatchScheduleDialog.vue'
 import ClassFormDialog from './components/ClassFormDialog.vue'
+
+// 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
+const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
 
 const tenantStore = useTenantStore()
 const authStore = useAuthStore()
@@ -562,7 +568,11 @@ function getStatusLabel(status: string) {
   }
 }
 
-async function loadData() {
+function loadData() {
+  return trackList(loadDataTask)
+}
+
+async function loadDataTask() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (teacherFilter.value || undefined)
   try {
     const res = await educationalApi.getClasses({
@@ -578,6 +588,7 @@ async function loadData() {
       }
     }
   } catch (err: any) {
+    failList(err, '获取班级列表失败')
     ElMessage.error(err.message || '获取班级列表失败')
   }
 

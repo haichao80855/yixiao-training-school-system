@@ -59,13 +59,21 @@
 
       <!-- 字典表格 -->
       <el-table
-        :data="filteredDictList"
+        :data="filteredDictList" v-loading="listLoading"
         style="width: 100%"
         stripe
         size="small"
         row-key="id"
         class="st-dict-table text-xs"
       >
+        <template #empty>
+          <AppEmpty
+            :type="listError ? 'error' : ('data')"
+            :description="listError || undefined"
+            :show-action="!!listError"
+            @retry="loadData"
+          />
+        </template>
         <el-table-column prop="category" label="字典分类" width="160">
           <template #default="{ row }">
             <el-tag size="small" :type="getCategoryTagType(row.category)">
@@ -182,6 +190,8 @@
 </template>
 
 <script setup lang="ts">
+import AppEmpty from '@/components/AppEmpty.vue'
+import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, onMounted } from 'vue'
 import { Search } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -190,19 +200,27 @@ import type { DictItem } from '@/types/system'
 import { systemApi } from '@/api'
 import CoursewareSourceCard from './components/CoursewareSourceCard.vue'
 
+// 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
+const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
+
 // --- 状态数据 ---
 const activeCategoryTab = ref('all')
 const searchQuery = ref('')
 const filterStatus = ref<boolean | ''>('')
 const dictList = ref<DictItem[]>([])
 
-async function loadData() {
+function loadData() {
+  return trackList(loadDataTask)
+}
+
+async function loadDataTask() {
   try {
     const res = await systemApi.getDictItems()
     if (res && res.data && Array.isArray(res.data)) {
       dictList.value = res.data
     }
   } catch (err: any) {
+    failList(err, '获取字典项失败')
     ElMessage.error(err.message || '获取字典项失败')
   }
 }

@@ -89,12 +89,20 @@
     <div class="bg-white rounded-lg p-4 shadow-card border border-st-border">
       <el-table
         ref="approvalTableRef"
-        :data="filteredApprovals"
+        :data="filteredApprovals" v-loading="listLoading"
         style="width: 100%"
         stripe
         size="small"
         @selection-change="handleSelectionChange"
       >
+        <template #empty>
+          <AppEmpty
+            :type="listError ? 'error' : ('data')"
+            :description="listError || undefined"
+            :show-action="!!listError"
+            @retry="loadApprovals"
+          />
+        </template>
         <el-table-column type="selection" width="42" align="center" />
 
         <el-table-column prop="approvalNo" label="审批单号" width="175">
@@ -348,12 +356,17 @@
 </template>
 
 <script setup lang="ts">
+import AppEmpty from '@/components/AppEmpty.vue'
+import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, onMounted } from 'vue'
 import { Check, X as Close, Copy as DocumentCopy } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi } from '@/api'
 import type { ApprovalRecord, ApprovalBusinessType } from '@/types/financial'
+
+// 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
+const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
 
 const tenantStore = useTenantStore()
 
@@ -377,7 +390,11 @@ const statusTabs = [
 
 const remoteApprovals = ref<ApprovalRecord[]>([])
 
-async function loadApprovals() {
+function loadApprovals() {
+  return trackList(loadApprovalsTask)
+}
+
+async function loadApprovalsTask() {
   try {
     const res = await financialApi.getApprovals({
       campusId: tenantStore.currentCampusId
@@ -390,6 +407,7 @@ async function loadApprovals() {
       }
     }
   } catch (err) {
+    failList(err, '获取审批单失败')
     console.warn('[ApprovalFlow] 远程审批单拉取失败:', err)
   }
   remoteApprovals.value = []

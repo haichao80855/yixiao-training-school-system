@@ -113,10 +113,12 @@
 
             <!-- 待上课次表格 -->
             <div class="overflow-x-auto w-full min-w-0">
-              <el-table :data="filteredSchedules" stripe border size="default" style="width: 100%">
+              <el-table :data="filteredSchedules" v-loading="listLoading" stripe border size="default" style="width: 100%">
                 <template #empty>
                   <AppEmpty
-                    :type="filterTeacher || filterDate ? 'search' : 'data'"
+                    :type="listError ? 'error' : (filterTeacher || filterDate ? 'search' : 'data')"
+              :description="listError || undefined"
+              @retry="loadData"
                     action-text="重置日期"
                     @action="() => { filterDate = getTodayDateStr(); filterScheduleStatus = 'all'; }"
                   />
@@ -186,7 +188,7 @@
             </div>
 
             <!-- 历史记录列表 -->
-            <el-table :data="attendanceRecords" stripe border size="default" style="width: 100%">
+            <el-table :data="attendanceRecords" v-loading="listLoading" stripe border size="default" style="width: 100%">
               <el-table-column prop="id" label="考勤记录编号" width="165">
                 <template #default="{ row }">
                   <span class="font-mono text-xs text-st-secondary font-semibold">{{ row.id }}</span>
@@ -271,6 +273,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -283,6 +286,9 @@ import RollCallDrawer from './components/RollCallDrawer.vue'
 import AttendanceDetailDialog from './components/AttendanceDetailDialog.vue'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
+
+// 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
+const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
 
 const route = useRoute()
 const tenantStore = useTenantStore()
@@ -329,7 +335,11 @@ const teachers = computed(() => teacherList.value.filter(t => t.role === 'teache
 
 const serverMetrics = ref<any>(null)
 
-async function loadData() {
+function loadData() {
+  return trackList(loadDataTask)
+}
+
+async function loadDataTask() {
   try {
     const [wbRes, schedRes] = await Promise.all([
       educationalApi.getWorkbenchSnapshot({
@@ -358,6 +368,7 @@ async function loadData() {
       schedules.value = []
     }
   } catch (err: any) {
+    failList(err, '获取排课与考勤记录失败')
     ElMessage.error(err.message || '获取排课与考勤记录失败')
     schedules.value = []
     attendanceRecords.value = []

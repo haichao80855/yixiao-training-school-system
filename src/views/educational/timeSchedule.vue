@@ -151,7 +151,11 @@
     </div>
 
     <!-- 视图模式 1: 7x15 动态时间排课网格 (默认主视图) -->
-    <div v-if="currentSubTab === 'timeClassSchedule' || currentSubTab === 'attendClassCalendar'" class="bg-white rounded-lg shadow-sm border border-st-border overflow-hidden">
+    <div v-if="currentSubTab === 'timeClassSchedule' || currentSubTab === 'attendClassCalendar'" v-loading="listLoading" class="bg-white rounded-lg shadow-sm border border-st-border overflow-hidden">
+      <div v-if="listError" class="flex items-center justify-between gap-3 px-4 py-2.5 bg-st-danger-light text-st-danger-deep text-sm border-b border-st-danger-border" role="alert">
+        <span>课表加载失败：{{ listError }}</span>
+        <el-button size="small" @click="loadSchedules">重新加载</el-button>
+      </div>
       <div class="overflow-x-auto w-full min-w-0">
         <div class="min-w-[840px]">
           <!-- 星期表头 (7 天) -->
@@ -364,10 +368,12 @@
         </el-tag>
       </div>
 
-      <el-table :data="tableEvents" stripe border size="small" style="width: 100%">
+      <el-table :data="tableEvents" v-loading="listLoading" stripe border size="small" style="width: 100%">
         <template #empty>
           <AppEmpty
-            :type="filterTeacher || filterCourse || filterClassroom ? 'search' : 'data'"
+            :type="listError ? 'error' : (filterTeacher || filterCourse || filterClassroom ? 'search' : 'data')"
+              :description="listError || undefined"
+              @retry="loadSchedules"
             action-text="重置筛选"
             @action="handleReset"
           />
@@ -426,6 +432,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { MapPin, Zap, AlertTriangle, User, Lock, ChevronLeft as ArrowLeft, ChevronRight as ArrowRight } from 'lucide-vue-next'
@@ -443,6 +450,9 @@ import AppEmpty from '@/components/AppEmpty.vue'
 import QuickScheduleDialog from './components/QuickScheduleDialog.vue'
 import ScheduleDetailDrawer from './components/ScheduleDetailDrawer.vue'
 import ConflictCenterDialog from './components/ConflictCenterDialog.vue'
+
+// 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
+const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
 
 const tenantStore = useTenantStore()
 const authStore = useAuthStore()
@@ -556,7 +566,11 @@ const conflictCenterRef = ref<InstanceType<typeof ConflictCenterDialog>>()
 // 响应式排课日程
 const schedules = ref<ScheduleEvent[]>([])
 
-async function loadSchedules() {
+function loadSchedules() {
+  return trackList(loadSchedulesTask)
+}
+
+async function loadSchedulesTask() {
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (filterTeacher.value || undefined)
   try {
     // 讲师 / 教室 / 课程选项只在进入页面时加载一次，并与排课并行请求 (切换校区时页面会整体重建)
@@ -575,6 +589,7 @@ async function loadSchedules() {
       return
     }
   } catch (err: any) {
+    failList(err, '获取排课日程失败')
     ElMessage.error(err.message || '获取排课日程失败')
   }
 

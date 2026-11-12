@@ -151,14 +151,16 @@
     <div class="bg-white rounded-lg p-4 shadow-card border border-st-border">
       <div class="overflow-x-auto w-full min-w-0">
         <el-table
-          :data="displayLedgers"
+          :data="displayLedgers" v-loading="listLoading"
           style="width: 100%"
           stripe
           size="small"
         >
           <template #empty>
             <AppEmpty
-              :type="filterKeyword || filterMethod !== 'all' || filterType !== 'all' ? 'search' : 'data'"
+              :type="listError ? 'error' : (filterKeyword || filterMethod !== 'all' || filterType !== 'all' ? 'search' : 'data')"
+              :description="listError || undefined"
+              @retry="loadLedgers"
               action-text="重置筛选"
               @action="resetFilter"
             />
@@ -284,6 +286,7 @@
 </template>
 
 <script setup lang="ts">
+import { useLoadState } from '@/composables/useLoadState'
 import { toDateKey } from '@/utils/dateKey'
 import { RefreshCw as Refresh, Download, Copy as DocumentCopy } from 'lucide-vue-next'
 import { ref, computed, onMounted, watch } from 'vue'
@@ -295,6 +298,9 @@ import SummaryStrip from '@/components/SummaryStrip.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
 import type { LedgerRecord } from '@/types/financial'
 
+// 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
+const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
+
 const tenantStore = useTenantStore()
 
 const filterCampus = ref(tenantStore.currentCampusId || 'all')
@@ -305,7 +311,11 @@ const filterKeyword = ref('')
 
 const remoteLedgers = ref<LedgerRecord[]>([])
 
-async function loadLedgers() {
+function loadLedgers() {
+  return trackList(loadLedgersTask)
+}
+
+async function loadLedgersTask() {
   try {
     const res = await financialApi.getLedgers({
       campusId: filterCampus.value || 'all',
@@ -316,6 +326,7 @@ async function loadLedgers() {
       return
     }
   } catch (err: any) {
+    failList(err, '获取财务流水失败')
     ElMessage.error(err.message || '获取财务流水账本失败')
   }
   remoteLedgers.value = []
