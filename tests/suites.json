@@ -294,6 +294,12 @@
           "needs": [
             "server"
           ]
+        },
+        {
+          "file": "server/test-parent-feed-detail-consistency.js",
+          "needs": [
+            "server"
+          ]
         }
       ]
     },

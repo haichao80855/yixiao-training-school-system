@@ -7,6 +7,7 @@
     </view>
 
     <view v-if="loading && months.length === 0" class="sk-grid" />
+    <ErrorState v-else-if="loadError && months.length === 0" :message="loadError" @retry="load(true)" />
     <EmptyState
       v-else-if="months.length === 0"
       :icon="type === 'photo' ? 'image' : 'video'"
@@ -41,6 +42,7 @@
 
       <view class="list-footer">
         <text v-if="loadingMore">加载中…</text>
+        <text v-else-if="moreError" role="button" tabindex="0" class="load-more" @click="load(false)">加载失败，点这里重试</text>
         <text v-else-if="!nextCursor">· 已经到底了 ·</text>
         <!-- 内容不满一屏时页面无法滚动，触底加载不会触发，保留手动入口 -->
         <text role="button" tabindex="0" v-else class="load-more" @click="load(false)">查看更早的{{ type === 'photo' ? '照片' : '视频' }}</text>
@@ -58,11 +60,13 @@ import { ref, watch } from 'vue';
 import { onLoad, onReachBottom } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import ErrorState from '../components/ErrorState.vue';
+import { describeLoadError } from '../utils/loadError';
 import VideoOverlay from '../components/VideoOverlay.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, mediaUrl, type ArchiveMonth } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
-import { formatDateCn } from '../utils/format';
+import { formatDateCn, formatMonthCn } from '../utils/format';
 
 const parentStore = useParentStore();
 const type = ref<'photo' | 'video'>('photo');
@@ -71,6 +75,9 @@ const nextCursor = ref<string | null>(null);
 const loading = ref(false);
 const loadingMore = ref(false);
 const playingUrl = ref('');
+
+const loadError = ref('');
+const moreError = ref(false);
 
 async function load(reset = true) {
   const sid = parentStore.currentStudentId;
@@ -82,13 +89,20 @@ async function load(reset = true) {
     loadingMore.value = true;
   }
   const requestedType = type.value;
+  loadError.value = '';
+  moreError.value = false;
   try {
     const res = await parentApi.archive(sid, { cursor: reset ? null : nextCursor.value, type: requestedType });
     if (sid !== parentStore.currentStudentId || requestedType !== type.value) return;
     months.value = reset ? res.months : [...months.value, ...res.months];
     nextCursor.value = res.nextCursor;
-  } catch {
-    if (reset) months.value = [];
+  } catch (err) {
+    if (reset) {
+      months.value = [];
+      loadError.value = describeLoadError(err);
+    } else {
+      moreError.value = true;
+    }
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -104,7 +118,7 @@ function setType(value: 'photo' | 'video') {
 }
 
 function monthText(month: string) {
-  return `${month.slice(0, 4)}年${Number(month.slice(5))}月`;
+  return formatMonthCn(month);
 }
 
 function preview(month: ArchiveMonth, index: number) {

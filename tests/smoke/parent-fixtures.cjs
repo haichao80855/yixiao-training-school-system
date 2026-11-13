@@ -58,6 +58,7 @@ const day = (offset) => new Date(Date.now() + 8 * 3600e3 + offset * 86400e3).toI
 
 /** 建好演示数据，返回清理函数 */
 async function seedParentDemo(prisma) {
+  const startedAt = new Date();
   const { token } = await apiLogin('superAdmin');
   const child = await prisma.student.findUnique({ where: { id: PARENT.childId } });
   const tag = `__t_${Date.now().toString(36)}`;
@@ -106,6 +107,13 @@ async function seedParentDemo(prisma) {
 
   return async function cleanup() {
     const ids = events.map((e) => e.id);
+    // 结课时给执行校长发的站内通知、家长首次登录时建的家长账号 (临时库里只有本次测试在写)
+    await prisma.staffNotification.deleteMany({ where: { createdAt: { gte: startedAt }, campusId: child.campusId } }).catch(() => {});
+    const accounts = await prisma.parentAccount.findMany({ where: { phone: PARENT.phone, createdAt: { gte: startedAt } }, select: { id: true } });
+    const accountIds = accounts.map((a) => a.id);
+    await prisma.parentReadState.deleteMany({ where: { parentAccountId: { in: accountIds } } }).catch(() => {});
+    await prisma.parentSession.deleteMany({ where: { parentAccountId: { in: accountIds } } }).catch(() => {});
+    await prisma.parentAccount.deleteMany({ where: { id: { in: accountIds } } }).catch(() => {});
     const evals = await prisma.lessonEvaluation.findMany({ where: { scheduleEventId: { in: ids } }, select: { id: true } });
     const evalIds = evals.map((e) => e.id);
     await prisma.lessonEvaluationOutbox.deleteMany({ where: { evaluationId: { in: evalIds } } }).catch(() => {});

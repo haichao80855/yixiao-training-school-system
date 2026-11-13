@@ -15,7 +15,7 @@
             :stroke-width="tab.key === current ? 2.2 : 1.8"
             :color="tab.key === current ? '#2F54EB' : '#6B7280'"
           />
-          <view v-if="tab.key === 'evaluations' && unread > 0" class="badge">{{ unread > 9 ? '9+' : unread }}</view>
+          <view v-if="tab.key === 'evaluations' && unreadCount > 0" class="badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</view>
         </view>
         <text class="tab-label">{{ tab.label }}</text>
       </view>
@@ -24,11 +24,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
+import { useParentStore } from '../../stores/parentStore';
 
 export type ParentTabKey = 'evaluations' | 'schedule' | 'courses' | 'growth' | 'me';
 
 const props = withDefaults(defineProps<{ current: ParentTabKey; unread?: number }>(), { unread: 0 });
+
+// 未读角标用后端返回的总数 (存在 parentStore)，五个标签页都能看到；以前只有课评页传了本页的未读数
+const parentStore = useParentStore();
+const unreadCount = computed(() => parentStore.currentUnread);
+onMounted(() => {
+  parentStore.ensureUnread();
+});
 
 const tabs: Array<{ key: ParentTabKey; label: string; icon: string; url: string }> = [
   { key: 'evaluations', label: '课评', icon: 'message-square', url: '/package-parent/evaluations/index' },

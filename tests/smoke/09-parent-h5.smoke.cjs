@@ -59,6 +59,8 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
     // 绝不让请求打到线上；拦不住的外部请求直接中止。
     const PROD_ORIGINS = ['https://aiic.space', 'http://aiic.space'];
     let escaped = 0;
+    // 模拟接口失败：设了 failNext 时，匹配的接口请求都返回 500，直到清空 failNext
+    let failNext = null;
     await page.setRequestInterception(true);
     page.on('request', async (req) => {
       const url = req.url();
@@ -67,6 +69,9 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
         if (/^https?:\/\/(127\.0\.0\.1|localhost)/.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return req.continue();
         escaped += 1;
         return req.abort();
+      }
+      if (failNext && req.method() === 'GET' && failNext.test(url)) {
+        return req.respond({ status: 500, headers: { 'access-control-allow-origin': '*', 'content-type': 'application/json' }, body: JSON.stringify({ message: '模拟服务异常' }) });
       }
       try {
         const headers = { ...req.headers() };
@@ -134,6 +139,31 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
         }
       }
     }
+    // ---------- 加载失败：每页显示「重新加载」，点了以后恢复 (家长端 UI 改进第 2 期) ----------
+    await page.setViewport({ width: 375, height: 800, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    const failCases = [
+      ['01-课评', /\/students\/[^/]+\/evaluations\?/],
+      ['02-课评详情', /\/students\/[^/]+\/evaluations\/[^/?]+(\?|$)/],
+      ['03-课表', /\/students\/[^/]+\/schedule/],
+      ['04-课程', /\/students\/[^/]+\/courses(\?|$)/],
+      ['05-课时明细', /\/courses\/[^/]+\/usage/],
+      ['06-成长', /\/students\/[^/]+\/album/],
+      ['07-历史档案', /\/students\/[^/]+\/archive/],
+    ];
+    for (const [name, pattern] of failCases) {
+      const route = pages.find(([n]) => n === name)[1];
+      failNext = pattern;
+      await page.goto(`${s.url}/parent/${route}`, { waitUntil: 'networkidle0' });
+      const failed = await page.waitForFunction(() => document.body.innerText.includes('重新加载'), { timeout: 8000 }).then(() => true, () => false);
+      const text = await page.evaluate(() => document.body.innerText);
+      check(failed && !/还没有|没有课$|这一天没有课/.test(text.split('重新加载')[0].slice(-40)), `「${name}」接口失败时显示原因和「重新加载」，不显示成「没有数据」`);
+      failNext = null;
+      await page.tap('.error-state .retry');
+      const recovered = await page.waitForFunction(() => !document.querySelector('.error-state'), { timeout: 8000 }).then(() => true, () => false);
+      check(recovered, `「${name}」点「重新加载」后正常显示`);
+    }
+    failNext = null;
+
     check(escaped === 0, `没有请求发到本机以外的地址 (拦下 ${escaped} 个)`);
     fs.writeFileSync(path.join(OUT, 'metrics.json'), JSON.stringify(metrics, null, 2));
     console.log(`  截图与统计：${path.relative(process.cwd(), OUT)}`);

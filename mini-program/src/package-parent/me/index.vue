@@ -52,6 +52,9 @@
       <view v-if="sessionsLoading" class="row">
         <text class="row-sub">加载中…</text>
       </view>
+      <view v-else-if="sessionsError" class="row" role="button" tabindex="0" @click="loadSessions">
+        <text class="row-sub">登录设备没能加载出来，点这里重试</text>
+      </view>
     </view>
     <text class="group-note">同一手机号可以供多位家长同时登录。不认识的设备可以在这里让它退出。</text>
 
@@ -74,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatFullDateCn } from '../utils/format';
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
@@ -87,13 +91,16 @@ const parentStore = useParentStore();
 const authStore = useAuthStore();
 const sessions = ref<ParentSessionItem[]>([]);
 const sessionsLoading = ref(false);
+const sessionsError = ref(false);
 
 async function loadSessions() {
   sessionsLoading.value = sessions.value.length === 0;
+  sessionsError.value = false;
   try {
     sessions.value = await parentApi.sessions();
   } catch {
     sessions.value = [];
+    sessionsError.value = true;
   } finally {
     sessionsLoading.value = false;
   }
@@ -146,9 +153,7 @@ function logout() {
 }
 
 function dateText(iso: string | null) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  return formatFullDateCn(iso);
 }
 
 function dateTimeText(iso: string) {

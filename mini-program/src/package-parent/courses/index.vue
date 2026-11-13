@@ -9,6 +9,7 @@
     <view v-else-if="loading && courses.length === 0" class="sk-list">
       <view v-for="i in 2" :key="i" class="sk-card" />
     </view>
+    <ErrorState v-else-if="loadError && courses.length === 0" :message="loadError" @retry="load" />
     <EmptyState v-else-if="courses.length === 0" icon="book-open" title="还没有课程" description="报名后，课程与课时会显示在这里" />
 
     <view v-else class="course-list">
@@ -49,7 +50,7 @@
             <text class="kv-label">赠送</text>
           </view>
           <view class="kv-item">
-            <text class="kv-num small">{{ c.expiryDate ? c.expiryDate.slice(0, 7).replace('-', '.') : '—' }}</text>
+            <text class="kv-num small">{{ c.expiryDate ? formatFullDateCn(c.expiryDate) : '—' }}</text>
             <text class="kv-label">有效期至</text>
           </view>
         </view>
@@ -71,10 +72,13 @@
 </template>
 
 <script setup lang="ts">
+import { formatFullDateCn } from '../utils/format';
 import { computed, ref, watch } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import ErrorState from '../components/ErrorState.vue';
+import { describeLoadError } from '../utils/loadError';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, type CoursePackage } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
@@ -102,15 +106,19 @@ function ringFor(c: CoursePackage) {
   return ringSvg(percent, color);
 }
 
+const loadError = ref('');
+
 async function load() {
   const sid = parentStore.currentStudentId;
   if (!sid || parentStore.isReadOnly) return;
   loading.value = true;
+  loadError.value = '';
   try {
     const res = await parentApi.courses(sid);
     if (sid === parentStore.currentStudentId) courses.value = res;
-  } catch {
+  } catch (err) {
     courses.value = [];
+    loadError.value = describeLoadError(err);
   } finally {
     loading.value = false;
   }

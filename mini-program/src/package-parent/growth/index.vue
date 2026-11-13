@@ -32,6 +32,7 @@
       <view class="sk-title" />
       <view class="sk-grid" />
     </view>
+    <ErrorState v-else-if="loadError && weeks.length === 0" :message="loadError" @retry="load(true)" />
     <EmptyState
       v-else-if="weeks.length === 0"
       :icon="type === 'photo' ? 'image' : 'video'"
@@ -80,6 +81,7 @@
 
       <view class="list-footer">
         <text v-if="loadingMore">加载中…</text>
+        <text v-else-if="moreError" role="button" tabindex="0" class="more-retry" @click="load(false)">加载失败，点这里重试</text>
         <text v-else-if="!nextCursor">· 已经到底了 ·</text>
       </view>
     </view>
@@ -95,6 +97,8 @@ import { computed, ref, watch } from 'vue';
 import { onShow, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import ErrorState from '../components/ErrorState.vue';
+import { describeLoadError } from '../utils/loadError';
 import VideoOverlay from '../components/VideoOverlay.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, mediaUrl, type AlbumWeek, type GrowthSummary } from '../../api/parent';
@@ -136,6 +140,9 @@ const stats = computed(() => [
   { key: 'videos', label: '段视频', value: videos.value, icon: 'video', color: '#4F46E5' },
 ]);
 
+const loadError = ref('');
+const moreError = ref(false);
+
 async function load(reset = true) {
   const sid = parentStore.currentStudentId;
   if (!sid) return;
@@ -151,6 +158,8 @@ async function load(reset = true) {
     if (!nextCursor.value || loadingMore.value) return;
     loadingMore.value = true;
   }
+  loadError.value = '';
+  moreError.value = false;
   try {
     const res = await parentApi.album(sid, { cursor: reset ? null : nextCursor.value, type: type.value });
     if (sid !== parentStore.currentStudentId) return;
@@ -160,8 +169,13 @@ async function load(reset = true) {
       lastLoadedAt = Date.now();
       lastLoadedFor = sid;
     }
-  } catch {
-    if (reset) weeks.value = [];
+  } catch (err) {
+    if (reset) {
+      weeks.value = [];
+      loadError.value = describeLoadError(err);
+    } else {
+      moreError.value = true;
+    }
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -512,5 +526,12 @@ onPullDownRefresh(async () => {
   @include p-skeleton;
   height: 360rpx;
   border-radius: 32rpx;
+}
+
+// 翻页失败时的重试入口
+.more-retry {
+  @include p-hit-min;
+  color: $p-brand;
+  font-weight: $p-fw-medium;
 }
 </style>

@@ -189,7 +189,7 @@ export const parentApi = {
     return request<CourseUsage>({ url: `${s(studentId)}/courses/${encodeURIComponent(packageId)}/usage` });
   },
   evaluations(studentId: string, cursor?: string | null, limit = 20) {
-    return request<{ items: FeedItem[]; nextCursor: string | null }>({
+    return request<{ items: FeedItem[]; nextCursor: string | null; unreadCount?: number }>({
       url: `${s(studentId)}/evaluations`,
       data: { cursor: cursor || undefined, limit },
     });
