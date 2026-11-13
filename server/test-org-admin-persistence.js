@@ -12,6 +12,8 @@ const assert = require('assert');
 
 const { BASE_URL } = require('./test-utils/target');
 const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 
 let passedAssertions = 0;
 function logPass(msg) {
@@ -61,6 +63,8 @@ async function runTests() {
   logPass('超级管理员 [donghaichao] 成功登录');
 
   const authHeaders = { Authorization: `Bearer ${adminToken}` };
+  // 测试会改机构名称、品牌 Logo 和超管归属：先整条记下，结束时原样恢复
+  const originalCompany = await prisma.company.findFirst();
 
   // 0. 基准数据归一化预置 (保证测试可重入幂等自愈)
   await request('/api/system/company', {
@@ -176,6 +180,9 @@ async function runTests() {
 
   // 4.3 转给自己本人拦截
   const superUserObj = userList.find((u) => u.account === 'donghaichao');
+  // 超管转让会把接手人的个人数据范围改成 all，交回后不会自动复原 (见测试改进第 3 期发现的问题)；
+  // 记下两人原来的个人数据范围，测试结束时恢复，避免影响后面的测试
+  const originalScopes = await prisma.user.findMany({ where: { id: { in: [targetUser.id, superUserObj.id] } }, select: { id: true, dataScope: true } });
   const selfTransferRes = await request('/api/system/company/transfer-admin', {
     method: 'POST',
     headers: authHeaders,
@@ -259,6 +266,16 @@ async function runTests() {
     }),
   });
   logPass('机构工商信息已安全复原为标准种子数据');
+
+  if (originalCompany) {
+    const { id, createdAt, updatedAt, ...fields } = originalCompany;
+    await prisma.company.update({ where: { id }, data: fields });
+  }
+  for (const u of originalScopes) {
+    await prisma.user.update({ where: { id: u.id }, data: { dataScope: u.dataScope } });
+  }
+  await prisma.$disconnect();
+  logPass('机构信息 (含品牌 Logo) 和转让涉及的两名员工的个人数据范围已恢复原值');
 
   console.log('\n================================================================================');
   console.log(`🎉 全部 ${passedAssertions}/${passedAssertions} 项机构持久化、品牌与超管转让断言 100% 成功通过！`);

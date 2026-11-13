@@ -34,8 +34,8 @@ function parseArgs(argv) {
       process.exit(2);
     }
   }
-  if (!['server', 'integration', 'offline', 'all'].includes(opts.scope)) {
-    console.error(`--scope 只能是 server / integration / offline / all，收到：${opts.scope}`);
+  if (!['server', 'integration', 'offline', 'smoke', 'all'].includes(opts.scope)) {
+    console.error(`--scope 只能是 server / integration / offline / smoke / all，收到：${opts.scope}`);
     process.exit(2);
   }
   return opts;
@@ -63,7 +63,16 @@ function checkManifest(entries) {
   for (const f of serverTests) {
     if (!seen.has(`server/${f}`)) problems.push(`server/${f} 没有登记到 tests/suites.json，不会被任何入口运行`);
   }
-  // tests/ 顶层的脚本同样必须登记 (tests/unit/*.test.js 由 tests/runner.js 统一运行)
+  // 需要后端的前端单元测试 (tests/unit/**/*.server.spec.*) 必须逐个登记；其余 spec 由 vitest.config.ts 一项统一运行
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
+  for (const abs of walk(path.join(__dirname, 'unit')).filter((p) => /\.server\.spec\.(js|ts)$/.test(p))) {
+    const rel = path.relative(ROOT, abs);
+    if (!seen.has(rel)) problems.push(`${rel} 没有登记到 tests/suites.json，不会被任何入口运行`);
+  }
+  for (const f of fs.existsSync(path.join(__dirname, 'smoke')) ? fs.readdirSync(path.join(__dirname, 'smoke')) : []) {
+    if (f.endsWith('.smoke.cjs') && !seen.has(`tests/smoke/${f}`)) problems.push(`tests/smoke/${f} 没有登记到 tests/suites.json，不会被任何入口运行`);
+  }
+  // tests/ 顶层的脚本同样必须登记
   const INFRA = new Set(['run-suite.cjs', 'isolated-env.cjs', 'env-guard.cjs', 'run_all_unified.cjs']);
   const topLevel = fs.readdirSync(__dirname).filter((f) => /\.(c?js)$/.test(f) && !INFRA.has(f));
   for (const f of topLevel) {
@@ -86,13 +95,13 @@ function checkHealth(baseUrl) {
   });
 }
 
-function newestMtime(dir) {
+function newestMtime(dir, filter = () => true) {
   let newest = 0;
   const walk = (d) => {
     for (const ent of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, ent.name);
       if (ent.isDirectory()) walk(p);
-      else newest = Math.max(newest, fs.statSync(p).mtimeMs);
+      else if (filter(p)) newest = Math.max(newest, fs.statSync(p).mtimeMs);
     }
   };
   if (fs.existsSync(dir)) walk(dir);
@@ -108,6 +117,13 @@ function buildStatus(distDir) {
   return newestMtime(abs) < mpSourceMtime ? 'stale' : 'fresh';
 }
 
+function adminBuildStatus() {
+  const index = path.join(ROOT, 'dist/index.html');
+  if (!fs.existsSync(index)) return 'missing';
+  // *.d.ts 是 unplugin 自动生成的类型声明 (运行 Vitest 时也会重写)，不影响构建产物
+  return fs.statSync(index).mtimeMs < newestMtime(path.join(ROOT, 'src'), (p) => !p.endsWith('.d.ts')) ? 'stale' : 'fresh';
+}
+
 function missingNeeds(entry) {
   if (entry.skip) return [`已登记跳过：${entry.skip}`];
   const reasons = [];
@@ -118,6 +134,14 @@ function missingNeeds(entry) {
   for (const need of entry.needs || []) {
     if (need === 'server-dist' && !fs.existsSync(path.join(ROOT, 'server/dist/main.js'))) {
       reasons.push('需要先构建后端 (npm run server:build)');
+    }
+    if (need === 'admin-dist') {
+      const status = adminBuildStatus();
+      if (status === 'missing') reasons.push('需要先构建后台前端 (npm run build)');
+      if (status === 'stale') reasons.push('后台前端构建产物比源码旧，请先重新构建 (npm run build)');
+    }
+    if (need === 'browser' && !require('./smoke/helpers.cjs').chromePath()) {
+      reasons.push('找不到 Chrome (可用 CHROME_PATH 指定)');
     }
     if (builds[need]) {
       const [dir, label, cmd] = builds[need];
@@ -131,6 +155,12 @@ function missingNeeds(entry) {
 
 function commandFor(entry) {
   const abs = path.join(ROOT, entry.file);
+  if (entry.runner === 'vitest') {
+    // vitest.config.ts 本身代表全部离线前端单元测试；*.server.spec.* 需要后端，单独按文件运行
+    const vitest = path.join(ROOT, 'node_modules/.bin/vitest');
+    const args = entry.file === 'vitest.config.ts' ? ['run'] : ['run', entry.file];
+    return { cmd: vitest, args, cwd: ROOT, env: entry.file === 'vitest.config.ts' ? {} : { VITEST_SERVER: '1' } };
+  }
   if (entry.file.endsWith('.ts')) {
     const tsNode = path.join(ROOT, 'server/node_modules/.bin/ts-node');
     return { cmd: tsNode, args: ['--transpile-only', abs], cwd: path.join(ROOT, 'server') };
@@ -141,10 +171,10 @@ function commandFor(entry) {
 }
 
 function runOne(entry) {
-  const { cmd, args, cwd } = commandFor(entry);
+  const { cmd, args, cwd, env: extraEnv = {} } = commandFor(entry);
   const started = Date.now();
   return new Promise((resolve) => {
-    const child = spawn(cmd, args, { cwd, env: process.env, stdio: 'inherit' });
+    const child = spawn(cmd, args, { cwd, env: { ...process.env, ...extraEnv }, stdio: 'inherit' });
     const timer = setTimeout(() => {
       console.error(`\n⏱  ${entry.file} 超过 ${PER_TEST_TIMEOUT_MS / 60000} 分钟，强制结束`);
       child.kill('SIGKILL');
@@ -161,6 +191,9 @@ function runOne(entry) {
   });
 }
 
+/** 权限相关的表：测试前就有的数据被改动时要报告 (这类改动会让后面的测试拿到不同的权限) */
+const WATCHED_TABLES = new Set(['User', 'Role', 'UserRole', 'RolePermission', 'Campus', 'Company', 'SystemSetting']);
+
 /**
  * 残留检查与恢复：每个需要后端的测试前后统计测试库各表的行数和最大 rowid。
  * - 测试跑完多出来的行 = 测试没清理干净的数据，记入汇总 (「清理遗漏」)。
@@ -176,6 +209,16 @@ function createResidueProbe() {
   if (!dbFile || !fs.existsSync(dbFile) || !fs.realpathSync(dbFile).startsWith(tmpRoot + path.sep)) return null;
   const { PrismaClient } = require(path.join(ROOT, 'server/node_modules/@prisma/client'));
   const prisma = new PrismaClient();
+  /**
+   * 整张表的内容摘要：按内容比较，不看 id、时间戳和密码哈希
+   * (删掉再按原样重建、把密码重置回原值，都算「已复原」)。
+   */
+  const IGNORED = new Set(['id', 'createdAt', 'updatedAt', 'lastLoginAt', 'password']);
+  const digestRows = async (table) => {
+    const rows = await prisma.$queryRawUnsafe(`SELECT * FROM "${table}"`);
+    const lines = rows.map((r) => JSON.stringify(Object.keys(r).sort().filter((k) => !IGNORED.has(k)).map((k) => [k, typeof r[k] === 'bigint' ? String(r[k]) : r[k]]))).sort();
+    return require('crypto').createHash('sha1').update(lines.join('\n')).digest('hex');
+  };
   return {
     async snapshot() {
       const tables = await prisma.$queryRawUnsafe(
@@ -185,6 +228,7 @@ function createResidueProbe() {
       for (const { name } of tables) {
         const [row] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) AS n, COALESCE(MAX(rowid), 0) AS maxRowid FROM "${name}"`);
         snap[name] = { count: Number(row.n), maxRowid: Number(row.maxRowid) };
+        if (WATCHED_TABLES.has(name)) snap[name].digest = await digestRows(name);
       }
       return snap;
     },
@@ -192,6 +236,15 @@ function createResidueProbe() {
       return Object.keys(after)
         .filter((t) => after[t].count > (before[t]?.count || 0))
         .map((t) => `${t} +${after[t].count - (before[t]?.count || 0)}`);
+    },
+    /** 权限相关表里，测试前就有的行被改动 (内容变了或被删了) 的表名 */
+    async changedExisting(before) {
+      const changed = [];
+      for (const t of WATCHED_TABLES) {
+        if (!before[t]) continue;
+        if ((await digestRows(t)) !== before[t].digest) changed.push(t);
+      }
+      return changed;
     },
     /**
      * 删除测试期间新增的行 (rowid 大于测试前的最大值)。
@@ -241,7 +294,8 @@ async function main() {
 
   const selected = all.filter(
     (e) =>
-      (opts.scope === 'all' || e.scope === opts.scope) &&
+      // all 不含浏览器冒烟 (慢，每晚和发版前单独跑：npm run test:smoke)
+      (opts.scope === 'all' ? e.scope !== 'smoke' : e.scope === opts.scope) &&
       (!opts.group || e.group.includes(opts.group)) &&
       (!opts.file || e.file.includes(opts.file)),
   );
@@ -295,11 +349,18 @@ async function main() {
     const r = await runOne(entry);
     let residue = [];
     if (before) {
-      residue = probe.diff(before, await probe.snapshot());
-      if (residue.length) {
+      const added = probe.diff(before, await probe.snapshot());
+      residue.push(...added);
+      if (added.length) {
         const untouched = await probe.restore(before);
         const note = untouched.length ? `；${untouched.join("、")} 改动过原有数据，没有自动恢复` : "";
-        console.log(`\n🧹 ${entry.file} 没有清理干净，测试库多出：${residue.join("，")} (纯新增的行已自动删除${note})`);
+        console.log(`\n🧹 ${entry.file} 没有清理干净，测试库多出：${added.join("，")} (纯新增的行已自动删除${note})`);
+      }
+      // 清掉新增行之后，权限相关的表还和测试前不一样 = 改动了原有数据且没复原
+      const changed = await probe.changedExisting(before);
+      if (changed.length) {
+        console.log(`\n⚠️  ${entry.file} 改动了测试前就有的 ${changed.join('、')} 数据且没有复原 (会影响后面的测试，请在测试里恢复原值)`);
+        residue.push(...changed.map((t) => `改动了原有 ${t}`));
       }
     }
     results.push({ ...entry, status: r.code === 0 ? 'passed' : 'failed', exitCode: r.code, signal: r.signal, ms: r.ms, residue });

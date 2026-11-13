@@ -574,12 +574,75 @@
       ]
     },
     {
-      "name": "前端工具函数单元测试 (src/utils 真实代码)",
+      "name": "前端单元测试 (Vitest)",
       "scope": "offline",
       "tests": [
         {
-          "file": "tests/runner.js",
-          "needs": []
+          "file": "vitest.config.ts",
+          "runner": "vitest",
+          "needs": [],
+          "$comment": "tests/unit 下全部离线 spec"
+        },
+        {
+          "file": "tests/unit/route-access-matrix.server.spec.js",
+          "runner": "vitest",
+          "needs": [
+            "server"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "浏览器冒烟 (每晚运行，不在 PR 必跑检查里)",
+      "scope": "smoke",
+      "tests": [
+        {
+          "file": "tests/smoke/01-login-and-menu.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
+        },
+        {
+          "file": "tests/smoke/02-enroll.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
+        },
+        {
+          "file": "tests/smoke/03-roll-call.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
+        },
+        {
+          "file": "tests/smoke/04-evaluation-notice.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
+        },
+        {
+          "file": "tests/smoke/05-refund-approval.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
+        },
+        {
+          "file": "tests/smoke/06-teacher-pay.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
         }
       ]
     }

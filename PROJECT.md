@@ -67,7 +67,7 @@
 | M4 | 教务与排课矩阵模块 (Educational Admin) | 班级管理、7x15（07:00-22:00）动态排课网格、Lane染色多列并排算法、四色语义Chip、三维防撞检测引擎、点名消课冲正 | M1, M2, M3 | DONE |
 | M5 | 财务中心与审批流模块 (Financial Center) | 3x8 高密度筛选矩阵、动态小计汇总横条、订单营收流水表格、分段状态Tab、多级审批工作流引擎 | M1, M3 | DONE |
 | M6 | 系统设置与 RBAC 中台模块 (System Settings) | 5 级组织架构树形管理、4 级细粒度权限勾选树（按钮级控制+半选联动）、4 种数据透视范围管理 | M1 | DONE |
-| M7 | 全系统集成、E2E 测试验收与对抗加固 | 跨模块全业务链路联调、顶部校区动态穿透验证、E2E 自动化测试 100% 通过（Tiers 1-4）、对抗加固（Tier 5）、生产打包构建核验 | M1~M6, TEST_READY | DONE |
+| M7 | 全系统集成、E2E 测试验收与对抗加固 | 跨模块全业务链路联调、顶部校区动态穿透验证、E2E 自动化测试 100% 通过（Tiers 1-4）、对抗加固（Tier 5）、生产打包构建核验 | M1~M6 | DONE |
 | M8 | 微信小程序移动端技术规格与契约设计 | 57 张页面截图像素级拆解、8 大控制器 80+ 端点映射矩阵 (97.7% 复用率)、Design Tokens 与 11 大原子组件库、Phase 1~4 契约测试 100% 守护 | M1~M7 | DONE |
 | M9 | 微信小程序 Phase 1 底座脚手架与基础架构开发落地 | Uni-app Vue3 TS底座、分包路由体系(5 Tab+4分包+preloadRule)、生产级多租户请求拦截器(401防抖/防死循环)、个人中心(068/069/070)全息还原与双轨登录，全量契约测试与法医反作弊审计通过 | M8 | DONE |
 
@@ -250,5 +250,6 @@ export interface FinanceApi {
     ├── test_mp_phase3_contracts.cjs # 移动端阶段三（学员与班级管理契约）测试
     ├── test_mp_phase4_contracts.cjs # 移动端阶段四（财务收支与审批流契约）测试
     ├── run_all_unified.cjs    # 全栈一体化测试统一运行器
-    └── runner.js              # 测试运行辅助工具
+    ├── suites.json            # 测试统一清单 (见 TEST_INFRA.md)
+    └── unit/                  # 前端单元测试 (Vitest)
 ```
