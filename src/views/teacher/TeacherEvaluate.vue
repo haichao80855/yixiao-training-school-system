@@ -2,19 +2,72 @@
   <LoadState :loading="workbench.loading.value" :error="workbench.error.value" :has-data="!!student" @retry="init">
     <p v-if="workbench.data.value && !student" class="tp-card tp-state" style="margin: 0">该学员不在本课次名单中</p>
     <template v-if="student && schedule">
+      <!-- 完成页：本节课到课学员的课评都已推送 -->
+      <template v-if="finished">
+        <section class="tp-card tp-state finish" role="status">
+          <span class="finish__icon"><CircleCheck aria-hidden="true" /></span>
+          <p class="tp-state__title finish__title">本节课课评已全部推送</p>
+          <p class="tp-num">到课 {{ finished.attended }} 人 · 已推送 {{ finished.pushed }} 人</p>
+          <p v-if="finished.leave + finished.absent > 0" class="tp-text-small">{{ skippedText(finished) }}无需课评</p>
+        </section>
+        <div class="tp-action-bar">
+          <button type="button" class="tp-btn tp-btn-secondary" @click="openPicker">逐个回看</button>
+          <button type="button" class="tp-btn tp-btn-primary" style="flex: 1" @click="backToLesson">返回课次</button>
+        </div>
+      </template>
+
+      <!-- 请假 / 缺勤：家长端只给到课学员显示课评，写了家长也看不到 -->
+      <template v-else-if="!needsEvaluation(student)">
+        <section class="tp-card tp-state">
+          <span class="tp-state__icon"><CalendarX aria-hidden="true" /></span>
+          <p class="tp-state__title">{{ student.studentName }}本节课{{ attendanceLabel(attendanceStatus) }}，无需课评</p>
+          <p>家长端只显示到课学员的课评。如需填写，请先在点名中改为到课或迟到。</p>
+        </section>
+        <div class="tp-action-bar">
+          <button type="button" class="tp-btn tp-btn-primary" style="flex: 1" @click="backToLesson">返回课次</button>
+        </div>
+      </template>
+
+      <template v-else>
+      <!-- 学员栏固定在顶部：写评语、传视频时始终知道是在给谁写 -->
+      <div class="student-bar tp-sticky-heading">
+        <button
+          type="button"
+          class="tp-icon-btn"
+          :disabled="!nav.prev || isBusy"
+          :aria-label="nav.prev ? `上一位：${nav.prev.studentName}` : '没有上一位'"
+          @click="nav.prev && switchTo(nav.prev.studentId)"
+        >
+          <ChevronLeft aria-hidden="true" />
+        </button>
+        <button type="button" class="student-bar__who" aria-haspopup="dialog" :disabled="isBusy" @click="openPicker">
+          <span class="tp-avatar" aria-hidden="true">{{ student.studentName.slice(0, 1) }}</span>
+          <span class="student-bar__text">
+            <span class="student-bar__name">
+              <span class="student-bar__name-text">{{ student.studentName }}</span>
+              <ChevronDown class="student-bar__caret" aria-hidden="true" />
+              <span v-if="isRevision" class="tp-tag tp-tag-success">已推送</span>
+              <span v-else-if="attendanceStatus === 'late'" class="tp-tag tp-tag-warning">迟到</span>
+            </span>
+            <span class="tp-row__meta tp-num student-bar__meta">第 {{ nav.index + 1 }} / {{ nav.total }} 位 · 已推送 {{ summary.pushed }}</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          class="tp-icon-btn"
+          :disabled="!nav.next || isBusy"
+          :aria-label="nav.next ? `下一位：${nav.next.studentName}` : '没有下一位'"
+          @click="nav.next && switchTo(nav.next.studentId)"
+        >
+          <ChevronRight aria-hidden="true" />
+        </button>
+      </div>
+
       <div class="tp-stack">
         <p v-if="restoredFromAutosave" class="tp-stale-notice" style="margin: 0; cursor: default" role="status">已恢复你上次未保存的内容，记得保存或推送</p>
+        <p class="tp-text-meta" style="margin: 0">{{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}</p>
 
         <section class="tp-list">
-          <div class="tp-row">
-            <span class="tp-avatar" aria-hidden="true">{{ student.studentName.slice(0, 1) }}</span>
-            <span class="tp-row__body">
-              <p class="tp-row__title">{{ student.studentName }}</p>
-              <p class="tp-row__meta">{{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}</p>
-            </span>
-            <span v-if="isRevision" class="tp-tag tp-tag-warning">修改已推送</span>
-            <span v-else-if="!isAttended(attendanceStatus)" class="tp-tag tp-tag-muted">{{ attendanceLabel(attendanceStatus) }}</span>
-          </div>
           <div class="tp-row rating-row">
             <span class="tp-label" style="margin: 0">课堂评分</span>
             <div class="rating" role="radiogroup" aria-label="课堂评分">
@@ -49,7 +102,8 @@
         </section>
 
         <section class="tp-card">
-          <p class="tp-label">照片与视频 <small>照片最多 9 张，视频 1 个，上传前自动压缩</small></p>
+          <p class="tp-label"><strong class="media-owner">{{ student.studentName }}</strong>的照片与视频 <small>照片最多 9 张，视频 1 个，上传前自动压缩</small></p>
+          <p v-if="uploading" class="tp-text-meta tp-num media-status" role="status">{{ uploadingText }}</p>
           <div class="media-grid">
             <div v-for="(photo, idx) in photos" :key="photo" class="media-cell">
               <img :src="photoThumbs.get(photo) || photo" alt="课堂照片" loading="lazy" />
@@ -82,26 +136,58 @@
       </div>
 
       <div class="tp-action-bar">
-        <button type="button" class="tp-btn tp-btn-secondary" :disabled="submitting || !!uploading" @click="saveDraft">存草稿</button>
-        <button type="button" class="tp-btn tp-btn-primary" style="flex: 1" :disabled="submitting || !!uploading" @click="submit">
-          {{ submitting ? '提交中…' : isRevision ? '保存并更新' : '推送给家长' }}
+        <button type="button" class="tp-btn tp-btn-secondary" :disabled="isBusy" @click="saveDraft">存草稿</button>
+        <button type="button" class="tp-btn tp-btn-primary submit-btn" :disabled="isBusy" @click="submit">
+          <span class="submit-btn__text">{{ submitText }}</span>
+        </button>
+        <button v-if="updatedNext" type="button" class="tp-link next-link" @click="switchTo(updatedNext.studentId)">
+          继续写下一位：{{ updatedNext.studentName }}<ChevronRight aria-hidden="true" />
         </button>
       </div>
+      </template>
     </template>
+
+    <!-- 学员名单：点学员栏的姓名打开，可直接跳到任意一位 -->
+    <div v-if="pickerOpen && workbench.data.value" class="picker" @click.self="pickerOpen = false">
+      <section class="picker__panel" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <header class="picker__head">
+          <h2 id="picker-title" class="tp-section-title">选择学员</h2>
+          <span class="tp-text-meta tp-num">已推送 {{ summary.pushed }}/{{ summary.attended }}</span>
+          <button type="button" class="tp-icon-btn" aria-label="关闭" @click="pickerOpen = false"><X aria-hidden="true" /></button>
+        </header>
+        <ul class="picker__list">
+          <li v-for="s in workbench.data.value.students" :key="s.studentId">
+            <button
+              type="button"
+              class="picker__row"
+              :class="{ 'is-current': s.studentId === studentId }"
+              :disabled="!needsEvaluation(s)"
+              :aria-current="s.studentId === studentId ? 'true' : undefined"
+              @click="switchTo(s.studentId)"
+            >
+              <span class="tp-avatar" aria-hidden="true">{{ s.studentName.slice(0, 1) }}</span>
+              <span class="picker__name">{{ s.studentName }}</span>
+              <span class="tp-tag" :class="pickerTag(s).cls">{{ pickerTag(s).text }}</span>
+            </button>
+          </li>
+        </ul>
+      </section>
+    </div>
   </LoadState>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ImagePlus, Star, Video, X } from 'lucide-vue-next'
-import { teacherPortalApi, uploadApi, type AttendanceStatus } from '@/api'
+import { CalendarX, ChevronDown, ChevronLeft, ChevronRight, CircleCheck, ImagePlus, Star, Video, X } from 'lucide-vue-next'
+import { teacherPortalApi, uploadApi, type AttendanceStatus, type WorkbenchStudent } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
 import { compressImage } from './utils/compressImage'
 import { readAutosave, readDraft, removeAutosave, removeDraft, writeAutosave, writeDraft, type EvaluationDraft } from './utils/evaluationDraft'
 import { attendanceLabel, friendlyDate, htmlToText, isAttended, shortTime } from './utils/format'
+import { isPushed, needsEvaluation, neighbours, submitLabel, submitPlan, summarize, type QueueSummary } from './utils/evaluationQueue'
 import { compressVideo } from './utils/compressVideo'
 import { uploadVideoWithProgress } from './utils/uploadVideo'
 import { useLoad } from './utils/useLoad'
@@ -126,6 +212,15 @@ const student = computed(() => workbench.data.value?.students.find((s) => s.stud
 const attendanceStatus = computed<AttendanceStatus>(() => student.value?.recordedStatus || student.value?.defaultStatus || 'present')
 const isRevision = computed(() => Boolean(student.value?.isPublished && student.value?.hasPersonalEvaluation))
 const studyContentRequired = computed(() => !workbench.data.value?.evaluationDraft.isExisting)
+const students = computed(() => workbench.data.value?.students || [])
+const nav = computed(() => neighbours(students.value, studentId))
+const summary = computed(() => summarize(students.value))
+const plan = computed(() => submitPlan(students.value, studentId))
+/** 推送完最后一位后显示完成页 */
+const finished = ref<QueueSummary | null>(null)
+/** 修改已推送的课评后，队列里还有没写的人：在按钮下提示继续写 */
+const updatedNext = ref<WorkbenchStudent | null>(null)
+const pickerOpen = ref(false)
 
 const comment = ref('')
 const studyContent = ref('')
@@ -143,6 +238,62 @@ const videoPoster = ref('')
 /** 缩略图只用于显示；保存课评时仍提交原始链接 */
 const photoThumbs = new Map<string, string>()
 let cancelVideoTask: (() => void) | null = null
+
+const isBusy = computed(() => submitting.value || !!uploading.value)
+const uploadingText = computed(() => {
+  const name = student.value?.studentName || ''
+  if (uploading.value === 'photo') return `正在上传${name}的照片 ${photoProgress.value}`
+  if (uploading.value === 'video') return `${name}的视频${videoStage.value === 'compress' ? '压缩中' : '上传中'} ${videoProgress.value}%`
+  return ''
+})
+const submitText = computed(() => {
+  if (submitting.value) return '提交中…'
+  // 上传完才能推送：否则照片、视频可能落到下一位学员
+  if (uploading.value === 'video') return `视频${videoStage.value === 'compress' ? '压缩中' : '上传中'} ${videoProgress.value}%`
+  if (uploading.value === 'photo') return `照片上传中 ${photoProgress.value}`
+  return submitLabel(plan.value)
+})
+
+function skippedText(s: QueueSummary) {
+  return [s.leave ? `请假 ${s.leave} 人` : '', s.absent ? `缺勤 ${s.absent} 人` : ''].filter(Boolean).join('、')
+}
+
+function pickerTag(s: WorkbenchStudent): { text: string; cls: string } {
+  if (!needsEvaluation(s)) return { text: `${attendanceLabel(s.recordedStatus || s.defaultStatus)} · 无需课评`, cls: 'tp-tag-muted' }
+  if (s.studentId === studentId && !finished.value) return { text: '当前', cls: 'tp-tag-primary' }
+  if (isPushed(s)) return { text: '已推送', cls: 'tp-tag-success' }
+  const draft = readDraft(userId, lessonId, s.studentId) || readAutosave(userId, lessonId, s.studentId)
+  if (draft?.comment.trim()) return { text: '草稿', cls: 'tp-tag-warning' }
+  return { text: '未写', cls: 'tp-tag-muted' }
+}
+
+function openPicker() {
+  pickerOpen.value = true
+}
+
+function evaluatePath(id: string) {
+  return `/teacher/lessons/${lessonId}/evaluate/${id}`
+}
+
+/** 在本节课的学员之间切换：替换当前记录，返回键仍回到进来前的页面 */
+function switchTo(id: string) {
+  pickerOpen.value = false
+  if (id === studentId) {
+    // 完成页上点回刚推送的学员：重新加载，以「已推送」状态打开
+    if (finished.value) {
+      finished.value = null
+      init()
+    }
+    return
+  }
+  router.replace(evaluatePath(id))
+}
+
+function backToLesson() {
+  const lessonPath = `/teacher/lessons/${lessonId}`
+  if (window.history.state?.back === lessonPath) router.back()
+  else router.replace(lessonPath)
+}
 let serverStudyContent = ''
 let hydrated = false
 let autosaveTimer: ReturnType<typeof setTimeout> | null = null
@@ -335,6 +486,8 @@ async function submit() {
     return
   }
 
+  // 按点击时的名单决定推送后去哪：推送过程中名单不会变
+  const current = plan.value
   submitting.value = true
   try {
     // 未结课时先落一条考勤：服务端按考勤记录给家长发课评通知
@@ -363,8 +516,19 @@ async function submit() {
     removeDraft(userId, lessonId, studentId)
     clearAutosave()
     isDirty.value = false
-    ElMessage.success(isRevision.value ? '课评已更新' : '已推送给家长')
-    router.back()
+    restoredFromAutosave.value = false
+    if (current.kind === 'update') {
+      ElMessage.success('课评已更新')
+      if (current.next) updatedNext.value = current.next.student
+      else backToLesson()
+    } else if (current.kind === 'next') {
+      ElMessage.success(`已推送给${stu.studentName}的家长`)
+      router.replace(evaluatePath(current.next.student.studentId))
+    } else {
+      finished.value = { ...summary.value, pushed: current.pushedAfter }
+      // 后台刷新名单：「逐个回看」里刚推送的学员显示为已推送
+      workbench.load()
+    }
   } catch (err: any) {
     ElMessage.error(err?.message || '提交失败，请重试')
   } finally {
@@ -395,6 +559,24 @@ onBeforeRouteLeave(async () => {
   } catch {
     return false
   }
+})
+
+/** 切换学员：写到一半的内容留在本机，切回来时自动恢复；视频上传中切换会中断上传 */
+onBeforeRouteUpdate(async () => {
+  pickerOpen.value = false
+  if (uploading.value === 'video') {
+    try {
+      await ElMessageBox.confirm('视频还在压缩或上传，切换学员后会中断。', '切换学员？', {
+        confirmButtonText: '切换',
+        cancelButtonText: '继续等待',
+      })
+      cancelVideoTask?.()
+    } catch {
+      return false
+    }
+  }
+  flushAutosave()
+  return true
 })
 
 onMounted(() => {
@@ -516,6 +698,193 @@ onBeforeUnmount(() => {
   font-size: var(--tp-fs-title);
   font-weight: 600;
   color: var(--tp-text-1);
+}
+/* 学员栏：吸顶，左右切换，点姓名打开名单 */
+.student-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-1);
+  margin-bottom: var(--tp-space-3);
+  padding-top: var(--tp-space-1);
+  padding-bottom: var(--tp-space-1);
+  border-bottom: 1px solid var(--tp-line);
+}
+.student-bar .tp-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.student-bar__who {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tp-control);
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2);
+  padding: var(--tp-space-1) var(--tp-space-2);
+  border: 0;
+  border-radius: var(--tp-radius-sm);
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.student-bar__who:hover {
+  background: var(--tp-surface-hover);
+}
+.student-bar__who .tp-avatar {
+  background: var(--tp-accent-soft);
+  color: var(--tp-accent);
+}
+.student-bar__text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.student-bar__name {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--tp-fs-title);
+  font-weight: 600;
+  color: var(--tp-text-1);
+}
+.student-bar__name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-bar__name .tp-tag {
+  flex-shrink: 0;
+  margin-left: var(--tp-space-1);
+}
+.student-bar__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-bar__caret {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--tp-text-3);
+}
+.media-owner {
+  color: var(--tp-text-1);
+  font-weight: 600;
+}
+.media-status {
+  margin: 0 0 var(--tp-space-2);
+}
+/* 主按钮文字可能较长 (含下一位姓名)：占满剩余宽度，放不下时省略 */
+.submit-btn {
+  flex: 1;
+  min-width: 0;
+}
+.submit-btn__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.next-link {
+  flex-basis: 100%;
+  justify-content: center;
+  margin-right: 0;
+}
+.next-link svg {
+  width: 16px;
+  height: 16px;
+}
+.finish__icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--tp-success-soft);
+  color: var(--tp-success);
+}
+.tp-state .finish__icon svg {
+  width: 28px;
+  height: 28px;
+}
+.finish__title {
+  font-size: var(--tp-fs-title);
+  font-weight: 600;
+}
+/* 学员名单：底部弹出 */
+.picker {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+}
+.picker__panel {
+  width: 100%;
+  max-width: 560px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--tp-radius-lg) var(--tp-radius-lg) 0 0;
+  background: var(--tp-surface);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.picker__head {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2);
+  padding: var(--tp-space-2) var(--tp-space-2) var(--tp-space-2) var(--tp-space-4);
+  border-bottom: 1px solid var(--tp-line);
+}
+.picker__head .tp-section-title {
+  margin: 0;
+}
+.picker__head .tp-text-meta {
+  flex: 1;
+}
+.picker__list {
+  margin: 0;
+  padding: var(--tp-space-1) 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.picker__row {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-3);
+  padding: var(--tp-space-2) var(--tp-space-4);
+  border: 0;
+  background: transparent;
+  color: var(--tp-text-1);
+  font-family: inherit;
+  font-size: var(--tp-fs-body);
+  text-align: left;
+  cursor: pointer;
+}
+.picker__row:hover:not(:disabled) {
+  background: var(--tp-surface-hover);
+}
+.picker__row.is-current {
+  background: var(--tp-accent-soft);
+}
+.picker__row:disabled {
+  color: var(--tp-text-3);
+  cursor: default;
+}
+.picker__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sr-only {
   position: absolute;
