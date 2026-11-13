@@ -11,12 +11,14 @@
       <div class="w-16 h-16 bg-st-danger-light text-st-danger rounded-full flex items-center justify-center mx-auto text-2xl shadow-inner">
         <Lock class="w-8 h-8" />
       </div>
-      <h3 class="text-base font-bold text-st-title">无法访问该学情报告</h3>
+      <h3 class="text-base font-bold text-st-title">{{ linkInvalid ? '链接已失效' : '报告暂时打不开' }}</h3>
       <p class="text-xs text-st-muted leading-relaxed px-4">
         {{ errorMessage }}
       </p>
       <div class="pt-4">
-        <span class="text-xs text-st-secondary">如需查看最新随堂成长档案，请联系校区授课老师或教务班主任重新获取分享链接。</span>
+        <!-- 网络问题可以重试；链接失效只能找老师要新链接 -->
+        <el-button v-if="!linkInvalid" type="primary" @click="loadReport">重新加载</el-button>
+        <span v-else class="text-xs text-st-secondary">请联系授课老师或班主任重新发送链接。</span>
       </div>
     </div>
 
@@ -37,7 +39,7 @@
               <span class="text-xs bg-white/25 px-2 py-0.5 rounded-full text-white/95">学员专属</span>
             </div>
             <p class="text-blue-100 text-xs mt-1">
-              {{ isSingleLesson ? '随堂精彩成果报告' : `已探索 ${headerData.attendedCount} 次课 · 累计获得 5 星好评` }}
+              {{ isSingleLesson ? '随堂精彩成果报告' : `已上 ${headerData.attendedCount} 次课` }}
             </p>
           </div>
         </div>
@@ -214,12 +216,21 @@ const lessonList = computed(() => {
   return reportData.value.feed || [];
 });
 
-onMounted(async () => {
+// 区分「链接失效」(只能重新获取链接) 和「网络或服务暂时出错」(可以重新加载)
+const linkInvalid = ref(false);
+
+onMounted(() => loadReport());
+
+async function loadReport() {
+  errorMessage.value = '';
+  linkInvalid.value = false;
   if (!token.value) {
-    errorMessage.value = '未检测到有效的分享访问令牌 (Missing token)，请重新从微信通知打开。';
+    linkInvalid.value = true;
+    errorMessage.value = '链接不完整，请重新从微信通知里打开。';
     loading.value = false;
     return;
   }
+  loading.value = true;
 
   try {
     let url = '';
@@ -232,18 +243,18 @@ onMounted(async () => {
     const response = await fetch(url);
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
-        throw new Error('该学情报告分享凭证已过期或签名无效，为保护学员隐私，系统已安全阻断访问。');
+        linkInvalid.value = true;
+        throw new Error('为保护孩子的隐私，分享链接有有效期，这个链接已经过期。');
       }
-      const errJson = await response.json().catch(() => null);
-      throw new Error(errJson?.message || `请求失败 (${response.status})`);
+      throw new Error('服务暂时出了点问题，请稍后重新加载。');
     }
 
     const data = await response.json();
     reportData.value = data;
   } catch (err: any) {
-    errorMessage.value = err.message || '加载学情成长报告失败，请稍后刷新重试。';
+    errorMessage.value = err instanceof TypeError ? '网络连接不稳定，请检查网络后重新加载。' : (err.message || '报告加载失败，请稍后重新加载。');
   } finally {
     loading.value = false;
   }
-});
+}
 </script>

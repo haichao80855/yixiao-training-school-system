@@ -5,6 +5,7 @@
     :width="DIALOG_SIZE.lg"
     destroy-on-close
     :close-on-click-modal="false"
+    :before-close="beforeClose"
     class="course-editor-dialog rounded-xl"
   >
     <!-- 步骤指示器 -->
@@ -433,6 +434,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCloseGuard } from '@/composables/useCloseGuard'
 import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Check, Trash2, ArrowUp, ArrowDown } from 'lucide-vue-next'
@@ -499,6 +501,13 @@ const defaultForm: CourseItem = {
 }
 
 const form = reactive<CourseItem>({ ...defaultForm })
+
+// 防误关：打开时记下表单内容，关闭时有改动就先确认
+let formSnapshot = ''
+watch(visible, (open) => {
+  if (open) setTimeout(() => { formSnapshot = JSON.stringify(form) }, 0)
+})
+const beforeClose = useCloseGuard(() => currentStep.value > 0 || JSON.stringify(form) !== formSnapshot)
 
 watch(
   () => props.modelValue,

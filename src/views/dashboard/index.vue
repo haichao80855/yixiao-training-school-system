@@ -390,6 +390,7 @@ const upcomingCount = ref(0)
 
 async function loadStats(isSilent = true) {
   if (!isSilent) refreshing.value = true
+  let failed = false
   try {
     const campusId = tenantStore.currentCampusId
     const pad = (n: number) => String(n).padStart(2, '0')
@@ -458,13 +459,14 @@ async function loadStats(isSilent = true) {
       }
     })
   } catch (err) {
+    failed = true
     console.warn('[Dashboard] 加载统计数据异常:', err)
   } finally {
+    // 手动刷新：成功、失败如实提示 (以前失败也提示「已刷新」，还人为多等 400ms)
     if (!isSilent) {
-      setTimeout(() => {
-        refreshing.value = false
-        ElMessage.success('校区统计与日程数据已刷新')
-      }, 400)
+      refreshing.value = false
+      if (failed) ElMessage.error('刷新失败，请稍后重试')
+      else ElMessage.success('数据已刷新')
     }
   }
 }

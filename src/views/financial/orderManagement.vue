@@ -216,8 +216,10 @@
         >
           <template #empty>
             <AppEmpty
-              :type="filterForm.studentKeyword || filterForm.orderStatus !== 'all' ? 'search' : 'data'"
-              action-text="重置筛选"
+              :type="listError ? 'error' : (filterForm.studentKeyword || filterForm.orderStatus !== 'all' ? 'search' : 'data')"
+              :description="listError || undefined"
+              :action-text="listError ? undefined : '重置筛选'"
+              @retry="loadOrders"
               @action="handleReset"
             />
           </template>
@@ -667,6 +669,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRouteQueryState } from '@/composables/useRouteQueryState'
 import { ref, computed, reactive, onMounted } from 'vue'
 import { Search, Download, Copy as DocumentCopy, User, Image as Picture, Upload } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -695,7 +698,8 @@ const authStore = useAuthStore()
 const currentCampusName = computed(() => tenantStore.currentCampus?.name || '')
 
 // 主分段 Tab
-const activeMainTab = ref<'regular' | 'quarterly'>('regular')
+// 收费类型、状态标签记在地址栏：从别的页面返回、刷新后还停在原处
+const activeMainTab = useRouteQueryState<'regular' | 'quarterly'>('tab', 'regular')
 
 // 订单状态胶囊选项
 const orderStatusCapsuleOptions = [
@@ -713,7 +717,7 @@ function handleOrderStatusCapsuleChange(val: string) {
 }
 
 // 横向状态分段 Tab
-const activeStatusTab = ref<string>('all')
+const activeStatusTab = useRouteQueryState<string>('status', 'all')
 const statusTabs = [
   { key: 'all', name: '全部订单' },
   { key: 'paid', name: '已支付' },
@@ -755,6 +759,8 @@ function handleColumnsUpdated(newCols: ColumnConfig[]) {
 
 // 数据源与加载状态
 const loading = ref(false)
+// 加载失败的原因：空状态区据此显示「加载失败，重新加载」，而不是「暂无数据」
+const listError = ref('')
 const remoteOrders = ref<OrderRecord[]>([])
 const totalCount = ref(0)
 const serverSummary = ref<FinanceSummaryResult | null>(null)
@@ -765,6 +771,7 @@ let orderListSeq = 0
 async function loadOrders() {
   const seq = ++orderListSeq
   loading.value = true
+  listError.value = ''
   try {
     const params: Record<string, string | number | undefined> = {
       page: filterForm.page,
@@ -803,7 +810,7 @@ async function loadOrders() {
     }
   } catch (err: unknown) {
     if (seq !== orderListSeq) return
-    ElMessage.error(err instanceof Error ? err.message : '获取订单列表失败')
+    listError.value = err instanceof TypeError ? '网络连接失败，请检查网络后重新加载' : (err instanceof Error ? err.message : '获取订单列表失败')
   } finally {
     if (seq === orderListSeq) loading.value = false
   }
@@ -959,7 +966,7 @@ function handleVoidOrder(order: OrderRecord) {
   ).then(async () => {
     try {
       await financialApi.voidOrder(order.id)
-      ElMessage.success('订单已作废并成功释放预留名额并落库')
+      ElMessage.success('订单已作废，预留名额已释放')
       await loadOrders()
     } catch (err: any) {
       ElMessage.error(err.message || '作废失败')
@@ -1015,7 +1022,7 @@ async function saveVoucherAudit() {
     })
     currentVoucherOrder.value.verifyRemark = voucherAuditRemark.value
     voucherDialogVisible.value = false
-    ElMessage.success('收款凭证审核附言已保存入账并同步落盘')
+    ElMessage.success('收款凭证备注已保存')
     await loadOrders()
   } catch (err: any) {
     ElMessage.error(err.message || '更新凭证失败')

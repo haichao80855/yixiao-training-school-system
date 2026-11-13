@@ -374,7 +374,7 @@
             :type="listError ? 'error' : (filterTeacher || filterCourse || filterClassroom ? 'search' : 'data')"
               :description="listError || undefined"
               @retry="loadSchedules"
-            action-text="重置筛选"
+            :action-text="listError ? undefined : '重置筛选'"
             @action="handleReset"
           />
         </template>
@@ -801,7 +801,7 @@ async function handleDelete(id: string) {
     await ElMessageBox.confirm('确定取消该排课课次吗？', '提示', { type: 'warning' })
     try {
       await educationalApi.deleteSchedule(id)
-      ElMessage.success('排课已取消并同步落盘')
+      ElMessage.success('排课已取消')
       await loadSchedules()
     } catch (err: any) {
       ElMessage.error(err.message || '取消排课失败')

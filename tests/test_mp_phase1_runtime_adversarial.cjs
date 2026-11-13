@@ -497,8 +497,8 @@ async function main() {
 
     assert.strictEqual(env.toastCalls.length, 1);
     assert.ok(
-      env.toastCalls[0].title.includes('无法连接到后端服务'),
-      '网络连不上时应给予 3001 端口与免校验提示'
+      env.toastCalls[0].title.includes('网络连接不稳定') && !env.toastCalls[0].title.includes('3001'),
+      '网络连不上时给出面向用户的提示，不出现端口等开发者说明'
     );
   });
 

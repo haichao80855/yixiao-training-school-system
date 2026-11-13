@@ -147,6 +147,7 @@ async function load(reset = true) {
     items.value = reset ? res.items : [...items.value, ...res.items];
     nextCursor.value = res.nextCursor;
     loadedFor = sid;
+    if (reset) lastLoadedAt = Date.now();
   } catch {
     // 错误提示由 request 统一处理
   } finally {
@@ -155,8 +156,20 @@ async function load(reset = true) {
   }
 }
 
+// 从课评详情返回时，1 分钟内不重新加载：列表和滚动位置保持不动 (已读状态在点开时已经更新)
+const FRESH_MS = 60 * 1000;
+let lastLoadedAt = 0;
+
 onShow(() => {
-  parentStore.refresh().catch(() => undefined).finally(() => load(true));
+  const sid = parentStore.currentStudentId;
+  if (sid && loadedFor === sid && Date.now() - lastLoadedAt < FRESH_MS) return;
+  // 已经知道是哪个孩子时，刷新家长信息和加载课评同时进行，不再一前一后
+  if (sid) {
+    parentStore.refresh().catch(() => undefined);
+    load(true);
+  } else {
+    parentStore.refresh().catch(() => undefined).finally(() => load(true));
+  }
 });
 
 watch(

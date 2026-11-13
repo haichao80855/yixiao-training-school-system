@@ -121,7 +121,8 @@
             </el-form-item>
 
             <!-- 差额核算看板 (服务端权威预演数据) -->
-            <div v-if="previewResult?.financialImpact" class="bg-st-warning-light border border-st-warning-border rounded-lg p-3 text-xs space-y-1.5">
+            <div v-if="previewLoading" class="text-xs text-st-muted py-2">正在按最新课时计算金额…</div>
+            <div v-else-if="previewResult?.financialImpact" class="bg-st-warning-light border border-st-warning-border rounded-lg p-3 text-xs space-y-1.5">
               <div class="flex justify-between text-st-warning-deep">
                 <span>原课包实付剩余净值:</span>
                 <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.sourceResidualValue?.toFixed(2) }}</span>
@@ -258,7 +259,8 @@
             </el-form-item>
 
             <!-- 退费核算结果 (服务端权威预演数据) -->
-            <div v-if="previewResult?.financialImpact" class="bg-st-fill border border-st-border-dark rounded p-3 text-xs space-y-1.5">
+            <div v-if="previewLoading" class="text-xs text-st-muted py-2">正在按最新课时计算金额…</div>
+            <div v-else-if="previewResult?.financialImpact" class="bg-st-fill border border-st-border-dark rounded p-3 text-xs space-y-1.5">
               <div class="flex justify-between text-st-regular">
                 <span>实付正课剩余净值:</span>
                 <span class="font-bold font-mono">¥ {{ previewResult.financialImpact.sourceResidualValue?.toFixed(2) }}</span>
@@ -649,23 +651,36 @@ async function handleSubmit() {
     return
   }
 
-  try {
-    await ElMessageBox.confirm('确认执行该项异动流转操作？', '业务确认', {
-      type: 'warning',
-      confirmButtonText: '确认执行',
-      cancelButtonText: '取消'
-    })
-  } catch {
-    // 弹窗取消
+  if (previewLoading.value) {
+    ElMessage.info('正在计算金额，请稍候')
     return
   }
+
+  // 确认框写明这次异动涉及的金额，避免看着一个数、提交的是另一个数
+  const impact = previewResult.value?.financialImpact
+  const money = (n: unknown) => `¥${Number(n || 0).toFixed(2)}`
+  let confirmText = '确认办理这项学员异动吗？'
+  if (currentMovement.value === 'refund' && impact) {
+    confirmText = `将为 ${props.student?.name || '该学员'} 申请退费 ${money(impact.refundableCashAmount)}，提交后进入审批，确认吗？`
+  } else if (impact && typeof impact.netDiffAmount === 'number' && impact.netDiffAmount !== 0) {
+    confirmText = impact.netDiffAmount > 0
+      ? `差额 ${money(impact.netDiffAmount)} 将退回电子钱包本金，确认办理吗？`
+      : `需要从电子钱包补交 ${money(Math.abs(impact.netDiffAmount))}，确认办理吗？`
+  }
+  const confirmed = await ElMessageBox.confirm(confirmText, '确认办理', {
+    type: 'warning',
+    confirmButtonText: '确认办理',
+    cancelButtonText: '再看看'
+  }).then(() => true, () => false)
+  if (!confirmed) return
+
 
   submitting.value = true
   try {
     const flatDto = getCurrentMovementDto()
     await studentApi.executeMovement(props.student.id, flatDto)
 
-    ElMessage.success('学员异动流转已成功提交并实时生效落库！')
+    ElMessage.success('学员异动已提交')
     try {
       const refreshed = await studentApi.getStudentById(props.student.id)
       emit('success', refreshed?.data || props.student)

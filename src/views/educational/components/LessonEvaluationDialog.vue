@@ -5,6 +5,7 @@
     :width="DIALOG_SIZE.xl"
     destroy-on-close
     :close-on-click-modal="false"
+    :before-close="beforeClose"
     class="lesson-evaluation-dialog !rounded-xl"
   >
     <div v-loading="loading" class="space-y-3.5 max-h-[80vh] overflow-y-auto px-1 pr-2">
@@ -491,6 +492,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCloseGuard } from '@/composables/useCloseGuard'
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, ElNotification, ElMessageBox } from 'element-plus'
 import {
@@ -521,6 +523,10 @@ const emit = defineEmits<{
 }>()
 
 const visible = ref(false)
+// 防误关：名单加载完后记下内容，关闭时写过课评就先确认
+let evaluationSnapshot = ''
+const snapshotOf = () => JSON.stringify([form, rosterList.value])
+const beforeClose = useCloseGuard(() => evaluationSnapshot !== '' && snapshotOf() !== evaluationSnapshot, '课评还没有发布，关闭后填写的内容会丢失，确定关闭吗？')
 const loading = ref(false)
 const saving = ref(false)
 const uploadingVideo = ref(false)
@@ -846,6 +852,7 @@ function handleSaveAndNextStudent() {
 
 // 打开弹窗并载入数据 (权威水化)
 async function open(lesson: WorkbenchLessonCard) {
+  evaluationSnapshot = ''
   currentLesson.value = lesson
   templateList.value = getEvaluationTemplates()
   filterTab.value = 'all'
@@ -916,6 +923,7 @@ async function open(lesson: WorkbenchLessonCard) {
     ElMessage.error(err.message || '加载课评工作台失败')
   } finally {
     loading.value = false
+    evaluationSnapshot = snapshotOf()
   }
 
   visible.value = true
@@ -959,12 +967,12 @@ async function handleSaveAll(publish: boolean) {
       const skippedCount = receipt?.dispatchResult?.wechatSkippedCount || 0
       ElNotification({
         title: '课评发布成功',
-        message: `学员专属课评已落盘并同步至双端！已向 ${sentCount} 位绑定微信家长下发独立学情报告${skippedCount > 0 ? ` (另有 ${skippedCount} 位家长未绑定微信)` : ''}。`,
+        message: `课评已发布，已通知 ${sentCount} 位绑定微信的家长${skippedCount > 0 ? ` (另有 ${skippedCount} 位家长未绑定微信)` : ''}。`,
         type: 'success',
         duration: 5000,
       })
     } else {
-      ElMessage.success('全班学员专属课评草稿已持久化落盘至数据库！')
+      ElMessage.success('课评草稿已保存')
     }
 
     emit('success', receipt)

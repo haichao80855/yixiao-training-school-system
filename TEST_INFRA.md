@@ -15,7 +15,7 @@
 | `npm run test:all -- --keep` | 跑完保留临时目录 (测试库、上传文件、后端日志)，方便排查 |
 | `node tests/run-suite.cjs --list` | 列出清单，不运行 |
 | `npm run test:unit` | 只运行前端单元测试 (Vitest，不需要后端，约 1 秒) |
-| `npm run test:smoke` | 浏览器冒烟测试：先构建前端，再在临时库上用真实 Chrome 走 7 条关键路径 (约 1 分钟；GitHub 上每晚自动跑) |
+| `npm run test:smoke` | 浏览器冒烟测试：先构建前端，再在临时库上用真实 Chrome 走 8 条关键路径 (约 1 分钟；GitHub 上每晚自动跑) |
 | `npm run bench` | 接口压测：在临时库上分三档造数 (种子、1 年、10 年规模)，测 16 个核心接口的 p50/p95，结果对照 `docs/perf-baseline.md` (约 1 分钟，不在测试清单里) |
 
 所有命令都在**隔离环境**里运行 (`tests/isolated-env.cjs`)：

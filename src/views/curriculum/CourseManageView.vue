@@ -556,7 +556,7 @@ async function handleToggleStatus(course: CourseItem, val: boolean) {
   try {
     await curriculumApi.updateStatus(course.id, targetStatus)
     if (val) {
-      ElMessage.success(`课程「${course.name}」已成功启用并同步落库！`)
+      ElMessage.success(`课程「${course.name}」已启用`)
     } else {
       ElMessage.warning(`课程「${course.name}」已禁用，将阻断新建排课与前台选课！`)
     }
@@ -620,7 +620,7 @@ async function confirmBatchAuth() {
       )
     )
     batchAuthVisible.value = false
-    ElMessage.success(`批量授权成功！已同步至 ${filteredCourses.value.length} 门课程并落库。`)
+    ElMessage.success(`已为 ${filteredCourses.value.length} 门课程完成授权`)
     await reloadCourses()
   } catch (err: any) {
     ElMessage.error(err.message || '批量授权失败')

@@ -663,6 +663,14 @@
             "admin-dist",
             "browser"
           ]
+        },
+        {
+          "file": "tests/smoke/08-state-and-retry.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
         }
       ]
     }

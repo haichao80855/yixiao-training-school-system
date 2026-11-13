@@ -110,10 +110,8 @@ export async function request<T = any>(options: {
       },
       fail: (err: any) => {
         console.error(`[HTTP] 请求失败 ${fullUrl}:`, err);
-        let tip = '网络连接异常，请重试';
-        if (err?.errMsg && (err.errMsg.includes('fail') || err.errMsg.includes('refused'))) {
-          tip = '无法连接到后端服务 (请确认 3001 端口已启动并勾选“不校验合法域名”)';
-        }
+        // 面向家长和老师的提示：不出现端口、域名校验等开发者说明 (详细原因见上面的控制台日志)
+        const tip = '网络连接不稳定，请检查网络后重试';
         uni.showToast({ title: tip, icon: 'none', duration: 3000 });
         reject(err);
       },

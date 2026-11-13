@@ -1,5 +1,6 @@
 <template>
   <div class="h-screen w-screen flex flex-col overflow-hidden bg-st-bg">
+    <RouteProgress />
     <!-- 60px 顶部导航栏 -->
     <TopHeader @toggle-sidebar="toggleSidebar" />
 
@@ -37,7 +38,8 @@
         <!-- 页面主视图内容区 (自适应滚动) -->
         <div class="flex-1 overflow-y-auto bg-st-bg">
           <router-view v-slot="{ Component }">
-            <transition name="fade-transform" mode="out-in">
+            <!-- 只给新页面一个 120ms 的淡入，不再等旧页面 200ms 的离场动画结束才开始加载新页面 -->
+            <transition name="page-enter">
               <!-- 切换校区时重建当前页面，保证所有页面按新校区重载，旧页面的迟到响应也不会再显示 -->
               <component :is="Component" :key="tenantStore.currentCampusId" />
             </transition>
@@ -54,6 +56,7 @@ import { useRoute } from 'vue-router'
 import TopHeader from './TopHeader.vue'
 import AppSidebar from './AppSidebar.vue'
 import Breadcrumb from './Breadcrumb.vue'
+import RouteProgress from '@/components/RouteProgress.vue'
 import { useTenantStore } from '@/stores/tenantStore'
 
 const tenantStore = useTenantStore()
@@ -97,19 +100,19 @@ watch(
 </script>
 
 <style scoped>
-.fade-transform-leave-active,
-.fade-transform-enter-active {
-  transition: opacity var(--st-transition), transform var(--st-transition);
+.page-enter-enter-active {
+  transition: opacity 120ms ease-out, transform 120ms ease-out;
 }
 
-.fade-transform-enter-from {
+.page-enter-enter-from {
   opacity: 0;
   transform: translateY(4px);
 }
 
-.fade-transform-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-enter-active {
+    transition: none;
+  }
 }
 
 .sidebar-mask-enter-active,

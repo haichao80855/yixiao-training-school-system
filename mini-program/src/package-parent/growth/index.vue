@@ -156,6 +156,10 @@ async function load(reset = true) {
     if (sid !== parentStore.currentStudentId) return;
     weeks.value = reset ? res.weeks : [...weeks.value, ...res.weeks];
     nextCursor.value = res.nextCursor;
+    if (reset) {
+      lastLoadedAt = Date.now();
+      lastLoadedFor = sid;
+    }
   } catch {
     if (reset) weeks.value = [];
   } finally {
@@ -203,7 +207,15 @@ function playVideo(url: string) {
   // #endif
 }
 
-onShow(() => load(true));
+// 从详情返回时，1 分钟内不重新加载，列表和滚动位置保持不动
+const FRESH_MS = 60 * 1000;
+let lastLoadedAt = 0;
+let lastLoadedFor = '';
+onShow(() => {
+  const sid = parentStore.currentStudentId;
+  if (sid && sid === lastLoadedFor && Date.now() - lastLoadedAt < FRESH_MS) return;
+  load(true);
+});
 watch(() => parentStore.currentStudentId, () => load(true));
 onReachBottom(() => load(false));
 onPullDownRefresh(async () => {
