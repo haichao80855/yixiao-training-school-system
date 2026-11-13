@@ -1,7 +1,7 @@
 <template>
   <view class="tab-dock">
     <view class="tab-bar">
-      <view
+      <view role="button" tabindex="0"
         v-for="tab in tabs"
         :key="tab.key"
         class="tab-item"
@@ -78,10 +78,13 @@ const go = (tab: (typeof tabs)[number]) => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4rpx;
+  min-height: 44px; // 整个标签格都能点，窄屏上也不小于 44px
+  align-self: stretch;
 
   .tab-label {
-    font-size: 24rpx;
+    font-size: p-fs(24);
     color: #6B7280;
     transition: color 0.2s ease;
   }
@@ -111,8 +114,8 @@ const go = (tab: (typeof tabs)[number]) => {
   border-radius: 18rpx;
   background: $p-rose;
   color: #FFFFFF;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: p-fs(24);
+  font-weight: 600;
   line-height: 32rpx;
   text-align: center;
   border: 2rpx solid #FFFFFF;

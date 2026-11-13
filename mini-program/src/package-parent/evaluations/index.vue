@@ -19,7 +19,7 @@
 
     <view v-else class="feed">
       <!-- 新课评提示 -->
-      <view v-if="firstUnread" class="new-banner" @click="openDetail(firstUnread)">
+      <view role="button" tabindex="0" v-if="firstUnread" class="new-banner" @click="openDetail(firstUnread)">
         <view class="new-count">
           <text class="new-num">{{ unreadCount }}</text>
         </view>
@@ -37,7 +37,7 @@
 
         <block v-for="entry in group.items" :key="entry.item.scheduleEventId">
           <!-- 已发布课评 -->
-          <view
+          <view role="button" tabindex="0"
             v-if="entry.item.evaluation"
             class="eval-card"
             :style="enterDelay(entry.index)"
@@ -235,8 +235,8 @@ function openDetail(item: FeedItem) {
 .new-num {
   @include p-num;
   color: #FFFFFF;
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: p-fs(32);
+  font-weight: 600;
 }
 
 .new-text {
@@ -246,7 +246,7 @@ function openDetail(item: FeedItem) {
 
 .new-title {
   display: block;
-  font-size: 30rpx;
+  font-size: p-fs(30);
   font-weight: 600;
   color: #1E3A8A;
 }
@@ -254,7 +254,7 @@ function openDetail(item: FeedItem) {
 .new-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: #475569;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -266,8 +266,8 @@ function openDetail(item: FeedItem) {
   align-items: center;
   gap: 16rpx;
   margin: 8rpx 4rpx 20rpx;
-  font-size: 28rpx;
-  font-weight: 700;
+  font-size: p-fs(28);
+  font-weight: 600;
   color: $p-ink-2;
 
   &::after {
@@ -290,7 +290,7 @@ function openDetail(item: FeedItem) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-3;
 }
 
@@ -298,7 +298,7 @@ function openDetail(item: FeedItem) {
   @include p-chip;
   height: 36rpx;
   padding: 0 14rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   background: $p-rose;
   color: #FFFFFF;
 }
@@ -321,8 +321,8 @@ function openDetail(item: FeedItem) {
 .lesson-title {
   display: block;
   margin-top: 16rpx;
-  font-size: 34rpx;
-  font-weight: 650;
+  font-size: p-fs(34);
+  font-weight: 600;
   line-height: 1.38;
   color: $p-ink;
 }
@@ -334,7 +334,7 @@ function openDetail(item: FeedItem) {
 .course {
   display: block;
   margin-top: 6rpx;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-3;
 }
 
@@ -354,8 +354,8 @@ function openDetail(item: FeedItem) {
   border-radius: 50%;
   background: $p-brand-50;
   color: $p-brand;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: p-fs(24);
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -364,7 +364,7 @@ function openDetail(item: FeedItem) {
 
 .quote-text {
   flex: 1;
-  font-size: 30rpx;
+  font-size: p-fs(30);
   line-height: 1.65;
   color: $p-ink-2;
 }
@@ -388,7 +388,7 @@ function openDetail(item: FeedItem) {
   align-items: center;
   gap: 18rpx;
   padding: 4rpx 8rpx 32rpx 12rpx;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   color: $p-ink-3;
 }
 
@@ -417,26 +417,26 @@ function openDetail(item: FeedItem) {
 .slim-status {
   @include p-chip;
   height: 40rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   font-weight: 500;
   background: $p-fill;
   color: $p-ink-2;
 
   &.st-leave {
-    background: $p-peach-50;
-    color: #B45309;
+    background: $p-status-leave-bg;
+    color: $p-status-leave-ink;
   }
 
   &.st-absent {
     background: $p-rose-50;
-    color: $p-rose;
+    color: $p-rose-ink;
   }
 }
 
 .list-footer {
   padding: 16rpx 0 8rpx;
   text-align: center;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
   letter-spacing: 0.1em;
 }

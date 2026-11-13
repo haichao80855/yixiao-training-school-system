@@ -1,8 +1,8 @@
 <template>
   <!-- 网页版没有 previewMedia：全屏浮层播放视频 -->
-  <view v-if="url" class="video-overlay" @click="emit('close')">
+  <view role="button" tabindex="0" v-if="url" class="video-overlay" @click="emit('close')">
     <video class="overlay-video" :src="url" autoplay controls object-fit="contain" @click.stop />
-    <view class="overlay-close" @click.stop="emit('close')">
+    <view role="button" tabindex="0" class="overlay-close" aria-label="关闭视频" @click.stop="emit('close')">
       <AppIcon name="x" size="40rpx" color="#FFFFFF" />
     </view>
   </view>
@@ -16,6 +16,7 @@ const emit = defineEmits<{ (e: 'close'): void }>();
 </script>
 
 <style lang="scss" scoped>
+@import '../styles/tokens.scss';
 .video-overlay {
   position: fixed;
   inset: 0;
@@ -33,6 +34,7 @@ const emit = defineEmits<{ (e: 'close'): void }>();
 }
 
 .overlay-close {
+  @include p-hit-min; // 可点区域至少 88rpx
   position: absolute;
   top: calc(24rpx + env(safe-area-inset-top));
   right: 24rpx;

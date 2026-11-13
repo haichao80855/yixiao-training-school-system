@@ -9,7 +9,7 @@
 
     <template v-else>
       <!-- 下一节课 -->
-      <view v-if="nextLesson" class="next-card" @click="jumpTo(nextLesson.date)">
+      <view role="button" tabindex="0" v-if="nextLesson" class="next-card" @click="jumpTo(nextLesson.date)">
         <view class="next-glow" />
         <text class="next-label">下一节课</text>
         <text class="next-course">{{ nextLesson.courseName || '课程' }}</text>
@@ -29,18 +29,18 @@
       <view class="week-head">
         <text class="week-label">{{ weekLabel }}</text>
         <view class="week-nav">
-          <text v-if="weekStart !== thisWeek" class="today-link" @click="goToday">本周</text>
-          <view class="nav-btn" @click="shiftWeek(-7)">
+          <text role="button" tabindex="0" v-if="weekStart !== thisWeek" class="today-link" @click="goToday">本周</text>
+          <view role="button" tabindex="0" class="nav-btn" aria-label="上一周" @click="shiftWeek(-7)">
             <view class="rot-left"><AppIcon name="chevron-down" size="28rpx" color="#475569" /></view>
           </view>
-          <view class="nav-btn" @click="shiftWeek(7)">
+          <view role="button" tabindex="0" class="nav-btn" aria-label="下一周" @click="shiftWeek(7)">
             <view class="rot-right"><AppIcon name="chevron-down" size="28rpx" color="#475569" /></view>
           </view>
         </view>
       </view>
 
       <view class="week-strip">
-        <view
+        <view role="button" tabindex="0"
           v-for="day in days"
           :key="day.date"
           class="day"
@@ -72,7 +72,7 @@
           <view class="tl-rail">
             <view class="knot" />
           </view>
-          <view class="tl-card" @click="openLesson(lesson)">
+          <view role="button" tabindex="0" class="tl-card" @click="openLesson(lesson)">
             <text class="course">{{ lesson.courseName || '课程' }}</text>
             <text class="sub">{{ [lesson.classroomName, lesson.teacherName].filter(Boolean).join(' · ') }}</text>
             <view class="card-foot">
@@ -238,7 +238,7 @@ watch(() => parentStore.currentStudentId, reload);
 
 .next-label {
   display: block;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -247,8 +247,8 @@ watch(() => parentStore.currentStudentId, reload);
   display: block;
   margin-top: 12rpx;
   padding-right: 150rpx;
-  font-size: 38rpx;
-  font-weight: 650;
+  font-size: p-fs(38);
+  font-weight: 600;
   line-height: 1.3;
 }
 
@@ -256,7 +256,7 @@ watch(() => parentStore.currentStudentId, reload);
   display: block;
   margin-top: 8rpx;
   padding-right: 150rpx;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -270,13 +270,13 @@ watch(() => parentStore.currentStudentId, reload);
 
   .cd-num {
     @include p-num;
-    font-size: 72rpx;
-    font-weight: 700;
+    font-size: p-fs(72);
+    font-weight: 600;
     line-height: 1;
   }
 
   .cd-unit {
-    font-size: 26rpx;
+    font-size: p-fs(26);
     color: rgba(255, 255, 255, 0.7);
   }
 
@@ -284,7 +284,7 @@ watch(() => parentStore.currentStudentId, reload);
     padding: 8rpx 20rpx;
     border-radius: 9999rpx;
     background: rgba(255, 255, 255, 0.16);
-    font-size: 28rpx;
+    font-size: p-fs(28);
     font-weight: 600;
   }
 }
@@ -298,8 +298,8 @@ watch(() => parentStore.currentStudentId, reload);
 }
 
 .week-label {
-  font-size: 30rpx;
-  font-weight: 650;
+  font-size: p-fs(30);
+  font-weight: 600;
   color: $p-ink;
 }
 
@@ -310,8 +310,10 @@ watch(() => parentStore.currentStudentId, reload);
 }
 
 .today-link {
+
+  @include p-hit-min; // 可点区域至少 88rpx
   margin-right: 8rpx;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   color: $p-brand;
 }
 
@@ -365,14 +367,14 @@ watch(() => parentStore.currentStudentId, reload);
   transition: background-color 0.24s $p-ease-out;
 
   .weekday {
-    font-size: 24rpx;
+    font-size: p-fs(24);
     color: $p-ink-3;
   }
 
   .day-num {
     @include p-num;
-    font-size: 34rpx;
-    font-weight: 650;
+    font-size: p-fs(34);
+    font-weight: 600;
     color: $p-ink;
   }
 
@@ -384,7 +386,7 @@ watch(() => parentStore.currentStudentId, reload);
     background: $p-brand;
 
     .weekday {
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(255, 255, 255, 0.9); // 0.6 时在品牌蓝上只有 3.1:1，看不清
     }
 
     .day-num {
@@ -437,15 +439,15 @@ watch(() => parentStore.currentStudentId, reload);
   .t-start {
     @include p-num;
     display: block;
-    font-size: 30rpx;
-    font-weight: 700;
+    font-size: p-fs(30);
+    font-weight: 600;
     color: $p-ink;
   }
 
   .t-end {
     @include p-num;
     display: block;
-    font-size: 24rpx;
+    font-size: p-fs(24);
     color: $p-ink-3;
   }
 }
@@ -498,8 +500,8 @@ watch(() => parentStore.currentStudentId, reload);
 
   .course {
     display: block;
-    font-size: 32rpx;
-    font-weight: 650;
+    font-size: p-fs(32);
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -508,7 +510,7 @@ watch(() => parentStore.currentStudentId, reload);
   .sub {
     display: block;
     margin-top: 6rpx;
-    font-size: 26rpx;
+    font-size: p-fs(26);
     color: $p-ink-3;
   }
 }
@@ -536,7 +538,7 @@ watch(() => parentStore.currentStudentId, reload);
 .chip {
   @include p-chip;
   height: 40rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   background: $p-fill;
   color: $p-ink-2;
 
@@ -546,13 +548,13 @@ watch(() => parentStore.currentStudentId, reload);
   }
 
   &.c-leave {
-    background: $p-peach-50;
-    color: #B45309;
+    background: $p-status-leave-bg;
+    color: $p-status-leave-ink;
   }
 
   &.c-absent {
     background: $p-rose-50;
-    color: $p-rose;
+    color: $p-rose-ink;
   }
 
   &.c-upcoming,
@@ -566,7 +568,7 @@ watch(() => parentStore.currentStudentId, reload);
   display: flex;
   align-items: center;
   gap: 2rpx;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   font-weight: 600;
   color: $p-brand;
 }

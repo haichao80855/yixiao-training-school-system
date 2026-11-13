@@ -2,8 +2,8 @@
   <ParentPage title="历史档案" :show-back="true">
     <view class="segments">
       <view class="seg-thumb" :class="{ right: type === 'video' }" />
-      <view class="segment" :class="{ active: type === 'photo' }" @click="setType('photo')">照片</view>
-      <view class="segment" :class="{ active: type === 'video' }" @click="setType('video')">视频</view>
+      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'photo' }" @click="setType('photo')">照片</view>
+      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'video' }" @click="setType('video')">视频</view>
     </view>
 
     <view v-if="loading && months.length === 0" class="sk-grid" />
@@ -22,13 +22,13 @@
         </view>
 
         <view v-if="type === 'photo'" class="photo-grid">
-          <view v-for="(p, idx) in m.items" :key="p.id" class="cell" @click="preview(m, idx)">
+          <view role="button" tabindex="0" v-for="(p, idx) in m.items" :key="p.id" class="cell" @click="preview(m, idx)">
             <image class="photo" :src="mediaUrl(p.thumbUrl)" mode="aspectFill" lazy-load />
           </view>
         </view>
 
         <view v-else class="video-grid">
-          <view v-for="v in m.items" :key="v.id" class="video-cell" @click="playVideo(v.url)">
+          <view role="button" tabindex="0" v-for="v in m.items" :key="v.id" class="video-cell" @click="playVideo(v.url)">
             <!-- 横屏和竖屏视频混排，完整显示画面，避免裁掉孩子 -->
             <image class="video-cover" :src="mediaUrl(v.thumbUrl)" mode="aspectFit" lazy-load />
             <view class="play">
@@ -43,7 +43,7 @@
         <text v-if="loadingMore">加载中…</text>
         <text v-else-if="!nextCursor">· 已经到底了 ·</text>
         <!-- 内容不满一屏时页面无法滚动，触底加载不会触发，保留手动入口 -->
-        <text v-else class="load-more" @click="load(false)">查看更早的{{ type === 'photo' ? '照片' : '视频' }}</text>
+        <text role="button" tabindex="0" v-else class="load-more" @click="load(false)">查看更早的{{ type === 'photo' ? '照片' : '视频' }}</text>
       </view>
     </view>
 
@@ -159,18 +159,19 @@ onReachBottom(() => load(false));
 }
 
 .segment {
+  @include p-hit-min; // 可点区域至少 88rpx
   position: relative;
   z-index: 1;
   flex: 1;
   height: 68rpx;
   line-height: 68rpx;
   text-align: center;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   color: $p-ink-2;
 
   &.active {
     color: $p-ink;
-    font-weight: 650;
+    font-weight: 600;
   }
 }
 
@@ -188,13 +189,13 @@ onReachBottom(() => load(false));
 }
 
 .month-title {
-  font-size: 32rpx;
-  font-weight: 650;
+  font-size: p-fs(32);
+  font-weight: 600;
   color: $p-ink;
 }
 
 .month-meta {
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
@@ -254,13 +255,13 @@ onReachBottom(() => load(false));
   padding: 24rpx 16rpx 10rpx;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
   color: #FFFFFF;
-  font-size: 24rpx;
+  font-size: p-fs(24);
 }
 
 .list-footer {
   padding: 8rpx 0;
   text-align: center;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
   letter-spacing: 0.1em;
 }
@@ -268,7 +269,7 @@ onReachBottom(() => load(false));
 .load-more {
   display: inline-block;
   padding: 16rpx 32rpx;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   color: $p-brand;
   letter-spacing: 0;
 }

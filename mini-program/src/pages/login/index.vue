@@ -38,7 +38,10 @@
           placeholder="请输入家长手机号"
           placeholder-class="placeholder-text"
         />
-        <AppIcon name="x" size="28rpx" color="#94A3B8" class="clear-icon" v-if="parentPhone" @click="parentPhone = ''" />
+        <!-- 图标本身不接收点击 (AppIcon 设了 pointer-events: none)，外面包一层 88rpx 的按钮 -->
+        <view v-if="parentPhone" class="icon-btn" role="button" aria-label="清空手机号" @click="parentPhone = ''">
+          <AppIcon name="x" size="28rpx" color="#6B7280" />
+        </view>
       </view>
 
       <view class="input-item">
@@ -51,13 +54,9 @@
           placeholder="手机号后 6 位"
           placeholder-class="placeholder-text"
         />
-        <AppIcon
-          :name="showPassword ? 'eye' : 'eye-off'"
-          size="36rpx"
-          color="#94A3B8"
-          class="eye-icon"
-          @click="showPassword = !showPassword"
-        />
+        <view class="icon-btn" role="button" :aria-label="showPassword ? '隐藏密码' : '显示密码'" @click="showPassword = !showPassword">
+          <AppIcon :name="showPassword ? 'eye' : 'eye-off'" size="36rpx" color="#6B7280" />
+        </view>
       </view>
 
       <button class="login-button" :loading="loading" :disabled="loading" @click="handleParentLogin">
@@ -105,7 +104,9 @@
           placeholder="请输入工号 / 登录名 / 手机号"
           placeholder-class="placeholder-text"
         />
-        <AppIcon name="x" size="28rpx" color="#94A3B8" class="clear-icon" v-if="account" @click="account = ''" />
+        <view v-if="account" class="icon-btn" role="button" aria-label="清空账号" @click="account = ''">
+          <AppIcon name="x" size="28rpx" color="#6B7280" />
+        </view>
       </view>
 
       <!-- 密码输入框 -->
@@ -118,13 +119,9 @@
           placeholder="请输入登录密码"
           placeholder-class="placeholder-text"
         />
-        <AppIcon
-          :name="showPassword ? 'eye' : 'eye-off'"
-          size="36rpx"
-          color="#94A3B8"
-          class="eye-icon"
-          @click="showPassword = !showPassword"
-        />
+        <view class="icon-btn" role="button" :aria-label="showPassword ? '隐藏密码' : '显示密码'" @click="showPassword = !showPassword">
+          <AppIcon :name="showPassword ? 'eye' : 'eye-off'" size="36rpx" color="#6B7280" />
+        </view>
       </view>
 
       <!-- 记住账号与忘记密码 -->
@@ -539,14 +536,19 @@ const handleHelp = () => {
     }
 
     .placeholder-text {
-      color: #9CA3AF;
+      color: #6B7280; // 原 #9CA3AF 在输入框底色上只有 2.4:1
       font-size: 26rpx;
     }
 
-    .clear-icon, .eye-icon {
-      font-size: 28rpx;
-      color: #9CA3AF;
-      padding: 10rpx;
+    // 可点击的图标按钮：88rpx (约 44px) 点击区域 (图标本身不接收点击)
+    .icon-btn {
+      flex-shrink: 0;
+      width: 88rpx;
+      height: 88rpx;
+      margin-right: -20rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   }
 
@@ -620,7 +622,7 @@ const handleHelp = () => {
         border-radius: 12rpx;
 
         .demo-role-tag {
-          font-size: 22rpx;
+          font-size: 24rpx;
           color: #2F54EB;
           font-weight: 600;
         }
@@ -708,7 +710,7 @@ const handleHelp = () => {
     text-align: center;
 
     .policy-txt {
-      font-size: 20rpx;
+      font-size: 24rpx;
       color: #9CA3AF;
       line-height: 1.4;
     }
@@ -731,8 +733,8 @@ const handleHelp = () => {
   justify-content: center;
 
   .copyright-text {
-    font-size: 22rpx;
-    color: #9CA3AF;
+    font-size: 24rpx;
+    color: #6B7280;
   }
 }
 </style>

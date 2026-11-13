@@ -24,8 +24,8 @@
 
     <view class="segments">
       <view class="seg-thumb" :class="{ right: type === 'video' }" />
-      <view class="segment" :class="{ active: type === 'photo' }" @click="setType('photo')">照片</view>
-      <view class="segment" :class="{ active: type === 'video' }" @click="setType('video')">视频</view>
+      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'photo' }" @click="setType('photo')">照片</view>
+      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'video' }" @click="setType('video')">视频</view>
     </view>
 
     <view v-if="loading && weeks.length === 0" class="sk-week">
@@ -63,7 +63,7 @@
         </view>
 
         <view v-else class="video-list">
-          <view v-for="(v, idx) in week.videos" :key="idx" class="video-row" @click="playVideo(v.url)">
+          <view role="button" tabindex="0" v-for="(v, idx) in week.videos" :key="idx" class="video-row" @click="playVideo(v.url)">
             <view class="video-thumb">
               <view class="play">
                 <AppIcon name="play-circle" size="48rpx" color="#FFFFFF" />
@@ -273,15 +273,15 @@ onPullDownRefresh(async () => {
 .stat-num {
   @include p-num;
   display: block;
-  font-size: 60rpx;
-  font-weight: 700;
+  font-size: p-fs(60);
+  font-weight: 600;
   line-height: 1.1;
 }
 
 .stat-label {
   display: block;
   margin-top: 8rpx;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-2;
 }
 
@@ -312,15 +312,15 @@ onPullDownRefresh(async () => {
 
 .archive-title {
   display: block;
-  font-size: 30rpx;
-  font-weight: 650;
+  font-size: p-fs(30);
+  font-weight: 600;
   color: $p-ink;
 }
 
 .archive-sub {
   display: block;
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-2;
 }
 
@@ -350,19 +350,20 @@ onPullDownRefresh(async () => {
 }
 
 .segment {
+  @include p-hit-min; // 可点区域至少 88rpx
   position: relative;
   z-index: 1;
   flex: 1;
   height: 68rpx;
   line-height: 68rpx;
   text-align: center;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   color: $p-ink-2;
   transition: color 0.2s ease;
 
   &.active {
     color: $p-ink;
-    font-weight: 650;
+    font-weight: 600;
   }
 }
 
@@ -384,12 +385,12 @@ onPullDownRefresh(async () => {
 }
 
 .week-range {
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: p-fs(32);
+  font-weight: 600;
 }
 
 .week-meta {
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
@@ -437,8 +438,8 @@ onPullDownRefresh(async () => {
   border-radius: 12rpx;
   background: rgba(255, 255, 255, 0.92);
   color: $p-brand;
-  font-size: 24rpx;
-  font-weight: 700;
+  font-size: p-fs(24);
+  font-weight: 600;
 }
 
 .video-list {
@@ -477,7 +478,7 @@ onPullDownRefresh(async () => {
 
 .video-title {
   display: block;
-  font-size: 30rpx;
+  font-size: p-fs(30);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -487,14 +488,14 @@ onPullDownRefresh(async () => {
 .video-sub {
   display: block;
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
 .list-footer {
   padding: 8rpx 0;
   text-align: center;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
   letter-spacing: 0.1em;
 }

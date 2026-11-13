@@ -90,8 +90,8 @@ onLoad(async (query: any) => {
 
 .sum-course {
   display: block;
-  font-size: 32rpx;
-  font-weight: 650;
+  font-size: p-fs(32);
+  font-weight: 600;
 }
 
 .sum-row {
@@ -109,8 +109,8 @@ onLoad(async (query: any) => {
 
 .sum-num {
   @include p-num;
-  font-size: 48rpx;
-  font-weight: 700;
+  font-size: p-fs(48);
+  font-weight: 600;
   line-height: 1.1;
 
   &.mint {
@@ -119,7 +119,7 @@ onLoad(async (query: any) => {
 }
 
 .sum-label {
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
@@ -161,13 +161,13 @@ onLoad(async (query: any) => {
 
   .d-day {
     @include p-num;
-    font-size: 32rpx;
-    font-weight: 700;
+    font-size: p-fs(32);
+    font-weight: 600;
     line-height: 1.1;
   }
 
   .d-month {
-    font-size: 24rpx;
+    font-size: p-fs(24);
     color: $p-ink-3;
   }
 }
@@ -179,7 +179,7 @@ onLoad(async (query: any) => {
 
 .entry-title {
   display: block;
-  font-size: 30rpx;
+  font-size: p-fs(30);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -189,14 +189,14 @@ onLoad(async (query: any) => {
 .entry-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
 .delta {
   @include p-num;
-  font-size: 34rpx;
-  font-weight: 700;
+  font-size: p-fs(34);
+  font-weight: 600;
   color: $p-ink;
 }
 

@@ -671,6 +671,14 @@
             "admin-dist",
             "browser"
           ]
+        },
+        {
+          "file": "tests/smoke/09-parent-h5.smoke.cjs",
+          "needs": [
+            "server",
+            "h5-dist",
+            "browser"
+          ]
         }
       ]
     }
