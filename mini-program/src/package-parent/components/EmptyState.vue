@@ -3,7 +3,7 @@
     <view class="art">
       <view class="blob" />
       <view class="icon-wrap">
-        <AppIcon :name="icon" size="52rpx" color="#94A3B8" />
+        <AppIcon :name="icon" size="52rpx" :color="P_COLORS.ink4" />
       </view>
     </view>
     <text class="title">{{ title }}</text>
@@ -12,6 +12,7 @@
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import AppIcon from '../../components/AppIcon.vue';
 
 withDefaults(defineProps<{ icon?: string; title: string; description?: string }>(), { icon: 'inbox' });
@@ -43,7 +44,7 @@ withDefaults(defineProps<{ icon?: string; title: string; description?: string }>
   width: 168rpx;
   height: 168rpx;
   border-radius: 46% 54% 52% 48% / 52% 44% 56% 48%;
-  background: linear-gradient(135deg, #E9EEF5, #F4F6FA);
+  background: linear-gradient(135deg, $p-fill-soft, $p-canvas);
 }
 
 .icon-wrap {
@@ -52,7 +53,7 @@ withDefaults(defineProps<{ icon?: string; title: string; description?: string }>
   top: 44rpx;
   width: 80rpx;
   height: 80rpx;
-  border-radius: 24rpx;
+  border-radius: $p-r-inner;
   background: $p-surface;
   box-shadow: $p-shadow;
   display: flex;
@@ -61,14 +62,14 @@ withDefaults(defineProps<{ icon?: string; title: string; description?: string }>
 }
 
 .title {
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
   color: $p-ink;
 }
 
 .desc {
   margin-top: 12rpx;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   line-height: 1.65;
   color: $p-ink-3;
 }

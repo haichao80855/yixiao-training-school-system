@@ -3,12 +3,13 @@
   <view role="button" tabindex="0" v-if="url" class="video-overlay" @click="emit('close')">
     <video class="overlay-video" :src="url" autoplay controls object-fit="contain" @click.stop />
     <view role="button" tabindex="0" class="overlay-close" aria-label="关闭视频" @click.stop="emit('close')">
-      <AppIcon name="x" size="40rpx" color="#FFFFFF" />
+      <AppIcon name="x" size="40rpx" :color="P_COLORS.white" />
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import AppIcon from '../../components/AppIcon.vue';
 
 defineProps<{ url: string }>();

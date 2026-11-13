@@ -13,7 +13,7 @@
             :name="tab.icon"
             size="40rpx"
             :stroke-width="tab.key === current ? 2.2 : 1.8"
-            :color="tab.key === current ? '#2F54EB' : '#6B7280'"
+            :color="tab.key === current ? P_COLORS.brand : P_COLORS.ink3"
           />
           <view v-if="tab.key === 'evaluations' && unreadCount > 0" class="badge">{{ unreadCount > 9 ? '9+' : unreadCount }}</view>
         </view>
@@ -24,6 +24,7 @@
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import { computed, onMounted } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { useParentStore } from '../../stores/parentStore';
@@ -47,9 +48,23 @@ const tabs: Array<{ key: ParentTabKey; label: string; icon: string; url: string 
   { key: 'me', label: '我的', icon: 'user', url: '/package-parent/me/index' },
 ];
 
-// 家长端标签页位于分包 (非原生 tabBar 页面)，用 redirectTo 切换以免页面栈增长
+// 家长端标签页位于分包 (非原生 tabBar 页面)。
+// H5：目标标签已经在页面栈里时退回到它 (页面实例、数据、滚动位置都还在)，不在时再打开新页面；
+//     浏览器「返回」会回到上一个标签，而不是直接离开家长端 (以前用 redirectTo 替换了历史记录)。
+// 小程序：页面栈最多 10 层，仍用 redirectTo；切回来时由各页的快照 (usePageSnapshot) 恢复数据和滚动位置。
 const go = (tab: (typeof tabs)[number]) => {
   if (tab.key === props.current) return;
+  // #ifdef H5
+  const stack = getCurrentPages();
+  const target = tab.url.replace(/^\//, '');
+  const index = stack.map((p) => p.route).lastIndexOf(target);
+  if (index >= 0) {
+    uni.navigateBack({ delta: stack.length - 1 - index });
+    return;
+  }
+  uni.navigateTo({ url: tab.url });
+  return;
+  // #endif
   uni.redirectTo({ url: tab.url });
 };
 </script>
@@ -93,8 +108,8 @@ const go = (tab: (typeof tabs)[number]) => {
   align-self: stretch;
 
   .tab-label {
-    font-size: p-fs(24);
-    color: #6B7280;
+    font-size: p-fs($p-fs-caption);
+    color: $p-ink-3;
     transition: color 0.2s ease;
   }
 
@@ -120,13 +135,13 @@ const go = (tab: (typeof tabs)[number]) => {
   height: 36rpx;
   padding: 0 8rpx;
   box-sizing: border-box;
-  border-radius: 18rpx;
+  border-radius: $p-r-sm;
   background: $p-rose;
-  color: #FFFFFF;
-  font-size: p-fs(24);
+  color: $p-surface;
+  font-size: p-fs($p-fs-caption);
   font-weight: 600;
   line-height: 32rpx;
   text-align: center;
-  border: 2rpx solid #FFFFFF;
+  border: 2rpx solid $p-surface;
 }
 </style>

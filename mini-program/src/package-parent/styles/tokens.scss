@@ -16,6 +16,9 @@ $p-ink-2: #475569;
 $p-ink-3: #5B6577;
 $p-ink-4: #94A3B8;
 $p-line: rgba(15, 23, 42, 0.08);
+$p-line-strong: #CBD5E1;  // 实线分隔、空星
+$p-ink-dark: #1E293B;     // 深色底 (视频占位)
+$p-fill-soft: #E9EDF3;    // 浅灰块 (空状态、占位图)
 $p-fill: rgba(15, 23, 42, 0.05);
 
 // 品牌与语义色
@@ -24,6 +27,7 @@ $p-brand-strong: #1D39C4;
 $p-brand-50: #EEF2FF;
 $p-brand-100: #E0E7FF;
 $p-navy: #13235B;
+$p-brand-ink: #1E3A8A;    // 浅品牌底上的深蓝文字
 $p-amber: #E8A33D;
 $p-amber-50: #FEF6E7;
 $p-amber-ink: #92400E;
@@ -56,6 +60,15 @@ $p-fw-bold: 600;
  * H5 上 rpx 按屏幕宽度缩放，24rpx 在 320px 宽的手机上只有 10.2px。家长端不能双指放大，
  * 所以 32rpx 及以下的字号在窄屏上不再缩小：至少等于设计稿 (375 宽) 上的像素值，24rpx 至少 12px。
  * 375px 及更宽的屏幕上与原来完全一样。用法：font-size: p-fs(24); */
+// 字号只有这几档 (家长端 UI 改进第 3 期)，用法：font-size: p-fs($p-fs-body)
+$p-fs-caption: 24;   // 12px 辅助说明、时间
+$p-fs-small: 26;     // 13px 次要信息、标签
+$p-fs-body: 30;      // 15px 正文
+$p-fs-subtitle: 32;  // 16px 卡片标题、小标题
+$p-fs-title: 36;     // 18px 分区标题、页面二级标题
+$p-fs-large: 44;     // 22px 页面大标题
+$p-fs-display: 64;   // 32px 大号数字 (倒计时、统计数)
+
 @function p-fs($rpx) {
   @if $rpx <= 32 {
     @return unquote('max(#{$rpx * 0.5}px, #{$rpx}rpx)');
@@ -64,9 +77,10 @@ $p-fw-bold: 600;
 }
 
 // 形状与阴影
-$p-r-sm: 16rpx;      // 小控件 8px
-$p-r-inner: 20rpx;   // 按钮、输入框、卡片内的块 10px
-$p-r-card: 28rpx;    // 卡片 14px
+// 圆角只有这 5 档 (家长端 UI 改进第 3 期)；圆形用 50%
+$p-r-sm: 16rpx;      // 标签、小控件 8px
+$p-r-inner: 24rpx;   // 按钮、输入框、卡片内的块 12px
+$p-r-card: 32rpx;    // 卡片 16px
 $p-r-sheet: 40rpx;   // 弹窗、底部面板 20px
 $p-r-pill: 999rpx;   // 胶囊
 $p-shadow: 0 2rpx 4rpx rgba(15, 23, 42, 0.04), 0 16rpx 40rpx -28rpx rgba(15, 23, 42, 0.18);
@@ -177,13 +191,33 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
   }
 }
 
+/* 列表底部「加载中 / 已经到底了」(课评、成长、历史档案共用) */
+@mixin p-list-footer {
+  padding: 8rpx 0;
+  text-align: center;
+  font-size: p-fs($p-fs-caption);
+  color: $p-ink-3;
+  letter-spacing: 0.1em;
+}
+
+/* 分区标题 (「本节课学了什么」「2026年10月」等)，各页统一 */
+@mixin p-section-title {
+  font-size: p-fs($p-fs-subtitle);
+  font-weight: $p-fw-bold;
+  color: $p-ink;
+  line-height: 1.4;
+}
+
+// 状态标签统一高度：44rpx，窄屏上至少 20px (12px 字放得下)
+$p-chip-h: unquote('max(44rpx, 20px)');
+
 @mixin p-chip {
   display: inline-flex;
   align-items: center;
-  height: 44rpx;
+  height: $p-chip-h;
   padding: 0 16rpx;
   border-radius: $p-r-sm;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   font-weight: 600;
   white-space: nowrap;
 }

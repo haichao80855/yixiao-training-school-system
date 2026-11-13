@@ -29,7 +29,7 @@
           </text>
         </view>
         <view v-if="child.studentId === parentStore.currentStudentId" class="current">
-          <AppIcon name="check" size="26rpx" color="#FFFFFF" :stroke-width="3" />
+          <AppIcon name="check" size="26rpx" :color="P_COLORS.white" :stroke-width="3" />
         </view>
       </view>
     </view>
@@ -38,7 +38,7 @@
     <view class="group">
       <view v-for="s in sessions" :key="s.id" class="row">
         <view class="device-icon">
-          <AppIcon name="smartphone" size="32rpx" color="#475569" />
+          <AppIcon name="smartphone" size="32rpx" :color="P_COLORS.ink2" />
         </view>
         <view class="row-main">
           <view class="row-title-line">
@@ -61,12 +61,12 @@
     <view class="group spaced">
       <view role="button" tabindex="0" class="row pressable" @click="showHelp">
         <view class="device-icon">
-          <AppIcon name="help-circle" size="32rpx" color="#475569" />
+          <AppIcon name="help-circle" size="32rpx" :color="P_COLORS.ink2" />
         </view>
         <view class="row-main">
           <text class="row-title">账号与登录帮助</text>
         </view>
-        <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
+        <AppIcon name="chevron-right" size="26rpx" :color="P_COLORS.ink4" />
       </view>
     </view>
 
@@ -77,6 +77,7 @@
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import { formatFullDateCn } from '../utils/format';
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
@@ -122,7 +123,7 @@ function revoke(id: string) {
     title: '让该设备退出登录？',
     content: '该设备上的家长需要重新登录才能继续查看。',
     confirmText: '退出',
-    confirmColor: '#DC2626',
+    confirmColor: P_COLORS.rose,
     success: async (res) => {
       if (!res.confirm) return;
       try {
@@ -145,7 +146,7 @@ function logout() {
   uni.showModal({
     title: '退出登录',
     content: '确定退出当前账号吗？',
-    confirmColor: '#DC2626',
+    confirmColor: P_COLORS.rose,
     success: (res) => {
       if (res.confirm) authStore.logout();
     },
@@ -207,7 +208,7 @@ function dateTimeText(iso: string) {
 .phone {
   @include p-num;
   display: block;
-  font-size: p-fs(40);
+  font-size: p-fs($p-fs-title);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -215,16 +216,14 @@ function dateTimeText(iso: string) {
 .sub {
   display: block;
   margin-top: 6rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 
 .group-title {
+  @include p-section-title; // 分区标题统一样式
   display: block;
   margin: 44rpx 8rpx 16rpx;
-  font-size: p-fs(26);
-  font-weight: 600;
-  color: $p-ink-3;
   letter-spacing: 0.04em;
 }
 
@@ -240,7 +239,7 @@ function dateTimeText(iso: string) {
 .group-note {
   display: block;
   margin: 14rpx 8rpx 0;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   line-height: 1.6;
   color: $p-ink-3;
 }
@@ -271,22 +270,22 @@ function dateTimeText(iso: string) {
 
 .row-title {
   display: block;
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
 }
 
 .row-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
 .this-device {
   @include p-chip;
-  height: 34rpx;
+  height: $p-chip-h; // 标签统一高度
   padding: 0 12rpx;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   background: $p-brand-50;
   color: $p-brand;
 }
@@ -314,7 +313,7 @@ function dateTimeText(iso: string) {
 .device-icon {
   width: 72rpx;
   height: 72rpx;
-  border-radius: 22rpx;
+  border-radius: $p-r-inner;
   background: $p-canvas;
   display: flex;
   align-items: center;
@@ -325,9 +324,9 @@ function dateTimeText(iso: string) {
 .row-action {
   @include p-hit-min; // 可点区域至少 88rpx
   padding: 10rpx 20rpx;
-  border-radius: 9999rpx;
+  border-radius: $p-r-pill;
   background: $p-rose-50;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   font-weight: 600;
   color: $p-rose-ink;
 }
@@ -341,7 +340,7 @@ function dateTimeText(iso: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
   color: $p-rose-ink;
 }

@@ -1,5 +1,5 @@
 <template>
-  <ParentPage title="课表" :overline="monthText" tab="schedule">
+  <ParentPage title="课表" :overline="monthText" tab="schedule" :restored="snapshot.restored.value">
     <EmptyState
       v-if="parentStore.isReadOnly"
       icon="calendar"
@@ -32,10 +32,10 @@
         <view class="week-nav">
           <text role="button" tabindex="0" v-if="weekStart !== thisWeek" class="today-link" @click="goToday">本周</text>
           <view role="button" tabindex="0" class="nav-btn" aria-label="上一周" @click="shiftWeek(-7)">
-            <view class="rot-left"><AppIcon name="chevron-down" size="28rpx" color="#475569" /></view>
+            <view class="rot-left"><AppIcon name="chevron-down" size="28rpx" :color="P_COLORS.ink2" /></view>
           </view>
           <view role="button" tabindex="0" class="nav-btn" aria-label="下一周" @click="shiftWeek(7)">
-            <view class="rot-right"><AppIcon name="chevron-down" size="28rpx" color="#475569" /></view>
+            <view class="rot-right"><AppIcon name="chevron-down" size="28rpx" :color="P_COLORS.ink2" /></view>
           </view>
         </view>
       </view>
@@ -85,7 +85,7 @@
               </view>
               <view v-if="lesson.evaluationReady" class="eval-link">
                 <text>看课评</text>
-                <AppIcon name="chevron-right" size="24rpx" color="#2F54EB" />
+                <AppIcon name="chevron-right" size="24rpx" :color="P_COLORS.brand" />
               </view>
             </view>
           </view>
@@ -96,6 +96,8 @@
 </template>
 
 <script setup lang="ts">
+import { usePageSnapshot } from '../utils/pageSnapshot';
+import { P_COLORS } from '../styles/colors';
 import { computed, ref, watch } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
@@ -142,14 +144,18 @@ const nextDays = computed(() => (nextLesson.value ? daysFromToday(nextLesson.val
 
 const loadError = ref('');
 
-async function loadWeek() {
+/** silent：后台刷新，不显示骨架屏 (切回本页、已有数据时) */
+async function loadWeek(silent = false) {
   const sid = parentStore.currentStudentId;
   if (!sid || parentStore.isReadOnly) return;
-  loading.value = true;
+  if (!silent) loading.value = true;
   loadError.value = '';
   try {
     const res = await parentApi.schedule(sid, weekStart.value, addDaysIso(weekStart.value, 6));
-    if (sid === parentStore.currentStudentId) lessons.value = res.lessons;
+    if (sid === parentStore.currentStudentId) {
+      lessons.value = res.lessons;
+      saveSnapshot(sid);
+    }
   } catch (err) {
     lessons.value = [];
     loadError.value = describeLoadError(err);
@@ -213,7 +219,37 @@ function reload() {
   loadNext();
 }
 
-onShow(reload);
+// 切换标签后页面重建时，先用快照恢复这一周的课表、选中的日期和滚动位置
+const snapshot = usePageSnapshot<{ lessons: ScheduleLesson[]; weekStart: string; selected: string; nextLesson: ScheduleLesson | null }>('parent-schedule');
+function saveSnapshot(sid: string) {
+  snapshot.save(sid, { lessons: lessons.value, weekStart: weekStart.value, selected: selected.value, nextLesson: nextLesson.value });
+}
+let shownOnce = false;
+
+onShow(() => {
+  const sid = parentStore.currentStudentId;
+  if (!shownOnce && sid) {
+    shownOnce = true;
+    const snap = snapshot.restore(sid);
+    if (snap) {
+      lessons.value = snap.data.lessons;
+      weekStart.value = snap.data.weekStart;
+      selected.value = snap.data.selected;
+      nextLesson.value = snap.data.nextLesson;
+      if (snap.fresh) return;
+      loadWeek(true);
+      loadNext();
+      return;
+    }
+  }
+  // 从详情返回 (页面还在) 时也静默刷新，不再闪一下骨架屏
+  if (lessons.value.length) {
+    loadWeek(true);
+    loadNext();
+    return;
+  }
+  reload();
+});
 watch(() => parentStore.currentStudentId, reload);
 </script>
 
@@ -228,8 +264,8 @@ watch(() => parentStore.currentStudentId, reload);
   padding: 32rpx 32rpx 36rpx;
   margin-bottom: 40rpx;
   border-radius: $p-r-card;
-  background: linear-gradient(160deg, #1D39C4 0%, #13235B 100%);
-  color: #FFFFFF;
+  background: linear-gradient(160deg, $p-brand-strong 0%, $p-navy 100%);
+  color: $p-surface;
   box-shadow: 0 20rpx 40rpx -24rpx rgba(19, 35, 91, 0.6);
   animation: p-fade-up 0.45s $p-ease-out both;
 }
@@ -246,7 +282,7 @@ watch(() => parentStore.currentStudentId, reload);
 
 .next-label {
   display: block;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -255,7 +291,7 @@ watch(() => parentStore.currentStudentId, reload);
   display: block;
   margin-top: 12rpx;
   padding-right: 150rpx;
-  font-size: p-fs(38);
+  font-size: p-fs($p-fs-title);
   font-weight: 600;
   line-height: 1.3;
 }
@@ -264,7 +300,7 @@ watch(() => parentStore.currentStudentId, reload);
   display: block;
   margin-top: 8rpx;
   padding-right: 150rpx;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   color: rgba(255, 255, 255, 0.7);
 }
 
@@ -278,21 +314,21 @@ watch(() => parentStore.currentStudentId, reload);
 
   .cd-num {
     @include p-num;
-    font-size: p-fs(72);
+    font-size: p-fs($p-fs-display);
     font-weight: 600;
     line-height: 1;
   }
 
   .cd-unit {
-    font-size: p-fs(26);
+    font-size: p-fs($p-fs-small);
     color: rgba(255, 255, 255, 0.7);
   }
 
   .cd-today {
     padding: 8rpx 20rpx;
-    border-radius: 9999rpx;
+    border-radius: $p-r-pill;
     background: rgba(255, 255, 255, 0.16);
-    font-size: p-fs(28);
+    font-size: p-fs($p-fs-body);
     font-weight: 600;
   }
 }
@@ -306,9 +342,8 @@ watch(() => parentStore.currentStudentId, reload);
 }
 
 .week-label {
-  font-size: p-fs(30);
-  font-weight: 600;
-  color: $p-ink;
+  @include p-section-title; // 分区标题统一样式
+
 }
 
 .week-nav {
@@ -321,7 +356,7 @@ watch(() => parentStore.currentStudentId, reload);
 
   @include p-hit-min; // 可点区域至少 88rpx
   margin-right: 8rpx;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   color: $p-brand;
 }
 
@@ -367,7 +402,7 @@ watch(() => parentStore.currentStudentId, reload);
 .day {
   width: 84rpx;
   padding: 16rpx 0 14rpx;
-  border-radius: 28rpx;
+  border-radius: $p-r-card;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -375,13 +410,13 @@ watch(() => parentStore.currentStudentId, reload);
   transition: background-color 0.24s $p-ease-out;
 
   .weekday {
-    font-size: p-fs(24);
+    font-size: p-fs($p-fs-caption);
     color: $p-ink-3;
   }
 
   .day-num {
     @include p-num;
-    font-size: p-fs(34);
+    font-size: p-fs($p-fs-subtitle);
     font-weight: 600;
     color: $p-ink;
   }
@@ -398,21 +433,12 @@ watch(() => parentStore.currentStudentId, reload);
     }
 
     .day-num {
-      color: #FFFFFF;
+      color: $p-surface;
     }
 
     .day-dot.visible {
-      background: #FFFFFF;
+      background: $p-surface;
     }
-  }
-}
-
-@keyframes day-pick {
-  from {
-    transform: scale(0.9);
-  }
-  to {
-    transform: scale(1);
   }
 }
 
@@ -447,7 +473,7 @@ watch(() => parentStore.currentStudentId, reload);
   .t-start {
     @include p-num;
     display: block;
-    font-size: p-fs(30);
+    font-size: p-fs($p-fs-body);
     font-weight: 600;
     color: $p-ink;
   }
@@ -455,7 +481,7 @@ watch(() => parentStore.currentStudentId, reload);
   .t-end {
     @include p-num;
     display: block;
-    font-size: p-fs(24);
+    font-size: p-fs($p-fs-caption);
     color: $p-ink-3;
   }
 }
@@ -490,7 +516,7 @@ watch(() => parentStore.currentStudentId, reload);
 
 .tl-item.st-cancelled .knot,
 .tl-item.st-not_recorded .knot {
-  border-color: #CBD5E1;
+  border-color: $p-line-strong;
 }
 
 .tl-item.st-present .knot {
@@ -508,7 +534,7 @@ watch(() => parentStore.currentStudentId, reload);
 
   .course {
     display: block;
-    font-size: p-fs(32);
+    font-size: p-fs($p-fs-subtitle);
     font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -518,7 +544,7 @@ watch(() => parentStore.currentStudentId, reload);
   .sub {
     display: block;
     margin-top: 6rpx;
-    font-size: p-fs(26);
+    font-size: p-fs($p-fs-small);
     color: $p-ink-3;
   }
 }
@@ -545,8 +571,8 @@ watch(() => parentStore.currentStudentId, reload);
 
 .chip {
   @include p-chip;
-  height: 40rpx;
-  font-size: p-fs(24);
+  height: $p-chip-h; // 标签统一高度
+  font-size: p-fs($p-fs-caption);
   background: $p-fill;
   color: $p-ink-2;
 
@@ -576,7 +602,7 @@ watch(() => parentStore.currentStudentId, reload);
   display: flex;
   align-items: center;
   gap: 2rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   font-weight: 600;
   color: $p-brand;
 }

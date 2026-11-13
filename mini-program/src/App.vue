@@ -194,4 +194,12 @@ uni-page-body {
   box-shadow: 0 0 40px rgba(15, 23, 42, 0.06);
 }
 /* #endif */
+
+/* #ifdef H5 */
+/* uni-app H5 框架会在页面打开 3 秒后，从 DCloud 的 CDN (cdn.dcloud.net.cn) 预加载导航栏阴影图。
+ * 家长端用自定义导航栏，用不到这张图；关掉它，家长的浏览器不再请求第三方域名。 */
+body::after {
+  animation: none !important;
+}
+/* #endif */
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <ParentPage title="成长" overline="记录每一次进步" tab="growth">
+  <ParentPage title="成长" overline="记录每一次进步" tab="growth" :restored="snapshot.restored.value">
     <!-- 成长概览 -->
     <view class="stats">
       <view v-for="(s, idx) in stats" :key="s.key" class="stat" :class="'t-' + s.key" :style="enterDelay(idx)">
@@ -13,20 +13,16 @@
 
     <view v-if="archive && archive.photos + archive.videos > 0" class="archive-card" @click="openArchive">
       <view class="archive-icon">
-        <AppIcon name="folder-user" size="36rpx" color="#2F54EB" />
+        <AppIcon name="folder-user" size="36rpx" :color="P_COLORS.brand" />
       </view>
       <view class="archive-info">
         <text class="archive-title">历史档案</text>
         <text class="archive-sub">{{ archiveRange }} · {{ archive.photos }} 张照片 · {{ archive.videos }} 段视频</text>
       </view>
-      <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
+      <AppIcon name="chevron-right" size="26rpx" :color="P_COLORS.ink4" />
     </view>
 
-    <view class="segments">
-      <view class="seg-thumb" :class="{ right: type === 'video' }" />
-      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'photo' }" @click="setType('photo')">照片</view>
-      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'video' }" @click="setType('video')">视频</view>
-    </view>
+    <PSegmented :model-value="type" :options="TYPE_OPTIONS" @update:model-value="setType" />
 
     <view v-if="loading && weeks.length === 0" class="sk-week">
       <view class="sk-title" />
@@ -67,14 +63,14 @@
           <view role="button" tabindex="0" v-for="(v, idx) in week.videos" :key="idx" class="video-row" @click="playVideo(v.url)">
             <view class="video-thumb">
               <view class="play">
-                <AppIcon name="play-circle" size="48rpx" color="#FFFFFF" />
+                <AppIcon name="play-circle" size="48rpx" :color="P_COLORS.white" />
               </view>
             </view>
             <view class="video-info">
               <text class="video-title">{{ v.lessonTitle }}</text>
               <text class="video-sub">{{ formatDateCn(v.date) }} · {{ v.isOwn ? `${childName}的视频` : '课堂视频' }}</text>
             </view>
-            <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
+            <AppIcon name="chevron-right" size="26rpx" :color="P_COLORS.ink4" />
           </view>
         </view>
       </view>
@@ -93,10 +89,13 @@
 </template>
 
 <script setup lang="ts">
+import { usePageSnapshot } from '../utils/pageSnapshot';
+import { P_COLORS } from '../styles/colors';
 import { computed, ref, watch } from 'vue';
 import { onShow, onReachBottom, onPullDownRefresh } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import PSegmented from '../components/PSegmented.vue';
 import ErrorState from '../components/ErrorState.vue';
 import { describeLoadError } from '../utils/loadError';
 import VideoOverlay from '../components/VideoOverlay.vue';
@@ -111,6 +110,10 @@ const summary = ref<GrowthSummary | null>(null);
 const weeks = ref<AlbumWeek[]>([]);
 const nextCursor = ref<string | null>(null);
 const type = ref<'photo' | 'video'>('photo');
+const TYPE_OPTIONS: Array<{ value: 'photo' | 'video'; label: string }> = [
+  { value: 'photo', label: '照片' },
+  { value: 'video', label: '视频' },
+];
 const loading = ref(false);
 const loadingMore = ref(false);
 
@@ -134,10 +137,10 @@ const photos = useCountUp(() => summary.value && summary.value.photos + (summary
 const videos = useCountUp(() => summary.value && summary.value.videos + (summary.value.archive?.videos ?? 0));
 
 const stats = computed(() => [
-  { key: 'lessons', label: '次上课', value: lessons.value, icon: 'calendar-check', color: '#15803D' },
-  { key: 'evals', label: '篇课评', value: evaluations.value, icon: 'message-square', color: '#2F54EB' },
-  { key: 'photos', label: '张照片', value: photos.value, icon: 'image', color: '#0369A1' },
-  { key: 'videos', label: '段视频', value: videos.value, icon: 'video', color: '#4F46E5' },
+  { key: 'lessons', label: '次上课', value: lessons.value, icon: 'calendar-check', color: P_COLORS.mint },
+  { key: 'evals', label: '篇课评', value: evaluations.value, icon: 'message-square', color: P_COLORS.brand },
+  { key: 'photos', label: '张照片', value: photos.value, icon: 'image', color: P_COLORS.sky },
+  { key: 'videos', label: '段视频', value: videos.value, icon: 'video', color: P_COLORS.indigo },
 ]);
 
 const loadError = ref('');
@@ -169,6 +172,7 @@ async function load(reset = true) {
       lastLoadedAt = Date.now();
       lastLoadedFor = sid;
     }
+    snapshot.save(sid, { weeks: weeks.value, nextCursor: nextCursor.value, summary: summary.value, type: type.value });
   } catch (err) {
     if (reset) {
       weeks.value = [];
@@ -225,8 +229,20 @@ function playVideo(url: string) {
 const FRESH_MS = 60 * 1000;
 let lastLoadedAt = 0;
 let lastLoadedFor = '';
+const snapshot = usePageSnapshot<{ weeks: AlbumWeek[]; nextCursor: string | null; summary: GrowthSummary | null; type: 'photo' | 'video' }>('parent-growth');
 onShow(() => {
   const sid = parentStore.currentStudentId;
+  if (sid && weeks.value.length === 0) {
+    const snap = snapshot.restore(sid);
+    if (snap) {
+      weeks.value = snap.data.weeks;
+      nextCursor.value = snap.data.nextCursor;
+      summary.value = snap.data.summary;
+      type.value = snap.data.type;
+      lastLoadedFor = sid;
+      lastLoadedAt = snap.at;
+    }
+  }
   if (sid && sid === lastLoadedFor && Date.now() - lastLoadedAt < FRESH_MS) return;
   load(true);
 });
@@ -262,7 +278,7 @@ onPullDownRefresh(async () => {
   top: 24rpx;
   width: 60rpx;
   height: 60rpx;
-  border-radius: 16rpx;
+  border-radius: $p-r-sm;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,7 +303,7 @@ onPullDownRefresh(async () => {
 .stat-num {
   @include p-num;
   display: block;
-  font-size: p-fs(60);
+  font-size: p-fs($p-fs-display);
   font-weight: 600;
   line-height: 1.1;
 }
@@ -295,7 +311,7 @@ onPullDownRefresh(async () => {
 .stat-label {
   display: block;
   margin-top: 8rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-2;
 }
 
@@ -312,7 +328,7 @@ onPullDownRefresh(async () => {
   flex-shrink: 0;
   width: 72rpx;
   height: 72rpx;
-  border-radius: 20rpx;
+  border-radius: $p-r-inner;
   background: $p-indigo-50;
   display: flex;
   align-items: center;
@@ -326,7 +342,7 @@ onPullDownRefresh(async () => {
 
 .archive-title {
   display: block;
-  font-size: p-fs(30);
+  font-size: p-fs($p-fs-body);
   font-weight: 600;
   color: $p-ink;
 }
@@ -334,51 +350,8 @@ onPullDownRefresh(async () => {
 .archive-sub {
   display: block;
   margin-top: 6rpx;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-2;
-}
-
-.segments {
-  position: relative;
-  display: flex;
-  padding: 6rpx;
-  margin-bottom: 36rpx;
-  border-radius: 24rpx;
-  background: $p-fill;
-}
-
-.seg-thumb {
-  position: absolute;
-  left: 6rpx;
-  top: 6rpx;
-  bottom: 6rpx;
-  width: calc(50% - 6rpx);
-  border-radius: 18rpx;
-  background: $p-surface;
-  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.08);
-  transition: transform 0.3s $p-ease-out;
-
-  &.right {
-    transform: translateX(100%);
-  }
-}
-
-.segment {
-  @include p-hit-min; // 可点区域至少 88rpx
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  height: 68rpx;
-  line-height: 68rpx;
-  text-align: center;
-  font-size: p-fs(28);
-  color: $p-ink-2;
-  transition: color 0.2s ease;
-
-  &.active {
-    color: $p-ink;
-    font-weight: 600;
-  }
 }
 
 .weeks {
@@ -399,12 +372,12 @@ onPullDownRefresh(async () => {
 }
 
 .week-range {
-  font-size: p-fs(32);
-  font-weight: 600;
+  @include p-section-title; // 分区标题统一样式
+
 }
 
 .week-meta {
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
@@ -413,7 +386,7 @@ onPullDownRefresh(async () => {
   grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: 168rpx;
   gap: 8rpx;
-  border-radius: 32rpx;
+  border-radius: $p-r-card;
   overflow: hidden;
 
   &.single {
@@ -424,7 +397,7 @@ onPullDownRefresh(async () => {
 
 .cell {
   position: relative;
-  background: #E9EDF3;
+  background: $p-fill-soft;
   overflow: hidden;
 
   &.big {
@@ -449,10 +422,10 @@ onPullDownRefresh(async () => {
   left: 12rpx;
   top: 12rpx;
   padding: 4rpx 14rpx;
-  border-radius: 12rpx;
+  border-radius: $p-r-sm;
   background: rgba(255, 255, 255, 0.92);
   color: $p-brand;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   font-weight: 600;
 }
 
@@ -476,9 +449,9 @@ onPullDownRefresh(async () => {
 .video-thumb {
   width: 176rpx;
   height: 120rpx;
-  border-radius: 20rpx;
+  border-radius: $p-r-inner;
   background:
-    linear-gradient(135deg, #1E293B, #0F172A);
+    linear-gradient(135deg, $p-ink-dark, $p-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -492,7 +465,7 @@ onPullDownRefresh(async () => {
 
 .video-title {
   display: block;
-  font-size: p-fs(30);
+  font-size: p-fs($p-fs-body);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -502,30 +475,26 @@ onPullDownRefresh(async () => {
 .video-sub {
   display: block;
   margin-top: 6rpx;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
 .list-footer {
-  padding: 8rpx 0;
-  text-align: center;
-  font-size: p-fs(24);
-  color: $p-ink-3;
-  letter-spacing: 0.1em;
+  @include p-list-footer;
 }
 
 .sk-title {
   @include p-skeleton;
   width: 280rpx;
   height: 36rpx;
-  border-radius: 18rpx;
+  border-radius: $p-r-sm;
   margin-bottom: 20rpx;
 }
 
 .sk-grid {
   @include p-skeleton;
   height: 360rpx;
-  border-radius: 32rpx;
+  border-radius: $p-r-card;
 }
 
 // 翻页失败时的重试入口

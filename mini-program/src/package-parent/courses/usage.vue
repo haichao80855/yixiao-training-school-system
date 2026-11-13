@@ -105,7 +105,7 @@ onLoad((query: any) => {
 
 .sum-course {
   display: block;
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
 }
 
@@ -124,7 +124,7 @@ onLoad((query: any) => {
 
 .sum-num {
   @include p-num;
-  font-size: p-fs(48);
+  font-size: p-fs($p-fs-large);
   font-weight: 600;
   line-height: 1.1;
 
@@ -134,7 +134,7 @@ onLoad((query: any) => {
 }
 
 .sum-label {
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
@@ -166,7 +166,7 @@ onLoad((query: any) => {
 .entry-date {
   width: 76rpx;
   height: 84rpx;
-  border-radius: 20rpx;
+  border-radius: $p-r-inner;
   background: $p-canvas;
   display: flex;
   flex-direction: column;
@@ -176,13 +176,13 @@ onLoad((query: any) => {
 
   .d-day {
     @include p-num;
-    font-size: p-fs(32);
+    font-size: p-fs($p-fs-subtitle);
     font-weight: 600;
     line-height: 1.1;
   }
 
   .d-month {
-    font-size: p-fs(24);
+    font-size: p-fs($p-fs-caption);
     color: $p-ink-3;
   }
 }
@@ -194,7 +194,7 @@ onLoad((query: any) => {
 
 .entry-title {
   display: block;
-  font-size: p-fs(30);
+  font-size: p-fs($p-fs-body);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -204,13 +204,13 @@ onLoad((query: any) => {
 .entry-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
 .delta {
   @include p-num;
-  font-size: p-fs(34);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
   color: $p-ink;
 }
