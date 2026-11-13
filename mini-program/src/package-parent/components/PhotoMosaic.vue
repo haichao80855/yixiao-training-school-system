@@ -4,18 +4,19 @@
       <image class="img" :src="thumb" mode="aspectFill" lazy-load />
       <view v-if="idx === thumbs.slice(0, 3).length - 1 && extra > 0" class="more">+{{ extra }}</view>
       <view v-if="idx === thumbs.slice(0, 3).length - 1 && hasVideo" class="video-badge">
-        <AppIcon name="play-circle" size="24rpx" color="#FFFFFF" />
+        <AppIcon name="play-circle" size="24rpx" :color="P_COLORS.white" />
         <text>视频</text>
       </view>
     </view>
   </view>
   <view v-else-if="hasVideo" class="video-only">
-    <AppIcon name="play-circle" size="40rpx" color="#FFFFFF" />
+    <AppIcon name="play-circle" size="40rpx" :color="P_COLORS.white" />
     <text>课堂视频</text>
   </view>
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import { computed } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
 
@@ -59,7 +60,7 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
 
 .tile {
   position: relative;
-  background: #E9EDF3;
+  background: $p-fill-soft;
   overflow: hidden;
 
   .img {
@@ -76,8 +77,8 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
   right: 0;
   bottom: 0;
   background: rgba(15, 23, 42, 0.42);
-  color: #FFFFFF;
-  font-size: p-fs(36);
+  color: $p-surface;
+  font-size: p-fs($p-fs-title);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -93,18 +94,18 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
   gap: 6rpx;
   height: 44rpx;
   padding: 0 16rpx;
-  border-radius: 22rpx;
+  border-radius: $p-r-inner;
   background: rgba(0, 0, 0, 0.5);
-  color: #FFFFFF;
-  font-size: p-fs(24);
+  color: $p-surface;
+  font-size: p-fs($p-fs-caption);
 }
 
 .video-only {
   height: 200rpx;
   border-radius: $p-r-inner;
-  background: linear-gradient(135deg, #1E293B, #0F172A);
+  background: linear-gradient(135deg, $p-ink-dark, $p-ink);
   color: rgba(255, 255, 255, 0.85);
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   display: flex;
   align-items: center;
   justify-content: center;

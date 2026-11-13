@@ -52,7 +52,6 @@
               <text v-if="letter.ratingIsOverall" class="rating-note">课堂整体评分</text>
             </view>
           </view>
-          <text class="quote-mark">“</text>
           <text v-if="letter.comment" class="letter-body">{{ letter.comment }}</text>
           <text class="letter-sign">— {{ teacherName }} · {{ formatDateCn(detail.date, false) }}</text>
           <view v-if="letter.tag" class="letter-tags">
@@ -103,7 +102,7 @@
           <view class="learn-card">
             <view v-for="(point, idx) in detail.content.keyPoints" :key="idx" class="learn-row">
               <view class="check">
-                <AppIcon name="check" size="24rpx" color="#2F54EB" :stroke-width="3" />
+                <AppIcon name="check" size="24rpx" :color="P_COLORS.brand" :stroke-width="3" />
               </view>
               <text class="learn-text">{{ point }}</text>
             </view>
@@ -113,7 +112,7 @@
               </view>
               <view role="button" tabindex="0" class="toggle" @click="showFullContent = !showFullContent">
                 <text>{{ showFullContent ? '收起完整内容' : '查看完整内容' }}</text>
-                <AppIcon :name="showFullContent ? 'chevron-up' : 'chevron-down'" size="24rpx" color="#2F54EB" />
+                <AppIcon :name="showFullContent ? 'chevron-up' : 'chevron-down'" size="24rpx" :color="P_COLORS.brand" />
               </view>
             </view>
           </view>
@@ -124,7 +123,7 @@
           <text class="section-title">课后小任务</text>
           <view class="homework">
             <view class="hw-icon">
-              <AppIcon name="pen-tool" size="30rpx" color="#2F54EB" />
+              <AppIcon name="pen-tool" size="30rpx" :color="P_COLORS.brand" />
             </view>
             <text class="hw-text">{{ detail.forChild.homework }}</text>
           </view>
@@ -139,6 +138,7 @@
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
@@ -236,14 +236,14 @@ function preview(photos: PhotoLink[], index: number) {
 .hero {
   position: relative;
   height: 680rpx;
-  background: #1E293B;
+  background: $p-ink-dark;
   overflow: hidden;
 
   &.plain {
     height: 520rpx;
     background:
       radial-gradient(circle at 85% 10%, rgba(255, 255, 255, 0.12) 0, rgba(255, 255, 255, 0) 45%),
-      linear-gradient(160deg, #2F54EB 0%, #13235B 100%);
+      linear-gradient(160deg, $p-brand 0%, $p-navy 100%);
   }
 }
 
@@ -256,17 +256,6 @@ function preview(photos: PhotoLink[], index: number) {
   width: 100%;
   height: 100%;
   animation: p-fade-in 0.5s ease both;
-}
-
-@keyframes hero-zoom {
-  from {
-    transform: scale(1.06);
-    opacity: 0.6;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
 
 .hero-shade {
@@ -288,21 +277,21 @@ function preview(photos: PhotoLink[], index: number) {
   left: 36rpx;
   right: 36rpx;
   bottom: 84rpx;
-  color: #FFFFFF;
+  color: $p-surface;
   pointer-events: none;
   animation: p-fade-up 0.5s $p-ease-out 0.1s both;
 }
 
 .hero-meta {
   display: block;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   opacity: 0.85;
 }
 
 .hero-title {
   display: block;
   margin-top: 8rpx;
-  font-size: p-fs(48);
+  font-size: p-fs($p-fs-large);
   font-weight: 600;
   line-height: 1.3;
   text-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.25);
@@ -311,7 +300,7 @@ function preview(photos: PhotoLink[], index: number) {
 .hero-course {
   display: block;
   margin-top: 8rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   opacity: 0.8;
 }
 
@@ -326,13 +315,13 @@ function preview(photos: PhotoLink[], index: number) {
   .dot {
     width: 12rpx;
     height: 12rpx;
-    border-radius: 6rpx;
+    border-radius: $p-r-sm;
     background: rgba(255, 255, 255, 0.5);
     transition: width 0.3s $p-ease-out, background-color 0.3s ease;
 
     &.on {
       width: 32rpx;
-      background: #FFFFFF;
+      background: $p-surface;
     }
   }
 }
@@ -342,10 +331,10 @@ function preview(photos: PhotoLink[], index: number) {
   right: 32rpx;
   bottom: 48rpx;
   padding: 4rpx 16rpx;
-  border-radius: 20rpx;
+  border-radius: $p-r-inner;
   background: rgba(0, 0, 0, 0.35);
-  color: #FFFFFF;
-  font-size: p-fs(24);
+  color: $p-surface;
+  font-size: p-fs($p-fs-caption);
   @include p-num;
 }
 
@@ -355,7 +344,7 @@ function preview(photos: PhotoLink[], index: number) {
   z-index: 2;
   margin-top: -36rpx;
   padding: 36rpx 32rpx 80rpx;
-  border-radius: 44rpx 44rpx 0 0;
+  border-radius: $p-r-sheet $p-r-sheet 0 0;
   background: $p-canvas;
 }
 
@@ -372,7 +361,7 @@ function preview(photos: PhotoLink[], index: number) {
     top: 32rpx;
     bottom: 32rpx;
     width: 6rpx;
-    border-radius: 0 6rpx 6rpx 0;
+    border-radius: 0 $p-r-sm $p-r-sm 0;
     background: $p-brand;
   }
 }
@@ -387,19 +376,15 @@ function preview(photos: PhotoLink[], index: number) {
 .letter-from {
   flex: 1;
   min-width: 0;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   font-weight: 600;
   color: $p-ink-2;
-}
-
-.quote-mark {
-  display: none;
 }
 
 .letter-body {
   display: block;
   margin-top: 20rpx;
-  font-size: p-fs(31);
+  font-size: p-fs($p-fs-body);
   line-height: 1.8;
   color: $p-ink;
   white-space: pre-wrap;
@@ -409,7 +394,7 @@ function preview(photos: PhotoLink[], index: number) {
   display: block;
   margin-top: 20rpx;
   text-align: right;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 
@@ -428,11 +413,9 @@ function preview(photos: PhotoLink[], index: number) {
 }
 
 .section-title {
+  @include p-section-title; // 分区标题统一样式
   display: block;
   margin: 0 4rpx 20rpx;
-  font-size: p-fs(32);
-  font-weight: 600;
-  color: $p-ink;
 }
 
 .photo-grid {
@@ -447,7 +430,7 @@ function preview(photos: PhotoLink[], index: number) {
   width: 100%;
   height: 220rpx;
   display: block;
-  background: #E9EDF3;
+  background: $p-fill-soft;
 }
 
 .video {
@@ -455,7 +438,7 @@ function preview(photos: PhotoLink[], index: number) {
   height: 392rpx;
   margin-top: 16rpx;
   border-radius: $p-r-inner;
-  background: #0F172A;
+  background: $p-ink;
 }
 
 .learn-card {
@@ -489,7 +472,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .learn-text {
   flex: 1;
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   line-height: 1.6;
   color: $p-ink;
 }
@@ -500,7 +483,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .rich {
   padding: 12rpx 0;
-  font-size: p-fs(30);
+  font-size: p-fs($p-fs-body);
   line-height: 1.8;
   color: $p-ink-2;
 }
@@ -511,7 +494,7 @@ function preview(photos: PhotoLink[], index: number) {
   align-items: center;
   gap: 6rpx;
   margin-top: 8rpx;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   color: $p-brand;
 }
 
@@ -526,7 +509,7 @@ function preview(photos: PhotoLink[], index: number) {
 .hw-icon {
   width: 56rpx;
   height: 56rpx;
-  border-radius: 16rpx;
+  border-radius: $p-r-sm;
   background: $p-brand-50;
   display: flex;
   align-items: center;
@@ -536,109 +519,15 @@ function preview(photos: PhotoLink[], index: number) {
 
 .hw-text {
   flex: 1;
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   line-height: 1.7;
   color: $p-ink;
-}
-
-.class-card {
-  @include p-card;
-  padding: 28rpx;
-}
-
-.class-rating {
-  margin-bottom: 16rpx;
-}
-
-.class-comment {
-  display: block;
-  font-size: p-fs(32);
-  line-height: 1.75;
-  color: $p-ink-2;
-}
-
-.voice {
-  display: flex;
-  align-items: center;
-  gap: 20rpx;
-  margin-top: 24rpx;
-  padding: 14rpx 28rpx 14rpx 14rpx;
-  border-radius: 9999rpx;
-  background: $p-brand-50;
-}
-
-.voice-btn {
-  position: relative;
-  flex-shrink: 0;
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 50%;
-  background: $p-brand;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  @include p-hit-area(56rpx);
-}
-
-.wave {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  height: 44rpx;
-
-  .bar {
-    width: 6rpx;
-    border-radius: 3rpx;
-    background: rgba(47, 84, 235, 0.45);
-  }
-}
-
-.voice.playing .bar {
-  background: $p-brand;
-  animation: wave 0.9s ease-in-out infinite alternate;
-}
-
-@keyframes wave {
-  from {
-    transform: scaleY(0.5);
-  }
-  to {
-    transform: scaleY(1.15);
-  }
-}
-
-.voice-len {
-  @include p-num;
-  font-size: p-fs(26);
-  color: $p-ink-2;
-}
-
-.strip {
-  margin: 24rpx -28rpx 0;
-  width: calc(100% + 56rpx);
-  white-space: nowrap;
-}
-
-.strip-inner {
-  display: inline-flex;
-  gap: 12rpx;
-  padding: 0 28rpx;
-}
-
-.strip-photo {
-  width: 240rpx;
-  height: 240rpx;
-  border-radius: 20rpx;
-  background: #E9EDF3;
-  flex-shrink: 0;
 }
 
 .end-mark {
   margin-top: 56rpx;
   text-align: center;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
   letter-spacing: 0.08em;
 }
@@ -677,14 +566,14 @@ function preview(photos: PhotoLink[], index: number) {
 }
 
 .rating-note {
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
 .video-label {
   display: block;
   margin: 24rpx 0 12rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 </style>

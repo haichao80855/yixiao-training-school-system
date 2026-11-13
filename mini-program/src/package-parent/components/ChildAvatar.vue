@@ -1,13 +1,14 @@
 <template>
   <view
     class="child-avatar"
-    :style="{ width: size, height: size, fontSize: fontSize, background: palette.background, color: palette.color, boxShadow: ring ? '0 0 0 4rpx #FFFFFF' : 'none' }"
+    :style="{ width: size, height: size, fontSize: fontSize, background: palette.background, color: palette.color, boxShadow: ring ? `0 0 0 4rpx ${P_COLORS.white}` : 'none' }"
   >
     {{ initial }}
   </view>
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import { computed } from 'vue';
 import { childPalette } from '../utils/visual';
 

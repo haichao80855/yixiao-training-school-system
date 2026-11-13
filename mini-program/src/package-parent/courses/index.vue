@@ -1,5 +1,5 @@
 <template>
-  <ParentPage title="课程" :overline="overline" tab="courses">
+  <ParentPage title="课程" :overline="overline" tab="courses" :restored="snapshot.restored.value">
     <EmptyState
       v-if="parentStore.isReadOnly"
       icon="book-open"
@@ -56,7 +56,7 @@
         </view>
 
         <view v-if="c.lowHours" class="warn">
-          <AppIcon name="alert-triangle" size="28rpx" color="#92400E" />
+          <AppIcon name="alert-triangle" size="28rpx" :color="P_COLORS.amberInk" />
           <text>
             课时即将用完<text v-if="c.estimatedWeeksLeft">，按最近的上课频率约还能上 {{ c.estimatedWeeksLeft }} 周</text>。如需续课请联系校区。
           </text>
@@ -64,7 +64,7 @@
 
         <view class="usage-link">
           <text>课时明细</text>
-          <AppIcon name="chevron-right" size="26rpx" color="#94A3B8" />
+          <AppIcon name="chevron-right" size="26rpx" :color="P_COLORS.ink4" />
         </view>
       </view>
     </view>
@@ -72,6 +72,8 @@
 </template>
 
 <script setup lang="ts">
+import { usePageSnapshot } from '../utils/pageSnapshot';
+import { P_COLORS } from '../styles/colors';
 import { formatFullDateCn } from '../utils/format';
 import { computed, ref, watch } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
@@ -102,7 +104,7 @@ const overline = computed(() => {
 
 function ringFor(c: CoursePackage) {
   const percent = c.totalLessons > 0 ? c.remainingLessons / c.totalLessons : 0;
-  const color = c.status !== 'active' ? '#CBD5E1' : c.lowHours ? '#E8A33D' : '#2F54EB';
+  const color = c.status !== 'active' ? P_COLORS.lineStrong : c.lowHours ? P_COLORS.amber : P_COLORS.brand;
   return ringSvg(percent, color);
 }
 
@@ -115,7 +117,10 @@ async function load() {
   loadError.value = '';
   try {
     const res = await parentApi.courses(sid);
-    if (sid === parentStore.currentStudentId) courses.value = res;
+    if (sid === parentStore.currentStudentId) {
+      courses.value = res;
+      snapshot.save(sid, res);
+    }
   } catch (err) {
     courses.value = [];
     loadError.value = describeLoadError(err);
@@ -130,7 +135,18 @@ function openUsage(c: CoursePackage) {
   });
 }
 
-onShow(load);
+const snapshot = usePageSnapshot<CoursePackage[]>('parent-courses');
+onShow(() => {
+  const sid = parentStore.currentStudentId;
+  if (sid && courses.value.length === 0) {
+    const snap = snapshot.restore(sid);
+    if (snap) {
+      courses.value = snap.data;
+      if (snap.fresh) return;
+    }
+  }
+  load();
+});
 watch(() => parentStore.currentStudentId, load);
 </script>
 
@@ -186,14 +202,14 @@ watch(() => parentStore.currentStudentId, load);
 
 .ring-num {
   @include p-num;
-  font-size: p-fs(48);
+  font-size: p-fs($p-fs-large);
   font-weight: 600;
   line-height: 1;
 }
 
 .ring-label {
   margin-top: 6rpx;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
@@ -204,7 +220,7 @@ watch(() => parentStore.currentStudentId, load);
 
 .course-name {
   display: block;
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
   line-height: 1.38;
 }
@@ -212,15 +228,15 @@ watch(() => parentStore.currentStudentId, load);
 .class-name {
   display: block;
   margin-top: 6rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 
 .status {
   @include p-chip;
   margin-top: 16rpx;
-  height: 40rpx;
-  font-size: p-fs(24);
+  height: $p-chip-h; // 标签统一高度
+  font-size: p-fs($p-fs-caption);
   background: $p-fill;
   color: $p-ink-2;
 
@@ -252,16 +268,16 @@ watch(() => parentStore.currentStudentId, load);
 
 .kv-num {
   @include p-num;
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
 
   &.small {
-    font-size: p-fs(30);
+    font-size: p-fs($p-fs-body);
   }
 }
 
 .kv-label {
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
@@ -271,9 +287,9 @@ watch(() => parentStore.currentStudentId, load);
   gap: 12rpx;
   margin-top: 24rpx;
   padding: 20rpx 24rpx;
-  border-radius: 24rpx;
+  border-radius: $p-r-inner;
   background: $p-amber-50;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   line-height: 1.6;
   color: $p-amber-ink;
 }
@@ -284,7 +300,7 @@ watch(() => parentStore.currentStudentId, load);
   justify-content: flex-end;
   gap: 4rpx;
   margin-top: 20rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 

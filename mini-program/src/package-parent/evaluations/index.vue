@@ -1,5 +1,5 @@
 <template>
-  <ParentPage title="课评" :overline="todayText" tab="evaluations">
+  <ParentPage title="课评" :overline="todayText" tab="evaluations" :restored="snapshot.restored.value">
     <!-- 骨架屏 -->
     <view v-if="loading && items.length === 0" class="skeleton-list">
       <view v-for="i in 2" :key="i" class="sk-card">
@@ -29,7 +29,7 @@
           <text class="new-title">{{ teacherTitle(firstUnread.teacherName) }}发布了新课评</text>
           <text class="new-sub">《{{ firstUnread.evaluation?.lessonTitle }}》· {{ formatDateCn(firstUnread.date, false) }}</text>
         </view>
-        <AppIcon name="chevron-right" size="28rpx" color="#2F54EB" />
+        <AppIcon name="chevron-right" size="28rpx" :color="P_COLORS.brand" />
       </view>
 
       <block v-for="group in groups" :key="group.month">
@@ -95,6 +95,8 @@
 </template>
 
 <script setup lang="ts">
+import { usePageSnapshot } from '../utils/pageSnapshot';
+import { P_COLORS } from '../styles/colors';
 import { computed, ref, watch } from 'vue';
 import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
@@ -159,6 +161,7 @@ async function load(reset = true) {
     nextCursor.value = res.nextCursor;
     if (reset) parentStore.setUnread(sid, res.unreadCount);
     loadedFor = sid;
+    snapshot.save(sid, { items: items.value, nextCursor: nextCursor.value });
     if (reset) lastLoadedAt = Date.now();
   } catch (err) {
     if (reset) loadError.value = describeLoadError(err);
@@ -172,9 +175,23 @@ async function load(reset = true) {
 // 从课评详情返回时，1 分钟内不重新加载：列表和滚动位置保持不动 (已读状态在点开时已经更新)
 const FRESH_MS = 60 * 1000;
 let lastLoadedAt = 0;
+// 切换标签后页面重建时，先用快照恢复列表和滚动位置
+const snapshot = usePageSnapshot<{ items: FeedItem[]; nextCursor: string | null }>('parent-evaluations');
 
 onShow(() => {
   const sid = parentStore.currentStudentId;
+  if (sid && items.value.length === 0) {
+    const snap = snapshot.restore(sid);
+    if (snap) {
+      items.value = snap.data.items;
+      nextCursor.value = snap.data.nextCursor;
+      loadedFor = sid;
+      if (snap.fresh) {
+        lastLoadedAt = snap.at;
+        return;
+      }
+    }
+  }
   if (sid && loadedFor === sid && Date.now() - lastLoadedAt < FRESH_MS) return;
   // 已经知道是哪个孩子时，刷新家长信息和加载课评同时进行，不再一前一后
   if (sid) {
@@ -242,7 +259,7 @@ function openDetail(item: FeedItem) {
 .new-count {
   width: 64rpx;
   height: 64rpx;
-  border-radius: 20rpx;
+  border-radius: $p-r-inner;
   background: $p-brand;
   display: flex;
   align-items: center;
@@ -251,8 +268,8 @@ function openDetail(item: FeedItem) {
 
 .new-num {
   @include p-num;
-  color: #FFFFFF;
-  font-size: p-fs(32);
+  color: $p-surface;
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
 }
 
@@ -263,29 +280,27 @@ function openDetail(item: FeedItem) {
 
 .new-title {
   display: block;
-  font-size: p-fs(30);
+  font-size: p-fs($p-fs-body);
   font-weight: 600;
-  color: #1E3A8A;
+  color: $p-brand-ink;
 }
 
 .new-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: p-fs(24);
-  color: #475569;
+  font-size: p-fs($p-fs-caption);
+  color: $p-ink-2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .month {
+  @include p-section-title; // 分区标题统一样式
   display: flex;
   align-items: center;
   gap: 16rpx;
   margin: 8rpx 4rpx 20rpx;
-  font-size: p-fs(28);
-  font-weight: 600;
-  color: $p-ink-2;
 
   &::after {
     content: '';
@@ -307,26 +322,17 @@ function openDetail(item: FeedItem) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 
 .new-pill {
   @include p-chip;
-  height: 36rpx;
+  height: $p-chip-h; // 标签统一高度
   padding: 0 14rpx;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   background: $p-rose;
-  color: #FFFFFF;
-}
-
-@keyframes new-glow {
-  0% {
-    box-shadow: 0 0 0 0 rgba(217, 66, 74, 0.45);
-  }
-  100% {
-    box-shadow: 0 0 0 14rpx rgba(217, 66, 74, 0);
-  }
+  color: $p-surface;
 }
 
 /* 不与 PhotoMosaic 根节点同名：网页版会把本页 scoped 样式带到子组件根节点上 */
@@ -338,7 +344,7 @@ function openDetail(item: FeedItem) {
 .lesson-title {
   display: block;
   margin-top: 16rpx;
-  font-size: p-fs(34);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
   line-height: 1.38;
   color: $p-ink;
@@ -351,7 +357,7 @@ function openDetail(item: FeedItem) {
 .course {
   display: block;
   margin-top: 6rpx;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 
@@ -360,7 +366,7 @@ function openDetail(item: FeedItem) {
   gap: 16rpx;
   margin-top: 20rpx;
   padding: 20rpx 24rpx;
-  border-radius: 24rpx;
+  border-radius: $p-r-inner;
   background: $p-canvas;
 }
 
@@ -371,7 +377,7 @@ function openDetail(item: FeedItem) {
   border-radius: 50%;
   background: $p-brand-50;
   color: $p-brand;
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -381,7 +387,7 @@ function openDetail(item: FeedItem) {
 
 .quote-text {
   flex: 1;
-  font-size: p-fs(30);
+  font-size: p-fs($p-fs-body);
   line-height: 1.65;
   color: $p-ink-2;
 }
@@ -405,7 +411,7 @@ function openDetail(item: FeedItem) {
   align-items: center;
   gap: 18rpx;
   padding: 4rpx 8rpx 32rpx 12rpx;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   color: $p-ink-3;
 }
 
@@ -413,7 +419,7 @@ function openDetail(item: FeedItem) {
   width: 16rpx;
   height: 16rpx;
   border-radius: 50%;
-  border: 3rpx solid #CBD5E1;
+  border: 3rpx solid $p-line-strong;
   flex-shrink: 0;
 }
 
@@ -433,8 +439,8 @@ function openDetail(item: FeedItem) {
 
 .slim-status {
   @include p-chip;
-  height: 40rpx;
-  font-size: p-fs(24);
+  height: $p-chip-h; // 标签统一高度
+  font-size: p-fs($p-fs-caption);
   font-weight: 500;
   background: $p-fill;
   color: $p-ink-2;
@@ -451,11 +457,7 @@ function openDetail(item: FeedItem) {
 }
 
 .list-footer {
-  padding: 16rpx 0 8rpx;
-  text-align: center;
-  font-size: p-fs(24);
-  color: $p-ink-3;
-  letter-spacing: 0.1em;
+  @include p-list-footer;
 }
 
 .skeleton-list {
@@ -472,7 +474,7 @@ function openDetail(item: FeedItem) {
 .sk-line {
   @include p-skeleton;
   height: 28rpx;
-  border-radius: 14rpx;
+  border-radius: $p-r-sm;
   margin-top: 18rpx;
 
   &.short {

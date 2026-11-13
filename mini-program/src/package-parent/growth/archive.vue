@@ -1,10 +1,6 @@
 <template>
   <ParentPage title="历史档案" :show-back="true">
-    <view class="segments">
-      <view class="seg-thumb" :class="{ right: type === 'video' }" />
-      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'photo' }" @click="setType('photo')">照片</view>
-      <view role="button" tabindex="0" class="segment" :class="{ active: type === 'video' }" @click="setType('video')">视频</view>
-    </view>
+    <PSegmented :model-value="type" :options="TYPE_OPTIONS" @update:model-value="setType" />
 
     <view v-if="loading && months.length === 0" class="sk-grid" />
     <ErrorState v-else-if="loadError && months.length === 0" :message="loadError" @retry="load(true)" />
@@ -33,7 +29,7 @@
             <!-- 横屏和竖屏视频混排，完整显示画面，避免裁掉孩子 -->
             <image class="video-cover" :src="mediaUrl(v.thumbUrl)" mode="aspectFit" lazy-load />
             <view class="play">
-              <AppIcon name="play-circle" size="56rpx" color="#FFFFFF" />
+              <AppIcon name="play-circle" size="56rpx" :color="P_COLORS.white" />
             </view>
             <text class="video-date">{{ formatDateCn(v.date) }}</text>
           </view>
@@ -56,10 +52,12 @@
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import { ref, watch } from 'vue';
 import { onLoad, onReachBottom } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import PSegmented from '../components/PSegmented.vue';
 import ErrorState from '../components/ErrorState.vue';
 import { describeLoadError } from '../utils/loadError';
 import VideoOverlay from '../components/VideoOverlay.vue';
@@ -70,6 +68,10 @@ import { formatDateCn, formatMonthCn } from '../utils/format';
 
 const parentStore = useParentStore();
 const type = ref<'photo' | 'video'>('photo');
+const TYPE_OPTIONS: Array<{ value: 'photo' | 'video'; label: string }> = [
+  { value: 'photo', label: '照片' },
+  { value: 'video', label: '视频' },
+];
 const months = ref<ArchiveMonth[]>([]);
 const nextCursor = ref<string | null>(null);
 const loading = ref(false);
@@ -147,48 +149,6 @@ onReachBottom(() => load(false));
 <style lang="scss" scoped>
 @import '../styles/tokens.scss';
 
-.segments {
-  position: relative;
-  display: flex;
-  padding: 6rpx;
-  margin-bottom: 36rpx;
-  border-radius: 24rpx;
-  background: $p-fill;
-}
-
-.seg-thumb {
-  position: absolute;
-  left: 6rpx;
-  top: 6rpx;
-  bottom: 6rpx;
-  width: calc(50% - 6rpx);
-  border-radius: 18rpx;
-  background: $p-surface;
-  box-shadow: 0 2rpx 6rpx rgba(15, 23, 42, 0.08);
-  transition: transform 0.3s $p-ease-out;
-
-  &.right {
-    transform: translateX(100%);
-  }
-}
-
-.segment {
-  @include p-hit-min; // 可点区域至少 88rpx
-  position: relative;
-  z-index: 1;
-  flex: 1;
-  height: 68rpx;
-  line-height: 68rpx;
-  text-align: center;
-  font-size: p-fs(28);
-  color: $p-ink-2;
-
-  &.active {
-    color: $p-ink;
-    font-weight: 600;
-  }
-}
-
 .months {
   display: flex;
   flex-direction: column;
@@ -203,13 +163,12 @@ onReachBottom(() => load(false));
 }
 
 .month-title {
-  font-size: p-fs(32);
-  font-weight: 600;
-  color: $p-ink;
+  @include p-section-title; // 分区标题统一样式
+
 }
 
 .month-meta {
-  font-size: p-fs(24);
+  font-size: p-fs($p-fs-caption);
   color: $p-ink-3;
 }
 
@@ -218,12 +177,12 @@ onReachBottom(() => load(false));
   grid-template-columns: repeat(3, 1fr);
   grid-auto-rows: 216rpx;
   gap: 8rpx;
-  border-radius: 24rpx;
+  border-radius: $p-r-inner;
   overflow: hidden;
 }
 
 .cell {
-  background: #E9EDF3;
+  background: $p-fill-soft;
   overflow: hidden;
 }
 
@@ -242,9 +201,9 @@ onReachBottom(() => load(false));
 .video-cell {
   position: relative;
   height: 280rpx;
-  border-radius: 20rpx;
+  border-radius: $p-r-inner;
   overflow: hidden;
-  background: linear-gradient(135deg, #1E293B, #0F172A);
+  background: linear-gradient(135deg, $p-ink-dark, $p-ink);
 }
 
 .video-cover {
@@ -268,22 +227,18 @@ onReachBottom(() => load(false));
   bottom: 0;
   padding: 24rpx 16rpx 10rpx;
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.55));
-  color: #FFFFFF;
-  font-size: p-fs(24);
+  color: $p-surface;
+  font-size: p-fs($p-fs-caption);
 }
 
 .list-footer {
-  padding: 8rpx 0;
-  text-align: center;
-  font-size: p-fs(24);
-  color: $p-ink-3;
-  letter-spacing: 0.1em;
+  @include p-list-footer;
 }
 
 .load-more {
   display: inline-block;
   padding: 16rpx 32rpx;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   color: $p-brand;
   letter-spacing: 0;
 }
@@ -291,6 +246,6 @@ onReachBottom(() => load(false));
 .sk-grid {
   @include p-skeleton;
   height: 640rpx;
-  border-radius: 24rpx;
+  border-radius: $p-r-inner;
 }
 </style>

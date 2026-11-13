@@ -59,14 +59,14 @@ const emit = defineEmits<{ (e: 'retry'): void }>();
 }
 
 .title {
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: $p-fw-bold;
   color: $p-ink;
 }
 
 .desc {
   margin-top: 12rpx;
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   line-height: 1.6;
   color: $p-ink-3;
 }
@@ -83,7 +83,7 @@ const emit = defineEmits<{ (e: 'retry'): void }>();
   border-radius: $p-r-pill;
   background: $p-brand;
   color: $p-surface;
-  font-size: p-fs(30);
+  font-size: p-fs($p-fs-body);
   font-weight: $p-fw-bold;
 }
 </style>

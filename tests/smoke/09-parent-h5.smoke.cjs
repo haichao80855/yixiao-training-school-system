@@ -59,6 +59,7 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
     // 绝不让请求打到线上；拦不住的外部请求直接中止。
     const PROD_ORIGINS = ['https://aiic.space', 'http://aiic.space'];
     let escaped = 0;
+    const escapedUrls = [];
     // 模拟接口失败：设了 failNext 时，匹配的接口请求都返回 500，直到清空 failNext
     let failNext = null;
     await page.setRequestInterception(true);
@@ -68,6 +69,7 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
       if (!prod) {
         if (/^https?:\/\/(127\.0\.0\.1|localhost)/.test(url) || url.startsWith('data:') || url.startsWith('blob:')) return req.continue();
         escaped += 1;
+        escapedUrls.push(url.slice(0, 120));
         return req.abort();
       }
       if (failNext && req.method() === 'GET' && failNext.test(url)) {
@@ -139,6 +141,44 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
         }
       }
     }
+    // ---------- 切换标签保留状态 (家长端 UI 改进第 3 期) ----------
+    await page.setViewport({ width: 375, height: 600, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await page.goto(`${s.url}/parent/package-parent/evaluations/index`, { waitUntil: 'networkidle0' });
+    const tapTab = async (label) => {
+      // 之前打开的页面还留在页面栈里 (隐藏)，只点当前可见的标签栏；标签文字里可能带未读数 (「3课评」)
+      const tabs = await page.$$('.tab-item');
+      for (const t of tabs) {
+        const ok = await t.evaluate((el, l) => el.offsetParent !== null && el.querySelector('.tab-label')?.textContent.trim() === l, label);
+        if (ok) {
+          await t.tap();
+          return;
+        }
+      }
+      throw new Error(`找不到标签「${label}」`);
+    };
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await new Promise((r) => setTimeout(r, 300));
+    const scrolled = await page.evaluate(() => window.scrollY);
+    await tapTab('课表');
+    await page.waitForFunction(() => location.pathname.includes('/schedule/'));
+    await new Promise((r) => setTimeout(r, 800));
+    await tapTab('课评');
+    await page.waitForFunction(() => location.pathname.includes('/evaluations/'));
+    await new Promise((r) => setTimeout(r, 400));
+    const back = await page.evaluate(() => ({ y: window.scrollY, skeleton: !!document.querySelector('.skeleton-list'), cards: document.querySelectorAll('.feed').length }));
+    check(Math.abs(back.y - scrolled) < 40 && !back.skeleton && back.cards > 0, `课评 → 课表 → 课评：滚动位置还在 (${scrolled} → ${back.y})，没有重新显示骨架屏`);
+
+    await tapTab('课程');
+    await page.waitForFunction(() => location.pathname.includes('/courses/'));
+    await new Promise((r) => setTimeout(r, 600));
+    await tapTab('课表');
+    await page.waitForFunction(() => location.pathname.includes('/schedule/'));
+    const noFlash = await page.evaluate(() => !document.querySelector('.tl-skeleton'));
+    check(noFlash, '切回之前看过的「课表」时直接显示内容，不闪骨架屏');
+    await page.goBack();
+    await new Promise((r) => setTimeout(r, 800));
+    check(page.url().includes('/parent/package-parent/'), `浏览器「返回」回到上一个标签，没有离开家长端 (${new URL(page.url()).pathname})`);
+
     // ---------- 加载失败：每页显示「重新加载」，点了以后恢复 (家长端 UI 改进第 2 期) ----------
     await page.setViewport({ width: 375, height: 800, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const failCases = [
@@ -164,7 +204,7 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
     }
     failNext = null;
 
-    check(escaped === 0, `没有请求发到本机以外的地址 (拦下 ${escaped} 个)`);
+    check(escaped === 0, `没有请求发到本机以外的地址 (拦下 ${escaped} 个：${escapedUrls.join('，')})`);
     fs.writeFileSync(path.join(OUT, 'metrics.json'), JSON.stringify(metrics, null, 2));
     console.log(`  截图与统计：${path.relative(process.cwd(), OUT)}`);
   } finally {

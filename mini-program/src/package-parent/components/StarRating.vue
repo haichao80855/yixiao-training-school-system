@@ -6,13 +6,14 @@
       name="star"
       :size="size"
       :filled="true"
-      :color="i <= Math.round(value) ? '#E8A33D' : '#CBD5E1'"
+      :color="i <= Math.round(value) ? P_COLORS.amber : P_COLORS.lineStrong"
     />
     <text v-if="showValue" class="value">{{ value.toFixed(1) }}</text>
   </view>
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import AppIcon from '../../components/AppIcon.vue';
 
 withDefaults(defineProps<{ value: number; size?: string; showValue?: boolean }>(), {
@@ -33,7 +34,7 @@ withDefaults(defineProps<{ value: number; size?: string; showValue?: boolean }>(
   .value {
     @include p-num;
     margin-left: 8rpx;
-    font-size: p-fs(28);
+    font-size: p-fs($p-fs-body);
     font-weight: 600;
     color: $p-amber-ink;
   }

@@ -1,14 +1,14 @@
 <template>
-  <view class="parent-page" :class="{ 'has-tab-bar': !!tab, immersive }">
+  <view class="parent-page" :class="{ 'has-tab-bar': !!tab, immersive, 'no-enter': restored }">
     <!-- 沉浸式页面 (详情)：内容自绘顶部，仅保留悬浮返回按钮 -->
     <view v-if="immersive" class="float-back" role="button" aria-label="返回" :style="{ top: statusBarHeight + 6 + 'px' }" @click="goBack">
-      <AppIcon name="arrow-left" size="36rpx" color="#0F172A" />
+      <AppIcon name="arrow-left" size="36rpx" :color="P_COLORS.ink" />
     </view>
 
     <view v-else class="parent-header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="bar" :style="{ paddingRight: capsuleWidth + 'px' }">
         <view v-if="showBack" class="back-btn" role="button" aria-label="返回" @click="goBack">
-          <AppIcon name="arrow-left" size="36rpx" color="#0F172A" />
+          <AppIcon name="arrow-left" size="36rpx" :color="P_COLORS.ink" />
         </view>
         <text v-if="showBack" class="bar-title">{{ title }}</text>
       </view>
@@ -26,13 +26,13 @@
         >
           <ChildAvatar :name="currentChild.name" :index="currentIndex" size="56rpx" :ring="true" />
           <text class="child-name">{{ currentChild.name }}</text>
-          <AppIcon v-if="parentStore.children.length > 1" name="chevron-down" size="24rpx" color="#475569" />
+          <AppIcon v-if="parentStore.children.length > 1" name="chevron-down" size="24rpx" :color="P_COLORS.ink2" />
         </view>
       </view>
     </view>
 
     <view v-if="showChildSwitcher && !immersive && parentStore.isReadOnly" class="readonly-banner">
-      <AppIcon name="lock" size="28rpx" color="#92400E" />
+      <AppIcon name="lock" size="28rpx" :color="P_COLORS.amberInk" />
       <text>{{ currentChild?.name }} 已离校，历史课评与相册可查看至 {{ readOnlyUntilText }}</text>
     </view>
 
@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts">
+import { P_COLORS } from '../styles/colors';
 import { formatFullDateCn } from '../utils/format';
 import { computed, ref, onMounted } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
@@ -61,8 +62,10 @@ withDefaults(
     showChildSwitcher?: boolean;
     immersive?: boolean;
     unread?: number;
+    /** 用快照恢复的页面：不重播入场动画 */
+    restored?: boolean;
   }>(),
-  { overline: '', showBack: false, showChildSwitcher: true, immersive: false, unread: 0 },
+  { overline: '', showBack: false, showChildSwitcher: true, immersive: false, unread: 0, restored: false },
 );
 
 const parentStore = useParentStore();
@@ -157,7 +160,7 @@ const goBack = () => {
 }
 
 .bar-title {
-  font-size: p-fs(32);
+  font-size: p-fs($p-fs-subtitle);
   font-weight: 600;
 }
 
@@ -176,14 +179,14 @@ const goBack = () => {
 
 .overline {
   display: block;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   color: $p-ink-3;
 }
 
 .title {
   display: block;
   margin-top: 4rpx;
-  font-size: p-fs(44);
+  font-size: p-fs($p-fs-large);
   font-weight: 600;
   letter-spacing: 0;
   line-height: 1.2;
@@ -197,14 +200,14 @@ const goBack = () => {
   gap: 12rpx;
   max-width: 320rpx;
   padding: 8rpx 20rpx 8rpx 8rpx;
-  border-radius: 9999rpx;
+  border-radius: $p-r-pill;
   background: $p-surface;
   box-shadow: $p-shadow;
   flex-shrink: 0;
 }
 
 .child-name {
-  font-size: p-fs(28);
+  font-size: p-fs($p-fs-body);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -219,7 +222,7 @@ const goBack = () => {
   padding: 20rpx 24rpx;
   border-radius: $p-r-sm;
   background: $p-amber-50;
-  font-size: p-fs(26);
+  font-size: p-fs($p-fs-small);
   line-height: 1.6;
   color: $p-amber-ink;
 }
@@ -259,10 +262,17 @@ const goBack = () => {
 </style>
 
 <style lang="scss">
+@import '../styles/tokens.scss';
+/* 切回已恢复的页面时不重播入场动画 (标题淡入、卡片错峰上浮) */
+.parent-page.no-enter .large-title,
+.parent-page.no-enter .page-body * {
+  animation: none !important;
+}
+
 /* 键盘操作时的焦点框 (家长端所有可点击元素)；手指点按不显示 */
 .parent-page [role='button']:focus-visible {
-  outline: 4rpx solid #2F54EB;
+  outline: 4rpx solid $p-brand;
   outline-offset: 4rpx;
-  border-radius: 12rpx;
+  border-radius: $p-r-sm;
 }
 </style>

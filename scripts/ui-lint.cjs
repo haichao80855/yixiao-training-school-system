@@ -7,6 +7,7 @@
  * - 家长端 (含登录页) 小于 24rpx (12px) 的字号
  * - 家长端 32rpx 及以下没走 p-fs() 的字号 (窄屏上会缩到 12px 以下；家长端不能双指放大)
  * - 家长端写死的十六进制颜色 (应改用 package-parent/styles/tokens.scss 里的变量)
+ * - 家长端不在字号档位里的字号 (p-fs() 要用 $p-fs-* 变量) 和不在圆角档位里的圆角 (用 $p-r-* 或 50%)
  * - 绕过设计令牌的 Tailwind 原色类 (text/bg/border/divide-gray|blue|amber...-500 等，应改用 st-* 令牌)
  * - 写死的十六进制颜色 (var(--x, #fff) 里的兜底值不算；学员头像插画色板除外)
  * - 页面里引用 @element-plus/icons-vue (图标统一用 lucide-vue-next)
@@ -22,7 +23,9 @@ const LIMITS = {
   adminTextUnder12px: 0,
   parentFontUnder24rpx: 0,
   parentFontWithoutFloor: 0,
-  parentHexColors: 58, // 家长端 UI 改进第 3 期降到 0
+  parentHexColors: 0, // 家长端颜色一律用 tokens.scss / styles/colors.ts
+  parentFontOffScale: 0,
+  parentRadiusOffScale: 0,
   rawPaletteClasses: 35,
   rawHexColors: 3,
   elementPlusIconImports: 0,
@@ -97,6 +100,8 @@ for (const file of PARENT_FILES) {
   }
   for (const m of text.matchAll(SMALL_CSS_PX_RE)) hit('parentFontUnder24rpx', file, text, m.index)
   if (isParentPkg && file.endsWith('.vue')) {
+    for (const m of text.matchAll(/font-size:\s*p-fs\((?!\$p-fs-)[^)]*\)/g)) hit('parentFontOffScale', file, text, m.index)
+    for (const m of text.matchAll(/border-radius:\s*[^;]*\d+rpx[^;]*;/g)) hit('parentRadiusOffScale', file, text, m.index)
     for (const m of text.matchAll(HEX_RE)) {
       if (/^#(?:fff|ffffff|000|000000)$/i.test(m[0])) continue
       hit('parentHexColors', file, text, m.index)
