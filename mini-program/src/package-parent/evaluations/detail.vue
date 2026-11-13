@@ -93,7 +93,7 @@
               <view v-if="showFullContent" class="rich">
                 <rich-text :nodes="detail.content.html" />
               </view>
-              <view class="toggle" @click="showFullContent = !showFullContent">
+              <view role="button" tabindex="0" class="toggle" @click="showFullContent = !showFullContent">
                 <text>{{ showFullContent ? '收起完整内容' : '查看完整内容' }}</text>
                 <AppIcon :name="showFullContent ? 'chevron-up' : 'chevron-down'" size="24rpx" color="#2F54EB" />
               </view>
@@ -257,15 +257,15 @@ function preview(photos: PhotoLink[], index: number) {
 
 .hero-meta {
   display: block;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   opacity: 0.85;
 }
 
 .hero-title {
   display: block;
   margin-top: 8rpx;
-  font-size: 48rpx;
-  font-weight: 700;
+  font-size: p-fs(48);
+  font-weight: 600;
   line-height: 1.3;
   text-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.25);
 }
@@ -273,7 +273,7 @@ function preview(photos: PhotoLink[], index: number) {
 .hero-course {
   display: block;
   margin-top: 8rpx;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   opacity: 0.8;
 }
 
@@ -307,7 +307,7 @@ function preview(photos: PhotoLink[], index: number) {
   border-radius: 20rpx;
   background: rgba(0, 0, 0, 0.35);
   color: #FFFFFF;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   @include p-num;
 }
 
@@ -346,7 +346,7 @@ function preview(photos: PhotoLink[], index: number) {
 }
 
 .letter-from {
-  font-size: 28rpx;
+  font-size: p-fs(28);
   font-weight: 600;
   color: $p-ink-2;
 }
@@ -358,7 +358,7 @@ function preview(photos: PhotoLink[], index: number) {
 .letter-body {
   display: block;
   margin-top: 20rpx;
-  font-size: 31rpx;
+  font-size: p-fs(31);
   line-height: 1.8;
   color: $p-ink;
   white-space: pre-wrap;
@@ -368,7 +368,7 @@ function preview(photos: PhotoLink[], index: number) {
   display: block;
   margin-top: 20rpx;
   text-align: right;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-3;
 }
 
@@ -389,8 +389,8 @@ function preview(photos: PhotoLink[], index: number) {
 .section-title {
   display: block;
   margin: 0 4rpx 20rpx;
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: p-fs(32);
+  font-weight: 600;
   color: $p-ink;
 }
 
@@ -448,7 +448,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .learn-text {
   flex: 1;
-  font-size: 32rpx;
+  font-size: p-fs(32);
   line-height: 1.6;
   color: $p-ink;
 }
@@ -459,17 +459,18 @@ function preview(photos: PhotoLink[], index: number) {
 
 .rich {
   padding: 12rpx 0;
-  font-size: 30rpx;
+  font-size: p-fs(30);
   line-height: 1.8;
   color: $p-ink-2;
 }
 
 .toggle {
+  @include p-hit-min; // 可点区域至少 88rpx
   display: inline-flex;
   align-items: center;
   gap: 6rpx;
   margin-top: 8rpx;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   color: $p-brand;
 }
 
@@ -494,7 +495,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .hw-text {
   flex: 1;
-  font-size: 32rpx;
+  font-size: p-fs(32);
   line-height: 1.7;
   color: $p-ink;
 }
@@ -510,7 +511,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .class-comment {
   display: block;
-  font-size: 32rpx;
+  font-size: p-fs(32);
   line-height: 1.75;
   color: $p-ink-2;
 }
@@ -569,7 +570,7 @@ function preview(photos: PhotoLink[], index: number) {
 
 .voice-len {
   @include p-num;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-2;
 }
 
@@ -596,7 +597,7 @@ function preview(photos: PhotoLink[], index: number) {
 .end-mark {
   margin-top: 56rpx;
   text-align: center;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
   letter-spacing: 0.08em;
 }

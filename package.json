@@ -25,7 +25,7 @@
     "test:suite": "node tests/run-suite.cjs",
     "check:bundle": "node scripts/check-bundle-size.cjs",
     "bench": "node tests/isolated-env.cjs --exec=scripts/bench-api.cjs",
-    "test:smoke": "npm run build && node tests/isolated-env.cjs --scope=smoke",
+    "test:smoke": "npm run build && npm --prefix mini-program run build:h5 && node tests/isolated-env.cjs --scope=smoke",
     "test:unit": "vitest run"
   },
   "dependencies": {

@@ -25,10 +25,12 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             server/package-lock.json
+            mini-program/package-lock.json
       - name: 安装依赖
         run: |
           npm ci
           npm --prefix server ci
+          npm --prefix mini-program ci
       - name: 构建后端
         working-directory: server
         run: |
@@ -36,6 +38,9 @@ jobs:
           npm run build
       - name: 构建后台前端
         run: npm run build
+      - name: 构建家长端 H5 (冒烟 09 用)
+        working-directory: mini-program
+        run: npm run build:h5
       - name: 安装 Chrome
         id: chrome
         uses: browser-actions/setup-chrome@v1

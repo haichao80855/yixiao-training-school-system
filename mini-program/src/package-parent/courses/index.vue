@@ -12,7 +12,7 @@
     <EmptyState v-else-if="courses.length === 0" icon="book-open" title="还没有课程" description="报名后，课程与课时会显示在这里" />
 
     <view v-else class="course-list">
-      <view
+      <view role="button" tabindex="0"
         v-for="(c, idx) in courses"
         :key="c.packageId"
         class="course-card"
@@ -178,14 +178,14 @@ watch(() => parentStore.currentStudentId, load);
 
 .ring-num {
   @include p-num;
-  font-size: 48rpx;
-  font-weight: 700;
+  font-size: p-fs(48);
+  font-weight: 600;
   line-height: 1;
 }
 
 .ring-label {
   margin-top: 6rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
@@ -196,15 +196,15 @@ watch(() => parentStore.currentStudentId, load);
 
 .course-name {
   display: block;
-  font-size: 32rpx;
-  font-weight: 650;
+  font-size: p-fs(32);
+  font-weight: 600;
   line-height: 1.38;
 }
 
 .class-name {
   display: block;
   margin-top: 6rpx;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-3;
 }
 
@@ -212,7 +212,7 @@ watch(() => parentStore.currentStudentId, load);
   @include p-chip;
   margin-top: 16rpx;
   height: 40rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   background: $p-fill;
   color: $p-ink-2;
 
@@ -244,16 +244,16 @@ watch(() => parentStore.currentStudentId, load);
 
 .kv-num {
   @include p-num;
-  font-size: 32rpx;
-  font-weight: 700;
+  font-size: p-fs(32);
+  font-weight: 600;
 
   &.small {
-    font-size: 30rpx;
+    font-size: p-fs(30);
   }
 }
 
 .kv-label {
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
@@ -265,7 +265,7 @@ watch(() => parentStore.currentStudentId, load);
   padding: 20rpx 24rpx;
   border-radius: 24rpx;
   background: $p-amber-50;
-  font-size: 28rpx;
+  font-size: p-fs(28);
   line-height: 1.6;
   color: $p-amber-ink;
 }
@@ -276,7 +276,7 @@ watch(() => parentStore.currentStudentId, load);
   justify-content: flex-end;
   gap: 4rpx;
   margin-top: 20rpx;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-3;
 }
 

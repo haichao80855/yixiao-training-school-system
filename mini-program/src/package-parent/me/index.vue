@@ -15,7 +15,7 @@
 
     <text class="group-title">我的孩子</text>
     <view class="group">
-      <view
+      <view role="button" tabindex="0"
         v-for="(child, idx) in parentStore.children"
         :key="child.studentId"
         class="row pressable"
@@ -47,7 +47,7 @@
           </view>
           <text class="row-sub">最近使用 {{ dateTimeText(s.lastSeenAt) }}</text>
         </view>
-        <text v-if="!s.isCurrent" class="row-action" @click="revoke(s.id)">退出</text>
+        <text role="button" tabindex="0" v-if="!s.isCurrent" class="row-action" @click="revoke(s.id)">退出</text>
       </view>
       <view v-if="sessionsLoading" class="row">
         <text class="row-sub">加载中…</text>
@@ -56,7 +56,7 @@
     <text class="group-note">同一手机号可以供多位家长同时登录。不认识的设备可以在这里让它退出。</text>
 
     <view class="group spaced">
-      <view class="row pressable" @click="showHelp">
+      <view role="button" tabindex="0" class="row pressable" @click="showHelp">
         <view class="device-icon">
           <AppIcon name="help-circle" size="32rpx" color="#475569" />
         </view>
@@ -67,7 +67,7 @@
       </view>
     </view>
 
-    <view class="logout pressable" @click="logout">
+    <view role="button" tabindex="0" class="logout pressable" @click="logout">
       <text>退出登录</text>
     </view>
   </ParentPage>
@@ -202,23 +202,23 @@ function dateTimeText(iso: string) {
 .phone {
   @include p-num;
   display: block;
-  font-size: 40rpx;
-  font-weight: 700;
+  font-size: p-fs(40);
+  font-weight: 600;
   letter-spacing: 0.02em;
 }
 
 .sub {
   display: block;
   margin-top: 6rpx;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-3;
 }
 
 .group-title {
   display: block;
   margin: 44rpx 8rpx 16rpx;
-  font-size: 26rpx;
-  font-weight: 650;
+  font-size: p-fs(26);
+  font-weight: 600;
   color: $p-ink-3;
   letter-spacing: 0.04em;
 }
@@ -235,7 +235,7 @@ function dateTimeText(iso: string) {
 .group-note {
   display: block;
   margin: 14rpx 8rpx 0;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   line-height: 1.6;
   color: $p-ink-3;
 }
@@ -266,14 +266,14 @@ function dateTimeText(iso: string) {
 
 .row-title {
   display: block;
-  font-size: 32rpx;
+  font-size: p-fs(32);
   font-weight: 600;
 }
 
 .row-sub {
   display: block;
   margin-top: 4rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   color: $p-ink-3;
 }
 
@@ -281,7 +281,7 @@ function dateTimeText(iso: string) {
   @include p-chip;
   height: 34rpx;
   padding: 0 12rpx;
-  font-size: 24rpx;
+  font-size: p-fs(24);
   background: $p-brand-50;
   color: $p-brand;
 }
@@ -318,12 +318,13 @@ function dateTimeText(iso: string) {
 }
 
 .row-action {
+  @include p-hit-min; // 可点区域至少 88rpx
   padding: 10rpx 20rpx;
   border-radius: 9999rpx;
   background: $p-rose-50;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   font-weight: 600;
-  color: $p-rose;
+  color: $p-rose-ink;
 }
 
 .logout {
@@ -335,8 +336,8 @@ function dateTimeText(iso: string) {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
+  font-size: p-fs(32);
   font-weight: 600;
-  color: $p-rose;
+  color: $p-rose-ink;
 }
 </style>

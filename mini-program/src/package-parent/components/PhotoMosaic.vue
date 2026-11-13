@@ -77,7 +77,7 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
   bottom: 0;
   background: rgba(15, 23, 42, 0.42);
   color: #FFFFFF;
-  font-size: 36rpx;
+  font-size: p-fs(36);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -96,7 +96,7 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
   border-radius: 22rpx;
   background: rgba(0, 0, 0, 0.5);
   color: #FFFFFF;
-  font-size: 24rpx;
+  font-size: p-fs(24);
 }
 
 .video-only {
@@ -104,7 +104,7 @@ const extra = computed(() => Math.max(0, (props.total || props.thumbs.length) - 
   border-radius: $p-r-inner;
   background: linear-gradient(135deg, #1E293B, #0F172A);
   color: rgba(255, 255, 255, 0.85);
-  font-size: 28rpx;
+  font-size: p-fs(28);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -4,7 +4,9 @@
  *
  * 统计几类不符合设计规范的写法，数量只许减少不许增加：
  * - 后台小于 12px 的文字 (Tailwind text-[9/10/11px] 或 CSS font-size < 12px)
- * - 家长端小于 24rpx (12px) 的字号
+ * - 家长端 (含登录页) 小于 24rpx (12px) 的字号
+ * - 家长端 32rpx 及以下没走 p-fs() 的字号 (窄屏上会缩到 12px 以下；家长端不能双指放大)
+ * - 家长端写死的十六进制颜色 (应改用 package-parent/styles/tokens.scss 里的变量)
  * - 绕过设计令牌的 Tailwind 原色类 (text/bg/border/divide-gray|blue|amber...-500 等，应改用 st-* 令牌)
  * - 写死的十六进制颜色 (var(--x, #fff) 里的兜底值不算；学员头像插画色板除外)
  * - 页面里引用 @element-plus/icons-vue (图标统一用 lucide-vue-next)
@@ -19,6 +21,8 @@ const ROOT = path.resolve(__dirname, '..')
 const LIMITS = {
   adminTextUnder12px: 0,
   parentFontUnder24rpx: 0,
+  parentFontWithoutFloor: 0,
+  parentHexColors: 58, // 家长端 UI 改进第 3 期降到 0
   rawPaletteClasses: 35,
   rawHexColors: 3,
   elementPlusIconImports: 0,
@@ -75,10 +79,28 @@ for (const file of listFiles(path.join(ROOT, 'src'), ['.vue', '.ts', '.css'])) {
   for (const m of text.matchAll(/from\s+'@element-plus\/icons-vue'/g)) hit('elementPlusIconImports', file, text, m.index)
 }
 
-for (const file of listFiles(path.join(ROOT, 'mini-program/src/package-parent'), ['.vue', '.scss'])) {
+const PARENT_FS_RE = /font-size:\s*p-fs\((\d+(?:\.\d+)?)\)/g
+const PARENT_FILES = [
+  ...listFiles(path.join(ROOT, 'mini-program/src/package-parent'), ['.vue', '.scss']),
+  path.join(ROOT, 'mini-program/src/pages/login/index.vue'),
+]
+for (const file of PARENT_FILES) {
   const text = fs.readFileSync(file, 'utf8')
+  const isParentPkg = file.includes(`${path.sep}package-parent${path.sep}`)
   for (const m of text.matchAll(SMALL_RPX_RE)) {
     if (Number(m[1]) < 24) hit('parentFontUnder24rpx', file, text, m.index)
+    // tokens.scss 里 p-fs() 自身的实现除外
+    else if (isParentPkg && Number(m[1]) <= 32 && !file.endsWith('tokens.scss')) hit('parentFontWithoutFloor', file, text, m.index)
+  }
+  for (const m of text.matchAll(PARENT_FS_RE)) {
+    if (Number(m[1]) < 24) hit('parentFontUnder24rpx', file, text, m.index)
+  }
+  for (const m of text.matchAll(SMALL_CSS_PX_RE)) hit('parentFontUnder24rpx', file, text, m.index)
+  if (isParentPkg && file.endsWith('.vue')) {
+    for (const m of text.matchAll(HEX_RE)) {
+      if (/^#(?:fff|ffffff|000|000000)$/i.test(m[0])) continue
+      hit('parentHexColors', file, text, m.index)
+    }
   }
 }
 

@@ -18,7 +18,8 @@ const { ACCOUNTS, SEED_PASSWORD } = require('../../server/test-utils/accounts');
 
 const ROOT = path.resolve(__dirname, '../..');
 const DIST = path.join(ROOT, 'dist');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json', '.woff2': 'font/woff2' };
+const H5_DIST = path.join(ROOT, 'mini-program/dist/build/h5');
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.woff2': 'font/woff2', '.ttf': 'font/ttf' };
 
 function chromePath() {
   const candidates = [
@@ -52,8 +53,11 @@ function startStaticServer(port = 0) {
       return;
     }
     const urlPath = decodeURIComponent(req.url.split('?')[0]);
-    let file = path.join(DIST, urlPath);
-    if (!file.startsWith(DIST) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(DIST, 'index.html');
+    // 家长端 H5 部署在 /parent/ 下 (构建产物 mini-program/dist/build/h5)，和线上 nginx 一致
+    const isParent = urlPath === '/parent' || urlPath.startsWith('/parent/');
+    const root = isParent ? H5_DIST : DIST;
+    let file = path.join(root, isParent ? urlPath.slice('/parent'.length) : urlPath);
+    if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(root, 'index.html');
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
     fs.createReadStream(file).pipe(res);
   });

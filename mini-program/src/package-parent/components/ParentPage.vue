@@ -1,13 +1,13 @@
 <template>
   <view class="parent-page" :class="{ 'has-tab-bar': !!tab, immersive }">
     <!-- 沉浸式页面 (详情)：内容自绘顶部，仅保留悬浮返回按钮 -->
-    <view v-if="immersive" class="float-back" :style="{ top: statusBarHeight + 6 + 'px' }" @click="goBack">
+    <view v-if="immersive" class="float-back" role="button" aria-label="返回" :style="{ top: statusBarHeight + 6 + 'px' }" @click="goBack">
       <AppIcon name="arrow-left" size="36rpx" color="#0F172A" />
     </view>
 
     <view v-else class="parent-header" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="bar" :style="{ paddingRight: capsuleWidth + 'px' }">
-        <view v-if="showBack" class="back-btn" @click="goBack">
+        <view v-if="showBack" class="back-btn" role="button" aria-label="返回" @click="goBack">
           <AppIcon name="arrow-left" size="36rpx" color="#0F172A" />
         </view>
         <text v-if="showBack" class="bar-title">{{ title }}</text>
@@ -17,7 +17,13 @@
           <text v-if="overline" class="overline">{{ overline }}</text>
           <text class="title">{{ title }}</text>
         </view>
-        <view v-if="showChildSwitcher && currentChild" class="child-pill" @click="pickChild">
+        <view
+          v-if="showChildSwitcher && currentChild"
+          class="child-pill"
+          :role="parentStore.children.length > 1 ? 'button' : undefined"
+          :aria-label="parentStore.children.length > 1 ? `当前是${currentChild.name}，切换孩子` : undefined"
+          @click="pickChild"
+        >
           <ChildAvatar :name="currentChild.name" :index="currentIndex" size="56rpx" :ring="true" />
           <text class="child-name">{{ currentChild.name }}</text>
           <AppIcon v-if="parentStore.children.length > 1" name="chevron-down" size="24rpx" color="#475569" />
@@ -59,18 +65,23 @@ withDefaults(
 );
 
 const parentStore = useParentStore();
-const statusBarHeight = ref(20);
-const capsuleWidth = ref(96);
+// 状态栏高度和右上角留白只有小程序需要 (胶囊按钮)。H5 在浏览器里没有状态栏，
+// 以前默认 20px、96px，H5 页面顶部多出一条空白、右侧也被白白让出 96px
+const statusBarHeight = ref(0);
+const capsuleWidth = ref(0);
 
 onMounted(() => {
+  // #ifdef MP-WEIXIN
   try {
     const sys = uni.getSystemInfoSync();
     statusBarHeight.value = sys.statusBarHeight || 20;
-    // #ifdef MP-WEIXIN
     const menu = uni.getMenuButtonBoundingClientRect();
-    if (menu) capsuleWidth.value = sys.windowWidth - menu.left + 8;
-    // #endif
-  } catch {}
+    capsuleWidth.value = menu ? sys.windowWidth - menu.left + 8 : 96;
+  } catch {
+    statusBarHeight.value = 20;
+    capsuleWidth.value = 96;
+  }
+  // #endif
 });
 
 const currentChild = computed(() => parentStore.currentChild);
@@ -132,6 +143,7 @@ const goBack = () => {
 }
 
 .back-btn {
+  @include p-hit-min; // 可点区域至少 88rpx
   width: 72rpx;
   height: 72rpx;
   border-radius: 50%;
@@ -145,7 +157,7 @@ const goBack = () => {
 }
 
 .bar-title {
-  font-size: 32rpx;
+  font-size: p-fs(32);
   font-weight: 600;
 }
 
@@ -164,20 +176,21 @@ const goBack = () => {
 
 .overline {
   display: block;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   color: $p-ink-3;
 }
 
 .title {
   display: block;
   margin-top: 4rpx;
-  font-size: 44rpx;
-  font-weight: 700;
+  font-size: p-fs(44);
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1.2;
 }
 
 .child-pill {
+  @include p-hit-min; // 可点区域至少 88rpx
   @include p-pressable;
   display: inline-flex;
   align-items: center;
@@ -191,7 +204,7 @@ const goBack = () => {
 }
 
 .child-name {
-  font-size: 28rpx;
+  font-size: p-fs(28);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -206,7 +219,7 @@ const goBack = () => {
   padding: 20rpx 24rpx;
   border-radius: $p-r-sm;
   background: $p-amber-50;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   line-height: 1.6;
   color: $p-amber-ink;
 }
@@ -242,5 +255,14 @@ const goBack = () => {
   &:active {
     transform: scale(0.94);
   }
+}
+</style>
+
+<style lang="scss">
+/* 键盘操作时的焦点框 (家长端所有可点击元素)；手指点按不显示 */
+.parent-page [role='button']:focus-visible {
+  outline: 4rpx solid #2F54EB;
+  outline-offset: 4rpx;
+  border-radius: 12rpx;
 }
 </style>

@@ -6,11 +6,14 @@
  * ========================================================================== */
 
 // 中性色 (与 uni.scss 的 Slate 文本层级一致)
+// 文字颜色在白底和页面底色 #F5F5F7 上的对比度 (WCAG AA 要求正文 ≥ 4.5)：
+//   ink 17.9 / ink-2 7.6 / ink-3 5.4 (原 #64748B 在页面底色上只有 4.37，不达标)
+//   ink-4 只有 2.4，只能用于图标、分隔、装饰，不能用来写文字
 $p-canvas: #F5F5F7;
 $p-surface: #FFFFFF;
 $p-ink: #0F172A;
 $p-ink-2: #475569;
-$p-ink-3: #64748B;
+$p-ink-3: #5B6577;
 $p-ink-4: #94A3B8;
 $p-line: rgba(15, 23, 42, 0.08);
 $p-fill: rgba(15, 23, 42, 0.05);
@@ -28,6 +31,7 @@ $p-mint: #15803D;
 $p-mint-50: #ECFDF3;
 $p-rose: #DC2626;
 $p-rose-50: #FEF2F2;
+$p-rose-ink: #B91C1C; // 浅红底上的文字 (5.9:1)；$p-rose 在 $p-rose-50 上只有 4.4
 $p-sky: #0369A1;
 $p-sky-50: #E0F2FE;
 $p-indigo: #4F46E5;
@@ -35,8 +39,29 @@ $p-indigo-50: #EEF2FF;
 // 兼容旧变量名 (页面中已有引用)
 $p-lilac: $p-indigo;
 $p-lilac-50: $p-indigo-50;
-$p-peach: $p-sky;
-$p-peach-50: $p-sky-50;
+// 注意：原来的 $p-peach 指向的是天蓝色，「请假」标签因此成了橙字配浅蓝底。已删除，请假一律用琥珀色。
+
+// 状态标签配色 (底色 / 文字)，各页面统一使用
+$p-status-leave-bg: $p-amber-50;   // 请假
+$p-status-leave-ink: $p-amber-ink;
+$p-status-absent-bg: $p-rose-50;   // 缺勤
+$p-status-absent-ink: $p-rose-ink;
+
+// 字重：苹方最粗只到 Semibold (600)，650 / 700 在苹果设备上和 600 一样，层级会糊在一起
+$p-fw-regular: 400;
+$p-fw-medium: 500;
+$p-fw-bold: 600;
+
+/* 字号 (家长端 UI 改进第 1 期)：小字设真实像素下限。
+ * H5 上 rpx 按屏幕宽度缩放，24rpx 在 320px 宽的手机上只有 10.2px。家长端不能双指放大，
+ * 所以 32rpx 及以下的字号在窄屏上不再缩小：至少等于设计稿 (375 宽) 上的像素值，24rpx 至少 12px。
+ * 375px 及更宽的屏幕上与原来完全一样。用法：font-size: p-fs(24); */
+@function p-fs($rpx) {
+  @if $rpx <= 32 {
+    @return unquote('max(#{$rpx * 0.5}px, #{$rpx}rpx)');
+  }
+  @return #{$rpx}rpx;
+}
 
 // 形状与阴影
 $p-r-sm: 16rpx;      // 小控件 8px
@@ -116,13 +141,39 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
 /* 点击热区：视觉尺寸不变，用透明伪元素把可点区域扩到 88rpx (约 44pt，苹果建议的最小点击尺寸)。
  * 元素本身需要是定位元素 (relative / absolute / fixed)。 */
 @mixin p-hit-area($size) {
+  // $size 保留只为兼容旧调用；以元素中心向外撑开，窄屏上也不小于 44px
   &::after {
     content: '';
     position: absolute;
-    top: calc((#{$size} - 88rpx) / 2);
-    left: calc((#{$size} - 88rpx) / 2);
-    width: 88rpx;
-    height: 88rpx;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 88rpx, 44px);
+    height: max(100%, 88rpx, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* 点击热区 (任意尺寸)：可点区域至少 88rpx × 88rpx，元素本身大于 88rpx 时按元素大小。
+ * 视觉不变；会给元素加 position: relative。按钮里的伪元素 ::after 已被占用时不要用。 */
+@mixin p-hit-min {
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    // 88rpx 在 320px 宽的手机上只有 37.5px，再加 44px 下限
+    width: max(100%, 88rpx, 44px);
+    height: max(100%, 88rpx, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* 键盘焦点：用 Tab 键操作时显示焦点框，手指点按时不显示 */
+@mixin p-focus-ring {
+  &:focus-visible {
+    outline: 4rpx solid $p-brand;
+    outline-offset: 4rpx;
   }
 }
 
@@ -132,7 +183,7 @@ $p-font-num: 'DIN Alternate', 'DINPro', 'Roboto', -apple-system, sans-serif;
   height: 44rpx;
   padding: 0 16rpx;
   border-radius: $p-r-sm;
-  font-size: 26rpx;
+  font-size: p-fs(26);
   font-weight: 600;
   white-space: nowrap;
 }
