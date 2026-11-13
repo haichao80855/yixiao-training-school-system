@@ -17,6 +17,7 @@ import {
   FulfillmentStudentView,
   FulfillLessonCommand,
   FulfillmentReceipt,
+  FulfillmentMode,
   ReverseFulfillmentCommand,
   FulfillmentReversalReceipt,
   CampusScopeContext,
@@ -373,7 +374,10 @@ export class LessonFulfillmentCoordinator {
         command.idempotencyKey &&
         schedule.evaluation?.idempotencyKey === command.idempotencyKey
       ) {
-        this.logger.warn(`命中幂等键重放: ${command.idempotencyKey}`);
+        // 重放 (网络重试、连点)：这节课已经按同一个键结过课，直接返回已有结果，不再执行一遍结课
+        // (以前会继续往下走，把扣课和课评再处理一次)
+        this.logger.warn(`命中幂等键重放: ${command.idempotencyKey}，返回已有结课结果`);
+        return this.buildReplayReceipt(schedule, mode, command.operatorName || scope?.operatorName || '任课教师');
       } else {
         throw new BadRequestException('该排课日程已结课，如需变更请先执行反结课冲正');
       }
@@ -898,6 +902,43 @@ export class LessonFulfillmentCoordinator {
       }
       return receipt;
     });
+  }
+
+  /** 幂等重放时的回执：按库里已有的上课记录汇总，本次没有新的扣课 */
+  private buildReplayReceipt(schedule: any, mode: FulfillmentMode, operator: string): FulfillmentReceipt {
+    const active = (schedule.attendances || []).filter((a: any) => !a.isReversed);
+    const count = (status: string) => active.filter((a: any) => a.status === status).length;
+    const sum = (key: string) => active.reduce((total: number, a: any) => total + (Number(a[key]) || 0), 0);
+    const evaluation = schedule.evaluation;
+    return {
+      receiptId: `REC-FLM-REPLAY-${schedule.id}`,
+      scheduleEventId: schedule.id,
+      mode,
+      completedAt: new Date().toISOString(),
+      operator,
+      totalStudents: active.length,
+      settlement: {
+        totalDeductedLessons: sum('deductLessons'),
+        regularBurned: sum('regularBurned'),
+        bonusBurned: sum('bonusBurned'),
+        presentCount: count('present'),
+        lateCount: count('late'),
+        leaveCount: count('leave'),
+        absentCount: count('absent'),
+        details: [],
+      },
+      evaluation: evaluation
+        ? {
+            evaluationId: evaluation.id,
+            revisionNumber: Number(evaluation.revisionNumber ?? evaluation.currentRevision ?? 0),
+            status: evaluation.status,
+            syncedAttendanceCount: active.length,
+            fingerprint: evaluation.fingerprint || '',
+          }
+        : null,
+      outbox: null,
+      message: '这节课已经结课，本次是重复提交，没有重复扣课',
+    };
   }
 
   /**

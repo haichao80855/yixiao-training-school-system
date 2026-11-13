@@ -13,6 +13,8 @@ export interface WorkbenchQuery {
   period?: string;           // 时间段: 今日, 本周, 本月, 上月, 本年, 10月 等
   startDate?: string;
   endDate?: string;
+  historyPage?: number;      // 历史台账页码 (按课次分页)
+  historyPageSize?: number;  // 历史台账每页课次数，默认 20，最多 100
 }
 
 export interface WorkbenchMetrics {
@@ -99,6 +101,9 @@ export interface WorkbenchSnapshot {
   metrics: WorkbenchMetrics;
   schedules: ScheduleCardView[];
   history: AttendanceHistoryView[];
+  historyTotal: number;
+  historyPage: number;
+  historyPageSize: number;
 }
 
 export interface RollCallStudentView {

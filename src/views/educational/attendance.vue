@@ -184,7 +184,7 @@
                   <b>反结课机制 (Revert Lesson)：</b>对于因停电、暴雨或客诉争议误扣的课时，执行“反结课”将自动将已扣减的课时退还充正回学员课包账户，彻底闭环。
                 </span>
               </div>
-              <el-tag type="warning" size="small">{{ attendanceRecords.length }} 条记录</el-tag>
+              <el-tag type="warning" size="small">共 {{ historyTotal }} 节课</el-tag>
             </div>
 
             <!-- 历史记录列表 -->
@@ -254,6 +254,15 @@
                 </template>
               </el-table-column>
             </el-table>
+            <AppPagination
+              v-if="historyTotal > 0"
+              v-model:current-page="historyPage"
+              v-model:page-size="historyPageSize"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="historyTotal"
+              :summary-text="`共 ${historyTotal} 节课的考勤记录`"
+              @change="() => loadData()"
+            />
           </div>
         </el-tab-pane>
       </el-tabs>
@@ -286,6 +295,7 @@ import RollCallDrawer from './components/RollCallDrawer.vue'
 import AttendanceDetailDialog from './components/AttendanceDetailDialog.vue'
 import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
+import AppPagination from '@/components/AppPagination.vue'
 
 // 列表加载状态：加载中显示遮罩，加载失败时空状态区显示原因和“重新加载”
 const { loading: listLoading, loadError: listError, track: trackList, fail: failList } = useLoadState()
@@ -334,6 +344,10 @@ async function loadTeachers() {
 const teachers = computed(() => teacherList.value.filter(t => t.role === 'teacher'))
 
 const serverMetrics = ref<any>(null)
+// 考勤历史按课次分页，由后端返回总数
+const historyPage = ref(1)
+const historyPageSize = ref(20)
+const historyTotal = ref(0)
 
 function loadData() {
   return trackList(loadDataTask)
@@ -345,14 +359,21 @@ async function loadDataTask() {
       educationalApi.getWorkbenchSnapshot({
         campusId: tenantStore.currentCampusId,
         date: filterDate.value,
+        historyPage: historyPage.value,
+        historyPageSize: historyPageSize.value,
       }),
-      educationalApi.getSchedules({ campusId: tenantStore.currentCampusId }),
+      // 只取所选日期的排课 (以前不带日期，会把校区全部历史排课拉下来再在前端筛)
+      educationalApi.getSchedules({
+        campusId: tenantStore.currentCampusId,
+        ...(filterDate.value ? { startDate: filterDate.value, endDate: filterDate.value } : {}),
+      }),
       loadTeachers()
     ])
     if (wbRes && wbRes.data) {
       serverMetrics.value = wbRes.data.metrics
       if (Array.isArray(wbRes.data.history)) {
         attendanceRecords.value = wbRes.data.history
+        historyTotal.value = Number(wbRes.data.historyTotal ?? wbRes.data.history.length)
       }
     } else {
       const attRes = await educationalApi.getAttendanceRecords({ campusId: tenantStore.currentCampusId })

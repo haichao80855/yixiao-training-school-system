@@ -114,6 +114,9 @@ model User {
   createdOrders  Order[]   @relation("OrderCreator")
   managedOrders  Order[]   @relation("OrderOwner")
   approvals      ApprovalNode[]
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([campusId])
 }
 
 model Role {
@@ -271,6 +274,9 @@ model Student {
   archiveMedia  StudentArchiveMedia[]
 
   @@index([phoneNormalized])
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([campusId, createdAt])
 }
 
 model StudentCoursePackage {
@@ -294,6 +300,11 @@ model StudentCoursePackage {
   class            Class?   @relation(fields: [classId], references: [id])
   attendances      AttendanceRecord[]
   orders           Order[]  @relation("OrderPackage")
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([studentId, status])
+  @@index([classId, status])
+  @@index([courseId])
 }
 
 model StudentWallet {
@@ -320,6 +331,9 @@ model WalletLedger {
   createdAt       DateTime @default(now())
 
   student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([studentId, createdAt])
 }
 
 model StudentAbnormalMovement {
@@ -336,6 +350,9 @@ model StudentAbnormalMovement {
   updatedAt       DateTime @updatedAt
 
   student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([studentId])
 }
 
 // -------------------------------------------------------
@@ -382,6 +399,11 @@ model Class {
 
   schedules           ScheduleEvent[]
   studentPackages     StudentCoursePackage[]
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([campusId, status])
+  @@index([teacherId])
+  @@index([courseId])
 }
 
 model ScheduleEvent {
@@ -407,6 +429,12 @@ model ScheduleEvent {
 
   attendances   AttendanceRecord[]
   evaluation    LessonEvaluation?
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([campusId, date, startTime])
+  @@index([classId, date])
+  @@index([teacherId, date])
+  @@index([classroomId, date])
 }
 
 model AttendanceRecord {
@@ -431,6 +459,11 @@ model AttendanceRecord {
   scheduleEvent   ScheduleEvent @relation(fields: [scheduleEventId], references: [id], onDelete: Cascade)
   student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   package         StudentCoursePackage? @relation(fields: [packageId], references: [id])
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([scheduleEventId])
+  @@index([studentId, createdAt])
+  @@index([packageId])
 }
 
 // -------------------------------------------------------
@@ -470,6 +503,10 @@ model Order {
   package           StudentCoursePackage? @relation("OrderPackage", fields: [packageId], references: [id])
 
   approval          ApprovalFlow?
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([campusId, createdAt])
+  @@index([studentId, status])
 }
 
 model ApprovalFlow {
@@ -499,6 +536,9 @@ model ApprovalNode {
 
   approvalFlow    ApprovalFlow @relation(fields: [approvalFlowId], references: [id], onDelete: Cascade)
   reviewer        User         @relation(fields: [reviewerId], references: [id])
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([approvalFlowId])
 }
 
 model ServiceFeeRecord {
@@ -523,6 +563,10 @@ model ServiceFeeRecord {
 
   campus             Campus    @relation(fields: [campusId], references: [id])
   student            Student   @relation(fields: [studentId], references: [id])
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([studentId])
+  @@index([campusId])
 }
 
 // -------------------------------------------------------
@@ -584,6 +628,9 @@ model LessonEvaluationStudentItem {
   student         Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([evaluationId, studentId])
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([studentId])
 }
 
 model LessonEvaluationRevision {
@@ -673,6 +720,9 @@ model ParentReadState {
   student         Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([parentAccountId, studentId, scheduleEventId])
+
+  // 热点查询索引 (流畅度改进第 2 期)：校区、日期、外键过滤与关联加载
+  @@index([scheduleEventId])
 }
 
 // 学员历史成长档案：系统上线前的课堂照片 / 视频，与排课、课评、课耗完全独立

@@ -170,6 +170,12 @@
           "needs": [
             "server"
           ]
+        },
+        {
+          "file": "server/test-perf-query-bounds.js",
+          "needs": [
+            "server"
+          ]
         }
       ]
     },

@@ -404,6 +404,23 @@ export class EducationalController {
     return this.batchSchedulingCoordinator.commit(dto as any);
   }
 
+  /** 按天统计课次数 (工作台日历上的圆点)：只返回每天的总数、已结课数，不返回排课明细 */
+  @Get('schedules/counts')
+  @RequirePermissions('educational:timeSchedule')
+  async getScheduleCounts(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+    @Query('teacherId') teacherId?: string,
+    @CampusScope() scope?: CampusScopeResult,
+  ) {
+    return this.educationalService.getScheduleCounts({
+      startDate,
+      endDate,
+      teacherId: teacherId || scope?.teacherId,
+      campusId: scope?.targetCampusId,
+    });
+  }
+
   @Get('schedules')
   @RequirePermissions('educational:timeSchedule')
   async getSchedules(
@@ -492,6 +509,8 @@ export class EducationalController {
     @Query('period') period?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('historyPage') historyPage?: string,
+    @Query('historyPageSize') historyPageSize?: string,
     @CampusScope() scope?: CampusScopeResult,
     @CurrentUser() user?: any,
   ) {
@@ -505,6 +524,8 @@ export class EducationalController {
       period,
       startDate,
       endDate,
+      historyPage: historyPage ? Number(historyPage) : undefined,
+      historyPageSize: historyPageSize ? Number(historyPageSize) : undefined,
     });
   }
 

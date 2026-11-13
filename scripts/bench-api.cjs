@@ -58,7 +58,7 @@ function endpoints(campusId) {
     ['学员列表 (第 1 页)', 'principal', `/api/students?${c}&page=1&pageSize=20`],
     ['学员统计', 'principal', `/api/students/stats?${c}`],
     ['续报名单', 'principal', `/api/students/renewal/roster?${c}`],
-    ['排课 (排课页现状：不带日期)', 'principal', `/api/educational/schedules?${c}`],
+    ['排课 (不带日期)', 'principal', `/api/educational/schedules?${c}`],
     ['排课 (本周)', 'principal', `/api/educational/schedules?${c}&startDate=${weekStart}&endDate=${weekEnd}`],
     ['点名工作台快照 (不带日期)', 'principal', `/api/educational/settlement/workbench?${c}`],
     ['点名工作台快照 (今天)', 'principal', `/api/educational/settlement/workbench?${c}&date=${today}`],
