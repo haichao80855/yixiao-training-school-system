@@ -57,6 +57,21 @@ function assert(cond, msg) {
 
 const ids = { students: [], events: [], evaluations: [], packages: [] };
 
+/** 模拟发布时写出站信箱：家长端只展示推送过这位学员的课评 */
+const pushTo = (evaluationId, studentIds) =>
+  prisma.lessonEvaluationOutbox.createMany({
+    data: studentIds.map((studentId) => ({
+      campusId: 'campus-bj-hq',
+      evaluationId,
+      revisionNumber: 1,
+      studentId,
+      channel: 'none',
+      status: 'skipped_no_openid',
+      idempotencyKey: `outbox_pt_${evaluationId}_${studentId}`,
+      payload: '{}',
+    })),
+  });
+
 async function setupFixtures() {
   const cls = await prisma.class.findFirst({ where: { campusId: 'campus-bj-hq' } });
   if (!cls) throw new Error('缺少总部校区班级，请先执行 npm run prisma:seed');
@@ -127,6 +142,7 @@ async function setupFixtures() {
         },
       });
       ids.evaluations.push(ev.id);
+      if (evaluation.status === 'published') await pushTo(ev.id, [s1.id, s3.id]);
       if (evaluation.own) {
         await prisma.lessonEvaluationStudentItem.create({
           data: { evaluationId: ev.id, studentId: s1.id, rating: 4.5, comment: '本节课独立完成作品', photos: JSON.stringify([`/uploads/${key}`]) },
@@ -175,6 +191,7 @@ async function setupFixtures() {
     },
   });
   ids.evaluations.push(ev4.id);
+  await pushTo(ev4.id, [s5.id]);
   await prisma.lessonEvaluationStudentItem.create({
     data: {
       evaluationId: ev4.id,

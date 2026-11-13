@@ -51,6 +51,7 @@ import {
   CampusScopeContext,
 } from './learning-growth.types';
 import { isOwnUploadRef } from '../../upload/domain/media-key.util';
+import { isEvaluationVisibleToParent, pushedToStudentInclude } from './parent-evaluation-visibility';
 
 /** 可展示的媒体地址：外链或本系统上传引用 (/uploads/<key>，出参时由 MediaLinkInterceptor 签名) */
 function isMediaRef(value: string): boolean {
@@ -884,6 +885,7 @@ export class LearningGrowthProjector {
                 evaluation: {
                   include: {
                     studentItems: true,
+                    ...pushedToStudentInclude(studentId),
                   },
                 },
               },
@@ -905,8 +907,8 @@ export class LearningGrowthProjector {
 
     for (const att of student.attendances) {
       const sEvent = att.scheduleEvent;
-      // 家长端只展示已发布课评，草稿不外泄
-      const evaluation = sEvent?.evaluation?.status === 'published' ? sEvent.evaluation : undefined;
+      // 家长端只展示已推送给这位学员的课评：草稿不外泄，同班其他学员的单独推送也不算
+      const evaluation = isEvaluationVisibleToParent(sEvent?.evaluation) ? sEvent!.evaluation! : undefined;
       const studentItems = evaluation?.studentItems || [];
       const personalItem = studentItems.find((item: any) => item.studentId === student.id);
 
@@ -1029,6 +1031,7 @@ export class LearningGrowthProjector {
         evaluation: {
           include: {
             studentItems: true,
+            ...pushedToStudentInclude(studentId),
           },
         },
         attendances: {
@@ -1047,8 +1050,8 @@ export class LearningGrowthProjector {
     }
 
     const evaluation = schedule.evaluation;
-    // 家长端只展示已发布课评，草稿不外泄
-    if (!evaluation || evaluation.status !== 'published') {
+    // 家长端只展示已推送给这位学员的课评：草稿不外泄，同班其他学员的单独推送也不算
+    if (!evaluation || !isEvaluationVisibleToParent(evaluation)) {
       throw new NotFoundException('该课次课评尚未发布');
     }
     const personalItem = evaluation?.studentItems?.find((i: any) => i.studentId === studentId);
