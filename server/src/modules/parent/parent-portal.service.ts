@@ -5,6 +5,11 @@ import { ParentChildrenService } from './parent-children.service';
 import { MediaLinksService, PhotoLink } from './media-links.service';
 import { ParentPrincipal } from './parent.types';
 import { parseMediaList, toStorageKey } from '../upload/domain/media-key.util';
+import {
+  isEvaluationVisibleToParent,
+  parentVisibleEvaluationWhere,
+  pushedToStudentInclude,
+} from '../educational/domain/parent-evaluation-visibility';
 
 const ATTENDED = ['present', 'late'];
 const DAY_MS = 86400000;
@@ -20,7 +25,7 @@ const EVENT_INCLUDE = {
 
 /**
  * 家长端只读查询。所有方法先经 ParentChildrenService.resolveChild 校验子女归属。
- * 只展示已发布 (published) 的课评，缺失字段返回 null，不做任何默认文案填充。
+ * 只展示已发布且推送过这位学员的课评 (见 parent-evaluation-visibility.ts)，缺失字段返回 null，不做任何默认文案填充。
  */
 @Injectable()
 export class ParentPortalService {
@@ -75,7 +80,7 @@ export class ParentPortalService {
           { id: { in: attendances.map((a) => a.scheduleEventId) } },
         ],
       },
-      include: EVENT_INCLUDE,
+      include: { ...EVENT_INCLUDE, evaluation: { include: pushedToStudentInclude(studentId) } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     });
 
@@ -102,7 +107,7 @@ export class ParentPortalService {
           classType: e.classType,
           status,
           isLate: att?.status === 'late',
-          evaluationReady: !!att && ATTENDED.includes(att.status) && e.evaluation?.status === 'published',
+          evaluationReady: !!att && ATTENDED.includes(att.status) && isEvaluationVisibleToParent(e.evaluation),
         };
       }),
     };
@@ -154,7 +159,11 @@ export class ParentPortalService {
 
     const records = await this.prisma.attendanceRecord.findMany({
       where: { studentId, packageId },
-      include: { scheduleEvent: { include: { evaluation: { select: { lessonTitle: true, status: true } } } } },
+      include: {
+        scheduleEvent: {
+          include: { evaluation: { select: { lessonTitle: true, status: true, ...pushedToStudentInclude(studentId) } } },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return {
@@ -164,7 +173,7 @@ export class ParentPortalService {
         scheduleEventId: r.scheduleEventId,
         date: r.scheduleEvent?.date || null,
         timeSlot: r.scheduleEvent ? `${r.scheduleEvent.startTime}-${r.scheduleEvent.endTime}` : null,
-        lessonTitle: r.scheduleEvent?.evaluation?.status === 'published' ? r.scheduleEvent.evaluation.lessonTitle : null,
+        lessonTitle: isEvaluationVisibleToParent(r.scheduleEvent?.evaluation) ? r.scheduleEvent.evaluation!.lessonTitle : null,
         attendance: r.status,
         hours: r.deductLessons,
         // 反结课冲正：课时已退回
@@ -189,7 +198,7 @@ export class ParentPortalService {
         scheduleEvent: {
           include: {
             ...EVENT_INCLUDE,
-            evaluation: { include: { studentItems: { where: { studentId } } } },
+            evaluation: { include: { studentItems: { where: { studentId } }, ...pushedToStudentInclude(studentId) } },
           },
         },
       },
@@ -221,7 +230,7 @@ export class ParentPortalService {
         const e = r.scheduleEvent;
         const ev = e?.evaluation;
         const attended = ATTENDED.includes(r.status);
-        const published = attended && ev?.status === 'published';
+        const published = attended && isEvaluationVisibleToParent(ev);
         const own = published ? ev!.studentItems[0] : undefined;
         const media = published ? this.splitMedia(ev!, own) : null;
         const ownPhotos = media?.ownPhotos || [];
@@ -255,12 +264,12 @@ export class ParentPortalService {
     };
   }
 
-  /** 已发布、孩子到课、家长还没看过的课评数 */
+  /** 已推送给这位学员、孩子到课、家长还没看过的课评数 */
   private async countUnread(parent: ParentPrincipal, studentId: string): Promise<number> {
     const events = await this.prisma.scheduleEvent.findMany({
       where: {
         status: 'completed',
-        evaluation: { status: 'published' },
+        evaluation: parentVisibleEvaluationWhere(studentId),
         attendances: { some: { studentId, isReversed: false, status: { in: ATTENDED } } },
       },
       select: { id: true },
@@ -477,14 +486,14 @@ export class ParentPortalService {
   // ------------------------------------------------------------------
   // 内部
   // ------------------------------------------------------------------
-  /** 子女出勤 (含迟到) 且课评已发布的课次 */
+  /** 子女出勤 (含迟到) 且课评已推送给这位学员的课次 */
   private async attendedPublishedLessons(studentId: string) {
     const records = await this.prisma.attendanceRecord.findMany({
       where: {
         studentId,
         isReversed: false,
         status: { in: ATTENDED },
-        scheduleEvent: { status: 'completed', evaluation: { status: 'published' } },
+        scheduleEvent: { status: 'completed', evaluation: parentVisibleEvaluationWhere(studentId) },
       },
       include: {
         scheduleEvent: {
@@ -500,15 +509,18 @@ export class ParentPortalService {
       .map((r) => ({ event: r.scheduleEvent, own: r.scheduleEvent.evaluation!.studentItems[0] }));
   }
 
-  /** 课评对家长可见：已发布 + 子女该课次出勤 (未冲正)；否则统一 404 */
+  /** 课评对家长可见：已发布且推送过这位学员 + 子女该课次出勤 (未冲正)；否则统一 404 */
   private async loadVisibleEvaluation(studentId: string, scheduleEventId: string) {
     const attendance = await this.prisma.attendanceRecord.findFirst({
       where: { studentId, scheduleEventId, isReversed: false, status: { in: ATTENDED }, scheduleEvent: { status: 'completed' } },
     });
     const event = attendance
-      ? await this.prisma.scheduleEvent.findUnique({ where: { id: scheduleEventId }, include: EVENT_INCLUDE })
+      ? await this.prisma.scheduleEvent.findUnique({
+          where: { id: scheduleEventId },
+          include: { ...EVENT_INCLUDE, evaluation: { include: pushedToStudentInclude(studentId) } },
+        })
       : null;
-    if (!attendance || !event || event.evaluation?.status !== 'published') {
+    if (!attendance || !event || !isEvaluationVisibleToParent(event.evaluation)) {
       throw new NotFoundException('课评尚未发布');
     }
     return { event, attendance };

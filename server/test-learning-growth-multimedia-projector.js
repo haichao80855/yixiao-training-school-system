@@ -172,6 +172,20 @@ const { SEED_PASSWORD, ACCOUNTS } = require('./test-utils/accounts');
       videoUrl: 'https://oss.yixiao.com/video/scratch_tank.mp4',
       status: 'published',
       currentRevision: 1,
+      // 家长可见以「推送过这位学员」为准 (出站信箱有该学员的记录)
+      outboxMessages: {
+        create: [
+          {
+            campusId: campus.id,
+            revisionNumber: 1,
+            studentId: testStudent.id,
+            channel: 'none',
+            status: 'skipped_no_openid',
+            idempotencyKey: `outbox_test_${scheduleEvent1.id}_${testStudent.id}`,
+            payload: '{}',
+          },
+        ],
+      },
       studentItems: {
         create: [
           {

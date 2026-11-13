@@ -300,6 +300,12 @@
           "needs": [
             "server"
           ]
+        },
+        {
+          "file": "server/test-parent-evaluation-push-scope.js",
+          "needs": [
+            "server"
+          ]
         }
       ]
     },
