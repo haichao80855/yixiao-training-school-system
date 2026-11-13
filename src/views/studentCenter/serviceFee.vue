@@ -214,7 +214,16 @@
       <el-form label-position="top">
         <div class="grid grid-cols-2 gap-3">
           <el-form-item label="报考学员" required>
-            <el-select v-model="newRecordForm.studentId" filterable class="w-full" @change="handleStudentSelect">
+            <el-select
+              v-model="newRecordForm.studentId"
+              filterable
+              remote
+              :remote-method="studentSearch.search"
+              :loading="studentSearch.loading.value"
+              placeholder="输入姓名、学号或手机号搜索"
+              class="w-full"
+              @change="handleStudentSelect"
+            >
               <el-option
                 v-for="s in studentsList"
                 :key="s.id"
@@ -245,8 +254,8 @@
         </div>
       </el-form>
       <template #footer>
-        <el-button @click="showAddDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleConfirmAdd">保存并提交审核</el-button>
+        <el-button :disabled="feeSubmitting" @click="showAddDialog = false">取消</el-button>
+        <el-button type="primary" :loading="feeSubmitting" @click="handleConfirmAdd">保存并提交审核</el-button>
       </template>
     </el-dialog>
 
@@ -263,14 +272,16 @@
         </el-form>
       </div>
       <template #footer>
-        <el-button @click="singleVerifyDialog = false">取消</el-button>
-        <el-button type="primary" @click="confirmSingleVerify">确认核销入账</el-button>
+        <el-button :disabled="feeSubmitting" @click="singleVerifyDialog = false">取消</el-button>
+        <el-button type="primary" :loading="feeSubmitting" @click="confirmSingleVerify">确认核销入账</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useSubmit } from '@/composables/useSubmit'
+import { useStudentSearch } from '@/composables/useStudentSearch'
 import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
@@ -297,20 +308,13 @@ const filteredFeeSum = computed(() => {
 })
 
 const tenantStore = useTenantStore()
-const studentsList = ref<Student[]>([])
+// 报考学员：后端按关键字搜索 (以前不传分页只取到 10 个学员)
+const studentSearch = useStudentSearch(() => tenantStore.currentCampusId)
+const studentsList = studentSearch.options
 const feeRecords = ref<ServiceFeeRecordItem[]>([])
 
-async function loadStudents() {
-  try {
-    const res = await studentApi.getStudents({})
-    if (res && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
-      studentsList.value = list
-    }
-  } catch (err: unknown) {
-    ElMessage.error(err instanceof Error ? err.message : '加载学员列表失败')
-    studentsList.value = []
-  }
+function loadStudents() {
+  return studentSearch.search()
 }
 
 function loadRecords() {
@@ -414,6 +418,9 @@ function handleStudentSelect(sId: string) {
   }
 }
 
+// 新增、核销提交中锁定按钮，连点只发一次
+const { submitting: feeSubmitting, submit: submitFee } = useSubmit()
+
 async function handleConfirmAdd() {
   if (!newRecordForm.examType.trim()) {
     ElMessage.warning('请输入考级或赛事项目名称')
@@ -431,15 +438,17 @@ async function handleConfirmAdd() {
     invoiceTitle: newRecordForm.invoiceTitle || `${newRecordForm.studentName} (个人)`,
     operator: '学管财务'
   }
-  try {
-    await studentApi.createServiceFee(payload)
-    await loadRecords()
-    ElMessage.success('代报考记录已添加，并推送至易快报待审池！')
-    showAddDialog.value = false
-    newRecordForm.examType = ''
-  } catch (err: unknown) {
-    ElMessage.error(err instanceof Error ? err.message : '添加代报考记录失败')
-  }
+  await submitFee(async () => {
+    try {
+      await studentApi.createServiceFee(payload)
+      ElMessage.success('代报考记录已添加，已提交审核')
+      showAddDialog.value = false
+      newRecordForm.examType = ''
+      void loadRecords()
+    } catch (err: unknown) {
+      ElMessage.error(err instanceof Error ? err.message : '添加代报考记录失败')
+    }
+  })
 }
 
 // 单条核销
@@ -454,15 +463,18 @@ function handleSingleVerify(row: ServiceFeeRecordItem) {
 }
 
 async function confirmSingleVerify() {
-  if (!verifyTarget.value) return
-  try {
-    await studentApi.verifyServiceFee(verifyTarget.value.id, verifyVoucherNo.value)
-    await loadRecords()
-    ElMessage.success(`核销入账成功！易快报凭证号: ${verifyVoucherNo.value}`)
-    singleVerifyDialog.value = false
-  } catch (err: unknown) {
-    ElMessage.error(err instanceof Error ? err.message : '核销入账失败')
-  }
+  const target = verifyTarget.value
+  if (!target) return
+  await submitFee(async () => {
+    try {
+      await studentApi.verifyServiceFee(target.id, verifyVoucherNo.value)
+      ElMessage.success(`核销入账成功，凭证号 ${verifyVoucherNo.value}`)
+      singleVerifyDialog.value = false
+      void loadRecords()
+    } catch (err: unknown) {
+      ElMessage.error(err instanceof Error ? err.message : '核销入账失败')
+    }
+  })
 }
 
 // 批量核销

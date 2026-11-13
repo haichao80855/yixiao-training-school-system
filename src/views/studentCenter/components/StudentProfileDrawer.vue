@@ -386,7 +386,7 @@
                   <div class="text-xs text-st-warning-deep">预存实充本金余额 (支持合规退现)</div>
                   <div class="text-2xl font-bold font-mono text-amber-950 mt-1">¥ {{ student.wallet.principalBalance.toFixed(2) }}</div>
                 </div>
-                <el-button type="primary" @click="showRechargeDialog = true">充值本金</el-button>
+                <el-button type="primary" @click="openRechargeDialog">充值本金</el-button>
               </div>
 
               <div class="bg-st-primary-light border border-st-primary-border p-4 rounded-lg flex items-center justify-between">
@@ -394,7 +394,7 @@
                   <div class="text-xs text-st-primary-active">校区大促赠送金账户 (优先消费抵扣)</div>
                   <div class="text-2xl font-bold font-mono text-st-primary-active mt-1">¥ {{ student.wallet.bonusBalance.toFixed(2) }}</div>
                 </div>
-                <el-button @click="showWithdrawDialog = true">本金提现</el-button>
+                <el-button @click="openWithdrawDialog">本金提现</el-button>
               </div>
             </div>
 
@@ -442,15 +442,15 @@
     <el-dialog v-model="showRechargeDialog" title="电子钱包充值" :width="DIALOG_SIZE.sm" append-to-body>
       <el-form label-position="top">
         <el-form-item label="充值实存本金金额 (¥)" required>
-          <el-input-number v-model="rechargeForm.amount" :min="100" :step="500" class="w-full" />
+          <el-input-number v-model="rechargeForm.amount" :min="1" :step="500" :precision="2" placeholder="请输入充值金额" class="w-full" />
         </el-form-item>
         <el-form-item label="校区大促赠送金额 (¥)">
-          <el-input-number v-model="rechargeForm.bonus" :min="0" :step="100" class="w-full" />
+          <el-input-number v-model="rechargeForm.bonus" :min="0" :step="100" :precision="2" class="w-full" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showRechargeDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleRecharge">确认充值上账</el-button>
+        <el-button :disabled="walletSubmitting" @click="showRechargeDialog = false">取消</el-button>
+        <el-button type="primary" :loading="walletSubmitting" @click="handleRecharge">确认充值</el-button>
       </template>
     </el-dialog>
 
@@ -458,12 +458,12 @@
     <el-dialog v-model="showWithdrawDialog" title="本金合规提现" :width="DIALOG_SIZE.sm" append-to-body>
       <el-form label-position="top">
         <el-form-item label="提现出账金额 (¥，不可超过本金余额)" required>
-          <el-input-number v-model="withdrawAmount" :min="10" :max="student?.wallet.principalBalance || 0" :step="100" class="w-full" />
+          <el-input-number v-model="withdrawAmount" :min="0.01" :max="student?.wallet.principalBalance || 0" :step="100" :precision="2" placeholder="请输入提现金额" class="w-full" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showWithdrawDialog = false">取消</el-button>
-        <el-button type="danger" @click="handleWithdraw">确认提现</el-button>
+        <el-button :disabled="walletSubmitting" @click="showWithdrawDialog = false">取消</el-button>
+        <el-button type="danger" :loading="walletSubmitting" @click="handleWithdraw">确认提现</el-button>
       </template>
     </el-dialog>
 
@@ -479,6 +479,7 @@ import { Link2, Image, Mic, Video } from 'lucide-vue-next'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { Student, StudentCoursePackage } from '@/types/student'
 import { studentApi } from '@/api'
+import { useSubmit, createIdempotencyKey } from '@/composables/useSubmit'
 import StudentAvatar from '@/components/StudentAvatar.vue'
 import { getStudentStatusLabel, getStudentStatusTagType, resolveStudentStatus } from '@/utils/studentStatus'
 
@@ -699,46 +700,91 @@ function handleAddRecord() {
   router.push('/educational/workbench')
 }
 
-// 充值
+// 充值 / 提现：每次打开表单清空金额并生成新的幂等键；确认前复述金额；提交中按钮锁定，重试和连点都只记一笔
+const { submitting: walletSubmitting, submit: submitWallet } = useSubmit()
+const formatAmount = (n: number) => `¥${Number(n).toFixed(2)}`
+
 const showRechargeDialog = ref(false)
-const rechargeForm = reactive({
-  amount: 2000,
-  bonus: 200
-})
+const rechargeForm = reactive<{ amount: number | undefined; bonus: number }>({ amount: undefined, bonus: 0 })
+let rechargeKey = ''
+
+function openRechargeDialog() {
+  rechargeForm.amount = undefined
+  rechargeForm.bonus = 0
+  rechargeKey = createIdempotencyKey('recharge')
+  showRechargeDialog.value = true
+}
 
 async function handleRecharge() {
   if (!props.student) return
-  try {
-    await studentApi.rechargeWallet(props.student.id, {
-      amount: Number(rechargeForm.amount),
-      bonus: Number(rechargeForm.bonus),
-      operator: '学管财务'
-    })
-    ElMessage.success(`充值成功！本金上账 ¥${rechargeForm.amount}，赠送金上账 ¥${rechargeForm.bonus}`)
-    showRechargeDialog.value = false
-    emit('updated')
-  } catch (err: any) {
-    ElMessage.error(err.message || '钱包充值失败')
+  const amount = Number(rechargeForm.amount)
+  const bonus = Number(rechargeForm.bonus) || 0
+  if (!amount || amount <= 0) {
+    ElMessage.warning('请输入充值金额')
+    return
   }
+  await submitWallet(async () => {
+    // 点「再看看」时不提交 (确认框关闭不是错误)
+    const confirmed = await ElMessageBox.confirm(
+        `给 ${props.student!.name} 充值本金 ${formatAmount(amount)}${bonus > 0 ? `，另赠送 ${formatAmount(bonus)}` : ''}，确认吗？`,
+        '确认充值',
+        { type: 'warning', confirmButtonText: '确认充值', cancelButtonText: '再看看' },
+      ).then(() => true, () => false)
+    if (!confirmed) return
+    try {
+      const res: any = await studentApi.rechargeWallet(props.student!.id, {
+        amount,
+        bonus,
+        operator: '学管财务',
+        idempotencyKey: rechargeKey,
+      })
+      ElMessage.success(res?.data?.replayed ? '这笔充值已经记过账，没有重复充值' : `充值成功：本金 ${formatAmount(amount)}${bonus > 0 ? `，赠送 ${formatAmount(bonus)}` : ''}`)
+      showRechargeDialog.value = false
+      emit('updated')
+    } catch (err: any) {
+      ElMessage.error(err.message || '钱包充值失败')
+    }
+  })
 }
 
-// 提现
 const showWithdrawDialog = ref(false)
-const withdrawAmount = ref(500)
+const withdrawAmount = ref<number | undefined>(undefined)
+let withdrawKey = ''
+
+function openWithdrawDialog() {
+  withdrawAmount.value = undefined
+  withdrawKey = createIdempotencyKey('withdraw')
+  showWithdrawDialog.value = true
+}
 
 async function handleWithdraw() {
   if (!props.student) return
-  try {
-    await studentApi.withdrawWallet(props.student.id, {
-      amount: Number(withdrawAmount.value),
-      operator: '学管财务'
-    })
-    ElMessage.success(`提现成功！已原路退回本金 ¥${withdrawAmount.value}`)
-    showWithdrawDialog.value = false
-    emit('updated')
-  } catch (err: any) {
-    ElMessage.error(err.message || '提现失败')
+  const amount = Number(withdrawAmount.value)
+  if (!amount || amount <= 0) {
+    ElMessage.warning('请输入提现金额')
+    return
   }
+  await submitWallet(async () => {
+    // 点「再看看」时不提交 (确认框关闭不是错误)
+    const confirmed = await ElMessageBox.confirm(`从 ${props.student!.name} 的本金中提现 ${formatAmount(amount)}，确认吗？`, '确认提现', {
+        type: 'warning',
+        confirmButtonText: '确认提现',
+        cancelButtonText: '再看看',
+      }).then(() => true, () => false)
+    if (!confirmed) return
+    try {
+      const res: any = await studentApi.withdrawWallet(props.student!.id, {
+        amount,
+        operator: '学管财务',
+        idempotencyKey: withdrawKey,
+      })
+      ElMessage.success(res?.data?.replayed ? '这笔提现已经处理过，没有重复提现' : `提现成功：已退回本金 ${formatAmount(amount)}`)
+      showWithdrawDialog.value = false
+      emit('updated')
+    } catch (err: any) {
+      ElMessage.error(err.message || '提现失败')
+    }
+  })
 }
 
 </script>

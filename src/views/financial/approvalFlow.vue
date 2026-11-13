@@ -65,9 +65,10 @@
           :type="activeStatusTab === st.key ? 'primary' : 'default'"
           :plain="activeStatusTab === st.key"
           class="!m-0"
-          @click="activeStatusTab = st.key"
+          @click="handleStatusTabChange(st.key)"
         >
           {{ st.name }}
+          <span v-if="statusCounts[st.key] !== undefined" class="font-mono ml-1">{{ statusCounts[st.key] }}</span>
         </el-button>
       </div>
     </div>
@@ -221,6 +222,15 @@
           </template>
         </el-table-column>
       </el-table>
+      <AppPagination
+        v-if="approvalTotal > 0"
+        v-model:current-page="approvalPage"
+        v-model:page-size="approvalPageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="approvalTotal"
+        :summary-text="`共 ${approvalTotal} 张审批单`"
+        @change="() => loadApprovals()"
+      />
     </div>
 
     <!-- 弹窗 1: 同意审批确认 (Pass Dialog) -->
@@ -251,8 +261,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="passDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmPass">确认通过</el-button>
+        <el-button :disabled="auditSubmitting" @click="passDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="auditSubmitting" @click="confirmPass">确认通过</el-button>
       </template>
     </el-dialog>
 
@@ -289,8 +299,8 @@
       </div>
 
       <template #footer>
-        <el-button @click="rejectDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="confirmReject">确认驳回</el-button>
+        <el-button :disabled="auditSubmitting" @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" :loading="auditSubmitting" @click="confirmReject">确认驳回</el-button>
       </template>
     </el-dialog>
 
@@ -357,7 +367,9 @@
 
 <script setup lang="ts">
 import AppEmpty from '@/components/AppEmpty.vue'
+import AppPagination from '@/components/AppPagination.vue'
 import { useLoadState } from '@/composables/useLoadState'
+import { useSubmit } from '@/composables/useSubmit'
 import { ref, computed, onMounted } from 'vue'
 import { Check, X as Close, Copy as DocumentCopy } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -380,7 +392,8 @@ const businessTabs = [
 ]
 
 // 状态分段 Tab
-const activeStatusTab = ref<string>('all')
+// 默认先看「待我审批」：进来就是要处理的单据
+const activeStatusTab = ref<string>('pending')
 const statusTabs = [
   { key: 'all', name: '全部状态' },
   { key: 'pending', name: '待我审批' },
@@ -394,58 +407,56 @@ function loadApprovals() {
   return trackList(loadApprovalsTask)
 }
 
+// 业务类型、状态、分页都交给后端筛选：以前只取了第一页 (20 条) 再在前端筛，超过 20 张的单据看不到，标签数量也不对
+const approvalTotal = ref(0)
+const approvalPage = ref(1)
+const approvalPageSize = ref(20)
+const businessCounts = ref<Record<string, number>>({})
+const statusCounts = ref<Record<string, number>>({})
+let approvalSeq = 0
+
 async function loadApprovalsTask() {
+  const seq = ++approvalSeq
   try {
     const res = await financialApi.getApprovals({
-      campusId: tenantStore.currentCampusId
+      campusId: tenantStore.currentCampusId,
+      businessType: activeBusinessTab.value,
+      status: activeStatusTab.value,
+      page: approvalPage.value,
+      pageSize: approvalPageSize.value
     })
+    if (seq !== approvalSeq) return
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      const data: any = res.data
+      const list = Array.isArray(data) ? data : (data.items || data.list || [])
       if (Array.isArray(list)) {
         remoteApprovals.value = list
+        approvalTotal.value = Array.isArray(data) ? list.length : Number(data.total ?? list.length)
+        businessCounts.value = data.businessCounts || {}
+        statusCounts.value = data.statusCounts || {}
         return
       }
     }
   } catch (err) {
+    if (seq !== approvalSeq) return
     failList(err, '获取审批单失败')
-    console.warn('[ApprovalFlow] 远程审批单拉取失败:', err)
   }
   remoteApprovals.value = []
+  approvalTotal.value = 0
 }
 
-const allApprovals = computed(() => {
-  return remoteApprovals.value
-})
-
-const businessCounts = computed(() => {
-  const map: Record<string, number> = {
-    all: allApprovals.value.length,
-    payment: 0,
-    quarterly: 0,
-    refund: 0
-  }
-  for (const a of allApprovals.value) {
-    if (map[a.businessType] !== undefined) {
-      map[a.businessType]++
-    }
-  }
-  return map
-})
-
-const filteredApprovals = computed(() => {
-  return allApprovals.value.filter(a => {
-    if (activeBusinessTab.value !== 'all' && a.businessType !== activeBusinessTab.value) {
-      return false
-    }
-    if (activeStatusTab.value !== 'all' && a.status !== activeStatusTab.value) {
-      return false
-    }
-    return true
-  })
-})
+const filteredApprovals = computed(() => remoteApprovals.value)
 
 function handleBusinessTabChange(key: string) {
   activeBusinessTab.value = key
+  approvalPage.value = 1
+  void loadApprovals()
+}
+
+function handleStatusTabChange(key: string) {
+  activeStatusTab.value = key
+  approvalPage.value = 1
+  void loadApprovals()
 }
 
 // 多选
@@ -499,19 +510,37 @@ function openPassDialog(record: ApprovalRecord) {
   passDialogVisible.value = true
 }
 
-async function confirmPass() {
-  if (!currentActiveRecord.value) return
-  try {
-    await financialApi.auditApproval(currentActiveRecord.value.id, {
-      action: 'pass',
-      comment: passComment.value || '审核通过'
-    })
+// 审批通过 / 驳回：提交中按钮锁定，连点只发一次；成功后先关弹窗再刷新列表。
+// 后端同一级只接受一次审批，别人刚审过时返回 409，这里提示并刷新。
+const { submitting: auditSubmitting, submit: submitAudit } = useSubmit()
+
+function handleAuditError(err: any, fallback: string) {
+  if (err?.status === 409) {
     passDialogVisible.value = false
-    ElMessage.success('审批已成功推进至下一节点并同步落盘')
-    await loadApprovals()
-  } catch (err: any) {
-    ElMessage.error(err.message || '审批推进失败')
+    rejectDialogVisible.value = false
+    ElMessage.warning(err.message || '该审批单刚刚已被处理，已刷新为最新状态')
+    void loadApprovals()
+    return
   }
+  ElMessage.error(err?.message || fallback)
+}
+
+async function confirmPass() {
+  const record = currentActiveRecord.value
+  if (!record) return
+  await submitAudit(async () => {
+    try {
+      await financialApi.auditApproval(record.id, {
+        action: 'pass',
+        comment: passComment.value || '审核通过'
+      })
+      passDialogVisible.value = false
+      ElMessage.success('已审批通过')
+      void loadApprovals()
+    } catch (err: any) {
+      handleAuditError(err, '审批失败')
+    }
+  })
 }
 
 function openRejectDialog(record: ApprovalRecord) {
@@ -527,17 +556,20 @@ async function confirmReject() {
     return
   }
 
-  try {
-    await financialApi.auditApproval(currentActiveRecord.value.id, {
-      action: 'reject',
-      comment: rejectComment.value.trim()
-    })
-    rejectDialogVisible.value = false
-    ElMessage.warning('审批单已驳回并中断流转，状态已同步落盘')
-    await loadApprovals()
-  } catch (err: any) {
-    ElMessage.error(err.message || '驳回失败')
-  }
+  const record = currentActiveRecord.value
+  await submitAudit(async () => {
+    try {
+      await financialApi.auditApproval(record.id, {
+        action: 'reject',
+        comment: rejectComment.value.trim()
+      })
+      rejectDialogVisible.value = false
+      ElMessage.warning('已驳回，审批流程已终止')
+      void loadApprovals()
+    } catch (err: any) {
+      handleAuditError(err, '驳回失败')
+    }
+  })
 }
 
 const serverTimelineNodes = ref<any[]>([])

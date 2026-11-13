@@ -40,7 +40,7 @@
           <span class="text-st-primary">迟到: {{ countStatus('late') }}</span>
         </div>
 
-        <el-button type="success" plain @click="handleAllPresent" class="inline-flex items-center gap-1">
+        <el-button type="success" plain :disabled="rosterLoading" @click="handleAllPresent" class="inline-flex items-center gap-1">
           <Zap class="w-4 h-4" />
           <span>一键全勤</span>
         </el-button>
@@ -48,7 +48,7 @@
 
       <!-- 学员花名册点名列表 -->
       <div class="space-y-2">
-        <el-table :data="studentRows" size="small" border stripe max-height="420px">
+        <el-table :data="studentRows" :empty-text="rosterLoading ? '正在加载学员名单…' : '这节课暂无学员'" size="small" border stripe max-height="420px">
           <el-table-column prop="studentName" label="学员姓名" width="105">
             <template #default="{ row }">
               <span class="font-bold text-st-title">{{ row.studentName }}</span>
@@ -110,7 +110,12 @@
     <template #footer>
       <div class="flex justify-end space-x-2 border-t pt-3">
         <el-button @click="visible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmitRollCall">
+        <el-button
+          type="primary"
+          :loading="submitting"
+          :disabled="rosterLoading || studentRows.length === 0"
+          @click="handleSubmitRollCall"
+        >
           确认下课并结算消课
         </el-button>
       </div>
@@ -163,26 +168,34 @@ function handleAllPresent() {
   ElMessage.success('已全部设置为“到课”出勤！')
 }
 
+const rosterLoading = ref(false)
+let rosterSeq = 0
+
 async function open(evt: ScheduleEvent) {
+  // 先清空上一节课的名单再打开：名单加载完成前不能「一键全勤」或提交，
+  // 避免把上一节课的名单提交到这节课
+  const seq = ++rosterSeq
   event.value = evt
+  studentRows.value = []
+  rosterLoading.value = true
   visible.value = true
 
   // 从真实后端接口拉取该课次绑定的学员名单与课包
   try {
     const res = await educationalApi.getRollCallStudents(evt.id)
-    if (res && res.data && Array.isArray(res.data)) {
-      studentRows.value = res.data
-      return
-    }
+    if (seq !== rosterSeq) return
+    studentRows.value = res && res.data && Array.isArray(res.data) ? res.data : []
   } catch (err: any) {
+    if (seq !== rosterSeq) return
     ElMessage.error(err.message || '拉取排课学员列表失败')
+    studentRows.value = []
+  } finally {
+    if (seq === rosterSeq) rosterLoading.value = false
   }
-
-  studentRows.value = []
 }
 
 async function handleSubmitRollCall() {
-  if (!event.value) return
+  if (!event.value || submitting.value || rosterLoading.value) return
   if (studentRows.value.length === 0) {
     ElMessage.warning('当前班级暂无可考勤学员')
     return
@@ -216,7 +229,7 @@ async function handleSubmitRollCall() {
     })
 
     if (res && res.success !== false) {
-      ElMessage.success(res.message || '随堂点名消课结算成功并已真实落库！')
+      ElMessage.success(res.message || '点名消课完成')
       visible.value = false
       emit('success')
     } else {

@@ -116,6 +116,12 @@
           "needs": [
             "server"
           ]
+        },
+        {
+          "file": "server/test-double-submit-guards.js",
+          "needs": [
+            "server"
+          ]
         }
       ]
     },
@@ -638,6 +644,14 @@
         },
         {
           "file": "tests/smoke/06-teacher-pay.smoke.cjs",
+          "needs": [
+            "server",
+            "admin-dist",
+            "browser"
+          ]
+        },
+        {
+          "file": "tests/smoke/07-double-submit.smoke.cjs",
           "needs": [
             "server",
             "admin-dist",

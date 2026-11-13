@@ -3,6 +3,7 @@ import {
   Logger,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { SettlementStrategyRegistry } from './settlement-strategy.registry';
@@ -49,19 +50,24 @@ export class FinancialApprovalOrchestrator {
     page?: number;
     pageSize?: number;
   }) {
-    const page = Number(query.page) || 1;
-    const pageSize = Number(query.pageSize) || 20;
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 20));
     const skip = (page - 1) * pageSize;
 
-    const where: any = {};
-    if (query.status && query.status !== 'all') where.status = query.status;
-    if (query.businessType && query.businessType !== 'all') where.businessType = query.businessType;
-    if (query.currentStep) where.currentStep = Number(query.currentStep);
+    // 校区、状态条件 (不含业务类型)：用于各业务类型标签上的数量
+    const baseWhere: any = {};
+    if (query.status && query.status !== 'all') baseWhere.status = query.status;
+    if (query.currentStep) baseWhere.currentStep = Number(query.currentStep);
     if (query.campusId && query.campusId !== 'all') {
-      where.order = { campusId: query.campusId };
+      baseWhere.order = { campusId: query.campusId };
     }
+    const where: any = { ...baseWhere };
+    if (query.businessType && query.businessType !== 'all') where.businessType = query.businessType;
 
-    const [total, list] = await Promise.all([
+    const statusWhere: any = { ...where };
+    delete statusWhere.status;
+
+    const [total, list, byBusinessType, byStatus] = await Promise.all([
       this.prisma.approvalFlow.count({ where }),
       this.prisma.approvalFlow.findMany({
         where,
@@ -81,13 +87,29 @@ export class FinancialApprovalOrchestrator {
           },
         },
       }),
+      this.prisma.approvalFlow.groupBy({ by: ['businessType'], where: baseWhere, _count: { _all: true } }),
+      this.prisma.approvalFlow.groupBy({ by: ['status'], where: statusWhere, _count: { _all: true } }),
     ]);
+
+    // 标签上的数量按全部符合条件的单据统计，不只是当前页
+    const businessCounts: Record<string, number> = { all: 0 };
+    for (const row of byBusinessType) {
+      businessCounts[row.businessType] = row._count._all;
+      businessCounts.all += row._count._all;
+    }
+    const statusCounts: Record<string, number> = { all: 0 };
+    for (const row of byStatus) {
+      statusCounts[row.status] = row._count._all;
+      statusCounts.all += row._count._all;
+    }
 
     return {
       total,
       page,
       pageSize,
       list,
+      businessCounts,
+      statusCounts,
     };
   }
 
@@ -205,7 +227,25 @@ export class FinancialApprovalOrchestrator {
 
     const strategy = this.strategyRegistry.getStrategy(flow.businessType);
 
+    const isFinalStep = previousStep >= flow.totalSteps;
+
     return this.prisma.$transaction(async (tx) => {
+      // 0. 先在事务里「认领」当前这一级：只有仍停在这一级、且未终结的单据才能推进。
+      //    同一张单的两个审批请求同时到达 (连点、两人同时审) 时只有一个生效，
+      //    不会把单据推进两级，也不会让终审的退费结算执行两次。
+      const claimed = await tx.approvalFlow.updateMany({
+        where: { id: flow.id, currentStep: previousStep, status: { notIn: ['approved', 'rejected'] } },
+        data:
+          normalizedAction === 'reject'
+            ? { status: 'rejected' }
+            : isFinalStep
+              ? { status: 'approved' }
+              : { currentStep: previousStep + 1 },
+      });
+      if (claimed.count !== 1) {
+        throw new ConflictException('该审批单刚刚已被处理，请刷新后查看最新状态');
+      }
+
       // 1. 确保 reviewerId 具备有效外键关联
       let validReviewerId = decision.reviewerId;
       if (!validReviewerId) {
@@ -236,9 +276,8 @@ export class FinancialApprovalOrchestrator {
       // 3. 状态机推进与分支处理
       if (normalizedAction === 'reject') {
         // 驳回逻辑：工单直接置为 rejected 终态
-        const updatedFlow = await tx.approvalFlow.update({
+        const updatedFlow = await tx.approvalFlow.findUnique({
           where: { id: flow.id },
-          data: { status: 'rejected' },
           include: { nodes: true },
         });
 
@@ -276,11 +315,10 @@ export class FinancialApprovalOrchestrator {
         };
       } else {
         // 通过逻辑：检查是否达到终审
-        if (previousStep >= flow.totalSteps) {
+        if (isFinalStep) {
           // 达到最后一级（3级财务终审）
-          const updatedFlow = await tx.approvalFlow.update({
+          const updatedFlow = await tx.approvalFlow.findUnique({
             where: { id: flow.id },
-            data: { status: 'approved' },
             include: { nodes: true },
           });
 
@@ -311,9 +349,8 @@ export class FinancialApprovalOrchestrator {
         } else {
           // 中间步骤推进
           const nextStep = previousStep + 1;
-          const updatedFlow = await tx.approvalFlow.update({
+          const updatedFlow = await tx.approvalFlow.findUnique({
             where: { id: flow.id },
-            data: { currentStep: nextStep },
             include: { nodes: true },
           });
 

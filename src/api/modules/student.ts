@@ -167,10 +167,10 @@ export const studentApi = {
     return request(`/api/students/${id}/movement`, { method: 'POST', body: JSON.stringify(flatDto) });
   },
 
-  rechargeWallet: (id: string, data: { amount: number; bonus?: number; operator?: string; remark?: string }) =>
+  rechargeWallet: (id: string, data: { amount: number; bonus?: number; operator?: string; remark?: string; idempotencyKey?: string }) =>
     request(`/api/students/${id}/wallet/recharge`, { method: 'POST', body: JSON.stringify(data) }),
 
-  withdrawWallet: (id: string, data: { amount: number; reason?: string; operator?: string }) =>
+  withdrawWallet: (id: string, data: { amount: number; reason?: string; operator?: string; idempotencyKey?: string }) =>
     request(`/api/students/${id}/wallet/withdraw`, { method: 'POST', body: JSON.stringify(data) }),
 
   getUnassignedStudents: async (params?: any, fallbackData?: any) =>

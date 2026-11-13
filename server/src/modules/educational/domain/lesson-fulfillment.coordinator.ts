@@ -409,6 +409,19 @@ export class LessonFulfillmentCoordinator {
     const photoListJson = JSON.stringify(command.photoList || []);
 
     return this.prisma.$transaction(async (tx) => {
+      // 结课类操作先在事务里「认领」这节课 (只有未结课的课能改成已结课)，
+      // 同一节课的两个结课请求同时到达时只有一个生效，另一个失败，不会重复扣课。
+      // 幂等键重放 (课已结、键相同) 沿用原来的处理，不再认领。
+      if ((mode === 'FULL_SETTLE' || mode === 'ATTENDANCE_ONLY') && schedule.status !== 'completed') {
+        const claimed = await tx.scheduleEvent.updateMany({
+          where: { id: schedule.id, status: { notIn: ['completed', 'cancelled'] } },
+          data: { status: 'completed' },
+        });
+        if (claimed.count !== 1) {
+          throw new BadRequestException('该排课日程已结课，如需变更请先执行反结课冲正');
+        }
+      }
+
       const settlementDetails: FulfillmentReceipt['settlement']['details'] = [];
       let totalDeductedLessons = 0;
       let regularLessonsBurned = 0;

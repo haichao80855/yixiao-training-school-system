@@ -304,7 +304,7 @@ import CapsuleFilter from '@/components/CapsuleFilter.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
 import StudentAvatar from '@/components/StudentAvatar.vue'
 import { downloadCsv, todayStamp, type CsvColumn } from '@/utils/csvExport'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, OPTION_LIST_PAGE_SIZE } from '@/constants/ui'
 import type { UnassignedStudentItemView, UnassignedRosterSummary } from '@/types/educational'
 
 export interface AvailableClassOption {
@@ -369,7 +369,7 @@ async function loadData() {
         page: currentPage.value,
         pageSize: pageSize.value,
       }),
-      educationalApi.getClasses({})
+      educationalApi.getClasses({ pageSize: OPTION_LIST_PAGE_SIZE })
     ])
 
     if (rosterRes?.data) {

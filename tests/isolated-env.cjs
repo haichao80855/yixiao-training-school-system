@@ -6,6 +6,7 @@
  * 用法：node tests/isolated-env.cjs [--keep] [--no-build] [run-suite 的参数...]
  *   --keep      跑完保留临时目录 (库、上传文件、后端日志)，方便排查
  *   --no-build  不检查后端构建是否过期 (CI 里已经单独构建过)
+ *   --exec=<脚本> 不跑测试清单，改为在临时后端上运行这个脚本 (例如压测 scripts/bench-api.cjs)
  *   其余参数原样传给 run-suite，例如 --scope=server、--group=资金、--file=teacher-pay
  */
 const fs = require('fs');
@@ -21,7 +22,9 @@ const BIN = path.join(SERVER, 'node_modules/.bin');
 const argv = process.argv.slice(2);
 const keep = argv.includes('--keep');
 const noBuild = argv.includes('--no-build');
-const suiteArgs = argv.filter((a) => a !== '--keep' && a !== '--no-build');
+const execArg = argv.find((a) => a.startsWith('--exec='));
+const execScript = execArg ? path.resolve(execArg.slice('--exec='.length)) : null;
+const suiteArgs = argv.filter((a) => a !== '--keep' && a !== '--no-build' && a !== execArg);
 
 function log(msg) {
   console.log(`[isolated] ${msg}`);
@@ -106,6 +109,7 @@ async function main() {
     NODE_ENV: 'test',
     STORAGE_ENGINE: 'local',
     COURSEWARE_PROBE: 'off',
+    SERVER_LOG_FILE: logFile,
   };
   // 测试不应碰到真实 OSS、告警机器人和微信接口
   for (const k of Object.keys(env)) {
@@ -138,7 +142,8 @@ async function main() {
       throw new Error('临时后端 30 秒内没有就绪');
     }
 
-    const suite = spawnSync(process.execPath, [path.join(__dirname, 'run-suite.cjs'), ...suiteArgs], {
+    const target = execScript || path.join(__dirname, 'run-suite.cjs');
+    const suite = spawnSync(process.execPath, [target, ...suiteArgs], {
       cwd: ROOT,
       env,
       stdio: 'inherit',
