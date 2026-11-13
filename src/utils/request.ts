@@ -101,24 +101,26 @@ export async function request<T = any>(
     headers['Content-Type'] = 'application/json'
   }
 
-  // 超时：用自己的 AbortController，同时尊重调用方传入的 signal
+  // 超时：用计时器和请求赛跑，网络卡住时按时报错 (不把自建的 AbortSignal 交给 fetch，
+  // 测试环境里 jsdom 的 AbortSignal 和 Node 自带 fetch 不兼容)。调用方传入的 signal 照常交给 fetch。
   const method = (fetchOptions.method || 'GET').toUpperCase()
   const timeout = timeoutMs ?? (isFormData ? 0 : method === 'GET' ? DEFAULT_READ_TIMEOUT_MS : DEFAULT_WRITE_TIMEOUT_MS)
-  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
-  let timedOut = false
-  const timer = controller && timeout > 0 ? setTimeout(() => { timedOut = true; controller.abort() }, timeout) : null
-  const outerSignal = fetchOptions.signal
-  if (controller && outerSignal) {
-    if (outerSignal.aborted) controller.abort()
-    else outerSignal.addEventListener('abort', () => controller.abort(), { once: true })
+  let timer: ReturnType<typeof setTimeout> | null = null
+  const withTimeout = <R,>(task: Promise<R>): Promise<R> => {
+    if (!(timeout > 0)) return task
+    return Promise.race([
+      task,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new RequestTimeoutError()), timeout)
+      }),
+    ])
   }
 
   try {
-    const res = await fetch(finalUrl, {
+    const res = await withTimeout(fetch(finalUrl, {
       ...fetchOptions,
       headers,
-      ...(controller ? { signal: controller.signal } : {}),
-    })
+    }))
 
     // 401：会话无效或已过期 → 清除登录状态并回到登录页 (登录接口自身的 401 是密码错误等，照常抛出)
     if (res.status === 401 && !url.includes('/api/auth/login')) {
@@ -142,8 +144,7 @@ export async function request<T = any>(
       message: responseData.message,
       fromMock: false,
     }
-  } catch (rawErr: any) {
-    const err = timedOut ? new RequestTimeoutError() : rawErr
+  } catch (err: any) {
     // 会话失效绝不回退本地数据，否则页面会在未登录状态下展示示例数据
     if (err instanceof SessionExpiredError) throw err
     // 关键防线：写操作绝对禁止回退 fallbackData！必须直接抛出异常阻断业务流程！
