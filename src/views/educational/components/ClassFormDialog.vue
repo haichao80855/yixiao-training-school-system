@@ -378,7 +378,7 @@ async function handleSubmit() {
           ...(lastScheduleDate.value ? {} : { endDate: form.endDate }),
           status: form.status,
         })
-        ElMessage.success('班级信息已更新并同步落库！')
+        ElMessage.success('班级信息已更新')
       } else {
         await educationalApi.createClass({
           campusId: props.campusId,
@@ -393,7 +393,7 @@ async function handleSubmit() {
           endDate: form.endDate,
           status: form.status,
         })
-        ElMessage.success('新建班级成功并已同步落库！')
+        ElMessage.success('班级已创建')
       }
       visible.value = false
       emit('success')

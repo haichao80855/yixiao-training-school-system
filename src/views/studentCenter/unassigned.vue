@@ -526,7 +526,7 @@ async function confirmAssign() {
     } else if (activeItem.value) {
       ElMessage.success(`学员 [${activeItem.value.name}] 已成功编入班级 [${cls.name}]！`)
     } else {
-      ElMessage.success(`已成功为 ${studentIds.length} 名学员分配至班级 [${cls.name}] 并实时落库！`)
+      ElMessage.success(`已将 ${studentIds.length} 名学员分到「${cls.name}」`)
     }
 
     assignDialogVisible.value = false

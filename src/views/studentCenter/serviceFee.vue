@@ -110,7 +110,7 @@
               :type="listError ? 'error' : (keyword || selectedCategory ? 'search' : 'data')"
               :description="listError || undefined"
               @retry="loadRecords"
-              action-text="重置筛选"
+              :action-text="listError ? undefined : '重置筛选'"
               @action="handleReset"
             />
           </template>

@@ -422,7 +422,7 @@ async function saveOrgMeta(updatedMeta: Partial<CompanyInfo>) {
       Object.assign(orgMeta, res.data)
     }
     showEditOrgModal.value = false
-    ElMessage.success('机构工商基本信息已成功持久化落盘！')
+    ElMessage.success('机构基本信息已保存')
     await loadData()
   } catch (err: any) {
     ElMessage.error(err.message || '更新机构信息失败')
@@ -438,7 +438,7 @@ async function handleSaveLogo(logoPayload: { logoUrl: string; faviconUrl: string
     if (res && res.data) {
       Object.assign(orgMeta, res.data)
     }
-    ElMessage.success('机构品牌与报告 LOGO 配置已成功持久化落库！')
+    ElMessage.success('机构品牌与报告 LOGO 已保存')
   } catch (err: any) {
     ElMessage.error(err.message || '保存品牌配置失败')
   } finally {

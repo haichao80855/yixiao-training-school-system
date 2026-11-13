@@ -119,7 +119,7 @@
                     :type="listError ? 'error' : (filterTeacher || filterDate ? 'search' : 'data')"
               :description="listError || undefined"
               @retry="loadData"
-                    action-text="重置日期"
+                    :action-text="listError ? undefined : '重置日期'"
                     @action="() => { filterDate = getTodayDateStr(); filterScheduleStatus = 'all'; }"
                   />
                 </template>

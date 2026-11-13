@@ -123,8 +123,10 @@
         >
           <template #empty>
             <AppEmpty
-              :type="keyword || selectedStatus !== 'all' ? 'search' : 'data'"
-              :action-text="keyword || selectedStatus !== 'all' ? '重置筛选条件' : '新增学员建档'"
+              :type="listError ? 'error' : (keyword || selectedStatus !== 'all' ? 'search' : 'data')"
+              :description="listError || undefined"
+              :action-text="listError ? undefined : (keyword || selectedStatus !== 'all' ? '重置筛选条件' : '新增学员建档')"
+              @retry="loadStudents"
               @action="keyword || selectedStatus !== 'all' ? handleReset() : handleAddStudent()"
             />
           </template>
@@ -413,6 +415,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRouteQueryState } from '@/composables/useRouteQueryState'
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Phone } from 'lucide-vue-next'
@@ -454,18 +457,21 @@ function handleStatusCapsuleChange(val: string) {
 }
 
 const loading = ref(false)
+// 加载失败的原因：空状态区据此显示「加载失败，重新加载」，而不是「暂无数据」
+const listError = ref('')
 
 // 搜索条件
-const keyword = ref('')
+// 关键字、状态、页码记在地址栏：从学员档案返回、刷新后列表还停在原处
+const keyword = useRouteQueryState<string>('q', '')
 // 默认跟随顶部当前校区（与控制台看板、待分班池同一校区口径），可手动切换「全部校区」
 const selectedCampus = ref(tenantStore.currentCampusId || 'all')
 const selectedGrade = ref('')
-const selectedStatus = ref('all')
+const selectedStatus = useRouteQueryState<string>('status', 'all')
 const selectedWarningLevel = ref('all')
 const dateRange = ref<[string, string] | null>(null)
 
 // 分页
-const currentPage = ref(1)
+const currentPage = useRouteQueryState<number>('page', 1)
 const pageSize = ref(10)
 const selectedRows = ref<Student[]>([])
 
@@ -500,6 +506,7 @@ let appliedKeyword = ''
 
 async function loadStudents() {
   const seq = ++listRequestSeq
+  listError.value = ''
   loading.value = true
   appliedKeyword = keyword.value.trim()
   const [createdFrom, createdTo] = dateRange.value && dateRange.value.length === 2 ? dateRange.value : [undefined, undefined]
@@ -523,7 +530,7 @@ async function loadStudents() {
     totalCount.value = Number(Array.isArray(data) ? list.length : (data?.total ?? studentList.value.length))
   } catch (err: any) {
     if (seq !== listRequestSeq) return
-    ElMessage.error(err.message || '获取学员列表失败')
+    listError.value = err instanceof TypeError ? '网络连接失败，请检查网络后重新加载' : (err.message || '获取学员列表失败')
     studentList.value = []
     totalCount.value = 0
   } finally {

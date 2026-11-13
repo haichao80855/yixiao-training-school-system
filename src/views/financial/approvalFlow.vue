@@ -366,6 +366,7 @@
 </template>
 
 <script setup lang="ts">
+import { useRouteQueryState } from '@/composables/useRouteQueryState'
 import AppEmpty from '@/components/AppEmpty.vue'
 import AppPagination from '@/components/AppPagination.vue'
 import { useLoadState } from '@/composables/useLoadState'
@@ -383,7 +384,8 @@ const { loading: listLoading, loadError: listError, track: trackList, fail: fail
 const tenantStore = useTenantStore()
 
 // 3 大业务 Tab
-const activeBusinessTab = ref<string>('all')
+// 标签和页码记在地址栏：从别的页面返回、刷新后还停在原处
+const activeBusinessTab = useRouteQueryState<string>('type', 'all')
 const businessTabs = [
   { key: 'all', name: '全部业务' },
   { key: 'payment', name: '常规收款确认' },
@@ -393,7 +395,7 @@ const businessTabs = [
 
 // 状态分段 Tab
 // 默认先看「待我审批」：进来就是要处理的单据
-const activeStatusTab = ref<string>('pending')
+const activeStatusTab = useRouteQueryState<string>('status', 'pending')
 const statusTabs = [
   { key: 'all', name: '全部状态' },
   { key: 'pending', name: '待我审批' },
@@ -410,7 +412,7 @@ function loadApprovals() {
 
 // 业务类型、状态、分页都交给后端筛选：以前只取了第一页 (20 条) 再在前端筛，超过 20 张的单据看不到，标签数量也不对
 const approvalTotal = ref(0)
-const approvalPage = ref(1)
+const approvalPage = useRouteQueryState<number>('page', 1)
 const approvalPageSize = ref(20)
 const businessCounts = ref<Record<string, number>>({})
 const statusCounts = ref<Record<string, number>>({})

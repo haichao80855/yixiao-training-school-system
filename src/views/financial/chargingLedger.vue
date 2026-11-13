@@ -161,7 +161,7 @@
               :type="listError ? 'error' : (filterKeyword || filterMethod !== 'all' || filterType !== 'all' ? 'search' : 'data')"
               :description="listError || undefined"
               @retry="loadLedgers"
-              action-text="重置筛选"
+              :action-text="listError ? undefined : '重置筛选'"
               @action="resetFilter"
             />
           </template>

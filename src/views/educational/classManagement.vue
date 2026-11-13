@@ -177,7 +177,7 @@
               :type="listError ? 'error' : (searchQuery || statusFilter || teacherFilter ? 'search' : 'data')"
               :description="listError || undefined"
               @retry="loadData"
-              action-text="重置筛选"
+              :action-text="listError ? undefined : '重置筛选'"
               @action="handleResetFilters"
             />
           </template>

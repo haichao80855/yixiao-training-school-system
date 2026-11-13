@@ -5,8 +5,11 @@
     :width="DIALOG_SIZE.lg"
     destroy-on-close
     :close-on-click-modal="false"
+    :before-close="beforeClose"
   >
     <div class="space-y-5">
+      <!-- 不用遮罩：遮罩淡出时会吞掉点击，改成一行提示 -->
+      <div v-if="optionsLoading" class="text-xs text-st-muted">正在加载学员和课程…</div>
       <!-- 步骤指示器 -->
       <el-steps :active="currentStep" finish-status="success" align-center class="mb-4">
         <el-step title="确认学员与校区" />
@@ -232,6 +235,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCloseGuard } from '@/composables/useCloseGuard'
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { FileText } from 'lucide-vue-next'
@@ -339,12 +343,24 @@ const walletInsufficient = computed(() => {
   return total < finalActualAmount.value
 })
 
+// 打开时先清掉上一次的选择再加载选项，避免先闪出旧的学员、课程和价格再跳变
+const optionsLoading = ref(false)
+// 已经走到后面的步骤时，误按 Esc 或点关闭会先确认
+const beforeClose = useCloseGuard(() => currentStep.value > 0, '报名开单还没有完成，确定关闭吗？')
+
 async function resetForm() {
-  await loadData()
   currentStep.value = 0
   formData.couponAmount = 0
   formData.discountAmount = 0
   formData.paymentMethod = 'wechat'
+  formData.studentId = props.student?.id || props.renewalDraft?.studentId || ''
+  formData.courseId = ''
+  optionsLoading.value = true
+  try {
+    await loadData()
+  } finally {
+    optionsLoading.value = false
+  }
 
   if (props.renewalDraft) {
     const draft = props.renewalDraft
@@ -364,8 +380,8 @@ async function resetForm() {
   if (props.student) {
     formData.studentId = props.student.id
     formData.campusId = props.student.campusId || tenantStore.currentCampusId
-  } else if (candidateStudents.value.length > 0) {
-    formData.studentId = candidateStudents.value[0].id
+  } else {
+    // 不再默认选中第一个学员：报名关系到收费，由操作人自己选
     formData.campusId = tenantStore.currentCampusId
   }
   if (availableCourses.value.length > 0) {
@@ -501,7 +517,7 @@ async function handleSubmit() {
     ElMessage.success(
       mergedClass
         ? `续费成功，已并入原班「${mergedClass}」${orderNo ? `，订单号：${orderNo}` : ''}`
-        : orderNo ? `签约开单成功！订单已落盘：${orderNo}` : '签约开单成功！'
+        : orderNo ? `报名成功，订单号 ${orderNo}` : '报名成功'
     )
     emit('success')
     visible.value = false

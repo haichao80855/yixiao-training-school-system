@@ -6,6 +6,7 @@
     destroy-on-close
     :close-on-click-modal="false"
   >
+    <div v-if="optionsLoading" class="text-xs text-st-muted mb-2">正在加载班级、讲师和教室…</div>
     <el-form ref="formRef" :model="form" :rules="rules" :label-width="FORM_LABEL_WIDTH.md" size="default">
       <!-- 班级选择 -->
       <el-form-item label="上课班级" prop="classId">
@@ -153,6 +154,7 @@
 </template>
 
 <script setup lang="ts">
+import { toDateKey } from '@/utils/dateKey'
 import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { AlertTriangle, CheckCircle2 } from 'lucide-vue-next'
@@ -285,11 +287,19 @@ async function triggerCollisionCheck() {
   }
 }
 
+// 先打开弹窗 (点格子立刻有反应)，班级、讲师、教室选项在弹窗里加载
+const optionsLoading = ref(false)
+
 async function open(payload?: { date?: string; startTime?: string; endTime?: string; event?: ScheduleEvent }) {
-  await reloadOptions()
   visible.value = true
   forceSchedule.value = false
   collisionResult.value = null
+  optionsLoading.value = true
+  try {
+    await reloadOptions()
+  } finally {
+    optionsLoading.value = false
+  }
 
   if (payload?.event) {
     isEdit.value = true
@@ -312,7 +322,8 @@ async function open(payload?: { date?: string; startTime?: string; endTime?: str
   } else {
     isEdit.value = false
     currentEventId.value = null
-    const defaultClass = availableClasses.value[0]
+    // 新建排课不再默认选中第一个班级：由老师自己选，选了班级再带出讲师、教室和学员
+    const defaultClass = undefined as (typeof availableClasses.value)[number] | undefined
     form.classId = defaultClass ? defaultClass.id : ''
     form.className = defaultClass ? defaultClass.name : ''
     form.courseId = defaultClass ? defaultClass.courseId : ''
@@ -321,7 +332,8 @@ async function open(payload?: { date?: string; startTime?: string; endTime?: str
     form.teacherName = defaultClass ? defaultClass.teacherName : ''
     form.classroomId = defaultClass ? defaultClass.classroomId : ''
     form.classroomName = defaultClass ? defaultClass.classroomName : ''
-    form.date = payload?.date || new Date().toISOString().substring(0, 10)
+    // 默认日期按北京时间算 (以前用 UTC，早上 8 点前会默认成昨天)
+    form.date = payload?.date || toDateKey(new Date())
     form.startTime = payload?.startTime || '09:00'
     form.endTime = payload?.endTime || '10:30'
     form.classType = 'formal'
@@ -330,7 +342,7 @@ async function open(payload?: { date?: string; startTime?: string; endTime?: str
     form.studentIds = defaultClass ? [...defaultClass.studentIds] : []
   }
 
-  triggerCollisionCheck()
+  if (form.classId) triggerCollisionCheck()
 }
 
 async function handleSubmit() {
@@ -357,7 +369,7 @@ async function handleSubmit() {
           classType: form.classType || 'formal',
           semanticType: collisionResult.value?.hasConflict ? 'conflict' : 'regular'
         })
-        ElMessage.success('修改排课成功并同步落库！')
+        ElMessage.success('排课已修改')
       } else {
         await educationalApi.createSchedule({
           campusId: props.campusId,
@@ -370,7 +382,7 @@ async function handleSubmit() {
           classType: form.classType || 'formal',
           semanticType: collisionResult.value?.hasConflict ? 'conflict' : 'regular'
         })
-        ElMessage.success('新建排课成功并同步落库！')
+        ElMessage.success('排课已创建')
       }
       visible.value = false
       emit('success')

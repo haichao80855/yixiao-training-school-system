@@ -83,7 +83,7 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
     - `*.server.spec.js` files need a backend, run only in the isolated environment, and must each be registered in `tests/suites.json`.
     - `route-access-matrix.server.spec.js` logs in as 5 roles and records who can open which admin page in `route-access-matrix.md`. When you change page or role permissions on purpose, delete that file, rerun `npm run test:all -- --file=route-access-matrix`, and commit the regenerated table.
     - Known bugs are recorded with `it.fails`, which passes while the bug exists and fails once it is fixed. Then remove `.fails`.
-  - `tests/smoke/*.smoke.cjs`: Browser smoke tests (puppeteer-core) for 7 key flows.
+  - `tests/smoke/*.smoke.cjs`: Browser smoke tests (puppeteer-core) for 8 key flows.
     - Run them with `npm run test:smoke`, which builds the SPA and uses the isolated backend.
     - They are not part of `test:all` or PR CI. `.github/workflows/nightly-smoke.yml` runs them nightly or on demand.
     - Set up data through the API or Prisma, and drive only the key UI steps.

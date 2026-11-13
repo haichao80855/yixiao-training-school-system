@@ -5,6 +5,7 @@
     :width="DIALOG_SIZE.md"
     destroy-on-close
     :close-on-click-modal="false"
+    :before-close="beforeClose"
   >
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
       <div class="grid grid-cols-3 gap-3">
@@ -109,6 +110,7 @@
 </template>
 
 <script setup lang="ts">
+import { useCloseGuard } from '@/composables/useCloseGuard'
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
@@ -160,6 +162,13 @@ const form = reactive({
   status: 'normal' as StudentStatus,
   wechatBound: true
 })
+
+// 防误关：打开时记下表单内容，关闭时有改动就先确认
+let formSnapshot = ''
+watch(visible, (open) => {
+  if (open) setTimeout(() => { formSnapshot = JSON.stringify(form) }, 0)
+})
+const beforeClose = useCloseGuard(() => JSON.stringify(form) !== formSnapshot)
 
 const rules: FormRules = {
   name: [{ required: true, message: '请输入学员姓名', trigger: 'blur' }],

@@ -68,6 +68,7 @@ declare module 'vue' {
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     ElTree: typeof import('element-plus/es')['ElTree']
     HighDensityGrid: typeof import('./components/HighDensityGrid.vue')['default']
+    RouteProgress: typeof import('./components/RouteProgress.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     StudentAvatar: typeof import('./components/StudentAvatar.vue')['default']

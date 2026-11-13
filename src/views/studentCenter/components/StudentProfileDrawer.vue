@@ -685,7 +685,7 @@ async function handleClearPackage(pkg: StudentCoursePackage) {
       })
       pkg.status = 'refunded'
       pkg.remainingLessons = 0
-      ElMessage.success('课包已清零归档并真实同步落库！')
+      ElMessage.success('课包已清零归档')
       emit('updated')
     } catch (err: any) {
       ElMessage.error(err.message || '课包清零归档失败')
