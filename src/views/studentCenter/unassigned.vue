@@ -115,7 +115,7 @@
           <el-table-column label="学员姓名" min-width="150">
             <template #default="{ row }">
               <div class="flex items-center space-x-2">
-                <img v-if="row.avatar" :src="row.avatar" class="w-8 h-8 rounded-full object-cover border" alt="" />
+                <img v-if="row.avatar" :src="row.avatar" loading="lazy" decoding="async" class="w-8 h-8 rounded-full object-cover border" alt="" />
                 <StudentAvatar v-else :seed="row.studentId" :name="row.name" :gender="row.gender" :size="32" />
                 <div>
                   <div class="font-semibold text-st-primary text-xs">{{ row.name }}</div>

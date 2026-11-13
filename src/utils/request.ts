@@ -6,6 +6,20 @@
 interface RequestOptions extends RequestInit {
   params?: Record<string, any>
   fallbackData?: any
+  /** 超时毫秒数：默认查询 15 秒、写操作 30 秒、上传文件不设超时；传 0 表示不设超时 */
+  timeoutMs?: number
+}
+
+const DEFAULT_READ_TIMEOUT_MS = 15000
+const DEFAULT_WRITE_TIMEOUT_MS = 30000
+
+/** 请求超时：网络卡住时按钮和表格不会一直转圈，调用方照常收到错误并提示 */
+export class RequestTimeoutError extends Error {
+  status = 0
+  constructor(message = '网络较慢，请求超时，请稍后重试') {
+    super(message)
+    this.name = 'RequestTimeoutError'
+  }
 }
 
 const TOKEN_KEY = 'yixiao_auth_token'
@@ -53,7 +67,7 @@ export async function request<T = any>(
   url: string,
   options: RequestOptions = {}
 ): Promise<{ success: boolean; data: T; message?: string; fromMock?: boolean }> {
-  const { params, fallbackData, headers: customHeaders, ...fetchOptions } = options
+  const { params, fallbackData, timeoutMs, headers: customHeaders, ...fetchOptions } = options
 
   // 1. 构建 URL 查询参数
   let finalUrl = url
@@ -87,10 +101,23 @@ export async function request<T = any>(
     headers['Content-Type'] = 'application/json'
   }
 
+  // 超时：用自己的 AbortController，同时尊重调用方传入的 signal
+  const method = (fetchOptions.method || 'GET').toUpperCase()
+  const timeout = timeoutMs ?? (isFormData ? 0 : method === 'GET' ? DEFAULT_READ_TIMEOUT_MS : DEFAULT_WRITE_TIMEOUT_MS)
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+  let timedOut = false
+  const timer = controller && timeout > 0 ? setTimeout(() => { timedOut = true; controller.abort() }, timeout) : null
+  const outerSignal = fetchOptions.signal
+  if (controller && outerSignal) {
+    if (outerSignal.aborted) controller.abort()
+    else outerSignal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+
   try {
     const res = await fetch(finalUrl, {
       ...fetchOptions,
       headers,
+      ...(controller ? { signal: controller.signal } : {}),
     })
 
     // 401：会话无效或已过期 → 清除登录状态并回到登录页 (登录接口自身的 401 是密码错误等，照常抛出)
@@ -115,11 +142,11 @@ export async function request<T = any>(
       message: responseData.message,
       fromMock: false,
     }
-  } catch (err: any) {
+  } catch (rawErr: any) {
+    const err = timedOut ? new RequestTimeoutError() : rawErr
     // 会话失效绝不回退本地数据，否则页面会在未登录状态下展示示例数据
     if (err instanceof SessionExpiredError) throw err
     // 关键防线：写操作绝对禁止回退 fallbackData！必须直接抛出异常阻断业务流程！
-    const method = (fetchOptions.method || 'GET').toUpperCase()
     const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
     if (!isWriteOperation && fallbackData !== undefined) {
       console.warn(`[Dual-Track Request] 后端服务未连接，使用高保真本地数据: ${url}`)
@@ -131,5 +158,7 @@ export async function request<T = any>(
       }
     }
     throw err
+  } finally {
+    if (timer) clearTimeout(timer)
   }
 }

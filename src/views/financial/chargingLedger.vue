@@ -286,10 +286,11 @@
 </template>
 
 <script setup lang="ts">
+import { useDebouncedRef } from '@/composables/useDebouncedRef'
 import { useLoadState } from '@/composables/useLoadState'
 import { toDateKey } from '@/utils/dateKey'
 import { RefreshCw as Refresh, Download, Copy as DocumentCopy } from 'lucide-vue-next'
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
 import { financialApi } from '@/api'
@@ -309,18 +310,20 @@ const filterType = ref('all')
 const filterDateRange = ref<string[] | null>(null)
 const filterKeyword = ref('')
 
-const remoteLedgers = ref<LedgerRecord[]>([])
+// 只读的服务端列表用 shallowRef：整体替换时才更新，不对每一行做深层响应式
+const remoteLedgers = shallowRef<LedgerRecord[]>([])
 
 function loadLedgers() {
   return trackList(loadLedgersTask)
 }
 
-async function loadLedgersTask() {
+async function loadLedgersTask(isLatest: () => boolean = () => true) {
   try {
     const res = await financialApi.getLedgers({
       campusId: filterCampus.value || 'all',
       pageSize: 200
     })
+    if (!isLatest()) return
     if (res && res.success && res.data) {
       remoteLedgers.value = Array.isArray(res.data) ? res.data : []
       return
@@ -340,6 +343,8 @@ const filteredTotalAmount = computed(() => {
   return displayLedgers.value.reduce((sum, item) => sum + (item.amount || 0), 0).toFixed(2)
 })
 
+// 关键字停止输入 300ms 后才过滤，打字时不会每个键都重算整张表
+const filterKeywordDebounced = useDebouncedRef(filterKeyword)
 const displayLedgers = computed(() => {
   return allLedgers.value.filter(item => {
     if (filterCampus.value && filterCampus.value !== 'all') {
@@ -355,8 +360,8 @@ const displayLedgers = computed(() => {
       const d = item.date.split(' ')[0]
       if (d < filterDateRange.value[0] || d > filterDateRange.value[1]) return false
     }
-    if (filterKeyword.value.trim()) {
-      const kw = filterKeyword.value.trim().toLowerCase()
+    if (filterKeywordDebounced.value.trim()) {
+      const kw = filterKeywordDebounced.value.trim().toLowerCase()
       const matchTrans = item.transNo.toLowerCase().includes(kw)
       const matchStu = item.student.toLowerCase().includes(kw)
       const matchNo = (item.studentNo || '').toLowerCase().includes(kw)

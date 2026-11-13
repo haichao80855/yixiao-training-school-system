@@ -403,13 +403,13 @@ async function loadStats(isSilent = true) {
     upcomingEnd.setDate(today.getDate() + 13)
 
     // 列表接口均为分页接口：计数一律取后端 total / summary，避免只数到第一页
-    const [ordersRes, studentsRes, coursesRes, weekRes, upcomingRes, approvalsRes, unassignedRes] = await Promise.all([
+    const [ordersRes, studentsRes, coursesRes, scheduleRes, approvalsRes, unassignedRes] = await Promise.all([
       financialApi.getOrders({ campusId, period: 'month', status: 'paid', pageSize: 1 }).catch(() => null),
       // 与学员中心「正常在读」筛选同口径（normal + in_class）
       studentApi.getStudents({ campusId, status: 'normal', pageSize: 1 }).catch(() => null),
       curriculumApi.getCourses({ campusId, status: 'enabled', pageSize: 1 }).catch(() => null),
-      educationalApi.getScheduleEvents({ campusId, startDate: fmt(monday), endDate: fmt(sunday) }).catch(() => null),
-      educationalApi.getScheduleEvents({ campusId, startDate: fmt(today), endDate: fmt(upcomingEnd) }).catch(() => null),
+      // 本周 (周一到周日) 和未来 14 天的排课重叠，合并成一次请求：从周一取到第 14 天
+      educationalApi.getScheduleEvents({ campusId, startDate: fmt(monday), endDate: fmt(upcomingEnd > sunday ? upcomingEnd : sunday) }).catch(() => null),
       financialApi.getApprovals({ campusId, status: 'pending', pageSize: 1 }).catch(() => null),
       educationalApi.getUnassignedRoster({ campusId, page: 1, pageSize: 1 }).catch(() => null)
     ])
@@ -418,10 +418,12 @@ async function loadStats(isSilent = true) {
     const totalOf = (res: any) => Number(res?.data?.total ?? listOf(res).length) || 0
 
     const orderSummary = (ordersRes as any)?.data?.summary
-    const weekSchedules = listOf(weekRes).filter((s: any) => s.status !== 'cancelled')
+    const allSchedules = listOf(scheduleRes)
+    const weekSchedules = allSchedules.filter((s: any) => s.status !== 'cancelled' && s.date >= fmt(monday) && s.date <= fmt(sunday))
     const isConflict = (s: any) => s.semanticType === 'conflict' || Boolean(s.hasConflict || s.isConflict)
     const nowHm = `${pad(today.getHours())}:${pad(today.getMinutes())}`
-    const upcoming = listOf(upcomingRes)
+    const upcoming = allSchedules
+      .filter((s: any) => s.date >= fmt(today) && s.date <= fmt(upcomingEnd))
       .filter((s: any) => s.status !== 'cancelled' && s.status !== 'completed')
       .filter((s: any) => s.date > fmt(today) || (s.endTime || '23:59') >= nowHm)
     const unassignedData = (unassignedRes as any)?.data

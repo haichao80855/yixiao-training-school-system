@@ -236,7 +236,7 @@
                   :key="idx"
                   class="relative w-12 h-12 rounded border overflow-hidden group"
                 >
-                  <img :src="p" class="w-full h-full object-cover" />
+                  <img :src="p" loading="lazy" decoding="async" class="w-full h-full object-cover" />
                   <el-button
                     link
                     type="danger"

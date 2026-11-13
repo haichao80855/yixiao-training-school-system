@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { OutboxNotificationDispatcher } from './notification/outbox-notification.dispatcher';
 import { StaffNotificationService } from '../../staff-notification/domain/staff-notification.service';
+import { mediaVariantRef } from '../../upload/domain/media-key.util';
 import {
   HydrateEvaluationQuery,
   HydratedEvaluationWorkbench,
@@ -175,6 +176,7 @@ export class LessonEvaluationCoordinator {
           evaluatedAt: override?.evaluatedAt ? override.evaluatedAt.toISOString() : undefined,
           evaluatedSource: override?.evaluatedSource || 'web',
           photos: studentPhotos,
+          photoThumbs: studentPhotos.map((p: string) => mediaVariantRef(p, 'thumb')),
           videoUrl: studentVideo,
           personalizedComment: override?.comment || att.comment || undefined,
           studentRating: override?.rating || (att.rating === 'A+' ? 5 : att.rating === 'A' ? 4.5 : att.rating === 'B+' ? 4 : 3.5),
@@ -234,6 +236,7 @@ export class LessonEvaluationCoordinator {
           evaluatedAt: override?.evaluatedAt ? override.evaluatedAt.toISOString() : undefined,
           evaluatedSource: override?.evaluatedSource || 'web',
           photos: studentPhotos,
+          photoThumbs: studentPhotos.map((p: string) => mediaVariantRef(p, 'thumb')),
           videoUrl: studentVideo,
           personalizedComment: override?.comment || undefined,
           studentRating: override?.rating || 5,

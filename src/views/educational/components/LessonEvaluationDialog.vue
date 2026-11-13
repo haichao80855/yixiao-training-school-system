@@ -356,7 +356,7 @@
                   :key="pIdx"
                   class="relative w-20 h-20 rounded-lg overflow-hidden border border-st-border shadow-xs group"
                 >
-                  <img :src="photo" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="现场照片" />
+                  <img :src="photoThumbOf(photo)" loading="lazy" decoding="async" class="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="现场照片" />
                   <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                     <span class="text-white text-xs cursor-pointer hover:underline" @click="handlePreviewPhoto(photo)">查看</span>
                     <span class="text-red-300 text-xs cursor-pointer hover:underline" @click="handleRemoveStudentPhoto(pIdx)">删除</span>
@@ -576,6 +576,10 @@ export interface StudentRosterDraft {
 
 const rosterList = ref<StudentRosterDraft[]>([])
 const activeStudentId = ref<string>('')
+const photoThumbMap = new Map<string, string>()
+function photoThumbOf(photo: string): string {
+  return photoThumbMap.get(photo) || photo
+}
 
 const activeStudent = computed<StudentRosterDraft | undefined>(() => {
   return rosterList.value.find((s) => s.studentId === activeStudentId.value)
@@ -868,6 +872,12 @@ async function open(lesson: WorkbenchLessonCard) {
       rosterList.value = rawRoster.map((item) => {
         const isExempt = item.attendanceStatus === 'leave' || item.attendanceStatus === 'absent' || item.isExempt
         const studentPhotos = Array.isArray(item.photos) ? item.photos : []
+        // 记下每张照片对应的缩略图：80px 的格子不必加载原图；新上传的照片没有缩略图时直接用原图
+        if (Array.isArray(item.photoThumbs)) {
+          studentPhotos.forEach((photo: string, i: number) => {
+            if (item.photoThumbs[i]) photoThumbMap.set(photo, item.photoThumbs[i])
+          })
+        }
         const studentVideo = item.videoUrl || ''
         const hasEvaluated = Boolean(item.isEvaluated || item.personalizedComment || studentPhotos.length > 0 || studentVideo)
 

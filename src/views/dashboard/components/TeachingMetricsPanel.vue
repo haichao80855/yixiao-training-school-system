@@ -86,8 +86,9 @@ const rangeLabel = computed(() => {
 })
 
 function load() {
-  return track(async () => {
+  return track(async (isLatest) => {
     const res = await educationalApi.getTeachingMetrics(rangeOf(period.value))
+    if (!isLatest()) return
     metrics.value = res.data
   })
 }

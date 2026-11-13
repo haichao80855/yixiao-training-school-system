@@ -370,7 +370,7 @@ import AppEmpty from '@/components/AppEmpty.vue'
 import AppPagination from '@/components/AppPagination.vue'
 import { useLoadState } from '@/composables/useLoadState'
 import { useSubmit } from '@/composables/useSubmit'
-import { ref, computed, onMounted } from 'vue'
+import { ref, shallowRef, computed, onMounted } from 'vue'
 import { Check, X as Close, Copy as DocumentCopy } from 'lucide-vue-next'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTenantStore } from '@/stores/tenantStore'
@@ -401,7 +401,8 @@ const statusTabs = [
   { key: 'rejected', name: '已驳回' }
 ]
 
-const remoteApprovals = ref<ApprovalRecord[]>([])
+// 只读的服务端列表用 shallowRef：整体替换时才更新，不对每一行做深层响应式
+const remoteApprovals = shallowRef<ApprovalRecord[]>([])
 
 function loadApprovals() {
   return trackList(loadApprovalsTask)

@@ -36,6 +36,7 @@
             v-for="(photo, idx) in student.photos"
             :key="photo"
             :src="student.photoThumbs?.[idx] || photo"
+            lazy
             :preview-src-list="student.photoPreviews?.length ? student.photoPreviews : student.photos"
             :initial-index="idx"
             preview-teleported

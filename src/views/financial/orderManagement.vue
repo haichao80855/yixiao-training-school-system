@@ -759,7 +759,11 @@ const remoteOrders = ref<OrderRecord[]>([])
 const totalCount = ref(0)
 const serverSummary = ref<FinanceSummaryResult | null>(null)
 
+// 切换标签、筛选时连续请求：只用最后一次请求的结果，旧请求后返回也不会覆盖
+let orderListSeq = 0
+
 async function loadOrders() {
+  const seq = ++orderListSeq
   loading.value = true
   try {
     const params: Record<string, string | number | undefined> = {
@@ -782,6 +786,7 @@ async function loadOrders() {
       maxAmount: filterForm.maxAmount ?? undefined,
     }
     const res = await financialApi.getOrders(params)
+    if (seq !== orderListSeq) return
     if (res && res.success && res.data) {
       if (res.data.list && Array.isArray(res.data.list)) {
         remoteOrders.value = res.data.list
@@ -797,9 +802,10 @@ async function loadOrders() {
       }
     }
   } catch (err: unknown) {
+    if (seq !== orderListSeq) return
     ElMessage.error(err instanceof Error ? err.message : '获取订单列表失败')
   } finally {
-    loading.value = false
+    if (seq === orderListSeq) loading.value = false
   }
   remoteOrders.value = []
   totalCount.value = 0
