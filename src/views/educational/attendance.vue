@@ -283,7 +283,7 @@
 
 <script setup lang="ts">
 import { useLoadState } from '@/composables/useLoadState'
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Camera, User, MapPin } from 'lucide-vue-next'
@@ -327,8 +327,9 @@ const scheduleCapsuleOptions = [
   { label: '已消课结课', value: 'completed' }
 ]
 
-const schedules = ref<ScheduleEvent[]>([])
-const attendanceRecords = ref<AttendanceRecord[]>([])
+// 只读的服务端列表用 shallowRef：整体替换时才更新，不对每一行做深层响应式
+const schedules = shallowRef<ScheduleEvent[]>([])
+const attendanceRecords = shallowRef<AttendanceRecord[]>([])
 const teacherList = ref<Teacher[]>([])
 
 async function loadTeachers() {
@@ -353,7 +354,7 @@ function loadData() {
   return trackList(loadDataTask)
 }
 
-async function loadDataTask() {
+async function loadDataTask(isLatest: () => boolean = () => true) {
   try {
     const [wbRes, schedRes] = await Promise.all([
       educationalApi.getWorkbenchSnapshot({
@@ -369,6 +370,8 @@ async function loadDataTask() {
       }),
       loadTeachers()
     ])
+    // 快速切换日期、翻页时，只用最后一次请求的结果
+    if (!isLatest()) return
     if (wbRes && wbRes.data) {
       serverMetrics.value = wbRes.data.metrics
       if (Array.isArray(wbRes.data.history)) {

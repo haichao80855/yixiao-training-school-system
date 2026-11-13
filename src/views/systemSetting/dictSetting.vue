@@ -190,6 +190,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDebouncedRef } from '@/composables/useDebouncedRef'
 import AppEmpty from '@/components/AppEmpty.vue'
 import { useLoadState } from '@/composables/useLoadState'
 import { ref, computed, onMounted } from 'vue'
@@ -239,6 +240,8 @@ const dictForm = ref({
 })
 
 // --- 计算属性: 过滤字典列表 ---
+// 关键字停止输入 300ms 后才过滤，打字时不会每个键都重算整张表
+const searchQueryDebounced = useDebouncedRef(searchQuery)
 const filteredDictList = computed(() => {
   let list = [...dictList.value]
 
@@ -253,8 +256,8 @@ const filteredDictList = computed(() => {
   }
 
   // 3. 模糊搜索
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase().trim()
+  if (searchQueryDebounced.value) {
+    const q = searchQueryDebounced.value.toLowerCase().trim()
     list = list.filter(
       d => d.dictKey.toLowerCase().includes(q) || d.label.toLowerCase().includes(q) || (d.remark && d.remark.toLowerCase().includes(q))
     )

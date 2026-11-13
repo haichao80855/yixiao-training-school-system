@@ -255,6 +255,7 @@ export const router = createRouter({
 import { useAuthStore } from '@/stores/authStore'
 import { safeLoginRedirect } from '@/utils/loginRedirect'
 import { canAccessRoute } from './access'
+import { installRouteTiming } from '@/utils/routeTiming'
 
 router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
@@ -305,5 +306,7 @@ router.afterEach((to, _from, failure) => {
   const title = (to.meta?.title as string) || '拓视未来教育'
   document.title = `${title} - 一校教培系统`
 })
+
+installRouteTiming(router)
 
 export default router

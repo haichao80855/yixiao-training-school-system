@@ -51,6 +51,8 @@ export interface HydratedRosterItem {
   readonly evaluatedAt?: string;
   readonly evaluatedSource?: string;
   readonly photos: string[];
+  /** 与 photos 一一对应的缩略图引用 (列表里显示小图，点开再看原图) */
+  readonly photoThumbs?: string[];
   readonly videoUrl?: string;
   readonly personalizedComment?: string;
   readonly studentRating?: number;

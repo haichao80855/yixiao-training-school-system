@@ -148,6 +148,7 @@
 </template>
 
 <script setup lang="ts">
+import { useDebouncedRef } from '@/composables/useDebouncedRef'
 import { ref, computed } from 'vue'
 import { Search } from 'lucide-vue-next'
 import type { SystemUser, OrgNode, RoleItem, DataScope, SectionLoadState } from '@/types/system'
@@ -216,6 +217,8 @@ function getDataScopeBadgeClass(scope: DataScope): string {
   }
 }
 
+// 关键字停止输入 300ms 后才过滤，打字时不会每个键都重算整张表
+const searchKeywordDebounced = useDebouncedRef(searchKeyword)
 const filteredUsers = computed(() => {
   let list = [...props.users]
 
@@ -252,8 +255,8 @@ const filteredUsers = computed(() => {
   }
 
   // 5. 关键词搜索
-  if (searchKeyword.value) {
-    const kw = searchKeyword.value.toLowerCase().trim()
+  if (searchKeywordDebounced.value) {
+    const kw = searchKeywordDebounced.value.toLowerCase().trim()
     list = list.filter(
       (u) =>
         u.name.toLowerCase().includes(kw) ||

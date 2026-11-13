@@ -157,6 +157,8 @@
           <img
             :src="course.cover"
             :alt="course.name"
+            loading="lazy"
+            decoding="async"
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
 

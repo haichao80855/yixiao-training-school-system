@@ -101,7 +101,7 @@
     <!-- 冲突预警提示横条（当有冲突课次时展现） -->
     <div
       v-if="campusConflictCount > 0"
-      class="bg-st-danger-light border border-st-danger-border rounded-lg p-3 text-xs text-st-danger-deep flex items-center justify-between shadow-sm animate-pulse"
+      class="bg-st-danger-light border border-st-danger-border rounded-lg p-3 text-xs text-st-danger-deep flex items-center justify-between shadow-sm"
     >
       <div class="flex items-center space-x-2">
         <AlertTriangle class="w-4 h-4 text-st-danger shrink-0" />
@@ -136,7 +136,7 @@
           <span>已上日程</span>
         </div>
         <div class="flex items-center space-x-1.5">
-          <span class="w-3 h-3 rounded-full bg-st-danger inline-block animate-ping"></span>
+          <span class="w-3 h-3 rounded-full bg-st-danger inline-block"></span>
           <span class="text-st-danger font-medium">冲突日程</span>
         </div>
         <div class="flex items-center space-x-1.5">
@@ -433,7 +433,7 @@
 
 <script setup lang="ts">
 import { useLoadState } from '@/composables/useLoadState'
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { MapPin, Zap, AlertTriangle, User, Lock, ChevronLeft as ArrowLeft, ChevronRight as ArrowRight } from 'lucide-vue-next'
 import { useTenantStore } from '@/stores/tenantStore'
@@ -520,8 +520,13 @@ const currentWeekDisplay = computed(() => {
 const hours = Array.from({ length: 15 }, (_, i) => i + 7)
 
 // 当前时间指示线位置：距 07:00 的分钟数，每分钟 1px
+// 每分钟更新一次 (以前 computed 没有响应式依赖，时间线停在页面打开的那一刻)
+const nowTick = ref(Date.now())
+const nowTimer = setInterval(() => { nowTick.value = Date.now() }, 60 * 1000)
+onBeforeUnmount(() => clearInterval(nowTimer))
+
 const currentMinuteLineTop = computed(() => {
-  const now = new Date()
+  const now = new Date(nowTick.value)
   const currentHours = now.getHours()
   const currentMins = now.getMinutes()
   const totalMins = currentHours * 60 + currentMins
@@ -564,7 +569,8 @@ const detailDrawerRef = ref<InstanceType<typeof ScheduleDetailDrawer>>()
 const conflictCenterRef = ref<InstanceType<typeof ConflictCenterDialog>>()
 
 // 响应式排课日程
-const schedules = ref<ScheduleEvent[]>([])
+// 只读的服务端列表：用 shallowRef，几百条排课不必逐个深层响应式
+const schedules = shallowRef<ScheduleEvent[]>([])
 
 function loadSchedules() {
   return trackList(loadSchedulesTask)
@@ -632,17 +638,39 @@ const campusConflictCount = computed(() => {
 })
 
 // 按天获取分配 Lane 的日程
+// 按天、按教室、按讲师预先分组一次：模板里每个格子直接取，不再每次渲染都把整周排课过滤一遍
+function groupBy(list: ScheduleEvent[], keyOf: (e: ScheduleEvent) => string) {
+  const map = new Map<string, ScheduleEvent[]>()
+  for (const e of list) {
+    const key = keyOf(e)
+    const bucket = map.get(key)
+    if (bucket) bucket.push(e)
+    else map.set(key, [e])
+  }
+  return map
+}
+const lanesByDay = computed(() => {
+  const map = new Map<string, LaneEvent[]>()
+  for (const [date, events] of groupBy(visibleSchedules.value, (e) => e.date)) {
+    map.set(date, EducationalCollisionEngine.allocateLanes(events, 4))
+  }
+  return map
+})
+const eventsByClassroom = computed(() => groupBy(visibleSchedules.value, (e) => e.classroomId))
+const eventsByTeacher = computed(() => groupBy(visibleSchedules.value, (e) => e.teacherId))
+const EMPTY_LANES: LaneEvent[] = []
+const EMPTY_EVENTS: ScheduleEvent[] = []
+
 function getLaneEventsForDay(fullDate: string): LaneEvent[] {
-  const dayEvents = visibleSchedules.value.filter(s => s.date === fullDate)
-  return EducationalCollisionEngine.allocateLanes(dayEvents, 4)
+  return lanesByDay.value.get(fullDate) || EMPTY_LANES
 }
 
 function getEventsByClassroom(roomId: string): ScheduleEvent[] {
-  return visibleSchedules.value.filter(s => s.classroomId === roomId)
+  return eventsByClassroom.value.get(roomId) || EMPTY_EVENTS
 }
 
 function getEventsByTeacher(teacherId: string): ScheduleEvent[] {
-  return visibleSchedules.value.filter(s => s.teacherId === teacherId)
+  return eventsByTeacher.value.get(teacherId) || EMPTY_EVENTS
 }
 
 const tableEvents = computed(() => {

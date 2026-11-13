@@ -18,12 +18,17 @@ export function useLoadState() {
   const loadError = ref('')
   let seq = 0
 
-  async function track(task: () => Promise<unknown>): Promise<void> {
+  /**
+   * task 会收到 isLatest()：连续触发 (切换筛选、翻页) 时，先发出的请求可能后返回，
+   * 赋值前判断 if (!isLatest()) return，旧结果就不会覆盖新结果。
+   */
+  async function track(task: (isLatest: () => boolean) => Promise<unknown>): Promise<void> {
     const current = ++seq
+    const isLatest = () => current === seq
     loading.value = true
     loadError.value = ''
     try {
-      await task()
+      await task(isLatest)
     } catch (err) {
       if (current === seq) fail(err, '加载失败')
     } finally {
@@ -33,6 +38,10 @@ export function useLoadState() {
   }
 
   function fail(err: unknown, fallback: string) {
+    if (err instanceof Error && err.name === 'RequestTimeoutError') {
+      loadError.value = err.message
+      return
+    }
     // 断网、后端没启动时浏览器抛出的是英文 TypeError ("Failed to fetch")，换成能看懂的说明
     if (err instanceof TypeError) {
       loadError.value = '网络连接失败，请检查网络后重新加载'

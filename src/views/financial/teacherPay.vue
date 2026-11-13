@@ -281,9 +281,11 @@ function isFutureMonth(date: Date) {
 }
 
 function load() {
-  return track(async () => {
+  return track(async (isLatest) => {
     try {
       const res = await teacherPayApi.getMonth(month.value)
+      // 快速切换月份时，只显示最后选的那个月
+      if (!isLatest()) return
       data.value = res.data
     } catch (err) {
       data.value = null
