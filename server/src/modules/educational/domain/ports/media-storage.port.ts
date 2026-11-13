@@ -59,6 +59,7 @@ export class PassthroughMediaAdapter implements MediaStoragePort {
   }
 
   buildVideoPosterUrl(videoUrl: string): string {
-    return videoUrl ? `${videoUrl}#poster` : 'https://assets.yixiao.com/mock-video-poster.jpg';
+    // 没有视频时不给封面 (以前回退到一个并不存在的外部示例图片)
+    return videoUrl ? `${videoUrl}#poster` : '';
   }
 }

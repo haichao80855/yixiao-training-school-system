@@ -135,7 +135,7 @@ export interface AlbumWeek {
   weekEnd: string;
   lessonCount: number;
   photos: Array<PhotoLink & { scheduleEventId: string; date: string; lessonTitle: string; isOwn: boolean }>;
-  videos: Array<{ url: string; scheduleEventId: string; date: string; lessonTitle: string; isOwn: boolean }>;
+  videos: Array<{ url: string; thumbUrl?: string; scheduleEventId: string; date: string; lessonTitle: string; isOwn: boolean }>;
 }
 
 export interface GrowthSummary {
