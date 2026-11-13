@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { stripSecrets } from '../security/strip-secrets';
 
 export interface Response<T> {
   code: number;
@@ -19,6 +20,8 @@ export class TransformInterceptor<T> implements NestInterceptor<T, Response<T>> 
   intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
     return next.handle().pipe(
       map((data) => {
+        // 兜底删掉 password 哈希等敏感字段 (include 整行 User 时会带出来)
+        stripSecrets(data);
         // 如果已经是标准格式则直接返回
         if (data && typeof data === 'object' && 'code' in data && 'data' in data) {
           return {

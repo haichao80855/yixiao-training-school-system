@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { runIdempotent } from '../../common/idempotency/run-idempotent';
 import { normalizeCnMobile } from '../../common/phone.util';
 import { Prisma } from '@prisma/client';
 import { CreateStudentDto, UpdateStudentDto } from './dto/student.dto';
@@ -563,7 +564,8 @@ export class StudentService {
     const totalAmount = Number((dto.amount + bonusAmount).toFixed(2));
     const operatorName = dto.operator || currentUser?.realName || '财务主管';
 
-    return this.prisma.$transaction(async (tx) => {
+    // 带幂等键时同一笔充值只执行一次 (连点、网络重试)
+    return runIdempotent(this.prisma, 'wallet-recharge', dto.idempotencyKey, async (tx) => {
       // 1. upsert 确保钱包记录必定存在并累加余额
       const wallet = await tx.studentWallet.upsert({
         where: { studentId },
@@ -630,14 +632,19 @@ export class StudentService {
 
     const operatorName = dto.operator || currentUser?.realName || '财务核销';
 
-    return this.prisma.$transaction(async (tx) => {
-      // 1. 原子扣减本金余额
-      const updatedWallet = await tx.studentWallet.update({
-        where: { studentId },
+    return runIdempotent(this.prisma, 'wallet-withdraw', dto.idempotencyKey, async (tx) => {
+      // 1. 原子扣减本金余额：余额检查和扣减在同一条语句里完成，
+      //    两笔提现同时到达时不会把本金扣成负数
+      const debited = await tx.studentWallet.updateMany({
+        where: { studentId, principalBalance: { gte: dto.amount } },
         data: {
           principalBalance: { decrement: dto.amount },
         },
       });
+      if (debited.count !== 1) {
+        throw new BadRequestException('提现金额不得超过本金余额（赠送金不可提现）');
+      }
+      const updatedWallet = await tx.studentWallet.findUniqueOrThrow({ where: { studentId } });
 
       // 2. 写入出账记账明细
       await tx.walletLedger.create({

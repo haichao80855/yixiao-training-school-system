@@ -124,12 +124,14 @@ export class EducationalController {
     @Query('keyword') keyword?: string,
     @Query('courseId') courseId?: string,
     @Query('teacherId') teacherId?: string,
+    @Query('status') status?: string,
     @CampusScope() scope?: CampusScopeResult,
   ) {
     return this.educationalService.getClasses({
       page,
       pageSize,
       keyword,
+      status,
       courseId,
       teacherId: teacherId || scope?.teacherId,
       campusId: scope?.targetCampusId,

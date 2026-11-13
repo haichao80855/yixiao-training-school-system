@@ -108,7 +108,7 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import CoursewarePlayerDialog from './components/CoursewarePlayerDialog.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
 import { curriculumApi } from '@/api'
-import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH, OPTION_LIST_PAGE_SIZE } from '@/constants/ui'
 import { downloadCsv, todayStamp } from '@/utils/csvExport'
 import type { CourseItem, CourseUnit, LessonItem } from '@/types/curriculum'
 
@@ -120,7 +120,7 @@ const searchKeyword = ref('')
 
 async function reloadCourses() {
   try {
-    const res = await curriculumApi.getCourses({})
+    const res = await curriculumApi.getCourses({ pageSize: OPTION_LIST_PAGE_SIZE })
     const data = res?.data
     const list = Array.isArray(data) ? data : (data?.items || data?.list || [])
     courses.value = Array.isArray(list) ? list : []

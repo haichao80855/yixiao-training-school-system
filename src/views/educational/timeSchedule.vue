@@ -605,29 +605,38 @@ watch(() => [authStore.user, isDataScopeSelf.value], () => {
   loadSchedules()
 }, { immediate: true })
 
+// 课程、教务班主任两个筛选在前端过滤 (以前这两个下拉框选了不生效)；讲师、教室由后端过滤
+const visibleSchedules = computed(() => {
+  if (!filterCourse.value && !filterAdvisor.value) return schedules.value
+  return schedules.value.filter(s =>
+    (!filterCourse.value || s.courseId === filterCourse.value) &&
+    (!filterAdvisor.value || s.assistantId === filterAdvisor.value)
+  )
+})
+
 const campusConflictCount = computed(() => {
-  return schedules.value.filter(s => s.hasConflict).length
+  return visibleSchedules.value.filter(s => s.hasConflict).length
 })
 
 // 按天获取分配 Lane 的日程
 function getLaneEventsForDay(fullDate: string): LaneEvent[] {
-  const dayEvents = schedules.value.filter(s => s.date === fullDate)
+  const dayEvents = visibleSchedules.value.filter(s => s.date === fullDate)
   return EducationalCollisionEngine.allocateLanes(dayEvents, 4)
 }
 
 function getEventsByClassroom(roomId: string): ScheduleEvent[] {
-  return schedules.value.filter(s => s.classroomId === roomId)
+  return visibleSchedules.value.filter(s => s.classroomId === roomId)
 }
 
 function getEventsByTeacher(teacherId: string): ScheduleEvent[] {
-  return schedules.value.filter(s => s.teacherId === teacherId)
+  return visibleSchedules.value.filter(s => s.teacherId === teacherId)
 }
 
 const tableEvents = computed(() => {
   if (currentSubTab.value === 'conflictRecord') {
-    return schedules.value.filter(s => s.hasConflict)
+    return visibleSchedules.value.filter(s => s.hasConflict)
   }
-  return schedules.value
+  return visibleSchedules.value
 })
 
 // 卡片颜色样式

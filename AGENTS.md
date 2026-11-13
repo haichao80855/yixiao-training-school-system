@@ -30,6 +30,7 @@ Run commands from the repository root:
 - `npm run test:server`: Same, backend suites only. Filter with `-- --group=<name>` or `-- --file=<part>`, for example `npm run test:server -- --file=teacher-pay`.
 - `npm run test:fullstack` / `npm run test:backup`: Full-stack E2E only / backup script tests (Python).
 - `npm run check:bundle`: After `npm run build`, check that the first load stays within 187 KB gzip.
+- `npm run bench`: Time 16 core APIs on a throwaway database at seed size, 1× and 10× a school-year of data (`scripts/seed-load.cjs`, `scripts/bench-api.cjs`). Results and the baseline are in `docs/perf-baseline.md`; the plan is `docs/perf-improvement-plan.md`.
 - `npm run mp:dev`, `npm run mp:build`, `npm run mp:type-check`: WeChat mini-program. Under `mini-program/`, `npm run build:h5` builds the web parent portal.
 - `npm run db:stats`: Print local database statistics.
 - Under `server/`:
@@ -50,6 +51,15 @@ Run commands from the repository root:
 - **Frontend**: Vue 3 `<script setup lang="ts">`. Use PascalCase for components (`BatchScheduleDialog.vue`), camelCase for stores/composables, and 2 spaces for indentation.
 - **Backend**: NestJS conventions. Use kebab-case for filenames (`student.service.ts`), PascalCase for classes (`StudentService`), and camelCase for methods/variables.
 - **Typing**: Keep TypeScript strict; avoid untyped `any`.
+
+## Writes That Move Money or Lesson Hours
+These follow the 第 1 期 fixes of `docs/perf-improvement-plan.md`.
+- **Claim inside the transaction.** A status check before `$transaction` does not stop two concurrent requests. Make the first statement in the transaction a conditional `updateMany` (for example `where: { id, status: { notIn: ['completed'] } }`), and throw when `count !== 1`. Roll call, teacher-portal settle, every approval step and wallet withdraw work this way; `server/test-double-submit-guards.js` fires concurrent requests to prove it.
+- **Idempotency keys.** Wrap the write in `runIdempotent(prisma, scope, dto.idempotencyKey, tx => …)` (`server/src/common/idempotency/run-idempotent.ts`). The frontend creates the key with `createIdempotencyKey()` when the form opens and reuses it for retries; a replay returns the first result with `replayed: true`.
+- **Buttons.** Use `useSubmit()` (`src/composables/useSubmit.ts`) for submit buttons: bind `:loading="submitting"`, and repeated clicks are ignored while a request is in flight. Restate the amount or lesson count in the confirm box.
+- **Dropdowns.** Never fetch an unpaged list for a select: list APIs default to 10–20 rows. Pass `OPTION_LIST_PAGE_SIZE` (`src/constants/ui.ts`) for classes and courses, and use `useStudentSearch()` (server-side search) for student pickers.
+- **Responses.** `TransformInterceptor` strips every `password` field (`server/src/common/security/strip-secrets.ts`). Still prefer `select` over `include: { teacher: true }`.
+- **Timing.** Requests over `SLOW_REQUEST_MS` (300) and queries over `SLOW_QUERY_MS` (100) are logged as `[timing]` / `[slow-query]` warnings, and every API response carries a `Server-Timing` header.
 
 ## Frontend Performance Conventions
 These follow PR #36. The first load is about 187 KB gzip; don't let it grow back.
@@ -73,7 +83,7 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
     - `*.server.spec.js` files need a backend, run only in the isolated environment, and must each be registered in `tests/suites.json`.
     - `route-access-matrix.server.spec.js` logs in as 5 roles and records who can open which admin page in `route-access-matrix.md`. When you change page or role permissions on purpose, delete that file, rerun `npm run test:all -- --file=route-access-matrix`, and commit the regenerated table.
     - Known bugs are recorded with `it.fails`, which passes while the bug exists and fails once it is fixed. Then remove `.fails`.
-  - `tests/smoke/*.smoke.cjs`: Browser smoke tests (puppeteer-core) for 6 key flows.
+  - `tests/smoke/*.smoke.cjs`: Browser smoke tests (puppeteer-core) for 7 key flows.
     - Run them with `npm run test:smoke`, which builds the SPA and uses the isolated backend.
     - They are not part of `test:all` or PR CI. `.github/workflows/nightly-smoke.yml` runs them nightly or on demand.
     - Set up data through the API or Prisma, and drive only the key UI steps.

@@ -1,9 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { createRequestTimingMiddleware } from './common/perf/request-timing.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // 接口耗时：慢请求 (默认 ≥300ms) 打日志，并写 Server-Timing 响应头
+  app.use(createRequestTimingMiddleware());
 
   // 跨域白名单：生产环境前端经 Nginx 同源代理 /api，小程序不受 CORS 约束，默认关闭跨域；
   // 需要额外放行的域名通过 CORS_ORIGINS (逗号分隔) 配置。开发环境保持放开以便 Vite 直连。

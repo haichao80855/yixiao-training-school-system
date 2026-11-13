@@ -81,8 +81,8 @@
           v-model="searchQuery"
           placeholder="搜索班级名称 / 编号"
           clearable
-          @clear="loadData"
-          @keyup.enter="loadData"
+          @clear="reloadFromFirstPage"
+          @keyup.enter="reloadFromFirstPage"
         >
           <template #prefix><Search class="w-4 h-4 text-st-secondary" /></template>
         </el-input>
@@ -90,7 +90,7 @@
 
       <div class="sm:col-span-2">
         <label class="block text-xs text-st-secondary mb-1">班级状态</label>
-        <el-select v-model="statusFilter" placeholder="班级状态" clearable class="w-full" @change="loadData">
+        <el-select v-model="statusFilter" placeholder="班级状态" clearable class="w-full" @change="reloadFromFirstPage">
           <el-option label="全部状态" value="" />
           <el-option label="招生中" value="recruiting" />
           <el-option label="开班中" value="in_progress" />
@@ -106,7 +106,7 @@
           :disabled="isDataScopeSelf"
           clearable
           class="w-full"
-          @change="loadData"
+          @change="reloadFromFirstPage"
         >
           <el-option v-if="!isDataScopeSelf" label="全部讲师" value="" />
           <el-option v-for="t in teachers" :key="t.id" :label="t.name" :value="t.id" />
@@ -126,18 +126,18 @@
           <span v-if="selectedRows.length > 0" class="text-st-success font-semibold bg-st-success-light px-2 py-0.5 rounded border border-st-success-border">
             已勾选 {{ selectedRows.length }} 个教学班级
           </span>
-          <span>匹配结果：共 <b>{{ classList.length }}</b> 个教学班级</span>
+          <span>匹配结果：共 <b>{{ classTotal }}</b> 个教学班级</span>
         </div>
         <div class="space-x-2">
           <el-button @click="handleResetFilters">重置</el-button>
-          <el-button type="primary" @click="loadData">查询</el-button>
+          <el-button type="primary" @click="reloadFromFirstPage">查询</el-button>
         </div>
       </template>
     </HighDensityGrid>
 
     <!-- 班级摘要小计栏 (SummaryStrip 集成) -->
     <SummaryStrip
-      :total-count="classList.length"
+      :total-count="classTotal"
       unit="个班级"
       :summary-text="`当前校区班级：共计 ${classStats.totalClasses} 个班级，在读学员 ${classStats.totalStudents} 人，综合满班率 ${classStats.avgFillRate}%，秋季在招 ${classStats.recruitingClasses} 个`"
     >
@@ -287,6 +287,16 @@
           </template>
         </el-table-column>
       </el-table>
+      </div>
+      <div v-if="classTotal > 0" class="border-t border-st-divider px-3">
+        <AppPagination
+          v-model:current-page="classPage"
+          v-model:page-size="classPageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="classTotal"
+          :summary-text="`共 ${classTotal} 个班级`"
+          @change="() => loadData()"
+        />
       </div>
     </div>
 
@@ -453,6 +463,7 @@ import type { ClassItem, Classroom } from '@/types/educational'
 import SummaryStrip from '@/components/SummaryStrip.vue'
 import HighDensityGrid from '@/components/HighDensityGrid.vue'
 import AppEmpty from '@/components/AppEmpty.vue'
+import AppPagination from '@/components/AppPagination.vue'
 import ClassDetailDrawer from './components/ClassDetailDrawer.vue'
 import BatchScheduleDialog from './components/BatchScheduleDialog.vue'
 import ClassFormDialog from './components/ClassFormDialog.vue'
@@ -513,6 +524,17 @@ const statusFilter = ref('')
 const teacherFilter = ref('')
 
 const classList = ref<ClassItem[]>([])
+const classTotal = ref(0)
+const classPage = ref(1)
+const classPageSize = ref(20)
+const classSummary = ref<{ totalClasses: number; totalStudents: number; avgFillRate: number; recruitingClasses: number } | null>(null)
+let classListSeq = 0
+
+// 改筛选条件时回到第 1 页
+function reloadFromFirstPage() {
+  classPage.value = 1
+  return loadData()
+}
 const teachersList = ref<any[]>([])
 
 async function loadTeachers() {
@@ -531,6 +553,7 @@ const teachers = computed(() => teachersList.value)
 
 // 统计指标
 const classStats = computed(() => {
+  if (classSummary.value) return classSummary.value
   const list = classList.value
   const totalClasses = list.length
   const totalStudents = list.reduce((sum, c) => sum + (c.currentStudentCount || 0), 0)
@@ -573,26 +596,37 @@ function loadData() {
 }
 
 async function loadDataTask() {
+  const seq = ++classListSeq
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (teacherFilter.value || undefined)
   try {
+    // 筛选、搜索、分页都交给后端：以前不传分页参数，后端默认只回 20 个班，超过 20 个的班级在页面上看不到
     const res = await educationalApi.getClasses({
       campusId: tenantStore.currentCampusId,
       status: statusFilter.value || undefined,
-      teacherId: tId
+      keyword: searchQuery.value.trim() || undefined,
+      teacherId: tId,
+      page: classPage.value,
+      pageSize: classPageSize.value
     })
+    if (seq !== classListSeq) return
     if (res && res.success && res.data) {
-      const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
+      const data: any = res.data
+      const list = Array.isArray(data) ? data : (data.items || data.list || [])
       if (Array.isArray(list)) {
         classList.value = list as any
+        classTotal.value = Array.isArray(data) ? list.length : Number(data.total ?? list.length)
+        classSummary.value = Array.isArray(data) ? null : (data.summary || null)
         return
       }
     }
   } catch (err: any) {
+    if (seq !== classListSeq) return
     failList(err, '获取班级列表失败')
-    ElMessage.error(err.message || '获取班级列表失败')
   }
 
   classList.value = []
+  classTotal.value = 0
+  classSummary.value = null
 }
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {
@@ -608,7 +642,7 @@ function handleResetFilters() {
   searchQuery.value = ''
   statusFilter.value = ''
   teacherFilter.value = isDataScopeSelf.value ? currentTeacherId.value : ''
-  loadData()
+  reloadFromFirstPage()
 }
 
 function handleClassSaveSuccess() {
@@ -667,9 +701,23 @@ const completeForm = ref({
   remark: '',
 })
 
+// 结业转班的目标班级：列表分页后当前页不一定有，打开弹窗时单独按课程查一次
+const targetClassPool = ref<ClassItem[]>([])
+async function loadTargetClassPool(cls: ClassItem) {
+  targetClassPool.value = []
+  try {
+    const res = await educationalApi.getClasses({ campusId: tenantStore.currentCampusId, courseId: cls.courseId, pageSize: 200 })
+    const data: any = res?.data
+    const list = Array.isArray(data) ? data : (data?.list || [])
+    if (activeLifecycleClass.value?.id === cls.id) targetClassPool.value = list
+  } catch {
+    targetClassPool.value = []
+  }
+}
+
 const targetClassCandidates = computed(() => {
   if (!activeLifecycleClass.value) return []
-  return classList.value.filter(
+  return targetClassPool.value.filter(
     c => c.id !== activeLifecycleClass.value?.id &&
          c.status !== 'completed' &&
          c.status !== 'cancelled' &&
@@ -703,6 +751,7 @@ async function handleOpenCompleteModal(cls: ClassItem) {
     targetClassId: '',
     remark: '',
   }
+  void loadTargetClassPool(cls)
   completeModalVisible.value = true
   await refreshLifecyclePreview()
 }

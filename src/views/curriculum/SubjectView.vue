@@ -144,6 +144,7 @@
 </template>
 
 <script setup lang="ts">
+import { OPTION_LIST_PAGE_SIZE } from '@/constants/ui'
 import { ref, computed, onMounted } from 'vue'
 import { Code2, Bot, Microscope, Palette } from 'lucide-vue-next'
 import { curriculumApi } from '@/api'
@@ -157,7 +158,7 @@ const searchKeyword = ref('')
 
 async function loadData() {
   try {
-    const res = await curriculumApi.getCourses({})
+    const res = await curriculumApi.getCourses({ pageSize: OPTION_LIST_PAGE_SIZE })
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       if (Array.isArray(list)) {

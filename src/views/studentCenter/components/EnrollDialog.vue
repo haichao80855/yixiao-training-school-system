@@ -240,7 +240,7 @@ import StudentAvatar from '@/components/StudentAvatar.vue'
 import { getStudentStatusLabel, getStudentStatusTagType } from '@/utils/studentStatus'
 import { studentApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, OPTION_LIST_PAGE_SIZE } from '@/constants/ui'
 import type { CourseItem } from '@/types/curriculum'
 
 const props = defineProps<{
@@ -270,8 +270,9 @@ async function loadData() {
   try {
     const targetCampus = props.student?.campusId || tenantStore.currentCampusId
     const [crsRes, stdRes] = await Promise.all([
-      curriculumApi.getCourses({ campusId: targetCampus }),
-      studentApi.getStudents({ campusId: targetCampus, pageSize: 200 })
+      // 不传分页时后端只回 10 门课，报读时会选不到后面的课程
+      curriculumApi.getCourses({ campusId: targetCampus, pageSize: OPTION_LIST_PAGE_SIZE }),
+      studentApi.getStudents({ campusId: targetCampus, pageSize: 500 })
     ])
     if (crsRes?.data) {
       const list = Array.isArray(crsRes.data) ? crsRes.data : (crsRes.data.items || crsRes.data.list || [])

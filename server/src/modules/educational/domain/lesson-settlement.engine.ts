@@ -477,6 +477,16 @@ export class LessonSettlementEngine {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      // 0. 先在事务里「认领」这节课：只有还没结课的课能改成已结课。
+      //    两个结课请求同时到达 (连点、两台设备) 时，只有一个能认领成功，另一个直接失败，不会重复扣课。
+      const claimed = await tx.scheduleEvent.updateMany({
+        where: { id: schedule.id, status: { notIn: ['completed', 'cancelled'] } },
+        data: { status: 'completed', semanticType: 'completed' },
+      });
+      if (claimed.count !== 1) {
+        throw new BadRequestException('该排课日程已点名结课，如需变更请先执行反结课冲正');
+      }
+
       const details: SettlementReceipt['details'] = [];
       let totalDeductedLessons = 0;
       let regularLessonsBurned = 0;

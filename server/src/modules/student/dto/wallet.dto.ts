@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsNumber, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 export class RechargeWalletDto {
   @IsNumber()
@@ -17,6 +17,10 @@ export class RechargeWalletDto {
   @IsOptional()
   @IsString()
   remark?: string; // 备注说明
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  idempotencyKey?: string; // 前端打开表单时生成，重试和连点共用，保证同一笔只执行一次
 }
 
 export class WithdrawWalletDto {
@@ -31,4 +35,9 @@ export class WithdrawWalletDto {
   @IsOptional()
   @IsString()
   operator?: string; // 操作人员
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  idempotencyKey?: string; // 前端打开表单时生成，重试和连点共用，保证同一笔只执行一次
 }

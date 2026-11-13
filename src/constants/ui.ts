@@ -40,3 +40,6 @@ export const PAGINATION_CONFIG = {
   pageSizes: [10, 20, 50, 100],
   cardPageSizes: [12, 18, 24, 36, 48],
 } as const
+
+/** 下拉框一次取班级、课程等选项时的条数 (后端不传分页默认只回 10~20 条，会把选项悄悄截断) */
+export const OPTION_LIST_PAGE_SIZE = 200

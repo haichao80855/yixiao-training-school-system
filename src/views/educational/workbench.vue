@@ -462,7 +462,7 @@
           </div>
         </div>
 
-        <el-table :data="tempAttendanceList" size="small" border stripe>
+        <el-table :data="tempAttendanceList" :empty-text="signInRosterLoading ? '正在加载学员名单…' : '这节课暂无学员'" size="small" border stripe>
           <el-table-column prop="studentName" label="学员姓名" width="120" />
           <el-table-column label="出勤状态" min-width="260">
             <template #default="{ row }">
@@ -476,8 +476,8 @@
           </el-table-column>
           <el-table-column label="扣减课时" width="90" align="center">
             <template #default="{ row }">
-              <span :class="row.status === 'leave' ? 'text-st-secondary' : 'font-bold text-st-success'">
-                {{ row.status === 'leave' ? '0' : '-1.0' }}
+              <span :class="deductLessonsFor(row.status) > 0 ? 'font-bold text-st-success' : 'text-st-secondary'">
+                {{ deductLessonsFor(row.status) > 0 ? `-${deductLessonsFor(row.status).toFixed(1)}` : '0' }}
               </span>
             </template>
           </el-table-column>
@@ -488,8 +488,13 @@
         <div class="flex justify-between items-center">
           <el-button @click="handleBatchAllPresent">全员设为到课</el-button>
           <div class="space-x-2">
-            <el-button @click="signInDialogVisible = false">取消</el-button>
-            <el-button type="primary" @click="handleSaveSignIn">确认打卡消课</el-button>
+            <el-button :disabled="signInSubmitting" @click="signInDialogVisible = false">取消</el-button>
+            <el-button
+              type="primary"
+              :loading="signInSubmitting"
+              :disabled="signInRosterLoading || tempAttendanceList.length === 0"
+              @click="handleSaveSignIn"
+            >确认打卡消课</el-button>
           </div>
         </div>
       </template>
@@ -505,6 +510,7 @@ import { useTenantStore } from '@/stores/tenantStore'
 import { formatLessonLabel as lessonLabel } from '@/utils/lessonLabel'
 import { useAuthStore } from '@/stores/authStore'
 import { educationalApi } from '@/api'
+import { useSubmit } from '@/composables/useSubmit'
 import { DIALOG_SIZE } from '@/constants/ui'
 import type { WorkbenchLessonCard, LessonEvaluation, Teacher, Classroom } from '@/types/educational'
 import LessonFulfillmentDialog from './components/LessonFulfillmentDialog.vue'
@@ -853,22 +859,34 @@ function handleOpenLessonPlan(card: WorkbenchLessonCard) {
 }
 
 // 签到相关
+// 扣课规则和提交给后端的一致：到课、迟到扣 1 课时，请假、缺勤不扣
+function deductLessonsFor(status: string) {
+  return status === 'present' || status === 'late' ? 1 : 0
+}
+
+const signInRosterLoading = ref(false)
+const { submitting: signInSubmitting, submit: submitSignIn } = useSubmit()
+let signInRosterSeq = 0
+
+// 先打开弹窗 (立刻有反馈)，名单在弹窗里加载；加载期间不能提交，也不会显示上一节课的名单
 async function handleOpenSignIn(card: WorkbenchLessonCard) {
+  const seq = ++signInRosterSeq
   activeLessonForSignIn.value = card
+  tempAttendanceList.value = []
+  signInRosterLoading.value = true
+  signInDialogVisible.value = true
 
   try {
     const res = await educationalApi.getRollCallStudents(card.id)
-    if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-      tempAttendanceList.value = res.data
-    } else {
-      tempAttendanceList.value = []
-    }
+    if (seq !== signInRosterSeq) return
+    tempAttendanceList.value = res?.data && Array.isArray(res.data) ? res.data : []
   } catch (err: any) {
+    if (seq !== signInRosterSeq) return
     ElMessage.error(err.message || '获取点名学员名单失败')
     tempAttendanceList.value = []
+  } finally {
+    if (seq === signInRosterSeq) signInRosterLoading.value = false
   }
-
-  signInDialogVisible.value = true
 }
 
 function handleBatchAllPresent() {
@@ -877,29 +895,38 @@ function handleBatchAllPresent() {
 }
 
 async function handleSaveSignIn() {
-  if (!activeLessonForSignIn.value) return
+  const lesson = activeLessonForSignIn.value
+  if (!lesson || signInRosterLoading.value) return
   if (tempAttendanceList.value.length === 0) {
     ElMessage.warning('当前课次暂无可签到考勤学员')
     return
   }
+  const attendances = tempAttendanceList.value.map(item => ({
+    studentId: item.studentId,
+    status: item.status,
+    deductLessons: deductLessonsFor(item.status)
+  }))
+  const attended = attendances.filter(a => a.deductLessons > 0).length
+  const totalDeduct = attendances.reduce((sum, a) => sum + a.deductLessons, 0)
 
-  try {
-    await educationalApi.rollCall({
-      scheduleId: activeLessonForSignIn.value.id,
-      attendances: tempAttendanceList.value.map(item => ({
-        studentId: item.studentId,
-        status: item.status,
-        deductLessons: item.status === 'present' || item.status === 'late' ? 1 : 0
-      }))
-    })
-    const attended = tempAttendanceList.value.filter(s => s.status === 'present' || s.status === 'late').length
-    activeLessonForSignIn.value.signedCount = attended
-    ElMessage.success('随堂签到打卡完成！实到 ' + attended + ' 人，已真实扣减在读学员课时并同步消课台账！')
-    signInDialogVisible.value = false
-    loadData()
-  } catch (err: any) {
-    ElMessage.error(err.message || '随堂点名消课失败')
-  }
+  await submitSignIn(async () => {
+    // 点「再看看」时不提交 (确认框关闭不是错误)
+    const confirmed = await ElMessageBox.confirm(
+        `实到 ${attended} 人，共扣 ${totalDeduct} 课时。结课后如需修改要先反结课，确认吗？`,
+        '确认打卡消课',
+        { type: 'warning', confirmButtonText: '确认消课', cancelButtonText: '再看看' },
+      ).then(() => true, () => false)
+    if (!confirmed) return
+    try {
+      await educationalApi.rollCall({ scheduleId: lesson.id, attendances })
+      lesson.signedCount = attended
+      ElMessage.success(`消课完成：实到 ${attended} 人，已扣 ${totalDeduct} 课时`)
+      signInDialogVisible.value = false
+      loadData()
+    } catch (err: any) {
+      ElMessage.error(err.message || '随堂点名消课失败')
+    }
+  })
 }
 
 function handleEvaluationSuccess(evalRecord: any) {

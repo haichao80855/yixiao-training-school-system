@@ -110,7 +110,7 @@ export function normalizeSchedule(raw: any): ScheduleEvent {
     campusName: raw.campus?.name || raw.campusName || '拓视未来-原阳校区',
     teacherId: raw.teacherId || raw.teacher?.id || '',
     teacherName: raw.teacher?.realName || raw.teacherName || '授课讲师',
-    assistantId: raw.assistantId || undefined,
+    assistantId: raw.assistantId || raw.class?.advisorId || undefined,
     assistantName: raw.assistantName || undefined,
     classroomId: raw.classroomId || raw.classroom?.id || '',
     classroomName: raw.classroom?.name || raw.classroomName || '标准教室',

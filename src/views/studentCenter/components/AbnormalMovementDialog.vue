@@ -214,7 +214,15 @@
           </div>
           <el-form label-position="top">
             <el-form-item label="选择受让目标学员" required>
-              <el-select v-model="transferStudentForm.targetStudentId" filterable placeholder="输入姓名或学号搜索受让学员" class="w-full">
+              <el-select
+                v-model="transferStudentForm.targetStudentId"
+                filterable
+                remote
+                :remote-method="studentSearch.search"
+                :loading="studentSearch.loading.value"
+                placeholder="输入姓名、学号或手机号搜索受让学员"
+                class="w-full"
+              >
                 <el-option
                   v-for="s in otherStudents"
                   :key="s.id"
@@ -302,6 +310,7 @@
 </template>
 
 <script setup lang="ts">
+import { useStudentSearch } from '@/composables/useStudentSearch'
 import { ref, computed, watch, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { AlertTriangle, Info } from 'lucide-vue-next'
@@ -309,7 +318,7 @@ import type { Student, MovementType } from '@/types/student'
 import { studentApi, educationalApi, curriculumApi } from '@/api'
 import { useTenantStore } from '@/stores/tenantStore'
 import { useDict } from '@/composables/useDict'
-import { DIALOG_SIZE } from '@/constants/ui'
+import { DIALOG_SIZE, OPTION_LIST_PAGE_SIZE } from '@/constants/ui'
 
 const { items: transReasonDict } = useDict('trans_reason')
 
@@ -340,23 +349,22 @@ const activePackages = computed(() => {
 
 const targetClasses = ref<any[]>([])
 const coursesList = ref<any[]>([])
-const candidateStudents = ref<any[]>([])
+// 受让学员：后端按关键字搜索，不再一次性取全校学员 (以前不传分页只取到 10 个)
+const studentSearch = useStudentSearch(() => tenantStore.currentCampusId)
+const candidateStudents = studentSearch.options
 
 async function loadOptions() {
   try {
-    const [clsRes, crsRes, stdRes] = await Promise.all([
-      educationalApi.getClasses({ campusId: tenantStore.currentCampusId }),
-      curriculumApi.getCourses({}),
-      studentApi.getStudents({ campusId: tenantStore.currentCampusId })
+    const [clsRes, crsRes] = await Promise.all([
+      educationalApi.getClasses({ campusId: tenantStore.currentCampusId, pageSize: OPTION_LIST_PAGE_SIZE }),
+      curriculumApi.getCourses({ pageSize: OPTION_LIST_PAGE_SIZE }),
+      studentSearch.search()
     ])
     if (clsRes?.data) {
       targetClasses.value = Array.isArray(clsRes.data) ? clsRes.data : (clsRes.data.items || clsRes.data.list || [])
     }
     if (crsRes?.data) {
       coursesList.value = Array.isArray(crsRes.data) ? crsRes.data : (crsRes.data.items || crsRes.data.list || [])
-    }
-    if (stdRes?.data) {
-      candidateStudents.value = Array.isArray(stdRes.data) ? stdRes.data : (stdRes.data.items || stdRes.data.list || [])
     }
   } catch (err: any) {
     ElMessage.error(err.message || '加载异动选项数据失败')

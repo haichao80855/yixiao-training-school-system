@@ -172,17 +172,20 @@ export class EducationalService {
     courseId?: string;
     teacherId?: string;
     keyword?: string;
+    status?: string;
     page?: number;
     pageSize?: number;
   }) {
-    const page = Number(query.page) || 1;
-    const pageSize = Number(query.pageSize) || 20;
+    const page = Math.max(1, Number(query.page) || 1);
+    // 不传 pageSize 时默认 20；单页最多 200 (下拉框等一次取多个班级的场景)
+    const pageSize = Math.min(200, Math.max(1, Number(query.pageSize) || 20));
     const skip = (page - 1) * pageSize;
 
     const where: any = {};
     if (query.campusId) where.campusId = query.campusId;
     if (query.courseId) where.courseId = query.courseId;
     if (query.teacherId) where.teacherId = query.teacherId;
+    if (query.status) where.status = query.status;
     if (query.keyword) {
       where.OR = [
         { name: { contains: query.keyword } },
@@ -190,7 +193,7 @@ export class EducationalService {
       ];
     }
 
-    const [total, list] = await Promise.all([
+    const [total, list, totals, recruitingClasses] = await Promise.all([
       this.prisma.class.count({ where }),
       this.prisma.class.findMany({
         where,
@@ -208,12 +211,24 @@ export class EducationalService {
           studentPackages: { select: { studentId: true } },
         },
       }),
+      // 全部符合筛选条件的班级的汇总 (不只是当前页)，供列表上方的摘要栏使用
+      this.prisma.class.aggregate({ where, _sum: { currentStudentCount: true, capacity: true } }),
+      this.prisma.class.count({ where: { ...where, status: 'recruiting' } }),
     ]);
+
+    const totalStudents = totals._sum.currentStudentCount || 0;
+    const totalCapacity = totals._sum.capacity || 0;
 
     return {
       total,
       page,
       pageSize,
+      summary: {
+        totalClasses: total,
+        totalStudents,
+        avgFillRate: totalCapacity > 0 ? Math.round((totalStudents / totalCapacity) * 100) : 0,
+        recruitingClasses,
+      },
       list: list.map(({ schedules, studentPackages, ...c }) => ({
         ...c,
         ...summarizeClassSchedules(schedules),
@@ -602,6 +617,8 @@ export class EducationalService {
             code: true,
             capacity: true,
             currentStudentCount: true,
+            courseId: true,
+            advisorId: true,
             course: { select: { id: true, name: true, subject: true } },
           },
         },

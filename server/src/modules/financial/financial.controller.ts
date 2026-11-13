@@ -116,11 +116,14 @@ export class FinancialController {
     @Query('currentStep') currentStep?: number,
     @Query('page') page?: number,
     @Query('pageSize') pageSize?: number,
+    @CampusScope() scope?: CampusScopeResult,
   ) {
+    // 按校区限定：执行校长、财务只看到本校区的审批单 (以前没传校区，看到的是全部校区的单据)
     return this.financialService.getApprovals({
       status,
       businessType,
       currentStep,
+      campusId: scope?.targetCampusId,
       page,
       pageSize,
     });

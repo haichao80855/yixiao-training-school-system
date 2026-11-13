@@ -157,7 +157,7 @@ import { ref, reactive, computed } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { AlertTriangle, CheckCircle2 } from 'lucide-vue-next'
 import { educationalApi } from '@/api'
-import { DIALOG_SIZE, FORM_LABEL_WIDTH } from '@/constants/ui'
+import { DIALOG_SIZE, FORM_LABEL_WIDTH, OPTION_LIST_PAGE_SIZE } from '@/constants/ui'
 import type { ScheduleEvent, CollisionResult, LessonClassType, ClassItem, Teacher, Classroom } from '@/types/educational'
 
 const props = defineProps<{
@@ -183,7 +183,7 @@ const classroomList = ref<Classroom[]>([])
 async function reloadOptions() {
   try {
     const [clsRes, teaRes, roomRes] = await Promise.all([
-      educationalApi.getClasses({ campusId: props.campusId }),
+      educationalApi.getClasses({ campusId: props.campusId, pageSize: OPTION_LIST_PAGE_SIZE }),
       educationalApi.getTeachers(props.campusId),
       educationalApi.getClassrooms(props.campusId)
     ])
