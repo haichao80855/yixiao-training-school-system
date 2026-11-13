@@ -45,23 +45,43 @@
           </text>
         </view>
 
-        <view v-if="type === 'photo'" class="mosaic" :class="{ single: week.photos.length === 1 }">
+        <!-- 拼图版式按张数选，最多显示 6 张，多出来的在最后一格显示「+N」 (以前 2、4、5 张时会留空格) -->
+        <view v-if="type === 'photo'" class="mosaic" :class="`layout-${mosaicLayout(week.photos.length)}`">
           <view
-            v-for="(p, idx) in week.photos"
+            v-for="(p, idx) in week.photos.slice(0, MOSAIC_MAX)"
             :key="idx"
             class="cell"
-            :class="{ big: idx === 0 && week.photos.length >= 3 }"
+            role="button"
+            tabindex="0"
+            :aria-label="`查看第 ${idx + 1} 张照片`"
             @click="previewWeek(week, idx)"
-            @longpress="photoActions(p)"
           >
             <image class="photo" :src="mediaUrl(p.thumbUrl)" mode="aspectFill" lazy-load />
             <text v-if="p.isOwn && idx === 0" class="own-badge">{{ childName }}</text>
+            <view v-if="idx === MOSAIC_MAX - 1 && week.photos.length > MOSAIC_MAX" class="more-mask">
+              <text>+{{ week.photos.length - MOSAIC_MAX }}</text>
+            </view>
+          </view>
+        </view>
+        <!-- 这一周的课评入口：以前只能长按照片才出来，H5 上长按还会弹出浏览器的保存图片菜单 -->
+        <view v-if="type === 'photo'" class="week-lessons">
+          <view
+            v-for="lesson in weekLessons(week)"
+            :key="lesson.scheduleEventId"
+            class="lesson-link"
+            role="button"
+            tabindex="0"
+            @click="openLesson(lesson.scheduleEventId)"
+          >
+            <text class="lesson-link-text">看《{{ lesson.lessonTitle }}》课评</text>
+            <AppIcon name="chevron-right" size="24rpx" :color="P_COLORS.brand" />
           </view>
         </view>
 
         <view v-else class="video-list">
           <view role="button" tabindex="0" v-for="(v, idx) in week.videos" :key="idx" class="video-row" @click="playVideo(v.url)">
             <view class="video-thumb">
+              <image v-if="v.thumbUrl && v.thumbUrl !== v.url" class="video-cover" :src="mediaUrl(v.thumbUrl)" mode="aspectFill" lazy-load />
               <view class="play">
                 <AppIcon name="play-circle" size="48rpx" :color="P_COLORS.white" />
               </view>
@@ -203,14 +223,24 @@ function previewWeek(week: AlbumWeek, index: number) {
   uni.previewImage({ urls, current: urls[index] });
 }
 
-function photoActions(photo: AlbumWeek['photos'][number]) {
-  uni.showActionSheet({
-    itemList: ['查看这节课的课评'],
-    success: () => {
-      uni.navigateTo({
-        url: `/package-parent/evaluations/detail?sid=${encodeURIComponent(parentStore.currentStudentId)}&eid=${encodeURIComponent(photo.scheduleEventId)}`,
-      });
-    },
+const MOSAIC_MAX = 6;
+/** 张数 → 版式：1 张整幅；2、4 张平分；3、5、6 张一大带几小 */
+function mosaicLayout(count: number): number {
+  return Math.min(count, MOSAIC_MAX);
+}
+
+/** 这一周照片涉及的课 (去重，按出现顺序) */
+function weekLessons(week: AlbumWeek) {
+  const seen = new Map<string, { scheduleEventId: string; lessonTitle: string }>();
+  for (const p of week.photos) {
+    if (!seen.has(p.scheduleEventId)) seen.set(p.scheduleEventId, { scheduleEventId: p.scheduleEventId, lessonTitle: p.lessonTitle });
+  }
+  return [...seen.values()];
+}
+
+function openLesson(scheduleEventId: string) {
+  uni.navigateTo({
+    url: `/package-parent/evaluations/detail?sid=${encodeURIComponent(parentStore.currentStudentId)}&eid=${encodeURIComponent(scheduleEventId)}`,
   });
 }
 
@@ -383,15 +413,41 @@ onPullDownRefresh(async () => {
 
 .mosaic {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  // 6 列网格：各版式用跨列拼满，不留空格
+  grid-template-columns: repeat(6, 1fr);
   grid-auto-rows: 168rpx;
   gap: 8rpx;
   border-radius: $p-r-card;
   overflow: hidden;
 
-  &.single {
-    grid-template-columns: 1fr;
-    grid-auto-rows: 400rpx;
+  &.layout-1 .cell {
+    grid-column: span 6;
+    grid-row: span 2;
+  }
+  &.layout-2 .cell {
+    grid-column: span 3;
+    grid-row: span 2;
+  }
+  &.layout-4 .cell {
+    grid-column: span 3;
+  }
+  // 3、5、6 张：第一张大图占左上 4×2，其余小图
+  &.layout-3,
+  &.layout-5,
+  &.layout-6 {
+    .cell {
+      grid-column: span 2;
+    }
+    .cell:first-child {
+      grid-column: span 4;
+      grid-row: span 2;
+    }
+  }
+  &.layout-3 .cell:not(:first-child) {
+    grid-row: span 1;
+  }
+  &.layout-5 .cell:nth-child(n + 4) {
+    grid-column: span 3;
   }
 }
 
@@ -399,11 +455,6 @@ onPullDownRefresh(async () => {
   position: relative;
   background: $p-fill-soft;
   overflow: hidden;
-
-  &.big {
-    grid-column: span 2;
-    grid-row: span 2;
-  }
 
   &:active .photo {
     opacity: 0.85;
@@ -447,6 +498,8 @@ onPullDownRefresh(async () => {
 }
 
 .video-thumb {
+  position: relative;
+  overflow: hidden;
   width: 176rpx;
   height: 120rpx;
   border-radius: $p-r-inner;
@@ -502,5 +555,48 @@ onPullDownRefresh(async () => {
   @include p-hit-min;
   color: $p-brand;
   font-weight: $p-fw-medium;
+}
+
+.more-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  color: $p-surface;
+  font-size: p-fs($p-fs-title);
+  font-weight: $p-fw-bold;
+}
+
+.week-lessons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx 24rpx;
+  margin-top: 16rpx;
+}
+
+.lesson-link {
+  @include p-hit-min;
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  color: $p-brand;
+}
+
+.lesson-link-text {
+  font-size: p-fs($p-fs-small);
+}
+
+.video-cover {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.play {
+  position: relative;
+  z-index: 1;
 }
 </style>

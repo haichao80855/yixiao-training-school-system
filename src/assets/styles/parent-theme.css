@@ -1,0 +1,38 @@
+/* 家长端主题 (给后台 SPA 里家长会打开的页面用，例如微信分享的学习报告页)。
+ * 色值与家长端 H5 的 mini-program/src/package-parent/styles/tokens.scss 保持一致，
+ * 家长从 H5 和分享链接看到的是同一个产品。 */
+.parent-theme {
+  --p-canvas: #F5F5F7;
+  --p-surface: #FFFFFF;
+  --p-ink: #0F172A;
+  --p-ink-2: #475569;
+  --p-ink-3: #5B6577;
+  --p-line: rgba(15, 23, 42, 0.08);
+  --p-fill: rgba(15, 23, 42, 0.05);
+  --p-brand: #2F54EB;
+  --p-brand-strong: #1D39C4;
+  --p-brand-50: #EEF2FF;
+  --p-amber: #E8A33D;
+  --p-amber-50: #FEF6E7;
+  --p-amber-ink: #92400E;
+  --p-mint-50: #ECFDF3;
+  --p-mint: #15803D;
+  --p-rose-50: #FEF2F2;
+  --p-rose-ink: #B91C1C;
+  --p-r-sm: 8px;
+  --p-r-inner: 12px;
+  --p-r-card: 16px;
+  --p-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px -14px rgba(15, 23, 42, 0.18);
+  /* 字号档位与家长端一致：12 / 13 / 15 / 16 / 18 / 22 px */
+  --p-fs-caption: 12px;
+  --p-fs-small: 13px;
+  --p-fs-body: 15px;
+  --p-fs-subtitle: 16px;
+  --p-fs-title: 18px;
+  --p-fs-large: 22px;
+  min-height: 100vh;
+  background: var(--p-canvas);
+  color: var(--p-ink);
+  font-family: -apple-system, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}

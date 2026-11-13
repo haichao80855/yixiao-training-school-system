@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('../../server/node_modules/@prisma/client');
-const { runSmoke, check, BASE_URL } = require('./helpers.cjs');
+const { runSmoke, check, BASE_URL, apiLogin, api } = require('./helpers.cjs');
 const { PARENT, seedParentDemo } = require('./parent-fixtures.cjs');
 
 const prisma = new PrismaClient();
@@ -178,6 +178,26 @@ runSmoke('家长端 H5 走查与截图', async (s) => {
     await page.goBack();
     await new Promise((r) => setTimeout(r, 800));
     check(page.url().includes('/parent/package-parent/'), `浏览器「返回」回到上一个标签，没有离开家长端 (${new URL(page.url()).pathname})`);
+
+    // ---------- 微信分享的学习报告页 (后台 SPA 的 /public/growth-report，家长端 UI 改进第 4 期) ----------
+    {
+      const { token: adminToken } = await apiLogin('superAdmin');
+      for (const [name, body] of [['10-分享报告', {}], ['11-分享单节课', { scheduleEventId: ev?.id }]]) {
+        const issued = await api(adminToken, 'POST', `/api/educational/students/${sid}/growth-token`, body);
+        const reportUrl = issued.body?.data?.h5ReportUrl;
+        check(Boolean(reportUrl), `「${name}」签发分享链接`, issued.body);
+        for (const width of WIDTHS) {
+          await page.setViewport({ width, height: 800, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+          await page.goto(`${s.url}${reportUrl}`, { waitUntil: 'networkidle0' });
+          await new Promise((r) => setTimeout(r, 500));
+          await page.screenshot({ path: path.join(OUT, String(width), `${name}.png`), fullPage: true });
+          const m = await page.evaluate(measure);
+          const text = await page.evaluate(() => document.body.innerText);
+          check(!/存证链|编程奇迹|5 星好评/.test(text) && text.includes('老师的评价'), `${width}px「${name}」显示老师的评价，没有夸大或写死的文案`);
+          check(m.smallText === 0, `${width}px「${name}」没有小于 12px 的文字：${m.smallSamples.join('，')}`);
+        }
+      }
+    }
 
     // ---------- 加载失败：每页显示「重新加载」，点了以后恢复 (家长端 UI 改进第 2 期) ----------
     await page.setViewport({ width: 375, height: 800, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

@@ -26,7 +26,7 @@ const LIMITS = {
   parentHexColors: 0, // 家长端颜色一律用 tokens.scss / styles/colors.ts
   parentFontOffScale: 0,
   parentRadiusOffScale: 0,
-  rawPaletteClasses: 35,
+  rawPaletteClasses: 30,
   rawHexColors: 3,
   elementPlusIconImports: 0,
 }

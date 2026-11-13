@@ -269,6 +269,16 @@ const goBack = () => {
   animation: none !important;
 }
 
+/* 系统设置了「减少动态效果」：关掉入场、骨架闪光、切换滑动等动画 */
+@media (prefers-reduced-motion: reduce) {
+  .parent-page *,
+  .parent-page *::before,
+  .parent-page *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
 /* 键盘操作时的焦点框 (家长端所有可点击元素)；手指点按不显示 */
 .parent-page [role='button']:focus-visible {
   outline: 4rpx solid $p-brand;

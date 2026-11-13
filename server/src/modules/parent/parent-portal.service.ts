@@ -359,8 +359,9 @@ export class ParentPortalService {
       const classPhotos = wantPhotos ? media.classPhotos.map((p) => ({ ...p, ...ref, isOwn: false })) : [];
       const videos = wantVideos
         ? [
-            media.ownVideo ? { url: this.media.file(media.ownVideo), ...ref, isOwn: true } : null,
-            media.classVideo ? { url: this.media.file(media.classVideo), ...ref, isOwn: false } : null,
+            // 带封面缩略图 (以前成长页的视频列表没有封面，每一条都是同一个深色方块)
+            media.ownVideo ? { ...this.media.video(media.ownVideo), ...ref, isOwn: true } : null,
+            media.classVideo ? { ...this.media.video(media.classVideo), ...ref, isOwn: false } : null,
           ].filter(Boolean)
         : [];
       if (!ownPhotos.length && !classPhotos.length && !videos.length) continue;

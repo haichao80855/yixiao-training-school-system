@@ -20,27 +20,49 @@ export function enterDelay(index: number): string {
   return `animation-delay: ${Math.min(index, 8) * 40}ms;`;
 }
 
-/** 数字从 0 滚动到目标值 (约 600ms，ease-out) */
+/** 系统设置了「减少动态效果」(H5 浏览器)：关掉数字滚动、入场动画等 */
+export function prefersReducedMotion(): boolean {
+  try {
+    return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    return false;
+  }
+}
+
+const nextFrame = (cb: () => void): unknown =>
+  typeof requestAnimationFrame === 'function' ? requestAnimationFrame(cb) : setTimeout(cb, 16);
+const cancelFrame = (id: unknown) => {
+  if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(id as number);
+  else clearTimeout(id as ReturnType<typeof setTimeout>);
+};
+
+/**
+ * 数字从 0 滚动到目标值 (约 600ms，ease-out)。
+ * 用 requestAnimationFrame 跟屏幕刷新同步 (以前是 16ms 定时器，后台标签页也在跑)；减少动态效果时直接显示结果。
+ */
 export function useCountUp(source: () => number | null | undefined, duration = 600): Ref<number> {
   const display = ref(0);
-  let timer: ReturnType<typeof setInterval> | null = null;
+  let frame: unknown = null;
   watch(
     source,
     (target) => {
-      if (timer) clearInterval(timer);
+      if (frame !== null) cancelFrame(frame);
+      frame = null;
       const end = Number(target) || 0;
       const start = display.value;
       if (start === end) return;
+      if (prefersReducedMotion()) {
+        display.value = end;
+        return;
+      }
       const begin = Date.now();
-      timer = setInterval(() => {
+      const step = () => {
         const t = Math.min(1, (Date.now() - begin) / duration);
         const eased = 1 - Math.pow(1 - t, 3);
         display.value = Math.round(start + (end - start) * eased);
-        if (t >= 1 && timer) {
-          clearInterval(timer);
-          timer = null;
-        }
-      }, 16);
+        frame = t < 1 ? nextFrame(step) : null;
+      };
+      frame = nextFrame(step);
     },
     { immediate: true },
   );
@@ -55,7 +77,7 @@ export function ringSvg(percent: number, color: string, track = '#E8ECF2'): stri
   const offset = c * (1 - p);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="84" height="84" viewBox="0 0 84 84">` +
-    `<style>@keyframes d{from{stroke-dashoffset:${c.toFixed(1)}}}.p{animation:d .9s cubic-bezier(.2,.8,.2,1) both}</style>` +
+    (prefersReducedMotion() ? '' : `<style>@keyframes d{from{stroke-dashoffset:${c.toFixed(1)}}}.p{animation:d .9s cubic-bezier(.2,.8,.2,1) both}</style>`) +
     `<circle cx="42" cy="42" r="${r}" fill="none" stroke="${track}" stroke-width="8"/>` +
     (p > 0
       ? `<circle class="p" cx="42" cy="42" r="${r}" fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round" ` +

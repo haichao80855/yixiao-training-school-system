@@ -25,9 +25,11 @@
           :circular="heroPhotos.length > 1"
           @change="heroIndex = $event.detail.current"
         >
-          <swiper-item v-for="(p, idx) in heroPhotos" :key="idx" @click="preview(heroPhotos, idx)">
+          <swiper-item v-for="(p, idx) in heroPhotos" :key="idx" class="hero-item" @click="preview(heroPhotos, idx)">
             <!-- 只有当前及相邻两张加载 1280px 预览图，其余先用 300px 缩略图，避免进页面就下载全部大图 -->
-            <image class="hero-img" :src="mediaUrl(isNearHero(idx) ? p.url : p.thumbUrl)" mode="aspectFill" />
+            <!-- 竖拍的照片以前被裁掉一大半：现在完整显示，空白处用同一张图的模糊放大版铺底 -->
+            <image class="hero-bg" :src="mediaUrl(p.thumbUrl)" mode="aspectFill" />
+            <image class="hero-img" :src="mediaUrl(isNearHero(idx) ? p.url : p.thumbUrl)" mode="aspectFit" />
           </swiper-item>
         </swiper>
         <view class="hero-shade" />
@@ -253,9 +255,24 @@ function preview(photos: PhotoLink[], index: number) {
 }
 
 .hero-img {
+  position: relative;
   width: 100%;
   height: 100%;
   animation: p-fade-in 0.5s ease both;
+}
+
+.hero-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: -40rpx;
+  width: calc(100% + 80rpx);
+  height: calc(100% + 80rpx);
+  filter: blur(40rpx) brightness(0.85);
+  transform: scale(1.1);
 }
 
 .hero-shade {

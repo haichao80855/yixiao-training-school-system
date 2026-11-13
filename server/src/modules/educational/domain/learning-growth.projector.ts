@@ -975,7 +975,8 @@ export class LearningGrowthProjector {
       studentSummary: {
         studentId: student.id,
         studentName: sanitizedName,
-        avatar: (student as any).avatar || (student as any).faceImageUrl || 'https://assets.yixiao.com/avatar-default.png',
+        // 没有头像时返回空，由页面显示名字的最后一个字 (以前回退到一个并不存在的外部地址)
+        avatar: (student as any).avatar || (student as any).faceImageUrl || '',
         campusName: student.campus?.name || '校区',
         totalLessonsAttended: student.attendances.length,
         totalBadgesEarned: feed.reduce((sum, f) => sum + f.badges.length, 0),
@@ -1104,7 +1105,7 @@ export class LearningGrowthProjector {
 
     return {
       studentName: sanitizedName,
-      avatar: 'https://assets.yixiao.com/avatar-default.png',
+      avatar: '',
       lesson: lessonCard,
       campusContact: {
         campusName: schedule.campus?.name || '校区服务中心',
