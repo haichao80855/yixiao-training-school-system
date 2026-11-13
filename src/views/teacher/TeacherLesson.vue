@@ -81,6 +81,8 @@
             >
               <CircleCheck class="eval-done" aria-hidden="true" />看学情
             </RouterLink>
+            <!-- 家长端只给到课学员显示课评：请假、缺勤写了家长也看不到 -->
+            <span v-else-if="!isAttended(stu.status)" class="tp-text-meta roster-row__eval roster-row__eval--none">无需课评</span>
             <RouterLink
               v-else
               :to="`/teacher/lessons/${lessonId}/evaluate/${stu.studentId}`"
@@ -148,7 +150,7 @@ const isFuture = computed(() => !!schedule.value && schedule.value.date > todayS
 const attendedCount = computed(() => students.value.filter((s) => isAttended(s.status)).length)
 const totalDeduct = computed(() => students.value.reduce((sum, s) => sum + (isAttended(s.status) ? s.deduct : 0), 0))
 const evaluatedCount = computed(() => students.value.filter((s) => s.isEvaluated).length)
-const draftStudents = computed(() => students.value.filter((s) => s.hasDraft && !s.isEvaluated))
+const draftStudents = computed(() => students.value.filter((s) => s.hasDraft && !s.isEvaluated && isAttended(s.status)))
 const changedStudents = computed(() =>
   students.value.filter((s) => {
     const base = baseline.value.get(s.studentId)
@@ -484,6 +486,13 @@ onBeforeUnmount(() => {
 }
 .roster-row__eval--done {
   color: var(--tp-text-2);
+}
+.roster-row__eval--none {
+  display: flex;
+  align-items: center;
+  min-height: var(--tp-control);
+  white-space: nowrap;
+  color: var(--tp-text-3);
 }
 .is-low {
   color: var(--tp-danger);
