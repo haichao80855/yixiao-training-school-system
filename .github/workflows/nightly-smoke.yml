@@ -1,0 +1,52 @@
+# 浏览器冒烟测试：真实 Chrome + 构建后的后台前端 + 临时库上的后端，走 6 条关键业务路径
+# (各角色登录与菜单、报名开单、排课点名结课、课评通知、退费审批、老师课酬)。
+# 比较慢，不放进每个 PR 的必跑检查：每晚跑一次，发版前也可以在 Actions 页面手动运行。
+name: Nightly smoke
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # 北京时间每天凌晨 2 点
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: 浏览器冒烟 (6 条关键路径)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            server/package-lock.json
+      - name: 安装依赖
+        run: |
+          npm ci
+          npm --prefix server ci
+      - name: 构建后端
+        working-directory: server
+        run: |
+          npx prisma generate
+          npm run build
+      - name: 构建后台前端
+        run: npm run build
+      - name: 安装 Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+      - name: 运行浏览器冒烟测试
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: node tests/isolated-env.cjs --no-build --scope=smoke --report=test-results/smoke-report.json
+      - name: 上传失败截图和报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results
+          path: test-results/
+          if-no-files-found: ignore

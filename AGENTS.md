@@ -15,7 +15,7 @@ This repository contains three clients and one backend for the **一校教培系
   - Most modules keep their domain logic in `domain/` (coordinators, engines, projectors); controllers and services stay thin. The ADRs in `docs/adr/` describe these modules.
   - `server/prisma/`: `schema.prisma` (the active schema), `schema.sqlite.prisma` / `schema.postgresql.prisma` (the sources it is copied from), and `seed.ts`. There is no migrations folder; schema changes go through `prisma db push`. The local database `server/prisma/dev.db` is git-ignored.
 - `tests/`: The test list (`suites.json`), runner and isolated environment, full-stack and integration tests, mini-program contract tests (`test_mp_*.cjs`), and `unit/` (tests for the real `src/utils`). See `TEST_INFRA.md`.
-- `scripts/`: Browser walkthroughs, DB maintenance (`db_stats`, `clear_*`), and campus provisioning (`provision_campuses.cjs`).
+- `scripts/`: DB maintenance (`db_stats`, `clear_*`), campus provisioning (`provision_campuses.cjs`), the UI lint and the first-load size check. The old browser walkthrough scripts were replaced by `tests/smoke/`.
 - `deploy/`: Aliyun ECS deployment (`deploy-to-aliyun.sh`, nginx, docker-compose) and `deploy/backup/` (daily DB backup to OSS, alerting, restore; see its README).
 - Root docs: `README.md`, `PROJECT.md`, `GLOSSARY.md` (domain vocabulary), `TEST_INFRA.md`, `docs/adr/`.
 
@@ -68,9 +68,15 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
 - **Organization**:
   - `server/test-*.js`: Backend API and domain tests against a live backend.
   - `tests/*.cjs`: Full-stack and roll-call/evaluation integration, mini-program contracts, and source checks.
-  - `tests/unit/*.test.js`: Unit tests for the real `src/utils` modules.
-    - They load TypeScript directly through `tests/helpers/load-ts.cjs` and are run by `tests/runner.js`.
-    - The old Tier 1–5 suites tested hand-written copies in `tests/contracts/` and the unused `src/mocks` data, so they were removed. Don't reintroduce copied business logic in tests.
+  - `tests/unit/*.spec.{js,ts}`: Front-end unit tests (Vitest, `vitest.config.ts`, which reuses the Vite aliases and Element Plus auto-import). `npm run test:unit` runs them in about a second.
+    - Import real modules from `src/` (with `@/`). The old Tier 1–5 suites tested hand-written copies in `tests/contracts/` and the unused `src/mocks` data, so they were removed. Don't reintroduce copied business logic in tests.
+    - `*.server.spec.js` files need a backend, run only in the isolated environment, and must each be registered in `tests/suites.json`.
+    - `route-access-matrix.server.spec.js` logs in as 5 roles and records who can open which admin page in `route-access-matrix.md`. When you change page or role permissions on purpose, delete that file, rerun `npm run test:all -- --file=route-access-matrix`, and commit the regenerated table.
+    - Known bugs are recorded with `it.fails`, which passes while the bug exists and fails once it is fixed. Then remove `.fails`.
+  - `tests/smoke/*.smoke.cjs`: Browser smoke tests (puppeteer-core) for 6 key flows.
+    - Run them with `npm run test:smoke`, which builds the SPA and uses the isolated backend.
+    - They are not part of `test:all` or PR CI. `.github/workflows/nightly-smoke.yml` runs them nightly or on demand.
+    - Set up data through the API or Prisma, and drive only the key UI steps.
 - **Run tests in isolation.** `npm run test:all` / `test:server` (`tests/isolated-env.cjs`) do the following:
   - Copy nothing from `dev.db`. They create a temporary SQLite database with `prisma db push` and the seed.
   - Start `server/dist/main.js` on a random port, rebuilding it first if `server/src` is newer.
@@ -83,6 +89,7 @@ These follow PR #36. The first load is about 187 KB gzip; don't let it grow back
 - **Leftover check.** In isolated runs, the runner counts rows before and after every backend test.
   - New rows a test leaves behind are listed under 「清理遗漏」 in the summary and then deleted, so the next test sees the original database.
   - Tables where a test changed existing rows are reported but not restored.
+  - For permission-related tables (`User`, `Role`, `UserRole`, `RolePermission`, `Campus`, `Company`, `SystemSetting`), the runner also compares content (ignoring ids, timestamps and password hashes). It warns with ⚠️ when a test changes existing data and does not restore it, because that silently changes what later tests can do.
   - This only runs on a database inside the system temp dir.
   - Fix a test's own cleanup when it shows up there.
 - **Server address in tests.** Tests get it from `server/test-utils/target.js` (`TEST_BASE_URL`, then `PORT`, then 3001). Don't hardcode ports or hosts in new tests.
