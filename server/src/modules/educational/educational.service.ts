@@ -26,6 +26,11 @@ function parseClassDate(value: string, label: string): Date {
   return d;
 }
 
+/** 北京时间今天前后若干天的日期 (YYYY-MM-DD) */
+function shiftBusinessDate(days: number): string {
+  return new Date(Date.now() + 8 * 3600 * 1000 + days * 86400 * 1000).toISOString().slice(0, 10);
+}
+
 @Injectable()
 export class EducationalService {
   constructor(
@@ -582,6 +587,25 @@ export class EducationalService {
     return result;
   }
 
+  async getScheduleCounts(query: { campusId?: string; startDate: string; endDate: string; teacherId?: string }) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(query.startDate || '') || !/^\d{4}-\d{2}-\d{2}$/.test(query.endDate || '')) {
+      throw new BadRequestException('startDate、endDate 必须是 YYYY-MM-DD');
+    }
+    const where: any = { date: { gte: query.startDate, lte: query.endDate } };
+    if (query.campusId) where.campusId = query.campusId;
+    if (query.teacherId) where.teacherId = query.teacherId;
+    const rows = await this.prisma.scheduleEvent.groupBy({ by: ['date', 'status'], where, _count: { _all: true } });
+    const byDate = new Map<string, { date: string; total: number; completed: number; pending: number }>();
+    for (const row of rows) {
+      const day = byDate.get(row.date) || { date: row.date, total: 0, completed: 0, pending: 0 };
+      day.total += row._count._all;
+      if (row.status === 'completed') day.completed += row._count._all;
+      else day.pending += row._count._all;
+      byDate.set(row.date, day);
+    }
+    return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
   async getSchedules(query: {
     campusId?: string;
     startDate?: string;
@@ -594,10 +618,15 @@ export class EducationalService {
     const where: any = {};
     if (query.campusId) where.campusId = query.campusId;
     if (query.date) where.date = query.date;
-    if (query.startDate && query.endDate) {
+    // 没有日期条件、也没有指定班级时，默认只取最近 31 天到未来 62 天，
+    // 避免老客户端一次拉下校区全部历史排课 (数据多时上百毫秒、十几 MB)
+    if (!query.date && !query.startDate && !query.endDate && !query.classId) {
+      where.date = { gte: shiftBusinessDate(-31), lte: shiftBusinessDate(62) };
+    }
+    if (query.startDate || query.endDate) {
       where.date = {
-        gte: query.startDate,
-        lte: query.endDate,
+        ...(query.startDate ? { gte: query.startDate } : {}),
+        ...(query.endDate ? { lte: query.endDate } : {}),
       };
     }
     if (query.teacherId) where.teacherId = query.teacherId;
@@ -854,9 +883,11 @@ export class EducationalService {
       });
     }
 
+    // 历史台账已按课次分页：这里取最近 100 节课 (班级详情等场景)
     const snapshot = await this.settlementEngine.getWorkbenchSnapshot({
       campusId: query.campusId,
       classId: query.classId,
+      historyPageSize: 100,
     });
     return snapshot.history;
   }

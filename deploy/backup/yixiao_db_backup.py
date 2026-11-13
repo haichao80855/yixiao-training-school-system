@@ -405,9 +405,22 @@ def put_database(source, db_path, reference_stat):
     os.chmod(tmp, reference_stat.st_mode & 0o777)
     os.chown(tmp, reference_stat.st_uid, reference_stat.st_gid)
     os.replace(tmp, db_path)
-    journal = db_path + "-journal"
-    if os.path.exists(journal):
-        os.remove(journal)
+    # 旧库的日志文件不能留下：WAL 模式下残留的 -wal 会被回放到恢复后的库上
+    for suffix in ("-journal", "-wal", "-shm"):
+        leftover = db_path + suffix
+        if os.path.exists(leftover):
+            os.remove(leftover)
+
+
+def checkpoint(db_path):
+    """把 WAL 里已提交的数据写回主库文件，之后直接复制主库文件才是完整的。"""
+    if not os.path.exists(db_path + "-wal"):
+        return
+    conn = sqlite3.connect(db_path, timeout=30)
+    try:
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    finally:
+        conn.close()
 
 
 def command_restore(config, args):
@@ -422,6 +435,7 @@ def command_restore(config, args):
         keep = os.path.join(directory, "pre-restore-%s.sqlite" % time.strftime("%Y%m%d-%H%M%S"))
         service(config, "stop")
         try:
+            checkpoint(db_path)
             shutil.copy2(db_path, keep)
             os.chmod(keep, 0o600)
             log("当前库已保留到 %s" % keep)

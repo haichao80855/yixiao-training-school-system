@@ -149,6 +149,10 @@ export const educationalApi = {
 
 
   // 排课与日程管理
+  /** 按天统计课次数 (日历圆点)，不返回排课明细 */
+  getScheduleCounts: (params: { campusId?: string; startDate: string; endDate: string; teacherId?: string }) =>
+    request<Array<{ date: string; total: number; completed: number; pending: number }>>('/api/educational/schedules/counts', { params }),
+
   getSchedules: async (params?: any, fallbackData?: any) => {
     const res = await request('/api/educational/schedules', { params, fallbackData });
     if (res && res.data && Array.isArray(res.data)) {
@@ -223,7 +227,7 @@ export const educationalApi = {
     }),
 
   // 授课工作台就绪快照与看板聚合 (一站式获取指标、待上课次与历史冲正流水)
-  getWorkbenchSnapshot: async (params?: { campusId?: string; date?: string; classId?: string }, fallbackData?: any) => {
+  getWorkbenchSnapshot: async (params?: { campusId?: string; date?: string; classId?: string; historyPage?: number; historyPageSize?: number }, fallbackData?: any) => {
     return request('/api/educational/settlement/workbench', {
       params,
       fallbackData,

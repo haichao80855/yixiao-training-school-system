@@ -681,7 +681,8 @@ async function loadCalendarHeatmap(month: string = monthKeyOf(filters.date)) {
     const startDate = formatDateStr(new Date(y, m - 1, 1 - 7))
     const endDate = formatDateStr(new Date(y, m, 14))
 
-    const res = await educationalApi.getSchedules({
+    // 只要每天的课次数，用计数接口 (以前取完整排课明细再在前端数)
+    const res = await educationalApi.getScheduleCounts({
       campusId: tenantStore.currentCampusId,
       teacherId: teacherIdParam,
       startDate,
@@ -691,21 +692,9 @@ async function loadCalendarHeatmap(month: string = monthKeyOf(filters.date)) {
 
     const list = Array.isArray(res?.data) ? res.data : []
     const map = new Map(scheduleDateSummaryMap.value)
-    const seen = new Set<string>()
-
+    // 相邻月份的取数范围有重叠：同一天以本次返回为准
     for (const item of list) {
-      if (!item.date) continue
-      const d = String(item.date).split('T')[0]
-      // 相邻月份的取数范围有重叠：同一天以本次返回为准重新计数，避免重复累加
-      const current = seen.has(d) ? map.get(d)! : { total: 0, pending: 0, completed: 0 }
-      seen.add(d)
-      current.total += 1
-      if (item.status === 'completed') {
-        current.completed += 1
-      } else {
-        current.pending += 1
-      }
-      map.set(d, current)
+      map.set(item.date, { total: item.total, pending: item.pending, completed: item.completed })
     }
 
     scheduleDateSummaryMap.value = map

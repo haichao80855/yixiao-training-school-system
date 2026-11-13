@@ -23,6 +23,25 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit() {
     await this.$connect();
+    await this.enableSqliteWal();
+  }
+
+  /**
+   * SQLite 改用 WAL 日志模式 (流畅度改进第 2 期)：写事务提交时不再阻塞所有读请求，
+   * 老师结课和后台浏览同时进行时不容易排队或报 "database is locked"。
+   * journal_mode=WAL 会写进数据库文件，之后一直生效；SQLITE_WAL=off 可以关掉。
+   * 备份用 SQLite 备份 API (deploy/backup)，WAL 模式下也是完整的。
+   */
+  private async enableSqliteWal() {
+    const url = process.env.DATABASE_URL || '';
+    if (!url.startsWith('file:') || process.env.SQLITE_WAL === 'off') return;
+    try {
+      const rows = await this.$queryRawUnsafe<Array<{ journal_mode: string }>>('PRAGMA journal_mode = WAL;');
+      const mode = rows?.[0]?.journal_mode;
+      if (mode && mode.toLowerCase() !== 'wal') console.warn(`[prisma] SQLite 日志模式仍为 ${mode}，未能切换到 WAL`);
+    } catch (err) {
+      console.warn(`[prisma] 切换 SQLite WAL 模式失败：${(err as Error).message}`);
+    }
   }
 
   async onModuleDestroy() {

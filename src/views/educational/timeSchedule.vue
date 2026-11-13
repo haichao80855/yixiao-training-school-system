@@ -570,31 +570,44 @@ function loadSchedules() {
   return trackList(loadSchedulesTask)
 }
 
+let scheduleSeq = 0
+
 async function loadSchedulesTask() {
+  const seq = ++scheduleSeq
   const tId = isDataScopeSelf.value ? currentTeacherId.value : (filterTeacher.value || undefined)
+  const days = currentWeekDays.value
   try {
     // 讲师 / 教室 / 课程选项只在进入页面时加载一次，并与排课并行请求 (切换校区时页面会整体重建)
     if (!optionsRequest) optionsRequest = loadOptions()
+    // 只取当前这一周的排课 (以前一次拉下校区全部历史排课，数据一多要上百毫秒、十几 MB)
     const [res] = await Promise.all([
       educationalApi.getSchedules({
         campusId: tenantStore.currentCampusId,
         teacherId: tId,
-        classroomId: filterClassroom.value || undefined
+        classroomId: filterClassroom.value || undefined,
+        startDate: days[0].fullDate,
+        endDate: days[days.length - 1].fullDate
       }),
       optionsRequest
     ])
+    if (seq !== scheduleSeq) return
     if (res && res.success && res.data) {
       const list = Array.isArray(res.data) ? res.data : (res.data.items || res.data.list || [])
       schedules.value = list
       return
     }
   } catch (err: any) {
+    if (seq !== scheduleSeq) return
     failList(err, '获取排课日程失败')
-    ElMessage.error(err.message || '获取排课日程失败')
   }
 
   schedules.value = []
 }
+
+// 切换周时按新的一周重新加载
+watch(currentWeekStart, () => {
+  loadSchedules()
+})
 
 watch(() => [authStore.user, isDataScopeSelf.value], () => {
   if (isDataScopeSelf.value) {

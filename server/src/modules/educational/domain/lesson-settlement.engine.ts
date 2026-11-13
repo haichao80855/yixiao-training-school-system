@@ -126,18 +126,20 @@ export class LessonSettlementEngine {
       where: scheduleWhere,
       include: {
         class: {
-          include: {
-            course: true,
+          select: {
+            name: true,
+            course: { select: { name: true } },
             studentPackages: {
               where: { status: 'active' },
               select: { studentId: true },
             },
           },
         },
-        teacher: true,
-        classroom: true,
+        teacher: { select: { realName: true } },
+        classroom: { select: { name: true } },
         attendances: {
           where: { isReversed: false },
+          select: { status: true },
         },
         evaluation: {
           select: { id: true, status: true },
@@ -146,117 +148,99 @@ export class LessonSettlementEngine {
       orderBy: [{ startTime: 'asc' }],
     });
 
-    // 2. 构建考勤历史对账流水查询范围
-    const attendanceWhere: any = {};
-    if (query.campusId && query.campusId !== 'all') {
-      attendanceWhere.scheduleEvent = { campusId: query.campusId };
-    }
+    // 2. 考勤历史台账与累计课消的课次范围 (只有带了日期范围时才按日期限定，和以前一致)
+    const eventFilter: any = {};
+    if (query.campusId && query.campusId !== 'all') eventFilter.campusId = query.campusId;
     if (startDate && endDate) {
-      attendanceWhere.scheduleEvent = {
-        ...(attendanceWhere.scheduleEvent || {}),
-        date: startDate === endDate ? startDate : { gte: startDate, lte: endDate },
-      };
+      eventFilter.date = startDate === endDate ? startDate : { gte: startDate, lte: endDate };
     }
-    if (query.classId) {
-      attendanceWhere.scheduleEvent = {
-        ...(attendanceWhere.scheduleEvent || {}),
-        classId: query.classId,
-      };
-    }
-    if (query.teacherId) {
-      attendanceWhere.scheduleEvent = {
-        ...(attendanceWhere.scheduleEvent || {}),
-        teacherId: query.teacherId,
-      };
-    }
+    if (query.classId) eventFilter.classId = query.classId;
+    if (query.teacherId) eventFilter.teacherId = query.teacherId;
 
-    const rawAttendances = await this.prisma.attendanceRecord.findMany({
-      where: attendanceWhere,
-      include: {
-        scheduleEvent: {
-          include: {
-            class: { include: { course: true } },
-            teacher: true,
-            classroom: true,
+    // 历史台账按课次分页 (以前一次把校区全部上课记录连同多层关联拉回来，数据一多要好几秒、几十 MB)
+    const historyPage = Math.max(1, Number(query.historyPage) || 1);
+    const historyPageSize = Math.min(100, Math.max(1, Number(query.historyPageSize) || 20));
+    const historyWhere = { ...eventFilter, attendances: { some: {} } };
+    const [historyTotal, historyEvents] = await Promise.all([
+      this.prisma.scheduleEvent.count({ where: historyWhere }),
+      this.prisma.scheduleEvent.findMany({
+        where: historyWhere,
+        orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
+        skip: (historyPage - 1) * historyPageSize,
+        take: historyPageSize,
+        select: {
+          id: true,
+          date: true,
+          startTime: true,
+          endTime: true,
+          class: { select: { name: true, course: { select: { name: true } } } },
+          teacher: { select: { realName: true } },
+          classroom: { select: { name: true } },
+          attendances: {
+            orderBy: { createdAt: 'desc' },
+            include: { student: { select: { name: true, studentNo: true } } },
           },
         },
-        student: true,
-        package: { include: { course: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+      }),
+    ]);
 
-    // 3. 服务端折叠聚合：将扁平考勤记录按排课日程（scheduleEventId）聚合成课次级会话账本
-    const historyMap = new Map<string, AttendanceHistoryView>();
-
-    for (const record of rawAttendances) {
-      const sEvent = record.scheduleEvent;
-      if (!sEvent) continue;
-
-      let historyItem = historyMap.get(sEvent.id);
-      if (!historyItem) {
-        historyItem = {
+    const history: AttendanceHistoryView[] = historyEvents.map((sEvent) => {
+      const latest = sEvent.attendances[0];
+      const historyItem: AttendanceHistoryView = {
+        id: latest.id,
+        recordId: latest.id,
+        scheduleEventId: sEvent.id,
+        className: sEvent.class?.name || '未知班级',
+        courseName: sEvent.class?.course?.name || '综合课程',
+        teacherName: sEvent.teacher?.realName || '主教讲师',
+        classroomName: sEvent.classroom?.name || '校区教室',
+        date: sEvent.date,
+        startTime: sEvent.startTime,
+        endTime: sEvent.endTime,
+        timeSlot: `${sEvent.startTime} - ${sEvent.endTime}`,
+        totalStudents: 0,
+        presentCount: 0,
+        leaveCount: 0,
+        absentCount: 0,
+        lateCount: 0,
+        deductedLessonsTotal: 0,
+        isReversed: true, // 初始为 true，若有任一未冲正则变为 false
+        reversalReason: latest.reversalReason || undefined,
+        reversedAt: latest.reversedAt ? latest.reversedAt.toISOString() : undefined,
+        reversedBy: latest.reversedBy || undefined,
+        operator: latest.operator,
+        createdAt: latest.createdAt.toISOString(),
+        canRevert: false,
+        items: [],
+      };
+      for (const record of sEvent.attendances) {
+        historyItem.totalStudents += 1;
+        if (record.status === 'present') historyItem.presentCount += 1;
+        else if (record.status === 'leave') historyItem.leaveCount += 1;
+        else if (record.status === 'absent') historyItem.absentCount += 1;
+        else if (record.status === 'late') historyItem.lateCount += 1;
+        if (!record.isReversed) {
+          historyItem.deductedLessonsTotal += record.deductLessons;
+          historyItem.isReversed = false;
+        }
+        historyItem.items.push({
           id: record.id,
-          recordId: record.id,
-          scheduleEventId: sEvent.id,
-          className: sEvent.class?.name || '未知班级',
-          courseName: sEvent.class?.course?.name || '综合课程',
-          teacherName: sEvent.teacher?.realName || '主教讲师',
-          classroomName: sEvent.classroom?.name || '校区教室',
-          date: sEvent.date,
-          startTime: sEvent.startTime,
-          endTime: sEvent.endTime,
-          timeSlot: `${sEvent.startTime} - ${sEvent.endTime}`,
-          totalStudents: 0,
-          presentCount: 0,
-          leaveCount: 0,
-          absentCount: 0,
-          lateCount: 0,
-          deductedLessonsTotal: 0,
-          isReversed: true, // 初始为 true，若有任一未冲正则变为 false
-          reversalReason: record.reversalReason || undefined,
-          reversedAt: record.reversedAt ? record.reversedAt.toISOString() : undefined,
-          reversedBy: record.reversedBy || undefined,
-          operator: record.operator,
-          createdAt: record.createdAt.toISOString(),
-          canRevert: false,
-          items: [],
-        };
-        historyMap.set(sEvent.id, historyItem);
+          studentId: record.studentId,
+          studentName: record.student?.name || '在读学员',
+          studentNo: record.student?.studentNo || '-',
+          status: record.status as AttendanceStatus,
+          deductLessons: record.deductLessons,
+          packageId: record.packageId,
+          regularBurned: record.regularBurned || 0,
+          bonusBurned: record.bonusBurned || 0,
+          score: record.score,
+          rating: record.rating,
+          comment: record.comment,
+          isReversed: record.isReversed,
+        });
       }
-
-      // 统计课次出勤人次与课消课时
-      historyItem.totalStudents += 1;
-      if (record.status === 'present') historyItem.presentCount += 1;
-      else if (record.status === 'leave') historyItem.leaveCount += 1;
-      else if (record.status === 'absent') historyItem.absentCount += 1;
-      else if (record.status === 'late') historyItem.lateCount += 1;
-
-      if (!record.isReversed) {
-        historyItem.deductedLessonsTotal += record.deductLessons;
-        historyItem.isReversed = false;
-      }
-
-      historyItem.items.push({
-        id: record.id,
-        studentId: record.studentId,
-        studentName: record.student?.name || '在读学员',
-        studentNo: record.student?.studentNo || '-',
-        status: record.status as AttendanceStatus,
-        deductLessons: record.deductLessons,
-        packageId: record.packageId,
-        regularBurned: record.regularBurned || 0,
-        bonusBurned: record.bonusBurned || 0,
-        score: record.score,
-        rating: record.rating,
-        comment: record.comment,
-        isReversed: record.isReversed,
-      });
-    }
-
-    const history = Array.from(historyMap.values()).map((h) => {
-      h.canRevert = !h.isReversed && h.deductedLessonsTotal > 0;
-      return h;
+      historyItem.canRevert = !historyItem.isReversed && historyItem.deductedLessonsTotal > 0;
+      return historyItem;
     });
 
     // 4. 组装待上课次卡片模型
@@ -303,30 +287,16 @@ export class LessonSettlementEngine {
       0,
     );
 
-    // 历史累计课消学时与消课金额计算
-    let totalDeductedLessons = 0;
-    let totalConsumptionAmount = 0;
-    let regularConsumptionAmount = 0;
-    let expandConsumptionAmount = 0;
-    let regularLessons = 0;
-    let expandLessons = 0;
-
-    for (const record of rawAttendances) {
-      if (record.isReversed) continue;
-      const dLessons = record.deductLessons || 1;
-      totalDeductedLessons += dLessons;
-      const pPrice = (record as any).package?.pricePerLesson || (record.scheduleEvent?.class as any)?.course?.pricePerLesson || 120;
-      const amt = dLessons * pPrice;
-      totalConsumptionAmount += amt;
-      const isRegular = (record.scheduleEvent?.class as any)?.course?.attribute === 'regular';
-      if (isRegular) {
-        regularConsumptionAmount += amt;
-        regularLessons += dLessons;
-      } else {
-        expandConsumptionAmount += amt;
-        expandLessons += dLessons;
-      }
-    }
+    // 历史累计课消学时与消课金额：在数据库里按课包汇总，不再把全部上课记录读进内存
+    const consumption = await this.sumConsumption(eventFilter);
+    const {
+      totalDeductedLessons,
+      totalConsumptionAmount,
+      regularConsumptionAmount,
+      expandConsumptionAmount,
+      regularLessons,
+      expandLessons,
+    } = consumption;
 
     return {
       campusId: query.campusId,
@@ -345,7 +315,82 @@ export class LessonSettlementEngine {
       },
       schedules,
       history,
+      historyTotal,
+      historyPage,
+      historyPageSize,
     };
+  }
+
+  /**
+   * 累计课消：未冲正的上课记录按课包汇总扣减课时，金额 = 课时 × 课包单价 (没有单价时用课程标准单价，再没有按 120)。
+   * 正课 (课程属性 regular) 和拓展课分开统计。没有关联课包的记录按所在班级的课程计算。
+   */
+  private async sumConsumption(eventFilter: Record<string, unknown>) {
+    const where: any = { isReversed: false };
+    if (Object.keys(eventFilter).length > 0) where.scheduleEvent = eventFilter;
+
+    const [byPackage, byEventWithoutPackage] = await Promise.all([
+      this.prisma.attendanceRecord.groupBy({
+        by: ['packageId'],
+        where: { ...where, packageId: { not: null } },
+        _sum: { deductLessons: true },
+      }),
+      this.prisma.attendanceRecord.groupBy({
+        by: ['scheduleEventId'],
+        where: { ...where, packageId: null },
+        _sum: { deductLessons: true },
+      }),
+    ]);
+
+    const packageIds = byPackage.map((r) => r.packageId as string);
+    const eventIds = byEventWithoutPackage.map((r) => r.scheduleEventId);
+    const [packages, events] = await Promise.all([
+      packageIds.length
+        ? this.prisma.studentCoursePackage.findMany({
+            where: { id: { in: packageIds } },
+            select: { id: true, pricePerLesson: true, course: { select: { pricePerLesson: true, attribute: true } } },
+          })
+        : Promise.resolve([]),
+      eventIds.length
+        ? this.prisma.scheduleEvent.findMany({
+            where: { id: { in: eventIds } },
+            select: { id: true, class: { select: { course: { select: { pricePerLesson: true, attribute: true } } } } },
+          })
+        : Promise.resolve([]),
+    ]);
+    const packageMap = new Map(packages.map((p) => [p.id, p]));
+    const eventMap = new Map(events.map((e) => [e.id, e]));
+
+    const totals = {
+      totalDeductedLessons: 0,
+      totalConsumptionAmount: 0,
+      regularConsumptionAmount: 0,
+      expandConsumptionAmount: 0,
+      regularLessons: 0,
+      expandLessons: 0,
+    };
+    const add = (lessons: number, price: number, attribute?: string | null) => {
+      if (!lessons) return;
+      const amount = lessons * price;
+      totals.totalDeductedLessons += lessons;
+      totals.totalConsumptionAmount += amount;
+      if (attribute === 'regular') {
+        totals.regularConsumptionAmount += amount;
+        totals.regularLessons += lessons;
+      } else {
+        totals.expandConsumptionAmount += amount;
+        totals.expandLessons += lessons;
+      }
+    };
+    for (const row of byPackage) {
+      const pkg = packageMap.get(row.packageId as string);
+      add(row._sum.deductLessons || 0, pkg?.pricePerLesson || pkg?.course?.pricePerLesson || 120, pkg?.course?.attribute);
+    }
+    for (const row of byEventWithoutPackage) {
+      const course = eventMap.get(row.scheduleEventId)?.class?.course;
+      add(row._sum.deductLessons || 0, course?.pricePerLesson || 120, course?.attribute);
+    }
+    return totals;
   }
 
   /**
