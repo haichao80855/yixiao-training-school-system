@@ -9,6 +9,9 @@
       </view>
     </view>
 
+    <view v-else-if="loadError" class="missing">
+      <ErrorState :message="loadError" @retry="loadDetail" />
+    </view>
     <view v-else-if="!detail" class="missing">
       <EmptyState icon="message-square" title="课评暂不可查看" description="老师可能还在完善这节课的评价，稍后再来看看" />
     </view>
@@ -44,7 +47,10 @@
         <view v-if="letter" class="letter enter" style="animation-delay: 60ms">
           <view class="letter-head">
             <text class="letter-from">{{ teacherName }}对{{ childName }}的评价</text>
-            <StarRating v-if="letter.rating !== null" :value="letter.rating" size="28rpx" />
+            <view v-if="letter.rating !== null" class="letter-rating">
+              <StarRating :value="letter.rating" size="28rpx" />
+              <text v-if="letter.ratingIsOverall" class="rating-note">课堂整体评分</text>
+            </view>
           </view>
           <text class="quote-mark">“</text>
           <text v-if="letter.comment" class="letter-body">{{ letter.comment }}</text>
@@ -55,7 +61,7 @@
         </view>
 
         <!-- 孩子的专属照片 (顶部大图展示的是班级照片时) / 视频 -->
-        <view v-if="ownPhotosBelow.length || detail.forChild?.video" class="section enter" style="animation-delay: 120ms">
+        <view v-if="ownPhotosBelow.length || detail.forChild?.video || detail.classMedia.video" class="section enter" style="animation-delay: 120ms">
           <text class="section-title">{{ childName }}的作品</text>
           <view v-if="ownPhotosBelow.length" class="photo-grid">
             <image
@@ -74,9 +80,21 @@
             :src="mediaUrl(detail.forChild.video.url)"
             :poster="detail.forChild.video.thumbUrl ? mediaUrl(detail.forChild.video.thumbUrl) : undefined"
             preload="none"
-            object-fit="cover"
+            object-fit="contain"
             :show-center-play-btn="true"
           />
+          <!-- 班级视频：课评卡片上的「有视频」也包括它，以前详情页没有展示 -->
+          <template v-if="detail.classMedia.video && detail.classMedia.video.url !== detail.forChild?.video?.url">
+            <text class="video-label">课堂视频</text>
+            <video
+              class="video"
+              :src="mediaUrl(detail.classMedia.video.url)"
+              :poster="detail.classMedia.video.thumbUrl ? mediaUrl(detail.classMedia.video.thumbUrl) : undefined"
+              preload="none"
+              object-fit="contain"
+              :show-center-play-btn="true"
+            />
+          </template>
         </view>
 
         <!-- 本节课学了什么 -->
@@ -126,10 +144,12 @@ import { onLoad } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import StarRating from '../components/StarRating.vue';
 import EmptyState from '../components/EmptyState.vue';
+import ErrorState from '../components/ErrorState.vue';
+import { describeLoadError } from '../utils/loadError';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, mediaUrl, type EvaluationDetail, type PhotoLink } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
-import { formatDateCn } from '../utils/format';
+import { formatDateCn, teacherTitle } from '../utils/format';
 
 const parentStore = useParentStore();
 const detail = ref<EvaluationDetail | null>(null);
@@ -146,13 +166,15 @@ function isNearHero(idx: number): boolean {
 const studentId = ref('');
 
 const childName = computed(() => parentStore.children.find((c) => c.studentId === studentId.value)?.name || '孩子');
-const teacherName = computed(() => detail.value?.teacherName || '老师');
+const teacherName = computed(() => teacherTitle(detail.value?.teacherName));
 
-/** 顶部大图优先展示孩子本人的照片，没有时用班级照片 */
+/** 顶部大图：孩子本人的照片在前，后面接班级照片 (课评卡片上的照片数也是两者合计，以前详情页只显示其中一种) */
 const heroPhotos = computed<PhotoLink[]>(() => {
   const d = detail.value;
   if (!d) return [];
-  return d.forChild?.photos.length ? d.forChild.photos : d.classMedia.photos;
+  const own = d.forChild?.photos || [];
+  const seen = new Set(own.map((p) => p.url));
+  return [...own, ...d.classMedia.photos.filter((p) => !seen.has(p.url))];
 });
 const heroIsOwn = computed(() => !!detail.value?.forChild?.photos.length);
 const ownPhotosBelow = computed(() => (heroIsOwn.value ? [] : detail.value?.forChild?.photos || []));
@@ -161,23 +183,39 @@ const ownPhotosBelow = computed(() => (heroIsOwn.value ? [] : detail.value?.forC
 const letter = computed(() => {
   const d = detail.value;
   if (!d) return null;
-  if (d.forChild && (d.forChild.comment || d.forChild.rating !== null)) {
-    return { comment: d.forChild.comment, rating: d.forChild.rating, tag: d.forChild.tag };
+  // 评分口径和课评卡片一致：有孩子的专属评分用专属评分，没有时用课堂整体评分 (并注明)
+  const ownRating = d.forChild?.rating ?? null;
+  const rating = ownRating ?? d.overall.rating ?? null;
+  const ratingIsOverall = ownRating === null && rating !== null;
+  if (d.forChild && (d.forChild.comment || rating !== null)) {
+    return { comment: d.forChild.comment, rating, ratingIsOverall, tag: d.forChild.tag };
   }
+  if (rating !== null) return { comment: null, rating, ratingIsOverall, tag: null };
   return null;
 });
 
-onLoad(async (query: any) => {
-  studentId.value = decodeURIComponent(query?.sid || parentStore.currentStudentId);
-  const eventId = decodeURIComponent(query?.eid || '');
+const loadError = ref('');
+let eventId = '';
+
+async function loadDetail() {
+  loading.value = true;
+  loadError.value = '';
   try {
     detail.value = await parentApi.evaluationDetail(studentId.value, eventId);
     parentApi.markRead(studentId.value, eventId).catch(() => undefined);
-  } catch {
+  } catch (err) {
     detail.value = null;
+    // 404 是课评确实不可查看 (撤回或还没发布)；其他错误给重新加载
+    if (Number((err as { statusCode?: number })?.statusCode) !== 404) loadError.value = describeLoadError(err);
   } finally {
     loading.value = false;
   }
+}
+
+onLoad((query: any) => {
+  studentId.value = decodeURIComponent(query?.sid || parentStore.currentStudentId);
+  eventId = decodeURIComponent(query?.eid || '');
+  loadDetail();
 });
 
 function preview(photos: PhotoLink[], index: number) {
@@ -341,11 +379,14 @@ function preview(photos: PhotoLink[], index: number) {
 
 .letter-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 16rpx; // 姓名长时标题换行，不再和星级挤在一起
 }
 
 .letter-from {
+  flex: 1;
+  min-width: 0;
   font-size: p-fs(28);
   font-weight: 600;
   color: $p-ink-2;
@@ -625,5 +666,25 @@ function preview(photos: PhotoLink[], index: number) {
 
 .missing {
   padding-top: 200rpx;
+}
+
+.letter-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4rpx;
+  flex-shrink: 0;
+}
+
+.rating-note {
+  font-size: p-fs(24);
+  color: $p-ink-3;
+}
+
+.video-label {
+  display: block;
+  margin: 24rpx 0 12rpx;
+  font-size: p-fs(26);
+  color: $p-ink-3;
 }
 </style>

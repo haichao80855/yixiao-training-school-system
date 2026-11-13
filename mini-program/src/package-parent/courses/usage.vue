@@ -4,12 +4,14 @@
       <view class="sk-head" />
       <view class="sk-list" />
     </view>
+    <!-- 以前出错时 usage 为空、这里什么都不显示，整页空白 -->
+    <ErrorState v-else-if="loadError" :message="loadError" @retry="loadUsage" />
     <template v-else-if="usage">
       <view class="summary">
         <text class="sum-course">{{ usage.courseName }}</text>
         <view class="sum-row">
           <view class="sum-item">
-            <text class="sum-num">{{ usedHours }}</text>
+            <text class="sum-num">{{ formatHours(usedHours) }}</text>
             <text class="sum-label">已消耗课时</text>
           </view>
           <view class="sum-divider" />
@@ -19,7 +21,7 @@
           </view>
           <view v-if="returnedHours" class="sum-divider" />
           <view v-if="returnedHours" class="sum-item">
-            <text class="sum-num mint">{{ returnedHours }}</text>
+            <text class="sum-num mint">{{ formatHours(returnedHours) }}</text>
             <text class="sum-label">已退回</text>
           </view>
         </view>
@@ -56,8 +58,10 @@ import { computed, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import ErrorState from '../components/ErrorState.vue';
+import { describeLoadError } from '../utils/loadError';
 import { parentApi, type CourseUsage } from '../../api/parent';
-import { ATTENDANCE_LABEL } from '../utils/format';
+import { ATTENDANCE_LABEL, formatHours } from '../utils/format';
 import { enterDelay } from '../utils/visual';
 
 const usage = ref<CourseUsage | null>(null);
@@ -67,14 +71,25 @@ const usedHours = computed(() => (usage.value?.entries || []).filter((e) => !e.r
 const returnedHours = computed(() => (usage.value?.entries || []).filter((e) => e.returned).reduce((s, e) => s + e.hours, 0));
 const lessonCount = computed(() => (usage.value?.entries || []).filter((e) => !e.returned && e.hours > 0).length);
 
-onLoad(async (query: any) => {
+const loadError = ref('');
+let usageQuery = { sid: '', pid: '' };
+
+async function loadUsage() {
+  loading.value = true;
+  loadError.value = '';
   try {
-    usage.value = await parentApi.courseUsage(decodeURIComponent(query?.sid || ''), decodeURIComponent(query?.pid || ''));
-  } catch {
+    usage.value = await parentApi.courseUsage(usageQuery.sid, usageQuery.pid);
+  } catch (err) {
     usage.value = null;
+    loadError.value = describeLoadError(err);
   } finally {
     loading.value = false;
   }
+}
+
+onLoad((query: any) => {
+  usageQuery = { sid: decodeURIComponent(query?.sid || ''), pid: decodeURIComponent(query?.pid || '') };
+  loadUsage();
 });
 </script>
 

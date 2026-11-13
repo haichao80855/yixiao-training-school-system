@@ -212,8 +212,11 @@ export class ParentPortalService {
       select: { scheduleEventId: true },
     });
     const readIds = new Set(reads.map((r) => r.scheduleEventId));
+    // 未读总数 (第一页时返回)：家长端底部各个标签上的角标都用它，不只是本页 20 条里的未读
+    const unreadCount = skip === 0 ? await this.countUnread(parent, studentId) : undefined;
 
     return {
+      unreadCount,
       items: page.map((r) => {
         const e = r.scheduleEvent;
         const ev = e?.evaluation;
@@ -250,6 +253,23 @@ export class ParentPortalService {
       }),
       nextCursor: records.length > take ? String(skip + take) : null,
     };
+  }
+
+  /** 已发布、孩子到课、家长还没看过的课评数 */
+  private async countUnread(parent: ParentPrincipal, studentId: string): Promise<number> {
+    const events = await this.prisma.scheduleEvent.findMany({
+      where: {
+        status: 'completed',
+        evaluation: { status: 'published' },
+        attendances: { some: { studentId, isReversed: false, status: { in: ATTENDED } } },
+      },
+      select: { id: true },
+    });
+    if (events.length === 0) return 0;
+    const read = await this.prisma.parentReadState.count({
+      where: { parentAccountId: parent.parentAccountId, studentId, scheduleEventId: { in: events.map((e) => e.id) } },
+    });
+    return Math.max(0, events.length - read);
   }
 
   async evaluationDetail(parent: ParentPrincipal, studentId: string, scheduleEventId: string) {

@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts">
+import { formatFullDateCn } from '../utils/format';
 import { computed, ref, onMounted } from 'vue';
 import AppIcon from '../../components/AppIcon.vue';
 import ParentTabBar, { type ParentTabKey } from './ParentTabBar.vue';
@@ -92,8 +93,7 @@ const currentIndex = computed(() =>
 const readOnlyUntilText = computed(() => {
   const until = currentChild.value?.readOnlyUntil;
   if (!until) return '';
-  const d = new Date(until);
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  return formatFullDateCn(until);
 });
 
 const pickChild = () => {

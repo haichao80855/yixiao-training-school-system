@@ -22,6 +22,8 @@ export const useParentStore = defineStore('parent', {
     children: readJson<ParentChild[]>(CHILDREN_KEY, []),
     currentStudentId: (uni.getStorageSync(CURRENT_KEY) || '') as string,
     phoneMasked: (uni.getStorageSync(PHONE_KEY) || '') as string,
+    /** 每个孩子的未读课评数 (后端返回的总数)，底部标签栏的角标用 */
+    unread: {} as Record<string, number>,
   }),
   getters: {
     currentChild(state): ParentChild | null {
@@ -29,6 +31,9 @@ export const useParentStore = defineStore('parent', {
     },
     isReadOnly(): boolean {
       return this.currentChild?.access === 'read_only';
+    },
+    currentUnread(state): number {
+      return state.unread[state.currentStudentId] || 0;
     },
   },
   actions: {
@@ -46,6 +51,25 @@ export const useParentStore = defineStore('parent', {
       const me = await parentApi.me();
       this.hydrate({ children: me.children, currentStudentId: this.currentStudentId || me.currentStudentId, phoneMasked: me.account.phoneMasked });
       return me;
+    },
+    setUnread(studentId: string, count: number | undefined) {
+      if (typeof count === 'number') this.unread = { ...this.unread, [studentId]: count };
+    },
+    /** 看了一条课评：角标减一 */
+    markOneRead(studentId: string) {
+      const n = this.unread[studentId] || 0;
+      if (n > 0) this.unread = { ...this.unread, [studentId]: n - 1 };
+    },
+    /** 还不知道当前孩子的未读数时 (直接打开课表等页面)，取一次 */
+    async ensureUnread() {
+      const sid = this.currentStudentId;
+      if (!sid || sid in this.unread) return;
+      try {
+        const res = await parentApi.evaluations(sid, null, 1);
+        this.setUnread(sid, res.unreadCount);
+      } catch {
+        // 取不到就不显示角标
+      }
     },
     async switchChild(studentId: string) {
       if (studentId === this.currentStudentId) return;

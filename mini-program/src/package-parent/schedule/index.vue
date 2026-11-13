@@ -17,11 +17,12 @@
           {{ formatDateCn(nextLesson.date) }} · {{ nextLesson.startTime }}<text v-if="nextLesson.classroomName"> · {{ nextLesson.classroomName }}</text>
         </text>
         <view class="next-countdown">
-          <template v-if="nextDays > 0">
+          <!-- 3 天及以上显示数字倒计时，今天 / 明天 / 后天直接写字 -->
+          <template v-if="nextDays > 2">
             <text class="cd-num">{{ nextDays }}</text>
             <text class="cd-unit">天后</text>
           </template>
-          <text v-else class="cd-today">今天</text>
+          <text v-else class="cd-today">{{ relativeDayLabel(nextDays) }}</text>
         </view>
       </view>
 
@@ -56,6 +57,7 @@
       <view v-if="loading" class="tl-skeleton">
         <view v-for="i in 2" :key="i" class="sk-row" />
       </view>
+      <ErrorState v-else-if="loadError" :message="loadError" @retry="loadWeek" />
       <EmptyState v-else-if="dayLessons.length === 0" icon="calendar" title="这一天没有课" description="选择带圆点的日期查看课程" />
       <view v-else class="timeline">
         <view
@@ -98,10 +100,12 @@ import { computed, ref, watch } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import EmptyState from '../components/EmptyState.vue';
+import ErrorState from '../components/ErrorState.vue';
+import { describeLoadError } from '../utils/loadError';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, type ScheduleLesson } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
-import { addDaysIso, todayIso, weekStartIso, formatDateCn, daysFromToday, ATTENDANCE_LABEL } from '../utils/format';
+import { addDaysIso, todayIso, weekStartIso, formatDateCn, formatMonthCn, daysFromToday, relativeDayLabel, ATTENDANCE_LABEL } from '../utils/format';
 import { enterDelay } from '../utils/visual';
 
 const WEEKDAY = ['一', '二', '三', '四', '五', '六', '日'];
@@ -117,7 +121,7 @@ const loading = ref(false);
 
 const monthText = computed(() => {
   const [y, m] = selected.value.split('-');
-  return `${y}年${Number(m)}月`;
+  return formatMonthCn(`${y}-${m}`);
 });
 
 const days = computed(() =>
@@ -136,15 +140,19 @@ const weekLabel = computed(() => {
 const dayLessons = computed(() => lessons.value.filter((l) => l.date === selected.value));
 const nextDays = computed(() => (nextLesson.value ? daysFromToday(nextLesson.value.date) : 0));
 
+const loadError = ref('');
+
 async function loadWeek() {
   const sid = parentStore.currentStudentId;
   if (!sid || parentStore.isReadOnly) return;
   loading.value = true;
+  loadError.value = '';
   try {
     const res = await parentApi.schedule(sid, weekStart.value, addDaysIso(weekStart.value, 6));
     if (sid === parentStore.currentStudentId) lessons.value = res.lessons;
-  } catch {
+  } catch (err) {
     lessons.value = [];
+    loadError.value = describeLoadError(err);
   } finally {
     loading.value = false;
   }

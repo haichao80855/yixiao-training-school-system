@@ -1,5 +1,5 @@
 <template>
-  <ParentPage title="课评" :overline="todayText" tab="evaluations" :unread="unreadCount">
+  <ParentPage title="课评" :overline="todayText" tab="evaluations">
     <!-- 骨架屏 -->
     <view v-if="loading && items.length === 0" class="skeleton-list">
       <view v-for="i in 2" :key="i" class="sk-card">
@@ -9,6 +9,8 @@
         <view class="sk-line mid" />
       </view>
     </view>
+
+    <ErrorState v-else-if="loadError && items.length === 0" :message="loadError" @retry="load(true)" />
 
     <EmptyState
       v-else-if="!loading && items.length === 0"
@@ -24,7 +26,7 @@
           <text class="new-num">{{ unreadCount }}</text>
         </view>
         <view class="new-text">
-          <text class="new-title">{{ firstUnread.teacherName || '老师' }}发布了新课评</text>
+          <text class="new-title">{{ teacherTitle(firstUnread.teacherName) }}发布了新课评</text>
           <text class="new-sub">《{{ firstUnread.evaluation?.lessonTitle }}》· {{ formatDateCn(firstUnread.date, false) }}</text>
         </view>
         <AppIcon name="chevron-right" size="28rpx" color="#2F54EB" />
@@ -85,6 +87,7 @@
 
       <view class="list-footer">
         <text v-if="loadingMore">加载中…</text>
+        <text v-else-if="moreError" role="button" tabindex="0" class="more-retry" @click="load(false)">加载失败，点这里重试</text>
         <text v-else-if="!nextCursor">· 已经到底了 ·</text>
       </view>
     </view>
@@ -97,23 +100,29 @@ import { onShow, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app';
 import ParentPage from '../components/ParentPage.vue';
 import StarRating from '../components/StarRating.vue';
 import EmptyState from '../components/EmptyState.vue';
+import ErrorState from '../components/ErrorState.vue';
+import { describeLoadError } from '../utils/loadError';
 import PhotoMosaic from '../components/PhotoMosaic.vue';
 import AppIcon from '../../components/AppIcon.vue';
 import { parentApi, mediaUrl, type FeedItem } from '../../api/parent';
 import { useParentStore } from '../../stores/parentStore';
-import { formatDateCn, formatLongDate, todayIso, ATTENDANCE_LABEL } from '../utils/format';
+import { formatDateCn, formatLongDate, formatMonthCn, todayIso, daysFromToday, teacherTitle, ATTENDANCE_LABEL } from '../utils/format';
 import { enterDelay } from '../utils/visual';
 
 const parentStore = useParentStore();
 const items = ref<FeedItem[]>([]);
 const nextCursor = ref<string | null>(null);
 const loading = ref(false);
+// 加载失败的原因：首屏失败显示「重新加载」，翻页失败在列表底部给重试
+const loadError = ref('');
+const moreError = ref(false);
 const loadingMore = ref(false);
 let loadedFor = '';
 
 const todayText = formatLongDate(todayIso());
 
-const unreadCount = computed(() => items.value.filter((i) => i.evaluation?.unread).length);
+// 未读数用后端返回的总数 (翻页前也准确)；拿不到时退回本页统计
+const unreadCount = computed(() => parentStore.currentUnread || items.value.filter((i) => i.evaluation?.unread).length);
 const firstUnread = computed(() => items.value.find((i) => i.evaluation?.unread) || null);
 
 /** 按月分组，保留全局序号用于入场错峰 */
@@ -124,7 +133,7 @@ const groups = computed(() => {
     let group = result[result.length - 1];
     if (!group || group.month !== month) {
       const [y, m] = month.split('-');
-      group = { month, label: y ? `${y}年${Number(m)}月` : '更早', items: [] };
+      group = { month, label: y ? formatMonthCn(`${y}-${m}`) : '更早', items: [] };
       result.push(group);
     }
     group.items.push({ item, index });
@@ -141,15 +150,19 @@ async function load(reset = true) {
     if (!nextCursor.value || loadingMore.value) return;
     loadingMore.value = true;
   }
+  loadError.value = '';
+  moreError.value = false;
   try {
     const res = await parentApi.evaluations(sid, reset ? null : nextCursor.value);
     if (sid !== parentStore.currentStudentId) return;
     items.value = reset ? res.items : [...items.value, ...res.items];
     nextCursor.value = res.nextCursor;
+    if (reset) parentStore.setUnread(sid, res.unreadCount);
     loadedFor = sid;
     if (reset) lastLoadedAt = Date.now();
-  } catch {
-    // 错误提示由 request 统一处理
+  } catch (err) {
+    if (reset) loadError.value = describeLoadError(err);
+    else moreError.value = true;
   } finally {
     loading.value = false;
     loadingMore.value = false;
@@ -190,11 +203,15 @@ onPullDownRefresh(async () => {
 onReachBottom(() => load(false));
 
 function slimLabel(item: FeedItem) {
-  if (item.attendance === 'present' || item.attendance === 'late') return '课评待发布';
+  if (item.attendance === 'present' || item.attendance === 'late') {
+    // 上完课一周还没有课评，大概率不会再补了，不再一直显示「待发布」
+    return item.date && daysFromToday(item.date) < -7 ? '本节课没有课评' : '课评待发布';
+  }
   return ATTENDANCE_LABEL[item.attendance] || item.attendance;
 }
 
 function openDetail(item: FeedItem) {
+  if (item.evaluation?.unread) parentStore.markOneRead(parentStore.currentStudentId);
   if (item.evaluation) item.evaluation.unread = false;
   uni.navigateTo({
     url: `/package-parent/evaluations/detail?sid=${encodeURIComponent(parentStore.currentStudentId)}&eid=${encodeURIComponent(item.scheduleEventId)}`,
@@ -473,5 +490,12 @@ function openDetail(item: FeedItem) {
   height: 340rpx;
   border-radius: $p-r-inner;
   margin-top: 20rpx;
+}
+
+// 翻页失败时的重试入口
+.more-retry {
+  @include p-hit-min;
+  color: $p-brand;
+  font-weight: $p-fw-medium;
 }
 </style>
