@@ -7,7 +7,8 @@
  *
  * 模型：质量 1 的阻尼弹簧，x'' = -k (x - 目标) - c x'。
  * 用途有两种：
- * 1. CSS / Web Animations 的缓动：把弹簧从 0 到 1 的运动采样成 linear() 曲线，时长取弹簧真正停下的时间。
+ * 1. CSS / Web Animations 的缓动：把弹簧轨迹拟合成三次贝塞尔 (见 NAV_TRANSITION 与 teacher.css 的 --tp-spring-*)，
+ *    贝塞尔动画能交给系统合成器在独立线程运行，主线程忙的时候也不掉帧。
  * 2. 手势结束后的动画：从手指松开的位置和速度出发逐帧积分，速度会被延续，动画也随时可以被下一次触摸打断。
  */
 
@@ -68,35 +69,18 @@ export function sampleSpring(params: SpringParams, initialVelocity = 0, maxSecon
   return { samples, duration: Math.round(t * 1000) };
 }
 
-/** 把弹簧轨迹写成 CSS linear() 缓动 (Safari 17.2+ / Chrome 113+) */
-export function springEasing(params: SpringParams) {
-  const { samples, duration } = sampleSpring(params);
-  // 抽稀到约 40 个点：曲线足够平滑，字符串也不会太长
-  const stride = Math.max(1, Math.ceil(samples.length / 40));
-  const points = samples.filter((_, i) => i % stride === 0 || i === samples.length - 1);
-  const easing = `linear(${points.map((p) => Number(p.toFixed(4))).join(', ')})`;
-  return { easing, duration };
-}
-
-export function supportsLinearEasing() {
-  return typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('transition-timing-function', 'linear(0, 1)');
-}
+/**
+ * 页面推入 / 退出用的缓动。
+ * 由 SPRINGS.smooth (阻尼比 1、不回弹) 加上初速度 6 (手指点按后立即开始运动) 的轨迹拟合成三次贝塞尔：
+ * 前 10% 的时间走完 32% 的距离，540ms 时离终点不到 0.3%，与弹簧的均方根误差 0.003。
+ *
+ * 用贝塞尔而不是 linear() 弹簧曲线：iOS 的 WebKit 只能把贝塞尔曲线的 transform 动画交给系统合成器
+ * (Core Animation) 在独立线程运行；多点 linear() 可能退回到主线程逐帧计算，页面渲染、数据回来时就会掉帧。
+ */
+export const NAV_TRANSITION = { easing: 'cubic-bezier(0.23, 0.77, 0.29, 1)', duration: 540 } as const;
 
 export function prefersReducedMotion() {
   return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-}
-
-/**
- * 把三种弹簧写成 CSS 变量：--tp-spring-<name> (缓动) 与 --tp-spring-<name>-dur (时长)。
- * 不支持 linear() 的浏览器保留 teacher.css 里的贝塞尔曲线兜底。
- */
-export function installSpringVariables(root: HTMLElement = document.documentElement) {
-  if (!supportsLinearEasing()) return;
-  for (const [name, params] of Object.entries(SPRINGS)) {
-    const { easing, duration } = springEasing(params);
-    root.style.setProperty(`--tp-spring-${name}`, easing);
-    root.style.setProperty(`--tp-spring-${name}-dur`, `${duration}ms`);
-  }
 }
 
 /**
