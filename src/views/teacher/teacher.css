@@ -104,15 +104,16 @@
   --tp-control: 44px;
   --tp-control-lg: 52px;
 
-  /* 动效：位移和缩放一律用弹簧 (utils/spring.ts 运行时写入 linear() 弹簧曲线)。
-   * 下面是不支持 linear() 的浏览器的贝塞尔兜底，时长取弹簧真正停下的时间 */
+  /* 动效：位移和缩放一律按弹簧运动 (utils/spring.ts 的 SPRINGS)。
+   * 弹簧轨迹拟合成三次贝塞尔，时长取肉眼可见的运动结束时间：贝塞尔动画能交给系统合成器在独立线程运行，不受页面渲染影响。
+   * smooth：阻尼 1 + 初速度，不回弹 (导航、弹层)；snappy：冲过终点约 1% (滑块)；bouncy：冲过约 8% (按压回弹、星级) */
   --tp-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --tp-spring-smooth: cubic-bezier(0.2, 0.9, 0.25, 1);
-  --tp-spring-smooth-dur: 560ms;
-  --tp-spring-snappy: cubic-bezier(0.25, 1, 0.4, 1);
-  --tp-spring-snappy-dur: 420ms;
-  --tp-spring-bouncy: cubic-bezier(0.34, 1.4, 0.64, 1);
-  --tp-spring-bouncy-dur: 560ms;
+  --tp-spring-smooth: cubic-bezier(0.23, 0.77, 0.29, 1);
+  --tp-spring-smooth-dur: 540ms;
+  --tp-spring-snappy: cubic-bezier(0.345, 0.608, 0.13, 1.112);
+  --tp-spring-snappy-dur: 390ms;
+  --tp-spring-bouncy: cubic-bezier(0.45, 1.422, 0.056, 1.012);
+  --tp-spring-bouncy-dur: 634ms;
   /* 颜色、透明度这类非位移的变化仍用短时长缓出 */
   --tp-dur-fast: 160ms;
   --tp-dur-base: 260ms;
@@ -175,9 +176,8 @@
 
 .tp-header {
   flex-shrink: 0;
-  background: var(--tp-glass);
-  -webkit-backdrop-filter: var(--tp-glass-blur);
-  backdrop-filter: var(--tp-glass-blur);
+  /* 页头在滚动区之外，下面没有内容滚过，用实色即可；毛玻璃只会白白每帧重算 */
+  background: var(--tp-bg);
   box-shadow: inset 0 -0.5px 0 var(--tp-line-strong);
   padding-top: env(safe-area-inset-top);
 }
@@ -251,9 +251,8 @@
 .tp-tabbar {
   flex-shrink: 0;
   display: flex;
-  background: var(--tp-glass);
-  -webkit-backdrop-filter: var(--tp-glass-blur);
-  backdrop-filter: var(--tp-glass-blur);
+  /* 同页头：底部导航在滚动区之外，用实色 */
+  background: var(--tp-surface-hover);
   box-shadow: inset 0 0.5px 0 var(--tp-line-strong);
   padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
@@ -433,10 +432,15 @@
   position: relative;
   flex: 1;
   min-height: 0;
+  /* 转场时滚动容器整体左右移动，由这里裁切；clip 不会产生可滚动范围 */
+  overflow: hidden;
+  overflow: clip;
 }
 .tp-main {
   height: 100%;
   overflow-y: auto;
+  /* 页面推入时整页在水平方向移出可视区，不能因此产生横向滚动 (iOS 上会出现横向抖动和回弹) */
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 /* 页面撑满滚动区，内容较短时操作条也贴在底部 */
@@ -1540,17 +1544,42 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   z-index: 1;
 }
 .tp-push-layer.is-pop .tp-push-snapshot {
-  box-shadow: -8px 0 24px -12px rgba(20, 22, 31, 0.28);
+  overflow: visible;
 }
 .tp-main {
   position: relative;
   z-index: 1;
 }
-/* 推入中的新页面：不透明底色盖住旧页面，左缘一道投影，和 iOS 导航推入一样 */
-.tp-page.is-pushing {
+/* 转场中暂停骨架屏闪光：它每帧都要重绘，跟着整页移动时代价成倍增加 */
+.is-navigating .tp-skeleton {
+  animation-play-state: paused;
+}
+/* 转场中暂停毛玻璃：吸顶栏和操作条随页面一起移动，每帧重算模糊在手机上会掉帧 */
+.is-navigating .tp-sticky-heading,
+.is-navigating .tp-action-bar,
+.tp-push-layer .tp-sticky-heading,
+.tp-push-layer .tp-action-bar {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
   background: var(--tp-bg);
-  box-shadow: -8px 0 24px -12px rgba(20, 22, 31, 0.28);
+}
+/* 推入中的新页面 (整个滚动容器)：不透明底色盖住旧页面，左缘一道投影，和 iOS 导航推入一样 */
+.tp-main.is-pushing {
+  background: var(--tp-bg);
+  /* 只有一屏高、模糊很小的阴影：合成层只绘制一次 */
+  box-shadow: -4px 0 12px -4px rgba(20, 22, 31, 0.16);
   will-change: transform;
+}
+/* 退出时旧页快照左缘的阴影：一条 12px 渐变，比整页大模糊阴影便宜 */
+.tp-push-layer.is-pop .tp-push-snapshot::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -12px;
+  width: 12px;
+  background: linear-gradient(to left, rgba(20, 22, 31, 0.08), rgba(20, 22, 31, 0));
+  pointer-events: none;
 }
 
 /* 按下：卡片和可点的大块轻微缩小，松手弹回 */

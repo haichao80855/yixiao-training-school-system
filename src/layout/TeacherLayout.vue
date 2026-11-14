@@ -1,7 +1,7 @@
 <template>
   <div
     class="teacher-portal tp-shell"
-    :class="{ 'tp-keyboard-open': keyboardOpen, 'tp-shell--wide': route.meta.teacherWide }"
+    :class="{ 'tp-keyboard-open': keyboardOpen, 'tp-shell--wide': route.meta.teacherWide, 'is-navigating': navigating }"
     :style="shellHeight ? { height: `${shellHeight}px` } : undefined"
   >
     <aside class="tp-sidebar">
@@ -104,7 +104,8 @@ import { PAGE_REFRESH_KEY, type PageRefreshFn } from '@/views/teacher/utils/page
 import { useKeyboardViewport } from '@/views/teacher/utils/useKeyboardViewport'
 import { usePullToRefresh } from '@/views/teacher/utils/usePullToRefresh'
 import TpFeedbackHost from '@/views/teacher/components/TpFeedbackHost.vue'
-import { installSpringVariables, prefersReducedMotion, SPRINGS, springEasing, supportsLinearEasing } from '@/views/teacher/utils/spring'
+import { NAV_TRANSITION, prefersReducedMotion } from '@/views/teacher/utils/spring'
+import { setTransitionActive } from '@/views/teacher/utils/navTransition'
 import '@/views/teacher/teacher.css'
 
 const CACHED_PAGES = [
@@ -125,6 +126,8 @@ const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const mainEl = ref<HTMLElement | null>(null)
+/** 转场进行中：暂停毛玻璃等昂贵效果 */
+const navigating = ref(false)
 const pageEl = ref<HTMLElement | null>(null)
 const offline = ref(typeof navigator !== 'undefined' && navigator.onLine === false)
 
@@ -229,7 +232,11 @@ const removeBeforeEach = router.beforeEach((to, from) => {
 })
 const removeAfterEach = router.afterEach((to, from, failure) => {
   // 被离开确认拦下的导航也会走到这里，此时页面并没有变化
-  if (failure || to.fullPath === from.fullPath) return
+  if (failure || to.fullPath === from.fullPath) {
+    // 被拦下或取消的导航：拍好的快照和转场闸门都要收掉，否则数据会一直等转场结束
+    finishTransition()
+    return
+  }
   const position: number = window.history.state?.position ?? 0
   const isBack = position < historyPosition
   historyPosition = position
@@ -253,9 +260,6 @@ let pending: PendingTransition | null = null
 let running: { animations: Animation[]; cleanup: () => void } | null = null
 let backRequested = false
 
-const navSpring = supportsLinearEasing()
-  ? springEasing(SPRINGS.smooth)
-  : { easing: 'cubic-bezier(0.2, 0.9, 0.25, 1)', duration: 560 }
 
 function takeSnapshot(mode: 'push' | 'pop'): PendingTransition | null {
   const page = pageEl.value
@@ -274,24 +278,32 @@ function takeSnapshot(mode: 'push' | 'pop'): PendingTransition | null {
   clone.removeAttribute('style')
   // 克隆出来的元素不能和真实页面重复 id
   clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'))
+  // 快照只用来看：去掉视频 (会重新加载)、骨架屏动画等转场中用不到又占资源的部分
+  clone.querySelectorAll('video, iframe, .tp-skeleton').forEach((el) => el.remove())
   // 保持离开时的滚动位置
   clone.style.marginTop = `${-main.scrollTop}px`
   snapshot.appendChild(clone)
   layer.append(dim, snapshot)
   area.insertBefore(layer, mode === 'push' ? main : main.nextSibling)
+  // 转场期间：新页面先不提交刚回来的数据；毛玻璃暂停 (每帧重算模糊在手机上很贵)
+  setTransitionActive(true)
+  navigating.value = true
   return { mode, layer, snapshot, dim }
 }
 
 function playTransition() {
   const t = pending
   pending = null
-  const page = pageEl.value
+  // 移动的是滚动容器本身 (而不是里面的页面)：外层裁切，不会产生任何横向滚动范围
+  const page = mainEl.value
   if (!t || !page) {
     t?.layer.remove()
+    navigating.value = false
+    setTransitionActive(false)
     return
   }
   const width = t.layer.clientWidth || window.innerWidth
-  const timing: KeyframeAnimationOptions = { duration: navSpring.duration, easing: navSpring.easing, fill: 'both' }
+  const timing: KeyframeAnimationOptions = { duration: NAV_TRANSITION.duration, easing: NAV_TRANSITION.easing, fill: 'both' }
   const back = -Math.round(width * 0.3)
   let animations: Animation[]
   if (t.mode === 'push') {
@@ -313,6 +325,8 @@ function playTransition() {
     page.classList.remove('is-pushing')
     t.layer.remove()
     running = null
+    navigating.value = false
+    setTransitionActive(false)
   }
   running = { animations, cleanup }
   animations[0].finished.then(cleanup, () => {})
@@ -323,6 +337,8 @@ function finishTransition() {
   running?.cleanup()
   pending?.layer.remove()
   pending = null
+  navigating.value = false
+  setTransitionActive(false)
 }
 
 /** 再次点击当前标签回到顶部；点按时图标弹一下 (只在手指点按时，页面切换回来不重复播放) */
@@ -352,7 +368,6 @@ onMounted(() => {
   // 与页面底色一致：直接读设计变量，避免状态栏和页面之间出现一条色差
   const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--tp-bg').trim()
   themeColorMeta?.setAttribute('content', pageBg || '#F2F3F7')
-  installSpringVariables()
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
   document.addEventListener('visibilitychange', onVisibilityChange)
