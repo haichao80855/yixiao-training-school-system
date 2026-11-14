@@ -18,7 +18,7 @@
   </div>
 
   <div v-else class="tp-stack">
-    <PageTitle title="课表" :overline="headerText">
+    <PageTitle title="课表" :overline="`${parseDateStr(anchor).getFullYear()} 年`">
       <button v-if="selectedDate !== today" type="button" class="tp-link" @click="goToday">回到今天</button>
     </PageTitle>
 
@@ -145,10 +145,6 @@ const days = computed(() => {
   return result
 })
 
-const headerText = computed(() => {
-  const d = parseDateStr(anchor.value)
-  return `${d.getFullYear()}年${d.getMonth() + 1}月`
-})
 
 const rangeLabel = computed(() => {
   if (expanded.value) return `${parseDateStr(anchor.value).getMonth() + 1}月`
@@ -291,7 +287,7 @@ onActivated(refresh)
   background: var(--tp-accent);
 }
 .day-cell.is-selected .day-week {
-  color: var(--tp-on-hero-2);
+  color: var(--tp-on-accent-2);
 }
 .day-cell.is-selected .day-num {
   color: var(--tp-on-accent);

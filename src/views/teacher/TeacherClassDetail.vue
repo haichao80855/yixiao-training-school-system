@@ -16,7 +16,7 @@
         </div>
       </section>
 
-      <div class="tp-segment" role="group" aria-label="班级内容">
+      <div v-tp-segment class="tp-segment" role="group" aria-label="班级内容">
         <button type="button" class="tp-segment-item" :class="{ 'is-active': tab === 'schedules' }" :aria-pressed="tab === 'schedules'" @click="tab = 'schedules'">课次 <span class="tp-count">{{ cls.schedules.length }}</span></button>
         <button type="button" class="tp-segment-item" :class="{ 'is-active': tab === 'students' }" :aria-pressed="tab === 'students'" @click="tab = 'students'">学员 <span class="tp-count">{{ cls.students.length }}</span></button>
       </div>
@@ -60,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import { vTpSegment } from './utils/segmentThumb'
 import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
@@ -91,10 +92,10 @@ onActivated(detail.load)
 .class-name {
   margin: 0;
   min-width: 0;
-  font-size: var(--tp-fs-title);
-  font-weight: 600;
+  font-size: var(--tp-fs-heading);
+  font-weight: 700;
   line-height: var(--tp-lh-tight);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tp-tracking-tight);
   overflow-wrap: anywhere;
 }
 </style>

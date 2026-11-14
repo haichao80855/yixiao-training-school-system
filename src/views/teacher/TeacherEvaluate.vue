@@ -612,6 +612,21 @@ onBeforeUnmount(() => {
   background: transparent;
   cursor: pointer;
 }
+.star-btn svg {
+  transition: transform var(--tp-dur-fast) var(--tp-ease-out);
+}
+.star-btn:active svg {
+  transform: scale(0.82);
+}
+/* 新点亮的星依次弹一下 */
+.star-btn .star-on {
+  animation: star-pop var(--tp-dur-slow) var(--tp-ease-spring) backwards;
+}
+@keyframes star-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
 .star-on {
   color: var(--tp-rating-line);
   fill: var(--tp-rating);
@@ -676,9 +691,9 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: var(--tp-space-1);
   padding: var(--tp-space-1);
-  border: 1px dashed var(--tp-line-strong);
-  border-radius: var(--tp-radius-sm);
-  background: transparent;
+  border: 1.5px dashed var(--tp-line-strong);
+  border-radius: var(--tp-radius-md);
+  background: var(--tp-surface-hover);
   color: var(--tp-text-2);
   font-size: var(--tp-fs-small);
   font-family: inherit;

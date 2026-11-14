@@ -15,7 +15,7 @@
           <template v-if="stu.school"><dt>学校</dt><dd>{{ stu.school }}</dd></template>
           <template v-if="stu.birthday"><dt>生日</dt><dd class="tp-num">{{ dateOnly(stu.birthday) }}</dd></template>
         </dl>
-        <a :href="`tel:${stu.phone}`" class="tp-btn tp-btn-secondary tp-btn-block tp-mt-3">
+        <a :href="`tel:${stu.phone}`" class="tp-btn tp-btn-tinted tp-btn-block tp-mt-4">
           <Phone aria-hidden="true" />联系家长 <span class="tp-num">{{ stu.phone }}</span>
         </a>
       </section>
@@ -33,8 +33,20 @@
           >
             <span class="tp-row__body">
               <p class="tp-row__title">{{ c.courseName }}</p>
-              <p class="tp-row__meta">{{ c.className }}</p>
-              <p class="tp-row__meta tp-num">剩余 {{ c.remainingLessons }} · 已上 {{ c.consumedLessons }} · 共 {{ c.totalLessons }} 课时</p>
+              <p class="tp-row__meta">{{ c.className }} · 已上 {{ c.consumedLessons }} / 共 {{ c.totalLessons }} 课时</p>
+              <span
+                class="tp-progress course-progress"
+                role="progressbar"
+                :aria-valuenow="c.consumedLessons"
+                :aria-valuemax="c.totalLessons"
+                aria-label="已上课时"
+              >
+                <i :style="{ width: c.totalLessons ? `${(c.consumedLessons / c.totalLessons) * 100}%` : '0' }" />
+              </span>
+            </span>
+            <span class="course-left">
+              <strong class="tp-figure">{{ c.remainingLessons }}</strong>
+              <small>剩余课时</small>
             </span>
             <ChevronRight v-if="c.classId" class="tp-row__chevron" aria-hidden="true" />
           </component>
@@ -99,11 +111,34 @@ onActivated(detail.load)
   gap: var(--tp-space-3);
 }
 .profile__name {
-  margin: 0;
-  font-size: var(--tp-fs-title);
-  font-weight: 600;
+  margin: 0 0 2px;
+  font-size: var(--tp-fs-heading);
+  font-weight: 700;
   line-height: var(--tp-lh-tight);
+  letter-spacing: var(--tp-tracking-tight);
   overflow-wrap: anywhere;
+}
+.course-progress {
+  max-width: 180px;
+  margin-top: var(--tp-space-2);
+}
+/* 剩余课时是老师最关心的数：放大放在右侧 */
+.course-left {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.1;
+}
+.course-left strong {
+  font-size: var(--tp-fs-heading);
+  font-weight: 700;
+  letter-spacing: var(--tp-tracking-tight);
+}
+.course-left small {
+  margin-top: 2px;
+  font-size: var(--tp-fs-caption);
+  color: var(--tp-text-3);
 }
 .info-list {
   display: grid;

@@ -32,7 +32,7 @@
               </span>
               <span class="tp-text-meta tp-num">{{ c.completedLessons }}/{{ c.totalLessons }} 节</span>
             </div>
-            <p v-if="c.nextLesson" class="tp-row__meta tp-num">下节 {{ friendlyDate(c.nextLesson.date) }} {{ shortTime(c.nextLesson.startTime) }}</p>
+            <p v-if="c.nextLesson" class="tp-row__meta tp-num class-next"><CalendarDays aria-hidden="true" />下节 {{ friendlyDate(c.nextLesson.date) }} {{ shortTime(c.nextLesson.startTime) }}</p>
           </span>
           <span v-if="c.status === 'completed'" class="tp-tag tp-tag-muted">{{ classStatusLabel(c.status) }}</span>
           <ChevronRight class="tp-row__chevron" aria-hidden="true" />
@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { onActivated, ref } from 'vue'
-import { ChevronRight } from 'lucide-vue-next'
+import { CalendarDays, ChevronRight } from 'lucide-vue-next'
 import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import PageTitle from './components/PageTitle.vue'
@@ -72,5 +72,15 @@ onActivated(classes.load)
 .class-progress .tp-progress {
   flex: 1;
   max-width: 200px;
+}
+.class-next {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-1);
+  margin-top: var(--tp-space-2);
+}
+.class-next svg {
+  width: var(--tp-icon-sm);
+  height: var(--tp-icon-sm);
 }
 </style>
