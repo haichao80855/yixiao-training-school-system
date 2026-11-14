@@ -2,11 +2,11 @@
   <LoadState :loading="detail.loading.value" :error="detail.error.value" :has-data="!!cls" @retry="detail.load">
     <div v-if="cls" class="tp-stack">
       <section class="tp-card">
-        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px">
+        <div class="class-head">
           <h2 class="class-name">{{ cls.name }}</h2>
           <span class="tp-tag" :class="cls.status === 'completed' ? 'tp-tag-muted' : 'tp-tag-primary'">{{ classStatusLabel(cls.status) }}</span>
         </div>
-        <p class="tp-text-meta" style="margin: 4px 0 0">
+        <p class="tp-text-meta tp-m-0 tp-mt-1">
           {{ cls.courseName }} · {{ cls.classroomName }} · 讲师 {{ cls.teacherName }}<template v-if="cls.advisorName"> · 教务 {{ cls.advisorName }}</template>
         </p>
         <div class="tp-metrics">
@@ -45,12 +45,12 @@
         <p v-if="cls.students.length === 0" class="tp-state">本班暂无在读学员</p>
         <div v-else class="tp-list">
           <RouterLink v-for="stu in cls.students" :key="stu.id" :to="`/teacher/students/${stu.id}`" class="tp-row">
-            <span class="tp-avatar" aria-hidden="true">{{ stu.name.slice(0, 1) }}</span>
+            <TpAvatar :name="stu.name" :seed="stu.id" />
             <span class="tp-row__body">
               <p class="tp-row__title">{{ stu.name }}</p>
               <p class="tp-row__meta tp-num">{{ stu.studentNo }}</p>
             </span>
-            <span class="tp-text-meta tp-num" style="flex-shrink: 0">剩 {{ stu.remainingLessons }}/{{ stu.totalLessons }} 课时</span>
+            <span class="tp-text-meta tp-num tp-shrink-0">剩 {{ stu.remainingLessons }}/{{ stu.totalLessons }} 课时</span>
             <ChevronRight class="tp-row__chevron" aria-hidden="true" />
           </RouterLink>
         </div>
@@ -60,6 +60,7 @@
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ChevronRight } from 'lucide-vue-next'
@@ -81,6 +82,12 @@ onActivated(detail.load)
 </script>
 
 <style scoped>
+.class-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--tp-space-2);
+}
 .class-name {
   margin: 0;
   min-width: 0;

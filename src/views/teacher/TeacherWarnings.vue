@@ -20,20 +20,20 @@
         </div>
 
         <div v-if="visibleItems.length === 0" class="tp-state">
-          <span class="tp-state__icon"><CircleCheck aria-hidden="true" /></span>
+          <span class="tp-state__icon tp-state__icon--success"><CircleCheck aria-hidden="true" /></span>
           <p class="tp-state__title">暂无需要关注的学员</p>
           <p>课时不足、连续缺勤或长期未到课的学员会出现在这里</p>
         </div>
         <div v-else class="tp-list">
           <article v-for="item in visibleItems" :key="item.id" class="tp-row">
             <RouterLink :to="`/teacher/students/${item.studentId}`" class="warning-person">
-              <span class="tp-avatar" aria-hidden="true">{{ item.studentName.slice(0, 1) }}</span>
+              <TpAvatar :name="item.studentName" :seed="item.studentId" />
               <span class="tp-row__body">
                 <span class="warning-title">
                   <span class="tp-row__title">{{ item.studentName }}</span>
                   <span class="tp-tag" :class="item.level === 'urgent' ? 'tp-tag-danger' : 'tp-tag-warning'">{{ TYPE_LABELS[item.type] }}</span>
                 </span>
-                <span class="tp-row__meta" style="display: block">{{ item.reason }} · {{ item.classNames.join('、') }}</span>
+                <span class="tp-row__meta tp-block">{{ item.reason }} · {{ item.classNames.join('、') }}</span>
               </span>
             </RouterLink>
             <a :href="`tel:${item.phone}`" class="tp-icon-btn tp-icon-btn--accent" :aria-label="`联系${item.parentName || '家长'}`">
@@ -47,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated, ref } from 'vue'
 import { CircleCheck, Phone } from 'lucide-vue-next'
 import { teacherPortalApi, type WarningType } from '@/api'

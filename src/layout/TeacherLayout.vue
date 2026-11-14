@@ -88,6 +88,10 @@
         </RouterLink>
       </nav>
     </div>
+
+    <!-- 弹层与提示挂在滚动区之外：不受下拉刷新的位移影响，也能继承教师端的设计变量 -->
+    <div id="tp-overlays" />
+    <TpFeedbackHost />
   </div>
 </template>
 
@@ -99,6 +103,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { PAGE_REFRESH_KEY, type PageRefreshFn } from '@/views/teacher/utils/pageRefresh'
 import { useKeyboardViewport } from '@/views/teacher/utils/useKeyboardViewport'
 import { usePullToRefresh } from '@/views/teacher/utils/usePullToRefresh'
+import TpFeedbackHost from '@/views/teacher/components/TpFeedbackHost.vue'
 import '@/views/teacher/teacher.css'
 
 const CACHED_PAGES = [
@@ -239,7 +244,9 @@ const themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme
 const originalThemeColor = themeColorMeta?.content
 
 onMounted(() => {
-  themeColorMeta?.setAttribute('content', '#f4f6fa')
+  // 与页面底色一致：直接读设计变量，避免状态栏和页面之间出现一条色差
+  const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--st-color-bg').trim()
+  themeColorMeta?.setAttribute('content', pageBg || '#F5F5F7')
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
   document.addEventListener('visibilitychange', onVisibilityChange)

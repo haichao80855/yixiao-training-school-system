@@ -276,7 +276,7 @@ onActivated(refresh)
 }
 .day-num {
   font-size: var(--tp-fs-title);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 22px;
   color: var(--tp-text-1);
 }
@@ -291,13 +291,13 @@ onActivated(refresh)
   background: var(--tp-accent);
 }
 .day-cell.is-selected .day-week {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--tp-on-hero-2);
 }
 .day-cell.is-selected .day-num {
-  color: #fff;
+  color: var(--tp-on-accent);
 }
 .day-cell.is-selected .day-dot {
-  background: #fff;
+  background: var(--tp-on-accent);
 }
 .day-dot {
   width: 5px;

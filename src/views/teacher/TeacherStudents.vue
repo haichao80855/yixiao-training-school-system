@@ -15,25 +15,26 @@
     >
       <div class="tp-list">
         <RouterLink v-for="stu in students" :key="stu.id" :to="`/teacher/students/${stu.id}`" class="tp-row">
-          <span class="tp-avatar" aria-hidden="true">{{ stu.name.slice(0, 1) }}</span>
+          <TpAvatar :name="stu.name" :seed="stu.id" />
           <span class="tp-row__body">
             <p class="tp-row__title">{{ stu.name }}</p>
             <p class="tp-row__meta">{{ stu.classes.map((c) => c.name).join('、') }}</p>
           </span>
           <span v-if="stu.isLowLessons" class="tp-tag tp-tag-danger tp-num">剩 {{ stu.remainingLessons }} 课时</span>
-          <span v-else class="tp-text-meta tp-num" style="flex-shrink: 0">剩 {{ stu.remainingLessons }}</span>
+          <span v-else class="tp-text-meta tp-num tp-shrink-0">剩 {{ stu.remainingLessons }} 课时</span>
           <ChevronRight class="tp-row__chevron" aria-hidden="true" />
         </RouterLink>
       </div>
       <button v-if="students.length < total" type="button" class="tp-btn tp-btn-secondary tp-btn-block" :disabled="loading" @click="load(page + 1)">
         {{ loading ? '加载中…' : '加载更多' }}
       </button>
-      <p v-if="error" class="tp-text-small" style="margin: 0; text-align: center; color: var(--tp-danger)" role="alert">{{ error }}</p>
+      <p v-if="error" class="tp-text-small tp-m-0 tp-text-danger tp-text-center" role="alert">{{ error }}</p>
     </LoadState>
   </div>
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { onActivated, ref } from 'vue'
 import { ChevronRight } from 'lucide-vue-next'
 import { teacherPortalApi, type TeacherStudentItem } from '@/api'

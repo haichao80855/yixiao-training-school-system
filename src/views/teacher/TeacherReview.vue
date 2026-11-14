@@ -1,10 +1,10 @@
 <template>
   <LoadState :loading="workbench.loading.value" :error="workbench.error.value" :has-data="!!workbench.data.value" @retry="workbench.load">
-    <p v-if="workbench.data.value && !student" class="tp-card tp-state" style="margin: 0">该学员不在本课次名单中</p>
+    <p v-if="workbench.data.value && !student" class="tp-card tp-state tp-m-0">该学员不在本课次名单中</p>
     <div v-if="student && schedule" class="tp-stack">
       <section class="tp-list">
         <div class="tp-row">
-          <span class="tp-avatar" aria-hidden="true">{{ student.studentName.slice(0, 1) }}</span>
+          <TpAvatar :name="student.studentName" :seed="student.studentId" />
           <span class="tp-row__body">
             <p class="tp-row__title">{{ student.studentName }}</p>
             <p class="tp-row__meta">{{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}</p>
@@ -12,7 +12,7 @@
           <span class="tp-tag" :class="isPublished ? 'tp-tag-success' : 'tp-tag-muted'">{{ isPublished ? '家长可见' : '未推送' }}</span>
         </div>
         <div class="tp-row">
-          <span class="tp-row__body tp-text-meta">{{ attendanceLabel(student.recordedStatus || student.defaultStatus) }}</span>
+          <span class="tp-row__body tp-text-small">出勤：{{ attendanceLabel(student.recordedStatus || student.defaultStatus) }}</span>
           <span class="review-stars" role="img" :aria-label="`课堂评分 ${rating} 星`">
             <Star v-for="n in 5" :key="n" :size="16" :class="n <= rating ? 'star-on' : 'star-off'" aria-hidden="true" />
           </span>
@@ -20,17 +20,17 @@
       </section>
 
       <section class="tp-card">
-        <h2 class="tp-label">专属评语</h2>
+        <h2 class="review-heading">专属评语</h2>
         <p class="review-text">{{ student.currentComment || '未填写' }}</p>
       </section>
 
       <section v-if="studyContent" class="tp-card">
-        <h2 class="tp-label">学习内容与知识点</h2>
-        <p class="review-text tp-text-small">{{ studyContent }}</p>
+        <h2 class="review-heading">学习内容与知识点 <small>全班共享</small></h2>
+        <p class="review-text">{{ studyContent }}</p>
       </section>
 
       <section v-if="(student.photos?.length || 0) > 0 || student.videoUrl" class="tp-card">
-        <h2 class="tp-label">照片与视频</h2>
+        <h2 class="review-heading">照片与视频</h2>
         <div v-if="student.photos?.length" class="review-grid">
           <el-image
             v-for="(photo, idx) in student.photos"
@@ -62,6 +62,7 @@
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Star } from 'lucide-vue-next'
@@ -95,14 +96,28 @@ onMounted(workbench.load)
   gap: 2px;
 }
 .star-on {
-  color: var(--st-color-warning);
-  fill: var(--st-color-warning);
+  color: var(--tp-rating-line);
+  fill: var(--tp-rating);
 }
 .star-off {
   color: var(--tp-line-strong);
+  fill: var(--tp-rating-off);
+}
+/* 三张卡片同一种层级：13 号灰色小标题 + 15 号正文 */
+.review-heading {
+  margin: 0 0 var(--tp-space-2);
+  font-size: var(--tp-fs-small);
+  font-weight: 500;
+  color: var(--tp-text-3);
+}
+.review-heading small {
+  font-size: var(--tp-fs-caption);
+  font-weight: 400;
 }
 .review-text {
   margin: 0;
+  font-size: var(--tp-fs-body);
+  line-height: var(--tp-lh-body);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -122,6 +137,6 @@ onMounted(workbench.load)
   width: 100%;
   margin-top: var(--tp-space-2);
   border-radius: var(--tp-radius-sm);
-  background: #000;
+  background: var(--tp-media-bg);
 }
 </style>

@@ -1,12 +1,13 @@
 <template>
   <div class="tp-stack tp-stack--loose">
-    <PageTitle title="我的" :overline="authStore.user?.campusName" />
+    <PageTitle title="我的" />
 
     <section class="tp-card profile">
-      <span class="tp-avatar profile__avatar" aria-hidden="true">{{ authStore.user?.realName?.slice(0, 1) }}</span>
-      <div style="min-width: 0">
+      <TpAvatar :name="authStore.user?.realName" :seed="authStore.user?.id" size="lg" />
+      <div class="tp-grow">
         <h2 class="profile__name">{{ authStore.user?.realName }}</h2>
-        <p class="tp-text-meta" style="margin: 2px 0 0">{{ authStore.user?.roleName }} · {{ authStore.user?.account }}</p>
+        <p class="tp-text-meta tp-m-0">{{ authStore.user?.roleName }} · 工号 {{ authStore.user?.account }}</p>
+        <p class="tp-text-meta tp-m-0">{{ authStore.user?.campusName }}</p>
       </div>
     </section>
 
@@ -18,11 +19,6 @@
           <option v-for="c in tenantStore.campuses" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </label>
-      <div v-else class="tp-row">
-        <Building2 class="menu-icon" aria-hidden="true" />
-        <span class="tp-row__body">当前校区</span>
-        <span class="tp-text-meta" style="text-align: right">{{ authStore.user?.campusName }}</span>
-      </div>
       <button type="button" class="tp-row menu-button" @click="passwordVisible = true">
         <KeyRound class="menu-icon" aria-hidden="true" />
         <span class="tp-row__body">修改密码</span>
@@ -37,7 +33,7 @@
 
     <button type="button" class="tp-btn tp-btn-danger tp-btn-block" @click="handleLogout">退出登录</button>
 
-    <el-dialog v-model="passwordVisible" title="修改密码" width="min(92vw, 420px)" top="6vh" append-to-body @closed="resetPasswordForm">
+    <TpSheet :open="passwordVisible" title="修改密码" @close="closePassword">
       <form @submit.prevent="submitPassword">
         <label class="tp-field">
           <span class="tp-label">原密码</span>
@@ -52,19 +48,21 @@
           <span class="tp-label">确认新密码</span>
           <input v-model="passwordForm.confirmPassword" class="tp-input" type="password" autocomplete="new-password" />
         </label>
-        <p v-if="passwordError" class="tp-text-small" style="margin: 12px 0 0; color: var(--tp-danger)" role="alert">{{ passwordError }}</p>
-        <button type="submit" class="tp-btn tp-btn-primary tp-btn-block" style="margin-top: 16px" :disabled="passwordSubmitting">
+        <p v-if="passwordError" class="tp-text-small tp-m-0 tp-mt-3 tp-text-danger" role="alert">{{ passwordError }}</p>
+        <button type="submit" class="tp-btn tp-btn-primary tp-btn-block tp-mt-4" :disabled="passwordSubmitting">
           {{ passwordSubmitting ? '提交中…' : '确认修改' }}
         </button>
       </form>
-    </el-dialog>
+    </TpSheet>
   </div>
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { tpConfirm, tpToast } from './utils/feedback'
+import TpSheet from './components/TpSheet.vue'
 import { Building2, ChevronRight, KeyRound, Monitor, UserRound } from 'lucide-vue-next'
 import { authApi } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -79,6 +77,11 @@ const passwordVisible = ref(false)
 const passwordSubmitting = ref(false)
 const passwordError = ref('')
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
+
+function closePassword() {
+  passwordVisible.value = false
+  resetPasswordForm()
+}
 
 function resetPasswordForm() {
   passwordForm.oldPassword = ''
@@ -105,7 +108,7 @@ async function submitPassword() {
   passwordSubmitting.value = true
   try {
     await authApi.changePassword({ oldPassword: passwordForm.oldPassword, newPassword: passwordForm.newPassword })
-    ElMessage.success('密码已修改，请重新登录')
+    tpToast.success('密码已修改，请重新登录')
     passwordVisible.value = false
     logoutToLogin()
   } catch (err: any) {
@@ -117,15 +120,12 @@ async function submitPassword() {
 
 function onCampusChange(event: Event) {
   tenantStore.setCampus((event.target as HTMLSelectElement).value)
-  ElMessage.success('已切换校区')
+  tpToast.success('已切换校区')
 }
 
 async function handleLogout() {
-  try {
-    await ElMessageBox.confirm('确定退出登录？', '退出登录', { confirmButtonText: '退出', cancelButtonText: '取消' })
-  } catch {
-    return
-  }
+  const ok = await tpConfirm({ title: '退出登录', message: '退出后需要重新输入账号和密码。', confirmText: '退出', danger: true })
+  if (!ok) return
   logoutToLogin()
 }
 
@@ -145,11 +145,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: var(--tp-space-3);
-}
-.profile__avatar {
-  width: 48px;
-  height: 48px;
-  font-size: var(--tp-fs-title);
 }
 .profile__name {
   margin: 0;
@@ -186,7 +181,7 @@ onMounted(() => {
   border: 0;
   background: transparent;
   color: var(--tp-text-2);
-  font-size: 16px;
+  font-size: var(--tp-fs-input);
   font-family: inherit;
   text-align: right;
 }

@@ -1,30 +1,30 @@
 <template>
   <LoadState :loading="workbench.loading.value" :error="workbench.error.value" :has-data="!!student" @retry="init">
-    <p v-if="workbench.data.value && !student" class="tp-card tp-state" style="margin: 0">该学员不在本课次名单中</p>
+    <p v-if="workbench.data.value && !student" class="tp-card tp-state tp-m-0">该学员不在本课次名单中</p>
     <template v-if="student && schedule">
       <!-- 完成页：本节课到课学员的课评都已推送 -->
       <template v-if="finished">
         <section class="tp-card tp-state finish" role="status">
-          <span class="finish__icon"><CircleCheck aria-hidden="true" /></span>
+          <span class="tp-state__icon tp-state__icon--success"><CircleCheck aria-hidden="true" /></span>
           <p class="tp-state__title finish__title">本节课课评已全部推送</p>
           <p class="tp-num">到课 {{ finished.attended }} 人 · 已推送 {{ finished.pushed }} 人</p>
           <p v-if="finished.leave + finished.absent > 0" class="tp-text-small">{{ skippedText(finished) }}无需课评</p>
         </section>
         <div class="tp-action-bar">
           <button type="button" class="tp-btn tp-btn-secondary" @click="openPicker">逐个回看</button>
-          <button type="button" class="tp-btn tp-btn-primary" style="flex: 1" @click="backToLesson">返回课次</button>
+          <button type="button" class="tp-btn tp-btn-primary tp-grow" @click="backToLesson">返回课次</button>
         </div>
       </template>
 
       <!-- 请假 / 缺勤：家长端只给到课学员显示课评，写了家长也看不到 -->
       <template v-else-if="!needsEvaluation(student)">
         <section class="tp-card tp-state">
-          <span class="tp-state__icon"><CalendarX aria-hidden="true" /></span>
+          <span class="tp-state__icon tp-state__icon--notice"><CalendarX aria-hidden="true" /></span>
           <p class="tp-state__title">{{ student.studentName }}本节课{{ attendanceLabel(attendanceStatus) }}，无需课评</p>
           <p>家长端只显示到课学员的课评。如需填写，请先在点名中改为到课或迟到。</p>
         </section>
         <div class="tp-action-bar">
-          <button type="button" class="tp-btn tp-btn-primary" style="flex: 1" @click="backToLesson">返回课次</button>
+          <button type="button" class="tp-btn tp-btn-primary tp-grow" @click="backToLesson">返回课次</button>
         </div>
       </template>
 
@@ -41,7 +41,7 @@
           <ChevronLeft aria-hidden="true" />
         </button>
         <button type="button" class="student-bar__who" aria-haspopup="dialog" :disabled="isBusy" @click="openPicker">
-          <span class="tp-avatar" aria-hidden="true">{{ student.studentName.slice(0, 1) }}</span>
+          <TpAvatar :name="student.studentName" :seed="student.studentId" />
           <span class="student-bar__text">
             <span class="student-bar__name">
               <span class="student-bar__name-text">{{ student.studentName }}</span>
@@ -64,12 +64,12 @@
       </div>
 
       <div class="tp-stack">
-        <p v-if="restoredFromAutosave" class="tp-stale-notice" style="margin: 0; cursor: default" role="status">已恢复你上次未保存的内容，记得保存或推送</p>
-        <p class="tp-text-meta" style="margin: 0">{{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}</p>
+        <p v-if="restoredFromAutosave" class="tp-stale-notice tp-notice-info tp-m-0 tp-notice-static" role="status">已恢复你上次未保存的内容，记得保存或推送</p>
+        <p class="tp-text-meta tp-m-0">{{ schedule.className }} · {{ friendlyDate(schedule.date) }} {{ shortTime(schedule.startTime) }}</p>
 
         <section class="tp-list">
           <div class="tp-row rating-row">
-            <span class="tp-label" style="margin: 0">课堂评分</span>
+            <span class="tp-label tp-m-0">课堂评分</span>
             <div class="rating" role="radiogroup" aria-label="课堂评分">
               <button
                 v-for="n in 5"
@@ -91,7 +91,7 @@
           <div class="tp-field">
             <label class="tp-label" for="comment">专属评语 <span class="tp-required">*</span></label>
             <textarea id="comment" v-model="comment" class="tp-input tp-input--lg" rows="5" maxlength="1000" placeholder="写下孩子这节课的表现、进步与建议" />
-            <span class="tp-help tp-num" style="text-align: right">{{ comment.length }}/1000</span>
+            <span class="tp-help tp-num tp-text-right">{{ comment.length }}/1000</span>
           </div>
           <div class="tp-field">
             <label class="tp-label" for="study-content">
@@ -118,7 +118,7 @@
               </button>
             </div>
             <label v-if="photos.length < 9" class="media-add" :class="{ 'is-disabled': uploading }">
-              <ImagePlus :size="22" aria-hidden="true" />
+              <ImagePlus :size="24" aria-hidden="true" />
               <span class="tp-num">{{ uploading === 'photo' ? `上传 ${photoProgress}` : '加照片' }}</span>
               <input type="file" accept="image/*" multiple class="sr-only" :disabled="!!uploading" @change="onPickPhotos" />
             </label>
@@ -127,7 +127,7 @@
               <span>{{ videoStage === 'compress' ? '压缩中' : '上传中' }}，点此取消</span>
             </button>
             <label v-else-if="!videoUrl" class="media-add" :class="{ 'is-disabled': uploading }">
-              <Video :size="22" aria-hidden="true" />
+              <Video :size="24" aria-hidden="true" />
               <span>加视频</span>
               <input type="file" accept="video/*" class="sr-only" :disabled="!!uploading" @change="onPickVideo" />
             </label>
@@ -148,14 +148,11 @@
     </template>
 
     <!-- 学员名单：点学员栏的姓名打开，可直接跳到任意一位 -->
-    <div v-if="pickerOpen && workbench.data.value" class="picker" @click.self="pickerOpen = false">
-      <section class="picker__panel" role="dialog" aria-modal="true" aria-labelledby="picker-title">
-        <header class="picker__head">
-          <h2 id="picker-title" class="tp-section-title">选择学员</h2>
-          <span class="tp-text-meta tp-num">已推送 {{ summary.pushed }}/{{ summary.attended }}</span>
-          <button type="button" class="tp-icon-btn" aria-label="关闭" @click="pickerOpen = false"><X aria-hidden="true" /></button>
-        </header>
-        <ul class="picker__list">
+    <TpSheet :open="pickerOpen && !!workbench.data.value" title="选择学员" @close="pickerOpen = false">
+      <template #meta>
+        <span class="tp-text-meta tp-num">已推送 {{ summary.pushed }}/{{ summary.attended }}</span>
+      </template>
+        <ul v-if="workbench.data.value" class="picker__list">
           <li v-for="s in workbench.data.value.students" :key="s.studentId">
             <button
               type="button"
@@ -165,21 +162,22 @@
               :aria-current="s.studentId === studentId ? 'true' : undefined"
               @click="switchTo(s.studentId)"
             >
-              <span class="tp-avatar" aria-hidden="true">{{ s.studentName.slice(0, 1) }}</span>
+              <TpAvatar :name="s.studentName" :seed="s.studentId" />
               <span class="picker__name">{{ s.studentName }}</span>
               <span class="tp-tag" :class="pickerTag(s).cls">{{ pickerTag(s).text }}</span>
             </button>
           </li>
         </ul>
-      </section>
-    </div>
+    </TpSheet>
   </LoadState>
 </template>
 
 <script setup lang="ts">
+import TpSheet from './components/TpSheet.vue'
+import TpAvatar from './components/TpAvatar.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { tpConfirm, tpToast } from './utils/feedback'
 import { CalendarX, ChevronDown, ChevronLeft, ChevronRight, CircleCheck, ImagePlus, Star, Video, X } from 'lucide-vue-next'
 import { teacherPortalApi, uploadApi, type AttendanceStatus, type WorkbenchStudent } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -380,7 +378,7 @@ async function onPickPhotos(event: Event) {
   if (picked.length === 0) return
 
   const room = 9 - photos.value.length
-  if (picked.length > room) ElMessage.warning(`最多 9 张，已取前 ${room} 张`)
+  if (picked.length > room) tpToast.warning(`最多 9 张，已取前 ${room} 张`)
 
   uploading.value = 'photo'
   const queue = picked.slice(0, room)
@@ -407,8 +405,8 @@ async function onPickPhotos(event: Event) {
     }
   }
   uploading.value = ''
-  if (oversized > 0) ElMessage.warning(`${oversized} 张照片超过 10MB，已跳过`)
-  if (failures.length > 0) ElMessage.error(`${failures.length} 张照片未上传：${failures[0]}`)
+  if (oversized > 0) tpToast.warning(`${oversized} 张照片超过 10MB，已跳过`)
+  if (failures.length > 0) tpToast.error(`${failures.length} 张照片未上传：${failures[0]}`)
 }
 
 async function onPickVideo(event: Event) {
@@ -428,7 +426,7 @@ async function onPickVideo(event: Event) {
     const { file: output, compressed } = await compression.promise
 
     if (output.size > MAX_VIDEO_BYTES) {
-      ElMessage.error(`视频压缩后仍有 ${formatMb(output.size)}，超过 100MB 上限，请剪短后重试`)
+      tpToast.error(`视频压缩后仍有 ${formatMb(output.size)}，超过 100MB 上限，请剪短后重试`)
       return
     }
 
@@ -441,9 +439,9 @@ async function onPickVideo(event: Event) {
     const uploaded = await upload.promise
     videoPoster.value = uploaded.posterUrl
     videoUrl.value = uploaded.videoUrl
-    if (compressed) ElMessage.success(`视频已压缩：${formatMb(file.size)} → ${formatMb(output.size)}`)
+    if (compressed) tpToast.success(`视频已压缩：${formatMb(file.size)} → ${formatMb(output.size)}`)
   } catch (err: any) {
-    if (err?.name !== 'AbortError') ElMessage.error(err?.message || '视频上传失败，请重试')
+    if (err?.name !== 'AbortError') tpToast.error(err?.message || '视频上传失败，请重试')
   } finally {
     cancelVideoTask = null
     uploading.value = ''
@@ -462,13 +460,13 @@ function removeVideo() {
 function saveDraft() {
   const saved = writeDraft(userId, lessonId, studentId, currentContent())
   if (!saved) {
-    ElMessage.error('当前浏览器无法保存草稿，请直接推送或关闭隐私模式')
+    tpToast.error('当前浏览器无法保存草稿，请直接推送或关闭隐私模式')
     return
   }
   clearAutosave()
   isDirty.value = false
   restoredFromAutosave.value = false
-  ElMessage.success('草稿已保存在本机，尚未推送')
+  tpToast.success('草稿已保存在本机，尚未推送')
 }
 
 async function submit() {
@@ -478,11 +476,11 @@ async function submit() {
   const text = comment.value.trim()
   const content = studyContent.value.trim()
   if (!text) {
-    ElMessage.warning('请填写专属评语')
+    tpToast.warning('请填写专属评语')
     return
   }
   if (studyContentRequired.value && !content) {
-    ElMessage.warning('本节课首次推送课评，请填写学习内容')
+    tpToast.warning('本节课首次推送课评，请填写学习内容')
     return
   }
 
@@ -518,11 +516,11 @@ async function submit() {
     isDirty.value = false
     restoredFromAutosave.value = false
     if (current.kind === 'update') {
-      ElMessage.success('课评已更新')
+      tpToast.success('课评已更新')
       if (current.next) updatedNext.value = current.next.student
       else backToLesson()
     } else if (current.kind === 'next') {
-      ElMessage.success(`已推送给${stu.studentName}的家长`)
+      tpToast.success(`已推送给${stu.studentName}的家长`)
       router.replace(evaluatePath(current.next.student.studentId))
     } else {
       finished.value = { ...summary.value, pushed: current.pushedAfter }
@@ -530,7 +528,7 @@ async function submit() {
       workbench.load()
     }
   } catch (err: any) {
-    ElMessage.error(err?.message || '提交失败，请重试')
+    tpToast.error(err?.message || '提交失败，请重试')
   } finally {
     submitting.value = false
   }
@@ -538,42 +536,42 @@ async function submit() {
 
 onBeforeRouteLeave(async () => {
   if (uploading.value === 'video') {
-    try {
-      await ElMessageBox.confirm('视频还在压缩或上传，离开后会中断。', '离开此页？', {
-        confirmButtonText: '离开',
-        cancelButtonText: '继续等待',
-      })
-      cancelVideoTask?.()
-    } catch {
-      return false
-    }
+    const leave = await tpConfirm({
+      title: '离开此页？',
+      message: '视频还在压缩或上传，离开后会中断。',
+      confirmText: '离开',
+      cancelText: '继续等待',
+      danger: true,
+    })
+    if (!leave) return false
+    cancelVideoTask?.()
   }
   if (!isDirty.value) return true
-  try {
-    await ElMessageBox.confirm('内容尚未保存，离开后将丢失。', '离开此页？', {
-      confirmButtonText: '离开',
-      cancelButtonText: '继续编辑',
-    })
-    clearAutosave()
-    return true
-  } catch {
-    return false
-  }
+  const discard = await tpConfirm({
+    title: '离开此页？',
+    message: '内容尚未保存，离开后将丢失。',
+    confirmText: '离开',
+    cancelText: '继续编辑',
+    danger: true,
+  })
+  if (!discard) return false
+  clearAutosave()
+  return true
 })
 
 /** 切换学员：写到一半的内容留在本机，切回来时自动恢复；视频上传中切换会中断上传 */
 onBeforeRouteUpdate(async () => {
   pickerOpen.value = false
   if (uploading.value === 'video') {
-    try {
-      await ElMessageBox.confirm('视频还在压缩或上传，切换学员后会中断。', '切换学员？', {
-        confirmButtonText: '切换',
-        cancelButtonText: '继续等待',
-      })
-      cancelVideoTask?.()
-    } catch {
-      return false
-    }
+    const go = await tpConfirm({
+      title: '切换学员？',
+      message: '视频还在压缩或上传，切换学员后会中断。',
+      confirmText: '切换',
+      cancelText: '继续等待',
+      danger: true,
+    })
+    if (!go) return false
+    cancelVideoTask?.()
   }
   flushAutosave()
   return true
@@ -615,11 +613,12 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .star-on {
-  color: var(--tp-rating);
+  color: var(--tp-rating-line);
   fill: var(--tp-rating);
 }
 .star-off {
   color: var(--tp-line-strong);
+  fill: var(--tp-rating-off);
 }
 .media-grid {
   display: grid;
@@ -639,7 +638,7 @@ onBeforeUnmount(() => {
   background: var(--tp-surface-sunken);
 }
 .media-cell--video {
-  background: #000;
+  background: var(--tp-media-bg);
 }
 .media-cell img,
 .media-cell video {
@@ -660,14 +659,14 @@ onBeforeUnmount(() => {
   padding: var(--tp-space-1);
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--tp-on-accent);
   cursor: pointer;
 }
 .media-remove svg {
   box-sizing: content-box;
   padding: 3px;
   border-radius: 50%;
-  background: rgba(15, 23, 42, 0.7);
+  background: var(--tp-scrim);
 }
 .media-add {
   aspect-ratio: 1;
@@ -732,10 +731,6 @@ onBeforeUnmount(() => {
 .student-bar__who:hover {
   background: var(--tp-surface-hover);
 }
-.student-bar__who .tp-avatar {
-  background: var(--tp-accent-soft);
-  color: var(--tp-accent);
-}
 .student-bar__text {
   flex: 1;
   min-width: 0;
@@ -793,66 +788,18 @@ onBeforeUnmount(() => {
   margin-right: 0;
 }
 .next-link svg {
-  width: 16px;
-  height: 16px;
-}
-.finish__icon {
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--tp-success-soft);
-  color: var(--tp-success);
-}
-.tp-state .finish__icon svg {
-  width: 28px;
-  height: 28px;
+  width: var(--tp-icon-sm);
+  height: var(--tp-icon-sm);
 }
 .finish__title {
   font-size: var(--tp-fs-title);
   font-weight: 600;
 }
-/* 学员名单：底部弹出 */
-.picker {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(15, 23, 42, 0.45);
-}
-.picker__panel {
-  width: 100%;
-  max-width: 560px;
-  max-height: 75vh;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--tp-radius-lg) var(--tp-radius-lg) 0 0;
-  background: var(--tp-surface);
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.picker__head {
-  display: flex;
-  align-items: center;
-  gap: var(--tp-space-2);
-  padding: var(--tp-space-2) var(--tp-space-2) var(--tp-space-2) var(--tp-space-4);
-  border-bottom: 1px solid var(--tp-line);
-}
-.picker__head .tp-section-title {
-  margin: 0;
-}
-.picker__head .tp-text-meta {
-  flex: 1;
-}
+/* 学员名单 (放在 TpSheet 里)：整行可点，弹层自带内边距，这里抵消掉让行贴边 */
 .picker__list {
-  margin: 0;
+  margin: calc(-1 * var(--tp-space-4));
   padding: var(--tp-space-1) 0;
   list-style: none;
-  overflow-y: auto;
-  overscroll-behavior: contain;
 }
 .picker__row {
   width: 100%;
@@ -885,12 +832,5 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
 }
 </style>
