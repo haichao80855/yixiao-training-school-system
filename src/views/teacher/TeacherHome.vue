@@ -190,7 +190,6 @@ onActivated(() => {
   padding: var(--tp-space-5);
   border-radius: var(--tp-radius-lg);
   background: var(--tp-surface);
-  animation: tp-rise var(--tp-dur-slow) var(--tp-ease-out) backwards;
 }
 .hero__head {
   display: flex;
@@ -266,7 +265,7 @@ onActivated(() => {
   border-radius: inherit;
   background: var(--tp-success);
   transform-origin: left;
-  transition: transform var(--tp-dur-slow) var(--tp-ease-out);
+  transition: transform var(--tp-spring-smooth-dur) var(--tp-spring-smooth);
 }
 .hero__action {
   margin-top: var(--tp-space-5);

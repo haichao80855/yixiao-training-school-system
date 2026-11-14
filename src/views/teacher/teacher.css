@@ -104,12 +104,18 @@
   --tp-control: 44px;
   --tp-control-lg: 52px;
 
-  /* 动效 */
+  /* 动效：位移和缩放一律用弹簧 (utils/spring.ts 运行时写入 linear() 弹簧曲线)。
+   * 下面是不支持 linear() 的浏览器的贝塞尔兜底，时长取弹簧真正停下的时间 */
   --tp-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --tp-ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --tp-spring-smooth: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --tp-spring-smooth-dur: 560ms;
+  --tp-spring-snappy: cubic-bezier(0.25, 1, 0.4, 1);
+  --tp-spring-snappy-dur: 420ms;
+  --tp-spring-bouncy: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --tp-spring-bouncy-dur: 560ms;
+  /* 颜色、透明度这类非位移的变化仍用短时长缓出 */
   --tp-dur-fast: 160ms;
   --tp-dur-base: 260ms;
-  --tp-dur-slow: 380ms;
   --tp-motion: var(--tp-dur-fast) var(--tp-ease-out);
 }
 
@@ -291,12 +297,14 @@
 }
 .tp-tabbar__item.is-active svg {
   stroke-width: 2.25;
-  animation: tp-tab-pop var(--tp-dur-base) var(--tp-ease-spring);
 }
+.tp-tabbar__item.is-bouncing svg {
+  animation: tp-tab-pop var(--tp-spring-bouncy-dur) var(--tp-spring-bouncy);
+}
+/* 关键帧只写起止两点，回弹完全来自弹簧曲线 */
 @keyframes tp-tab-pop {
-  0% { transform: scale(0.82); }
-  60% { transform: scale(1.08); }
-  100% { transform: scale(1); }
+  from { transform: scale(0.84); }
+  to { transform: scale(1); }
 }
 @media (min-width: 768px) {
   .tp-tabbar {
@@ -732,7 +740,14 @@ a.tp-row {
   text-decoration: none;
   white-space: nowrap;
   box-sizing: border-box;
-  transition: background var(--tp-motion), border-color var(--tp-motion), transform var(--tp-motion);
+  /* 松手时按弹簧回弹；按下时 (见下方 :active) 立即缩小，手指一碰就有反馈 */
+  transition: background var(--tp-motion), border-color var(--tp-motion), transform var(--tp-spring-bouncy-dur) var(--tp-spring-bouncy);
+}
+.tp-btn:not(:disabled):active,
+a.tp-card:active,
+.tp-pressable:active {
+  transition-duration: 90ms;
+  transition-timing-function: var(--tp-ease-out);
 }
 .tp-btn svg {
   width: var(--tp-icon-sm);
@@ -744,7 +759,7 @@ a.tp-row {
   cursor: not-allowed;
 }
 .tp-btn:not(:disabled):active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 .tp-btn-primary {
   background: var(--tp-accent);
@@ -965,7 +980,7 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   background: var(--seg-bg, var(--tp-surface));
   box-shadow: 0 1px 3px rgba(20, 22, 31, 0.1), 0 0 0 0.5px rgba(20, 22, 31, 0.04);
   transform: translateX(var(--seg-x, 0));
-  transition: transform var(--tp-dur-base) var(--tp-ease-spring), width var(--tp-dur-base) var(--tp-ease-spring), background var(--tp-dur-fast) var(--tp-ease-out);
+  transition: transform var(--tp-spring-snappy-dur) var(--tp-spring-snappy), width var(--tp-spring-snappy-dur) var(--tp-spring-snappy), background var(--tp-dur-fast) var(--tp-ease-out);
 }
 .tp-segment[data-thumb='none']::before {
   opacity: 0;
@@ -1328,9 +1343,14 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+}
+.tp-sheet__backdrop {
+  position: absolute;
+  inset: 0;
   background: var(--tp-overlay);
 }
 .tp-sheet__panel {
+  position: relative;
   width: 100%;
   max-width: 560px;
   max-height: 80vh;
@@ -1342,11 +1362,19 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   padding-bottom: env(safe-area-inset-bottom);
   outline: none;
 }
-/* 顶部的拖拽提示条：一看就知道是从底部弹出的面板 */
-.tp-sheet__panel::before {
-  content: '';
-  align-self: center;
+/* 拖拽区：抓手 + 标题栏，手指按住即可拖动面板 (不触发页面滚动) */
+.tp-sheet__grab {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  touch-action: none;
+  cursor: grab;
+}
+.tp-sheet__grab:active {
+  cursor: grabbing;
+}
+.tp-sheet__grabber {
+  align-self: center;
   width: 36px;
   height: 5px;
   margin-top: 6px;
@@ -1392,23 +1420,23 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
     padding-bottom: 0;
   }
 }
-.tp-sheet-enter-active,
-.tp-sheet-leave-active {
-  transition: background var(--tp-motion);
-}
-.tp-sheet-enter-active,
-.tp-sheet-leave-active {
-  transition: background var(--tp-dur-slow) var(--tp-ease-out);
+.tp-sheet-enter-active .tp-sheet__backdrop,
+.tp-sheet-leave-active .tp-sheet__backdrop {
+  transition: opacity var(--tp-dur-base) var(--tp-ease-out);
 }
 .tp-sheet-enter-active .tp-sheet__panel {
-  transition: transform var(--tp-dur-slow) var(--tp-ease-spring);
+  transition: transform var(--tp-spring-smooth-dur) var(--tp-spring-smooth);
 }
 .tp-sheet-leave-active .tp-sheet__panel {
   transition: transform var(--tp-dur-base) var(--tp-ease-out);
 }
-.tp-sheet-enter-from,
-.tp-sheet-leave-to {
-  background: transparent;
+/* 手指拖着关闭时，位置已由弹簧接管，不再播放离场过渡 */
+.tp-sheet-leave-active.is-dragged .tp-sheet__panel {
+  transition: none;
+}
+.tp-sheet-enter-from .tp-sheet__backdrop,
+.tp-sheet-leave-to .tp-sheet__backdrop {
+  opacity: 0;
 }
 .tp-sheet-enter-from .tp-sheet__panel,
 .tp-sheet-leave-to .tp-sheet__panel {
@@ -1456,7 +1484,7 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
 .tp-toast--warning svg { color: var(--tp-toast-alert); }
 .tp-toast--error svg { color: var(--tp-toast-error); }
 .tp-toast-enter-active {
-  transition: opacity var(--tp-dur-base) var(--tp-ease-out), transform var(--tp-dur-slow) var(--tp-ease-spring);
+  transition: opacity var(--tp-dur-base) var(--tp-ease-out), transform var(--tp-spring-bouncy-dur) var(--tp-spring-bouncy);
 }
 .tp-toast-leave-active {
   transition: opacity var(--tp-dur-fast) var(--tp-ease-out), transform var(--tp-dur-fast) var(--tp-ease-out);
@@ -1478,51 +1506,61 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   }
 }
 
-/* ---------- 动效 ---------- */
-/* 页面进入：前进从右侧轻推进来，返回从左侧，切换底部标签只淡入 (由 TeacherLayout 按导航方向加类名) */
-@keyframes tp-page-forward {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: none; }
+/* ---------- 动效 ----------
+ * 遵循 iOS：动效只用来说明空间关系与回应手指，不做装饰。
+ * - 列表、卡片出现时不做逐个浮现。
+ * - 切换底部标签不做过渡 (iOS 标签栏即时切换)；返回上一页交给系统的右滑手势，不叠加动画。
+ * - 进入下一页由 TeacherLayout 用旧页面快照做 iOS 推入 (新页从右侧推入，旧页向左退并变暗)。
+ */
+.tp-push-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
-@keyframes tp-page-back {
-  from { opacity: 0; transform: translateX(-24px); }
-  to { opacity: 1; transform: none; }
+/* 退出时旧页面的快照盖在新页面上方滑走 */
+.tp-push-layer.is-pop {
+  z-index: 2;
 }
-@keyframes tp-page-fade {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: none; }
+.tp-push-dim {
+  position: absolute;
+  inset: 0;
+  background: var(--tp-text-1);
+  opacity: 0;
 }
-.tp-page.tp-enter-forward { animation: tp-page-forward var(--tp-dur-slow) var(--tp-ease-spring); }
-.tp-page.tp-enter-back { animation: tp-page-back var(--tp-dur-slow) var(--tp-ease-spring); }
-.tp-page.tp-enter-fade { animation: tp-page-fade var(--tp-dur-base) var(--tp-ease-out); }
+.tp-push-snapshot {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--tp-bg);
+  will-change: transform;
+}
+.tp-push-layer.is-push .tp-push-dim {
+  z-index: 1;
+}
+.tp-push-layer.is-pop .tp-push-snapshot {
+  box-shadow: -8px 0 24px -12px rgba(20, 22, 31, 0.28);
+}
+.tp-main {
+  position: relative;
+  z-index: 1;
+}
+/* 推入中的新页面：不透明底色盖住旧页面，左缘一道投影，和 iOS 导航推入一样 */
+.tp-page.is-pushing {
+  background: var(--tp-bg);
+  box-shadow: -8px 0 24px -12px rgba(20, 22, 31, 0.28);
+  will-change: transform;
+}
 
-/* 列表与卡片依次浮现：每行晚 30ms，最多错开 8 行。
- * 只用 backwards 填充：动画结束后不占用 transform，按下缩放等效果照常生效 */
-@keyframes tp-rise {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: none; }
-}
-.tp-list > *,
-.tp-stack > .tp-card,
-.tp-stack > .tp-list {
-  animation: tp-rise var(--tp-dur-slow) var(--tp-ease-out) backwards;
-}
-.tp-list > :nth-child(2) { animation-delay: 30ms; }
-.tp-list > :nth-child(3) { animation-delay: 60ms; }
-.tp-list > :nth-child(4) { animation-delay: 90ms; }
-.tp-list > :nth-child(5) { animation-delay: 120ms; }
-.tp-list > :nth-child(6) { animation-delay: 150ms; }
-.tp-list > :nth-child(7) { animation-delay: 180ms; }
-.tp-list > :nth-child(n + 8) { animation-delay: 210ms; }
-
-/* 按下：卡片和可点的大块轻微缩小，松手回弹 */
+/* 按下：卡片和可点的大块轻微缩小，松手弹回 */
 a.tp-card,
 .tp-pressable {
-  transition: transform var(--tp-dur-fast) var(--tp-ease-out), background var(--tp-dur-fast) var(--tp-ease-out);
+  transition: transform var(--tp-spring-bouncy-dur) var(--tp-spring-bouncy), background var(--tp-dur-fast) var(--tp-ease-out);
 }
 a.tp-card:active,
 .tp-pressable:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 /* 减少动态：关闭所有位移与缩放动画，只保留瞬时的状态变化 */
