@@ -7,7 +7,7 @@
           <span class="tp-tag" :class="isSettled ? 'tp-tag-success' : 'tp-tag-muted'">{{ lessonStatusLabel(schedule.status) }}</span>
         </div>
         <h2 class="lesson__class">{{ schedule.className }}</h2>
-        <p class="tp-text-meta" style="margin: 4px 0 0">{{ schedule.courseName }} · {{ schedule.classroomName }}</p>
+        <p class="tp-text-meta tp-m-0 tp-mt-1">{{ schedule.courseName }} · {{ schedule.classroomName }}</p>
         <div class="tp-metrics">
           <div class="tp-metric">
             <span class="tp-metric__value">{{ attendedCount }}<small>/{{ students.length }}</small></span>
@@ -32,22 +32,28 @@
             <span v-else-if="syncText" class="tp-text-meta" role="status">{{ syncText }}</span>
           </div>
           <button v-if="!isSettled && attendedCount < students.length" type="button" class="tp-link" @click="markAllPresent">全部到课</button>
+          <!-- 已结课默认只读、每人一行；要改出勤时再展开点名控件 -->
+          <button v-else-if="isSettled && !editingAttendance" type="button" class="tp-link" @click="editingAttendance = true">修改考勤</button>
+          <button v-else-if="isSettled" type="button" class="tp-link" :disabled="hasUnsavedChanges" @click="editingAttendance = false">收起</button>
         </div>
 
-        <p v-if="students.length === 0" class="tp-card tp-state" style="margin: 0">本班暂无在读学员</p>
+        <p v-if="students.length === 0" class="tp-card tp-state tp-m-0">本班暂无在读学员</p>
         <div v-else class="tp-list">
-          <article v-for="stu in students" :key="stu.studentId" class="roster-row" :class="`is-${stu.status}`">
+          <article v-for="stu in students" :key="stu.studentId" class="roster-row" :class="[`is-${stu.status}`, { 'is-compact': compact }]">
             <RouterLink :to="`/teacher/students/${stu.studentId}`" class="roster-row__person">
-              <span class="tp-avatar" aria-hidden="true">{{ stu.studentName.slice(0, 1) }}</span>
+              <TpAvatar :name="stu.studentName" :seed="stu.studentId" />
               <span class="tp-row__body">
-                <span class="tp-row__title" style="display: block">{{ stu.studentName }}</span>
-                <span class="tp-row__meta tp-num" style="display: block">
-                  剩余 <span :class="{ 'is-low': stu.isLowBalance }">{{ stu.remainingLessons }}</span> 课时
+                <span class="tp-row__title roster-row__name">
+                  {{ stu.studentName }}
+                  <span v-if="compact && stu.status !== 'present'" class="tp-tag" :class="ATTENDANCE_TAG[stu.status]">{{ attendanceLabel(stu.status) }}</span>
+                </span>
+                <span class="tp-row__meta tp-num tp-block">
+                  剩余 <span :class="{ 'is-low': stu.isLowBalance }">{{ stu.remainingLessons }}</span> 课时<template v-if="compact && isAttended(stu.status)"> · 扣 {{ stu.deduct }}</template>
                 </span>
               </span>
             </RouterLink>
 
-            <div class="roster-row__controls">
+            <div v-if="!compact" class="roster-row__controls">
               <div class="tp-segment attendance" role="group" :aria-label="`${stu.studentName} 出勤`">
                 <button
                   v-for="opt in ATTENDANCE_OPTIONS"
@@ -94,17 +100,17 @@
         </div>
       </section>
 
-      <div v-if="students.length > 0" class="tp-action-bar lesson__actions">
-        <button v-if="!isSettled" type="button" class="tp-btn tp-btn-primary" style="flex: 1" :disabled="isFuture || busy" @click="settle">
+      <div v-if="students.length > 0 && (!isSettled || editingAttendance || draftStudents.length > 0)" class="tp-action-bar lesson__actions">
+        <button v-if="!isSettled" type="button" class="tp-btn tp-btn-primary tp-grow" :disabled="isFuture || busy" @click="settle">
           {{ isFuture ? '未到上课日期' : '结课消课' }}
         </button>
-        <button v-else-if="hasUnsavedChanges" type="button" class="tp-btn tp-btn-primary" style="flex: 1" :disabled="busy" @click="saveSettledChanges">
+        <button v-else-if="hasUnsavedChanges" type="button" class="tp-btn tp-btn-primary tp-grow" :disabled="busy" @click="saveSettledChanges">
           保存考勤修改
         </button>
-        <button v-if="draftStudents.length > 0" type="button" class="tp-btn tp-btn-secondary" style="flex: 1" :disabled="busy" @click="pushDrafts">
+        <button v-if="draftStudents.length > 0" type="button" class="tp-btn tp-btn-secondary tp-grow" :disabled="busy" @click="pushDrafts">
           <Send aria-hidden="true" />推送草稿 ({{ draftStudents.length }})
         </button>
-        <p v-if="isSettled && !hasUnsavedChanges && draftStudents.length === 0" class="tp-text-meta" style="margin: 4px 0">
+        <p v-if="isSettled && editingAttendance && !hasUnsavedChanges && draftStudents.length === 0" class="tp-text-meta tp-m-0 tp-mt-1">
           已结课。修改出勤会按差额调整学员课时。
         </p>
       </div>
@@ -113,15 +119,16 @@
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { tpAlert, tpConfirm, tpToast } from './utils/feedback'
 import { CircleCheck, Send } from 'lucide-vue-next'
 import { teacherPortalApi, type AttendanceStatus, type WorkbenchStudent } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
 import { readDraft, removeDraft } from './utils/evaluationDraft'
-import { ATTENDANCE_OPTIONS, friendlyDate, isAttended, lessonStatusLabel, shortTime, todayStr } from './utils/format'
+import { ATTENDANCE_OPTIONS, attendanceLabel, friendlyDate, isAttended, lessonStatusLabel, shortTime, todayStr } from './utils/format'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
 
@@ -158,6 +165,16 @@ const changedStudents = computed(() =>
   }),
 )
 const hasUnsavedChanges = computed(() => isSettled.value && changedStudents.value.length > 0)
+/** 已结课时点名默认收起：每人一行，一屏能看到全班；点「修改考勤」才展开出勤和扣课控件 */
+const editingAttendance = ref(false)
+const compact = computed(() => isSettled.value && !editingAttendance.value)
+/** 收起状态下只给异常出勤打标签，到课保持中性 */
+const ATTENDANCE_TAG: Record<AttendanceStatus, string> = {
+  present: '',
+  late: 'tp-tag-warning',
+  leave: 'tp-tag-info',
+  absent: 'tp-tag-danger',
+}
 
 const syncText = computed(() => {
   if (syncState.value === 'saving') return '保存中…'
@@ -245,15 +262,13 @@ function markAllPresent() {
 async function settle() {
   const count = (status: AttendanceStatus) => students.value.filter((s) => s.status === status).length
   const totalDeduct = students.value.reduce((sum, s) => sum + (isAttended(s.status) ? s.deduct : 0), 0)
-  try {
-    await ElMessageBox.confirm(
-      `到课 ${count('present')}，迟到 ${count('late')}，请假 ${count('leave')}，缺勤 ${count('absent')}，合计扣减 ${totalDeduct} 课时。结课后不会自动通知家长，课评可继续填写并推送。`,
-      '确认结课消课',
-      { confirmButtonText: '确认结课', cancelButtonText: '再看看' },
-    )
-  } catch {
-    return
-  }
+  const ok = await tpConfirm({
+    title: '确认结课消课',
+    message: `到课 ${count('present')}，迟到 ${count('late')}，请假 ${count('leave')}，缺勤 ${count('absent')}，合计扣减 ${totalDeduct} 课时。结课后不会自动通知家长，课评可继续填写并推送。`,
+    confirmText: '确认结课',
+    cancelText: '再看看',
+  })
+  if (!ok) return
 
   if (syncTimer) {
     clearTimeout(syncTimer)
@@ -265,11 +280,11 @@ async function settle() {
       lessonId,
       students.value.map((s) => ({ studentId: s.studentId, status: s.status, deductLessons: s.deduct })),
     )
-    ElMessage.success('已结课')
+    tpToast.success('已结课')
     syncState.value = 'idle'
     await reload()
   } catch (err: any) {
-    ElMessage.error(err?.message || '结课失败，请重试')
+    tpToast.error(err?.message || '结课失败，请重试')
   } finally {
     busy.value = false
   }
@@ -283,24 +298,23 @@ async function saveSettledChanges() {
       return `${s.studentName}：扣 ${base?.deduct ?? 0} → 扣 ${s.deduct} 课时`
     })
     .join('；')
-  try {
-    await ElMessageBox.confirm(`${detail}。保存后学员课时按差额调整。`, '确认修改考勤', {
-      confirmButtonText: '确认修改',
-      cancelButtonText: '取消',
-    })
-  } catch {
-    return
-  }
+  const ok = await tpConfirm({
+    title: '确认修改考勤',
+    message: `${detail}。保存后学员课时按差额调整。`,
+    confirmText: '确认修改',
+  })
+  if (!ok) return
   busy.value = true
   try {
     await teacherPortalApi.syncAttendance(
       lessonId,
       changed.map((s) => ({ studentId: s.studentId, attendanceStatus: s.status, deductLessons: s.deduct })),
     )
-    ElMessage.success('考勤已修改')
+    tpToast.success('考勤已修改')
+    editingAttendance.value = false
     await reload()
   } catch (err: any) {
-    ElMessage.error(err?.message || '保存失败，请重试')
+    tpToast.error(err?.message || '保存失败，请重试')
   } finally {
     busy.value = false
   }
@@ -310,14 +324,12 @@ async function pushDrafts() {
   const targets = draftStudents.value
   const data = workbench.data.value
   if (!data) return
-  try {
-    await ElMessageBox.confirm(`将向 ${targets.length} 位学员的家长推送已保存的课评草稿。`, '推送草稿', {
-      confirmButtonText: '确认推送',
-      cancelButtonText: '取消',
-    })
-  } catch {
-    return
-  }
+  const ok = await tpConfirm({
+    title: '推送草稿',
+    message: `将向 ${targets.length} 位学员的家长推送已保存的课评草稿。`,
+    confirmText: '确认推送',
+  })
+  if (!ok) return
 
   busy.value = true
   await flushSyncIfNeeded()
@@ -354,9 +366,9 @@ async function pushDrafts() {
   await reload()
 
   if (failures.length > 0) {
-    ElMessageBox.alert(`未推送：${failures.join('、')}`, '部分课评未推送', { confirmButtonText: '知道了' })
+    tpAlert({ title: '部分课评未推送', message: `未推送：${failures.join('、')}` })
   } else {
-    ElMessage.success('已推送')
+    tpToast.success('已推送')
   }
 }
 
@@ -371,16 +383,13 @@ onBeforeRouteLeave(async () => {
   if (syncTimer || syncState.value === 'failed') await flushSync()
   const lost = hasUnsavedChanges.value || syncState.value === 'failed'
   if (!lost) return true
-  try {
-    await ElMessageBox.confirm(
-      syncState.value === 'failed' ? '点名没能保存到服务器，请检查网络。离开后本次修改将丢失。' : '考勤修改尚未保存，离开后将丢失。',
-      '放弃修改？',
-      { confirmButtonText: '放弃修改', cancelButtonText: '留在此页' },
-    )
-    return true
-  } catch {
-    return false
-  }
+  return tpConfirm({
+    title: '放弃修改？',
+    message: syncState.value === 'failed' ? '点名没能保存到服务器，请检查网络。离开后本次修改将丢失。' : '考勤修改尚未保存，离开后将丢失。',
+    confirmText: '放弃修改',
+    cancelText: '留在此页',
+    danger: true,
+  })
 })
 
 /** 接电话、切应用时立刻保存，不等防抖：页面可能随后被系统回收 */
@@ -474,11 +483,20 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 /* 点名时的次要操作：做成文字，整列名单才不会被一排方框打断 */
+.roster-row.is-compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'person eval';
+}
+.roster-row__name {
+  display: flex;
+  align-items: center;
+  gap: var(--tp-space-2);
+}
 .roster-row__eval {
   grid-area: eval;
   justify-content: flex-end;
   gap: var(--tp-space-1);
-  font-size: 14px;
+  font-size: var(--tp-fs-control);
 }
 .roster-row__eval svg {
   width: 16px;
@@ -511,28 +529,29 @@ onBeforeUnmount(() => {
   color: var(--tp-warning);
 }
 .attendance--leave.is-active {
-  background: var(--tp-accent-soft);
-  color: var(--tp-accent);
+  background: var(--tp-info-soft);
+  color: var(--tp-info);
 }
 .attendance--absent.is-active {
   background: var(--tp-danger-soft);
   color: var(--tp-danger);
 }
+/* 与左侧的出勤分段控件同一套外观：浅灰底、无描边、同高同圆角 */
 .deduct-select {
   flex-shrink: 0;
   min-height: 48px;
-  padding: 0 var(--tp-space-1);
-  border: 1px solid var(--tp-line-strong);
+  padding: 0 var(--tp-space-2);
+  border: 0;
   border-radius: var(--tp-radius-md);
-  background: var(--tp-surface);
+  background: var(--tp-surface-sunken);
   color: var(--tp-text-1);
-  font-size: 16px;
+  font-size: var(--tp-fs-input);
+  font-weight: 600;
   font-family: inherit;
 }
 .deduct-select:disabled {
-  background: var(--tp-surface-sunken);
-  border-color: transparent;
   color: var(--tp-text-3);
+  font-weight: 400;
   opacity: 1;
 }
 .sync-retry {

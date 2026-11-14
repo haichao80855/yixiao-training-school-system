@@ -20,7 +20,7 @@
     <!-- 后台刷新失败 (弱网很常见) 时保留已有内容，只提示数据可能不是最新 -->
     <button v-if="error" type="button" class="tp-stale-notice" @click="$emit('retry')">
       <CircleAlert aria-hidden="true" />
-      <span style="flex: 1">刷新失败，当前可能不是最新数据</span>
+      <span class="tp-grow">刷新失败，当前可能不是最新数据</span>
       <strong>重试</strong>
     </button>
     <div v-if="isEmpty" class="tp-state">

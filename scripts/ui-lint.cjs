@@ -11,6 +11,8 @@
  * - 绕过设计令牌的 Tailwind 原色类 (text/bg/border/divide-gray|blue|amber...-500 等，应改用 st-* 令牌)
  * - 写死的十六进制颜色 (var(--x, #fff) 里的兜底值不算；学员头像插画色板除外)
  * - 页面里引用 @element-plus/icons-vue (图标统一用 lucide-vue-next)
+ * - 教师端 (src/views/teacher、TeacherLayout) 页面里：写死的颜色 (含 #fff 与 rgba)、px 字号、px 圆角、
+ *   16/20/24 以外的图标尺寸、静态 style="" 行内样式。一律改用 teacher.css 里的 --tp-* 变量和工具类
  *
  * 上限记录在下方 LIMITS。某一项降下来以后，把上限一起调低，防止回退。
  */
@@ -29,6 +31,11 @@ const LIMITS = {
   rawPaletteClasses: 30,
   rawHexColors: 3,
   elementPlusIconImports: 0,
+  teacherColorLiterals: 0,
+  teacherFontPx: 0,
+  teacherRadiusPx: 0,
+  teacherIconOffScale: 0,
+  teacherInlineStyle: 0,
 }
 
 /** 设计稿插画色板，允许写死颜色 */
@@ -107,6 +114,25 @@ for (const file of PARENT_FILES) {
       hit('parentHexColors', file, text, m.index)
     }
   }
+}
+
+const TEACHER_FILES = [
+  ...listFiles(path.join(ROOT, 'src/views/teacher'), ['.vue']),
+  path.join(ROOT, 'src/layout/TeacherLayout.vue'),
+]
+for (const file of TEACHER_FILES) {
+  const text = fs.readFileSync(file, 'utf8')
+  for (const m of text.matchAll(/#[0-9a-fA-F]{3,8}\b|rgba?\(/g)) {
+    // 读取设计变量失败时的兜底值 (getPropertyValue(...) || '#F5F5F7') 不算
+    if (/\|\|\s*'$/.test(text.slice(Math.max(0, m.index - 20), m.index))) continue
+    hit('teacherColorLiterals', file, text, m.index)
+  }
+  for (const m of text.matchAll(/font-size:\s*\d+(?:\.\d+)?px/g)) hit('teacherFontPx', file, text, m.index)
+  for (const m of text.matchAll(/border-radius:\s*[^;]*\d+px/g)) hit('teacherRadiusPx', file, text, m.index)
+  for (const m of text.matchAll(/:size="(\d+)"/g)) {
+    if (!['16', '20', '24'].includes(m[1])) hit('teacherIconOffScale', file, text, m.index)
+  }
+  for (const m of text.matchAll(/\sstyle="/g)) hit('teacherInlineStyle', file, text, m.index)
 }
 
 let failed = false

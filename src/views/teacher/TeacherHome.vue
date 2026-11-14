@@ -21,7 +21,7 @@
         </section>
         <section v-else class="tp-card">
           <p class="tp-row__title">{{ todayLessons.length > 0 ? '今天的课都上完了' : '今天没有课' }}</p>
-          <RouterLink to="/teacher/schedule" replace class="tp-link" style="margin: 4px 0 -8px -6px">查看课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
+          <RouterLink to="/teacher/schedule" replace class="tp-link home__more">查看课表<ChevronRight :size="16" aria-hidden="true" /></RouterLink>
         </section>
       </LoadState>
     </div>
@@ -34,7 +34,7 @@
       <LoadState :loading="overview.loading.value" :error="overview.error.value" :has-data="!!overview.data.value" :rows="1" @retry="overview.load">
         <div v-if="pendingTodos.length > 0" class="tp-list">
           <RouterLink v-for="todo in pendingTodos" :key="todo.label" :to="todo.to" replace class="tp-row">
-            <span class="todo-icon" :class="`todo-icon--${todo.tone}`"><component :is="todo.icon" :size="18" aria-hidden="true" /></span>
+            <span class="todo-icon" :class="`todo-icon--${todo.tone}`"><component :is="todo.icon" :size="20" aria-hidden="true" /></span>
             <span class="tp-row__body">
               <p class="tp-row__title">{{ todo.label }}</p>
               <p class="tp-row__meta">{{ todo.hint }}</p>
@@ -44,7 +44,7 @@
           </RouterLink>
         </div>
         <div v-else class="tp-card todo-clear">
-          <CircleCheck :size="18" aria-hidden="true" />
+          <CircleCheck :size="20" aria-hidden="true" />
           <span>都处理完了</span>
         </div>
       </LoadState>
@@ -53,7 +53,7 @@
     <section v-if="otherLessons.length > 0" class="home__today">
       <div class="tp-section-head">
         <h2 class="tp-section-title">{{ nextLesson ? '今日其他课程' : '今日课程' }} <span class="tp-count">{{ otherLessons.length }}</span></h2>
-        <RouterLink to="/teacher/schedule" replace class="tp-link">课表<ChevronRight :size="14" aria-hidden="true" /></RouterLink>
+        <RouterLink to="/teacher/schedule" replace class="tp-link">课表<ChevronRight :size="16" aria-hidden="true" /></RouterLink>
       </div>
       <div class="tp-list">
         <LessonRow v-for="lesson in otherLessons" :key="lesson.id" :lesson="lesson" />
@@ -127,6 +127,9 @@ onActivated(refresh)
 </script>
 
 <style scoped>
+.home__more {
+  margin: var(--tp-space-1) 0 calc(-1 * var(--tp-space-2)) -6px;
+}
 .home {
   display: flex;
   flex-direction: column;
@@ -136,8 +139,8 @@ onActivated(refresh)
   padding: var(--tp-space-4) var(--tp-space-4) var(--tp-space-4);
   border-radius: var(--tp-radius-lg);
   background: linear-gradient(160deg, var(--tp-hero-from) 0%, var(--tp-hero-to) 100%);
-  box-shadow: 0 10px 20px -12px rgba(19, 35, 91, 0.6);
-  color: #fff;
+  box-shadow: var(--tp-hero-shadow);
+  color: var(--tp-on-accent);
 }
 .next-lesson__head {
   display: flex;
@@ -146,11 +149,11 @@ onActivated(refresh)
   gap: var(--tp-space-2);
 }
 .next-lesson__tag {
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff;
+  background: var(--tp-on-hero-fill);
+  color: var(--tp-on-accent);
 }
 .next-lesson__tag.is-now {
-  background: #fff;
+  background: var(--tp-on-accent);
   color: var(--tp-hero-to);
 }
 .next-lesson__tag.is-ended {
@@ -159,12 +162,12 @@ onActivated(refresh)
 }
 .next-lesson__sub {
   font-size: var(--tp-fs-small);
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--tp-on-hero-2);
 }
 .next-lesson__time {
   margin: var(--tp-space-3) 0 0;
   font-size: var(--tp-fs-display);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.15;
 }
 .next-lesson__class {
@@ -180,12 +183,12 @@ onActivated(refresh)
 }
 .next-lesson__action {
   margin-top: var(--tp-space-4);
-  background: #fff;
+  background: var(--tp-on-accent);
   color: var(--tp-hero-to);
   font-weight: 600;
 }
 .next-lesson__action:focus-visible {
-  outline-color: #fff;
+  outline-color: var(--tp-on-accent);
 }
 .todo-icon {
   flex-shrink: 0;
@@ -208,7 +211,7 @@ onActivated(refresh)
   align-items: center;
   gap: var(--tp-space-2);
   color: var(--tp-success);
-  font-size: 14px;
+  font-size: var(--tp-fs-control);
 }
 .home__todos.is-clear {
   order: 1;

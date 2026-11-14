@@ -171,12 +171,16 @@ async function executeLogin(account: string, password: string) {
       await tenantStore.enterCampus(res.user.campusId)
     }
 
-    ElMessage.success(`欢迎您，${res.user.realName}！已以【${res.user.roleName || '系统用户'}】身份成功登录`)
-
     // 会话失效被送回登录页的，登录后回到原页面；否则老师进入教师端、其他角色进入仪表盘
+    const target = redirectTarget || authStore.homePath
+    // 教师端首页本身就有「上午好，某某」的问候，不再弹后台式的登录提示
+    if (!target.startsWith('/teacher')) {
+      ElMessage.success(`欢迎您，${res.user.realName}！已以【${res.user.roleName || '系统用户'}】身份成功登录`)
+    }
+
     // 用 replace：登录页不留在浏览记录里，后退不会回到登录页，微信里也不会因此出现底部前进后退栏
     // 等导航结束才解除 loading，否则路由分片加载期间还能再次提交；分片加载失败由 router.onError 处理
-    await router.replace(redirectTarget || authStore.homePath).catch(() => {})
+    await router.replace(target).catch(() => {})
   } catch (err: any) {
     ElMessage.error(err.message || '登录失败，请检查用户名与密码是否正确')
   } finally {

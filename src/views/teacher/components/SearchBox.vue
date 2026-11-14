@@ -15,7 +15,7 @@
       @input="onInput"
     />
     <button v-if="modelValue" type="button" class="tp-search-clear" aria-label="清空搜索" @click="clear">
-      <CircleX :size="18" />
+      <CircleX :size="20" />
     </button>
   </form>
 </template>

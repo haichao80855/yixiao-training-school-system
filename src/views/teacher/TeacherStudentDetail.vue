@@ -3,10 +3,10 @@
     <div v-if="stu" class="tp-stack tp-stack--loose">
       <section class="tp-card">
         <div class="profile">
-          <span class="tp-avatar profile__avatar" aria-hidden="true">{{ stu.name.slice(0, 1) }}</span>
-          <div style="flex: 1; min-width: 0">
+          <TpAvatar :name="stu.name" :seed="studentId" size="lg" />
+          <div class="tp-grow">
             <h2 class="profile__name">{{ stu.name }}</h2>
-            <p class="tp-text-meta tp-num" style="margin: 2px 0 0">{{ stu.studentNo }}</p>
+            <p class="tp-text-meta tp-num tp-m-0">{{ stu.studentNo }}</p>
           </div>
           <span class="tp-tag" :class="stu.status === 'normal' ? 'tp-tag-success' : 'tp-tag-muted'">{{ studentStatusLabel(stu.status) }}</span>
         </div>
@@ -15,7 +15,7 @@
           <template v-if="stu.school"><dt>学校</dt><dd>{{ stu.school }}</dd></template>
           <template v-if="stu.birthday"><dt>生日</dt><dd class="tp-num">{{ dateOnly(stu.birthday) }}</dd></template>
         </dl>
-        <a :href="`tel:${stu.phone}`" class="tp-btn tp-btn-secondary tp-btn-block" style="margin-top: 12px">
+        <a :href="`tel:${stu.phone}`" class="tp-btn tp-btn-secondary tp-btn-block tp-mt-3">
           <Phone aria-hidden="true" />联系家长 <span class="tp-num">{{ stu.phone }}</span>
         </a>
       </section>
@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ChevronRight, Phone } from 'lucide-vue-next'
@@ -97,11 +98,6 @@ onActivated(detail.load)
   align-items: center;
   gap: var(--tp-space-3);
 }
-.profile__avatar {
-  width: 44px;
-  height: 44px;
-  font-size: var(--tp-fs-title);
-}
 .profile__name {
   margin: 0;
   font-size: var(--tp-fs-title);
@@ -114,7 +110,7 @@ onActivated(detail.load)
   grid-template-columns: auto 1fr;
   gap: var(--tp-space-1) var(--tp-space-3);
   margin: var(--tp-space-3) 0 0;
-  font-size: 14px;
+  font-size: var(--tp-fs-control);
 }
 .info-list:empty {
   display: none;

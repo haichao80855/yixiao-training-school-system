@@ -1,6 +1,6 @@
 <template>
   <div class="tp-stack">
-    <PageTitle title="课评" :overline="friendlyDate(today)" />
+    <PageTitle title="课评" :overline="rangeText" />
 
     <div class="tp-segment" role="group" aria-label="课评状态">
       <button
@@ -16,20 +16,16 @@
       </button>
     </div>
 
-    <SearchBox v-model="keyword" placeholder="搜索学员姓名、学号" @search="roster.load" />
-
-    <div class="tp-chips" role="group" aria-label="时间范围">
-      <button
-        v-for="r in RANGES"
-        :key="r.key"
-        type="button"
-        class="tp-chip"
-        :class="{ 'is-active': rangeKey === r.key }"
-        :aria-pressed="rangeKey === r.key"
-        @click="setRange(r.key)"
-      >
-        {{ r.label }}
-      </button>
+    <!-- 搜索与时间范围放在同一行：筛选只占两行，列表更早出现在屏幕上 -->
+    <div class="filter-row">
+      <SearchBox v-model="keyword" class="tp-grow" placeholder="搜索姓名、学号" @search="roster.load" />
+      <label class="range-select">
+        <span class="sr-only">时间范围</span>
+        <select class="tp-num" :value="rangeKey" @change="setRange(($event.target as HTMLSelectElement).value as RangeKey)">
+          <option v-for="r in RANGES" :key="r.key" :value="r.key">{{ r.label }}</option>
+        </select>
+        <ChevronDown aria-hidden="true" />
+      </label>
     </div>
 
     <LoadState
@@ -45,7 +41,7 @@
       <section v-for="group in lessonGroups" :key="group.scheduleId">
         <div class="tp-section-head group-head">
           <h2 class="tp-section-title group-title">{{ group.className }}</h2>
-          <span class="tp-text-meta tp-num" style="flex-shrink: 0">{{ friendlyDate(group.date) }} {{ shortTime(group.startTime) }}</span>
+          <span class="tp-text-meta tp-num tp-shrink-0">{{ friendlyDate(group.date) }} {{ shortTime(group.startTime) }}</span>
         </div>
         <div class="tp-list">
           <RouterLink
@@ -54,7 +50,7 @@
             :to="`/teacher/lessons/${item.scheduleId}/${item.isPushed ? 'review' : 'evaluate'}/${item.studentId}`"
             class="tp-row"
           >
-            <span class="tp-avatar" aria-hidden="true">{{ item.studentName.slice(0, 1) }}</span>
+            <TpAvatar :name="item.studentName" :seed="item.studentId" />
             <span class="tp-row__body">
               <p class="tp-row__title">{{ item.studentName }}</p>
               <p class="tp-row__meta tp-num">{{ item.studentNo }}</p>
@@ -69,9 +65,10 @@
 </template>
 
 <script setup lang="ts">
+import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronDown, ChevronRight } from 'lucide-vue-next'
 import { teacherPortalApi, type EvaluationRosterItem } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LoadState from './components/LoadState.vue'
@@ -107,6 +104,15 @@ function dateRange(key: RangeKey) {
   if (key === 'lastWeek') return { startDate: shiftDays(monday, -7), endDate: shiftDays(monday, -1) }
   return { startDate: monday, endDate: now }
 }
+
+/** 标题上方写当前列表的时间范围，与下方的时间筛选对应 */
+const rangeText = computed(() => {
+  // 依赖 today：跨过零点后回到页面时范围随之更新
+  void today.value
+  const { startDate, endDate } = dateRange(rangeKey.value)
+  const md = (d: string) => `${Number(d.slice(5, 7))}月${Number(d.slice(8, 10))}日`
+  return startDate === endDate ? md(startDate) : `${md(startDate)} – ${md(endDate)}`
+})
 
 const roster = useLoad(async () => {
   const res = await teacherPortalApi.getEvaluations({
@@ -169,6 +175,42 @@ onActivated(() => {
 </script>
 
 <style scoped>
+.filter-row {
+  display: flex;
+  gap: var(--tp-space-2);
+}
+/* 与搜索框同高、同描边：看起来是一组筛选；点开是系统自带的选择器，手机上最顺手 */
+.range-select {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.range-select select {
+  min-height: var(--tp-control);
+  padding: 0 32px 0 var(--tp-space-3);
+  border: 1px solid var(--tp-line-strong);
+  border-radius: var(--tp-radius-md);
+  background: var(--tp-surface);
+  color: var(--tp-text-1);
+  font-size: var(--tp-fs-input);
+  font-family: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.range-select select:focus-visible {
+  border-color: var(--tp-accent);
+  outline: 2px solid var(--tp-accent-soft);
+}
+.range-select svg {
+  position: absolute;
+  right: var(--tp-space-2);
+  width: var(--tp-icon-sm);
+  height: var(--tp-icon-sm);
+  color: var(--tp-text-3);
+  pointer-events: none;
+}
 .group-head {
   min-height: 36px;
   margin-bottom: var(--tp-space-1);
@@ -178,6 +220,6 @@ onActivated(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
+  font-size: var(--tp-fs-control);
 }
 </style>
