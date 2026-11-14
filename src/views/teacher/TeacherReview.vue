@@ -56,7 +56,7 @@
         />
       </section>
 
-      <RouterLink :to="`/teacher/lessons/${lessonId}/evaluate/${studentId}`" class="tp-btn tp-btn-secondary tp-btn-block">修改课评</RouterLink>
+      <RouterLink :to="`/teacher/lessons/${lessonId}/evaluate/${studentId}`" class="tp-btn tp-btn-tinted tp-btn-block">修改课评</RouterLink>
     </div>
   </LoadState>
 </template>

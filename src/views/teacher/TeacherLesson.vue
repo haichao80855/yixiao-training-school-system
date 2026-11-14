@@ -54,7 +54,7 @@
             </RouterLink>
 
             <div v-if="!compact" class="roster-row__controls">
-              <div class="tp-segment attendance" role="group" :aria-label="`${stu.studentName} 出勤`">
+              <div v-tp-segment class="tp-segment attendance" role="group" :aria-label="`${stu.studentName} 出勤`">
                 <button
                   v-for="opt in ATTENDANCE_OPTIONS"
                   :key="opt.value"
@@ -119,6 +119,7 @@
 </template>
 
 <script setup lang="ts">
+import { vTpSegment } from './utils/segmentThumb'
 import TpAvatar from './components/TpAvatar.vue'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
@@ -437,10 +438,10 @@ onBeforeUnmount(() => {
 }
 .lesson__class {
   margin: var(--tp-space-1) 0 0;
-  font-size: var(--tp-fs-title);
-  font-weight: 600;
+  font-size: var(--tp-fs-heading);
+  font-weight: 700;
   line-height: var(--tp-lh-tight);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tp-tracking-tight);
   overflow-wrap: anywhere;
 }
 .tp-metric__value small {
@@ -524,13 +525,22 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 /* 到课是常态，保持中性；迟到、请假、缺勤这些异常才显色，全班扫一眼就能找到 */
+.attendance--late {
+  --thumb-bg: var(--tp-warning-soft);
+}
 .attendance--late.is-active {
   background: var(--tp-warning-soft);
   color: var(--tp-warning);
 }
+.attendance--leave {
+  --thumb-bg: var(--tp-info-soft);
+}
 .attendance--leave.is-active {
   background: var(--tp-info-soft);
   color: var(--tp-info);
+}
+.attendance--absent {
+  --thumb-bg: var(--tp-danger-soft);
 }
 .attendance--absent.is-active {
   background: var(--tp-danger-soft);

@@ -1,21 +1,38 @@
 <template>
   <div class="home">
-    <PageTitle class="home__intro" :title="`${greeting}，${authStore.user?.realName ?? ''}`" :overline="`${friendlyDate(today)} · ${authStore.user?.campusName ?? ''}`" />
+    <PageTitle class="home__intro" :title="`${greeting}，${authStore.user?.realName ?? ''}`" :overline="`${friendlyDate(today)} · ${authStore.user?.campusName ?? ''}`">
+      <RouterLink to="/teacher/me" replace class="home__me tp-pressable" aria-label="我的">
+        <TpAvatar :name="authStore.user?.realName" :seed="authStore.user?.id" size="lg" />
+      </RouterLink>
+    </PageTitle>
 
     <div class="home__primary tp-stack">
       <LoadState :loading="lessons.loading.value" :error="lessons.error.value" :has-data="!!lessons.data.value" skeleton="hero" @retry="lessons.load">
         <!-- 全页唯一的主角：下一节课 -->
-        <section v-if="nextLesson" class="next-lesson" aria-label="下一节课">
-          <div class="next-lesson__head">
-            <span class="tp-tag next-lesson__tag" :class="lessonPhase.tagClass">{{ lessonPhase.label }}</span>
-            <span class="next-lesson__sub tp-num">共 {{ nextLesson.expectedCount }} 人</span>
+        <section v-if="nextLesson" class="hero" aria-label="下一节课">
+          <div class="hero__head">
+            <span class="hero__status" :class="`is-${lessonPhase.tone}`"><i class="hero__dot" aria-hidden="true" />{{ lessonPhase.label }}</span>
+            <span class="hero__count tp-num">{{ nextLesson.expectedCount }} 人</span>
           </div>
-          <p class="next-lesson__time tp-figure">{{ shortTime(nextLesson.startTime) }}–{{ shortTime(nextLesson.endTime) }}</p>
-          <p class="next-lesson__class">{{ nextLesson.className }}</p>
-          <p class="next-lesson__sub next-lesson__meta">
+          <p class="hero__time tp-figure">
+            {{ shortTime(nextLesson.startTime) }}<span class="hero__end">–{{ shortTime(nextLesson.endTime) }}</span>
+          </p>
+          <p class="hero__class">{{ nextLesson.className }}</p>
+          <p class="hero__meta">
             <template v-if="nextLesson.lessonNumber">第{{ nextLesson.lessonNumber }}讲<template v-if="nextLesson.lessonTitle"> {{ nextLesson.lessonTitle }}</template> · </template>{{ nextLesson.classroomName }}
           </p>
-          <RouterLink :to="`/teacher/lessons/${nextLesson.id}`" class="tp-btn tp-btn-block next-lesson__action">
+          <div
+            v-if="lessonPhase.progress !== null"
+            class="hero__progress"
+            role="progressbar"
+            aria-label="本节课进度"
+            :aria-valuenow="Math.round(lessonPhase.progress * 100)"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <i :style="{ transform: `scaleX(${lessonPhase.progress})` }" />
+          </div>
+          <RouterLink :to="`/teacher/lessons/${nextLesson.id}`" class="tp-btn tp-btn-primary tp-btn-block hero__action">
             {{ nextLesson.actualCount > 0 ? '继续点名' : '开始点名' }}
           </RouterLink>
         </section>
@@ -34,7 +51,7 @@
       <LoadState :loading="overview.loading.value" :error="overview.error.value" :has-data="!!overview.data.value" :rows="1" @retry="overview.load">
         <div v-if="pendingTodos.length > 0" class="tp-list">
           <RouterLink v-for="todo in pendingTodos" :key="todo.label" :to="todo.to" replace class="tp-row">
-            <span class="todo-icon" :class="`todo-icon--${todo.tone}`"><component :is="todo.icon" :size="20" aria-hidden="true" /></span>
+            <span class="tp-icon-tile" :class="todo.tone === 'accent' ? '' : `tp-icon-tile--${todo.tone}`"><component :is="todo.icon" aria-hidden="true" /></span>
             <span class="tp-row__body">
               <p class="tp-row__title">{{ todo.label }}</p>
               <p class="tp-row__meta">{{ todo.hint }}</p>
@@ -63,13 +80,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onActivated, ref } from 'vue'
+import { computed, onActivated, onDeactivated, onBeforeUnmount, ref } from 'vue'
 import { CalendarClock, ChevronRight, CircleCheck, MessageSquareText, TriangleAlert } from 'lucide-vue-next'
 import { teacherPortalApi } from '@/api'
 import { useAuthStore } from '@/stores/authStore'
 import LessonRow from './components/LessonRow.vue'
 import LoadState from './components/LoadState.vue'
 import PageTitle from './components/PageTitle.vue'
+import TpAvatar from './components/TpAvatar.vue'
 import { friendlyDate, shortTime, todayStr } from './utils/format'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
@@ -93,17 +111,42 @@ const greeting = computed(() => {
 const todayLessons = computed(() => lessons.data.value || [])
 const nextLesson = computed(() => todayLessons.value.find((l) => l.status !== 'completed') || null)
 const otherLessons = computed(() => todayLessons.value.filter((l) => l.id !== nextLesson.value?.id))
+// 每 30 秒刷新一次「还有几分钟 / 已上几分钟」；页面不在前台时停掉
+const now = ref(Date.now())
+let ticker: ReturnType<typeof setInterval> | null = null
+function startTicker() {
+  stopTicker()
+  now.value = Date.now()
+  ticker = setInterval(() => (now.value = Date.now()), 30_000)
+}
+function stopTicker() {
+  if (ticker) clearInterval(ticker)
+  ticker = null
+}
+onDeactivated(stopTicker)
+onBeforeUnmount(stopTicker)
+
+function minutesOf(hhmm: string) {
+  const [h, m] = shortTime(hhmm).split(':').map(Number)
+  return h * 60 + m
+}
+
 // 下课后还没结课的课次仍排在最前，不能继续称它为「下一节」
 const lessonPhase = computed(() => {
   const l = nextLesson.value
-  if (!l) return { label: '', tagClass: '' }
-  const now = new Date()
-  const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  if (l.status === 'in_progress' || (shortTime(l.startTime) <= time && time <= shortTime(l.endTime))) {
-    return { label: '正在上课', tagClass: 'is-now' }
+  if (!l) return { label: '', tone: 'next', progress: null as number | null }
+  const d = new Date(now.value)
+  const current = d.getHours() * 60 + d.getMinutes()
+  const start = minutesOf(l.startTime)
+  const end = minutesOf(l.endTime)
+  if (l.status === 'in_progress' || (start <= current && current <= end)) {
+    const elapsed = Math.max(0, current - start)
+    return { label: `正在上课 · 已上 ${elapsed} 分钟`, tone: 'now', progress: Math.min(1, elapsed / Math.max(1, end - start)) }
   }
-  if (time > shortTime(l.endTime)) return { label: '已下课，待结课', tagClass: 'is-ended' }
-  return { label: '下一节', tagClass: '' }
+  if (current > end) return { label: '已下课 · 待结课', tone: 'ended', progress: null }
+  const left = start - current
+  const label = left <= 120 ? `下一节 · 还有 ${left} 分钟` : '下一节'
+  return { label, tone: 'next', progress: null }
 })
 
 // 只列真正要处理的事，按紧急程度排序；没有待办时不用一排 0 占位
@@ -123,7 +166,10 @@ function refresh() {
 }
 
 usePageRefresh(refresh)
-onActivated(refresh)
+onActivated(() => {
+  startTicker()
+  return refresh()
+})
 </script>
 
 <style scoped>
@@ -135,76 +181,101 @@ onActivated(refresh)
   flex-direction: column;
   gap: var(--tp-space-5);
 }
-.next-lesson {
-  padding: var(--tp-space-4) var(--tp-space-4) var(--tp-space-4);
-  border-radius: var(--tp-radius-lg);
-  background: linear-gradient(160deg, var(--tp-hero-from) 0%, var(--tp-hero-to) 100%);
-  box-shadow: var(--tp-hero-shadow);
-  color: var(--tp-on-accent);
+.home__me {
+  display: block;
+  border-radius: 50%;
 }
-.next-lesson__head {
+/* 主角卡片：白底大圆角，靠超大时间和一个强调色按钮成为全页焦点 */
+.hero {
+  padding: var(--tp-space-5);
+  border-radius: var(--tp-radius-lg);
+  background: var(--tp-surface);
+  animation: tp-rise var(--tp-dur-slow) var(--tp-ease-out) backwards;
+}
+.hero__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--tp-space-2);
-}
-.next-lesson__tag {
-  background: var(--tp-on-hero-fill);
-  color: var(--tp-on-accent);
-}
-.next-lesson__tag.is-now {
-  background: var(--tp-on-accent);
-  color: var(--tp-hero-to);
-}
-.next-lesson__tag.is-ended {
-  background: var(--tp-warning-soft);
-  color: var(--tp-warning);
-}
-.next-lesson__sub {
   font-size: var(--tp-fs-small);
-  color: var(--tp-on-hero-2);
+  color: var(--tp-text-3);
 }
-.next-lesson__time {
+.hero__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--tp-text-2);
+}
+.hero__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tp-accent);
+}
+.hero__status.is-now { color: var(--tp-success); }
+.hero__status.is-now .hero__dot {
+  background: var(--tp-success);
+  animation: hero-pulse 1.8s var(--tp-ease-out) infinite;
+}
+.hero__status.is-ended { color: var(--tp-warning); }
+.hero__status.is-ended .hero__dot { background: var(--tp-warning); }
+@keyframes hero-pulse {
+  0% { box-shadow: 0 0 0 0 var(--tp-success-soft); }
+  70% { box-shadow: 0 0 0 8px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.hero__time {
   margin: var(--tp-space-3) 0 0;
   font-size: var(--tp-fs-display);
-  font-weight: 600;
-  line-height: 1.15;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  color: var(--tp-text-1);
 }
-.next-lesson__class {
+.hero__end {
+  margin-left: 2px;
+  font-size: var(--tp-fs-heading);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--tp-text-placeholder);
+}
+.hero__class {
   margin: var(--tp-space-2) 0 0;
   font-size: var(--tp-fs-title);
   font-weight: 600;
   line-height: var(--tp-lh-tight);
   overflow-wrap: anywhere;
 }
-.next-lesson__meta {
+.hero__meta {
   margin: var(--tp-space-1) 0 0;
+  font-size: var(--tp-fs-small);
+  color: var(--tp-text-3);
   overflow-wrap: anywhere;
 }
-.next-lesson__action {
+.hero__progress {
+  height: 4px;
   margin-top: var(--tp-space-4);
-  background: var(--tp-on-accent);
-  color: var(--tp-hero-to);
-  font-weight: 600;
+  border-radius: var(--tp-radius-pill);
+  background: var(--tp-surface-sunken);
+  overflow: hidden;
 }
-.next-lesson__action:focus-visible {
-  outline-color: var(--tp-on-accent);
+.hero__progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tp-success);
+  transform-origin: left;
+  transition: transform var(--tp-dur-slow) var(--tp-ease-out);
 }
-.todo-icon {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--tp-radius-md);
+.hero__action {
+  margin-top: var(--tp-space-5);
+  min-height: var(--tp-control-lg);
 }
-.todo-icon--danger { background: var(--tp-danger-soft); color: var(--tp-danger); }
-.todo-icon--accent { background: var(--tp-accent-soft); color: var(--tp-accent); }
-.todo-icon--warning { background: var(--tp-warning-soft); color: var(--tp-warning); }
 .todo-count {
-  font-size: var(--tp-fs-title);
-  font-weight: 600;
+  font-size: var(--tp-fs-heading);
+  font-weight: 700;
+  letter-spacing: var(--tp-tracking-tight);
 }
 .todo-clear {
   display: flex;

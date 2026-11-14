@@ -226,7 +226,22 @@ const removeAfterEach = router.afterEach((to, from, failure) => {
   // 返回，或切换底部标签时回到原位置；打开新页面从顶部开始
   const shouldRestore = isBack || !!to.meta.teacherTab
   nextTick(() => restoreScroll(shouldRestore ? scrollPositions.get(to.fullPath) ?? 0 : 0))
+  // 进入动画：底部标签之间切换只淡入；前进从右侧推入，返回从左侧推入
+  const isTabSwitch = !!to.meta.teacherTab && !!from.meta.teacherTab
+  playEnter(isTabSwitch || !from.matched.length ? 'fade' : isBack ? 'back' : 'forward')
 })
+
+const ENTER_CLASSES = ['tp-enter-forward', 'tp-enter-back', 'tp-enter-fade']
+function playEnter(direction: 'forward' | 'back' | 'fade') {
+  nextTick(() => {
+    const el = pageEl.value
+    if (!el) return
+    el.classList.remove(...ENTER_CLASSES)
+    // 读一次布局，让浏览器重新开始动画
+    void el.offsetWidth
+    el.classList.add(`tp-enter-${direction}`)
+  })
+}
 
 /** 再次点击当前标签回到顶部 */
 function onTabClick(to: string) {

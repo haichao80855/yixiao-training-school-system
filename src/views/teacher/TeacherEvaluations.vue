@@ -2,7 +2,7 @@
   <div class="tp-stack">
     <PageTitle title="课评" :overline="rangeText" />
 
-    <div class="tp-segment" role="group" aria-label="课评状态">
+    <div v-tp-segment class="tp-segment" role="group" aria-label="课评状态">
       <button
         v-for="m in metricCards"
         :key="m.key"
@@ -65,6 +65,7 @@
 </template>
 
 <script setup lang="ts">
+import { vTpSegment } from './utils/segmentThumb'
 import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated, ref } from 'vue'
 import { useRoute } from 'vue-router'

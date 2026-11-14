@@ -1,64 +1,61 @@
 /* ==========================================================================
- * 教师端设计系统（与家长端同一套品牌色和中性色）
+ * 教师端设计系统 · 方向 B「清透精致」
  *
- * 原则
- * - 任务优先：每页只有一个最重要的操作，其余信息退后。
- * - 一处主角：全页只有主角卡片用重色和渐变，其余靠排版、留白和淡阴影分层。
+ * 参照 Apple 健身 / 日历、Things 3、Linear 的移动端：
+ * - 冷灰画布 + 纯白大圆角卡片，不用阴影和描边分层，只靠底色对比与留白。
+ * - 层级靠字号对比：超大数字 (44) / 大标题 (28) / 正文 (15)，标题字距收紧。
+ * - 一个克制的靛紫强调色，只用于主要操作、选中态和进度。
  * - 状态色只标异常：常态保持中性，迟到、缺勤、课时不足这类才显色。
- * - 用成组列表替代卡片堆叠，一组内容只有一层容器。
+ * - 动效统一用两条曲线：出现用 ease-out，弹层与滑块用 iOS 的弹性曲线；减少动态时全部关闭位移。
  *
  * 尺寸一律用 px：全局 html 字号是 14px，rem 不等于常见尺寸。
  * 断点：手机 <768 底部标签；平板 768-1023 图标栏；电脑 >=1024 侧边栏 + 双栏。
  * ========================================================================== */
 :root {
-  /* 颜色：引用后台设计令牌 (src/assets/styles/tokens.css)，品牌蓝与后台统一为 #2563EB。
-   * 所有文字色在 --tp-bg 与 --tp-surface 上都达到 WCAG AA (4.5:1)。 */
-  --tp-bg: var(--st-color-bg);
-  --tp-surface: var(--st-color-card);
-  --tp-surface-sunken: var(--st-color-fill);
-  --tp-surface-hover: var(--st-color-header);
-  --tp-line: var(--st-color-border);
-  --tp-line-strong: var(--st-color-border-dark);
-  --tp-text-1: var(--st-color-title);
-  --tp-text-2: var(--st-color-secondary);
-  /* slate-500 (#64748B) 在 #F5F5F7 底色上只有 4.4:1，三级文字和占位符用略深一档的 slate */
-  --tp-text-3: #5a6678;
-  --tp-text-placeholder: #636f81;
-  --tp-accent: var(--st-color-primary);
-  --tp-accent-hover: var(--st-color-primary-active);
-  --tp-accent-soft: var(--st-color-primary-light);
-  /* 只给主角卡片用 */
-  --tp-hero-from: var(--st-color-primary-active);
-  --tp-hero-to: #172554;
-  --tp-success: var(--st-color-success-deep);
-  --tp-success-soft: var(--st-color-success-light);
-  --tp-warning: var(--st-color-warning-deep);
-  --tp-warning-soft: var(--st-color-warning-light);
-  --tp-danger: var(--st-color-danger-deep);
-  --tp-danger-soft: var(--st-color-danger-light);
+  /* 颜色：所有文字色在 --tp-bg 与 --tp-surface 上都达到 WCAG AA (4.5:1) */
+  --tp-bg: #f2f3f7;
+  --tp-surface: #fff;
+  --tp-surface-sunken: #e9eaf0;
+  --tp-surface-hover: #f6f7fa;
+  --tp-line: #e6e8ee;
+  --tp-line-strong: #d3d6df;
+  --tp-text-1: #14161f;
+  --tp-text-2: #474c5c;
+  --tp-text-3: #646979;
+  --tp-text-placeholder: #6e7385;
+  --tp-accent: #4f46e5;
+  --tp-accent-hover: #4338ca;
+  --tp-accent-soft: #eef0ff;
+  --tp-success: #15803d;
+  --tp-success-soft: #eaf7ef;
+  --tp-warning: #b45309;
+  --tp-warning-soft: #fff5e6;
+  --tp-danger: #c0262d;
+  --tp-danger-soft: #fdeeee;
   /* 星级：金色填充 + 琥珀描边。填充色本身对白底不足 3:1，靠描边满足非文字对比度 */
   --tp-rating: #fbbf24;
-  --tp-rating-line: var(--st-color-warning);
-  --tp-rating-off: var(--st-color-border);
-  /* 请假：已知的正常情况，用青色与品牌蓝 (可点击) 区分开 */
+  --tp-rating-line: #d97706;
+  --tp-rating-off: #e6e8ee;
+  /* 请假：已知的正常情况，用青色与强调色 (可点击) 区分开 */
   --tp-info: #0e7490;
-  --tp-info-soft: #ecfeff;
+  --tp-info-soft: #e8f8fb;
+  /* 毛玻璃：底部导航、页头、吸顶栏 */
+  --tp-glass: rgba(242, 243, 247, 0.84);
+  --tp-glass-blur: saturate(180%) blur(20px);
   /* 深色底上的文字与覆盖层 */
   --tp-on-accent: #fff;
-  --tp-on-hero-2: rgba(255, 255, 255, 0.8);
-  --tp-on-hero-fill: rgba(255, 255, 255, 0.16);
-  --tp-hero-shadow: 0 10px 20px -12px rgba(19, 35, 91, 0.6);
-  --tp-overlay: rgba(15, 23, 42, 0.45);
-  --tp-scrim: rgba(15, 23, 42, 0.7);
+  --tp-on-accent-2: rgba(255, 255, 255, 0.8);
+  --tp-overlay: rgba(20, 22, 31, 0.4);
+  --tp-scrim: rgba(20, 22, 31, 0.7);
   --tp-media-bg: #000;
   /* 轻提示：深色胶囊，图标用浅一档的状态色才在深底上看得清 */
-  --tp-toast-bg: #1e293b;
+  --tp-toast-bg: rgba(28, 30, 40, 0.94);
   --tp-toast-success: #4ade80;
   --tp-toast-alert: #fbbf24;
   --tp-toast-error: #fca5a5;
   /* 头像底色：6 种低饱和色，文字用同色系深色，对比度均达到 AA */
-  --tp-avatar-1-bg: #dbeafe; --tp-avatar-1-fg: #1e40af;
-  --tp-avatar-2-bg: #cffafe; --tp-avatar-2-fg: #155e75;
+  --tp-avatar-1-bg: #e0e7ff; --tp-avatar-1-fg: #3730a3;
+  --tp-avatar-2-bg: #d5f5f6; --tp-avatar-2-fg: #155e75;
   --tp-avatar-3-bg: #dcfce7; --tp-avatar-3-fg: #166534;
   --tp-avatar-4-bg: #fef3c7; --tp-avatar-4-fg: #92400e;
   --tp-avatar-5-bg: #fce7f3; --tp-avatar-5-fg: #9d174d;
@@ -67,19 +64,20 @@
   /* 字号 */
   --tp-fs-caption: 12px;
   --tp-fs-small: 13px;
-  /* 控件文字：分段控件、筛选标签、行内链接、头像 */
+  /* 控件文字：分段控件、筛选标签、行内链接 */
   --tp-fs-control: 14px;
   /* 输入框不能小于 16px，否则 iOS Safari 聚焦时会放大页面 */
   --tp-fs-input: 16px;
   --tp-fs-body: 15px;
   --tp-fs-title: 17px;
-  --tp-fs-heading: 20px;
-  --tp-fs-page: 24px;
-  --tp-fs-display: 34px;
-  --tp-lh-tight: 1.3;
+  --tp-fs-heading: 22px;
+  --tp-fs-page: 28px;
+  --tp-fs-display: 44px;
+  --tp-lh-tight: 1.25;
   --tp-lh-body: 1.5;
-  /* DIN Alternate 只有粗体：只用于 .tp-figure 这类突出的数字，不用于正文里的数字 */
-  --tp-font-figure: 'DIN Alternate', 'DINPro', Roboto, var(--st-font-sans);
+  --tp-tracking-tight: -0.02em;
+  /* 数字：系统字体的等宽数字，大号时收紧字距 */
+  --tp-font-figure: -apple-system, 'SF Pro Display', 'Helvetica Neue', Roboto, var(--st-font-sans);
 
   /* 间距：4 的倍数 */
   --tp-space-1: 4px;
@@ -90,19 +88,29 @@
   --tp-space-6: 24px;
   --tp-space-8: 32px;
 
-  --tp-radius-sm: var(--st-radius-sm);
-  --tp-radius-md: var(--st-radius-md);
-  --tp-radius-lg: var(--st-radius-lg);
+  --tp-radius-sm: 10px;
+  --tp-radius-md: 14px;
+  --tp-radius-lg: 20px;
   --tp-radius-pill: 999px;
 
   /* 图标只用三档：文字旁 / 列表与工具按钮 / 导航 */
   --tp-icon-sm: 16px;
   --tp-icon-md: 20px;
   --tp-icon-lg: 24px;
-  --tp-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px -14px rgba(15, 23, 42, 0.18);
+  /* 卡片不用阴影：白卡落在冷灰底上已经足够分层。只有浮层 (弹层、提示) 用一层很淡的投影 */
+  --tp-shadow: none;
+  --tp-shadow-float: 0 12px 32px -12px rgba(20, 22, 31, 0.28);
 
   --tp-control: 44px;
-  --tp-motion: var(--st-transition);
+  --tp-control-lg: 52px;
+
+  /* 动效 */
+  --tp-ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --tp-ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --tp-dur-fast: 160ms;
+  --tp-dur-base: 260ms;
+  --tp-dur-slow: 380ms;
+  --tp-motion: var(--tp-dur-fast) var(--tp-ease-out);
 }
 
 /* ---------- 外壳与导航 ---------- */
@@ -161,14 +169,16 @@
 
 .tp-header {
   flex-shrink: 0;
-  background: var(--tp-bg);
-  border-bottom: 1px solid var(--tp-line);
+  background: var(--tp-glass);
+  -webkit-backdrop-filter: var(--tp-glass-blur);
+  backdrop-filter: var(--tp-glass-blur);
+  box-shadow: inset 0 -0.5px 0 var(--tp-line-strong);
   padding-top: env(safe-area-inset-top);
 }
 .tp-header__inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--tp-control) minmax(0, 1fr) var(--tp-control);
   align-items: center;
-  gap: var(--tp-space-1);
   height: 48px;
 }
 .tp-header__title {
@@ -180,6 +190,8 @@
   font-size: var(--tp-fs-title);
   font-weight: 600;
   letter-spacing: -0.01em;
+  /* 手机上标题居中，与 iOS 导航栏一致 */
+  text-align: center;
 }
 .tp-back {
   margin-left: -10px;
@@ -200,8 +212,18 @@
     background: transparent;
     border-bottom: 0;
   }
+  .tp-header {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
   .tp-header__inner {
+    display: flex;
+    gap: var(--tp-space-1);
     height: 64px;
+  }
+  .tp-header__title {
+    text-align: left;
   }
   .tp-header__title {
     font-size: var(--tp-fs-heading);
@@ -223,8 +245,10 @@
 .tp-tabbar {
   flex-shrink: 0;
   display: flex;
-  background: var(--tp-surface);
-  border-top: 1px solid var(--tp-line);
+  background: var(--tp-glass);
+  -webkit-backdrop-filter: var(--tp-glass-blur);
+  backdrop-filter: var(--tp-glass-blur);
+  box-shadow: inset 0 0.5px 0 var(--tp-line-strong);
   padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 .tp-tabbar__item {
@@ -267,6 +291,12 @@
 }
 .tp-tabbar__item.is-active svg {
   stroke-width: 2.25;
+  animation: tp-tab-pop var(--tp-dur-base) var(--tp-ease-spring);
+}
+@keyframes tp-tab-pop {
+  0% { transform: scale(0.82); }
+  60% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 }
 @media (min-width: 768px) {
   .tp-tabbar {
@@ -452,9 +482,9 @@
 .tp-page-title__title {
   margin: 2px 0 0;
   font-size: var(--tp-fs-page);
-  font-weight: 600;
+  font-weight: 700;
   line-height: var(--tp-lh-tight);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--tp-tracking-tight);
   overflow-wrap: anywhere;
 }
 .tp-stack > .tp-page-title {
@@ -478,9 +508,9 @@
 }
 .tp-section-title {
   margin: 0;
-  font-size: var(--tp-fs-body);
+  font-size: var(--tp-fs-title);
   font-weight: 600;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.01em;
 }
 .tp-link {
   min-height: var(--tp-control);
@@ -534,6 +564,8 @@
   right: 0;
   height: 1px;
   background: var(--tp-line);
+  transform: scaleY(0.5);
+  transform-origin: 0 0;
 }
 .tp-row {
   display: flex;
@@ -622,7 +654,7 @@ a.tp-row {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  padding: 1px var(--tp-space-2);
+  padding: 2px var(--tp-space-2);
   border-radius: var(--tp-radius-pill);
   font-size: var(--tp-fs-caption);
   line-height: 18px;
@@ -639,23 +671,26 @@ a.tp-row {
 /* 指标组：一行内的并列数字，用分隔线而不是一排卡片 */
 .tp-metrics {
   display: flex;
-  margin: var(--tp-space-4) calc(-1 * var(--tp-space-4)) calc(-1 * var(--tp-space-4));
-  border-top: 1px solid var(--tp-line);
+  gap: var(--tp-space-2);
+  margin-top: var(--tp-space-4);
 }
+/* 指标：浅灰小块里放大号数字，左对齐，像 Apple 健身的摘要 */
 .tp-metric {
   flex: 1;
   min-width: 0;
-  padding: var(--tp-space-3) var(--tp-space-2);
-  text-align: center;
-}
-.tp-metric + .tp-metric {
-  border-left: 1px solid var(--tp-line);
+  padding: var(--tp-space-3);
+  border-radius: var(--tp-radius-md);
+  background: var(--tp-surface-hover);
+  display: flex;
+  flex-direction: column-reverse;
 }
 .tp-metric__value {
   display: block;
-  font-size: var(--tp-fs-title);
-  font-weight: 600;
+  margin-top: 2px;
+  font-size: var(--tp-fs-heading);
+  font-weight: 700;
   line-height: var(--tp-lh-tight);
+  letter-spacing: var(--tp-tracking-tight);
   font-family: var(--tp-font-figure);
   font-variant-numeric: tabular-nums;
 }
@@ -668,7 +703,7 @@ a.tp-row {
 
 .tp-progress {
   display: block;
-  height: 4px;
+  height: 6px;
   border-radius: var(--tp-radius-pill);
   background: var(--tp-surface-sunken);
   overflow: hidden;
@@ -709,22 +744,61 @@ a.tp-row {
   cursor: not-allowed;
 }
 .tp-btn:not(:disabled):active {
-  transform: scale(0.985);
+  transform: scale(0.97);
 }
 .tp-btn-primary {
   background: var(--tp-accent);
   color: var(--tp-on-accent);
 }
+.tp-btn-primary {
+  font-weight: 600;
+}
+/* 次要按钮不用描边：落在灰色画布上是白底，在卡片、弹层、操作条里是浅灰底 */
 .tp-btn-secondary {
   background: var(--tp-surface);
-  border-color: var(--tp-line-strong);
   color: var(--tp-text-1);
+}
+.tp-card .tp-btn-secondary,
+.tp-sheet .tp-btn-secondary,
+.tp-action-bar .tp-btn-secondary {
+  background: var(--tp-surface-sunken);
 }
 .tp-btn-danger {
   background: var(--tp-surface);
-  border-color: var(--tp-line-strong);
   color: var(--tp-danger);
 }
+/* 浅色强调按钮：比主按钮轻一档，用于卡片里的次级操作 (联系家长等) */
+.tp-btn-tinted,
+.tp-card .tp-btn-tinted {
+  background: var(--tp-accent-soft);
+  color: var(--tp-accent);
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .tp-btn-tinted:not(:disabled):hover {
+    background: var(--tp-surface-sunken);
+  }
+}
+/* 图标方块：列表行前的彩色小方块，和 iOS 设置页同一种做法 */
+.tp-icon-tile {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: var(--tp-accent-soft);
+  color: var(--tp-accent);
+}
+.tp-icon-tile svg {
+  width: var(--tp-icon-md);
+  height: var(--tp-icon-md);
+}
+.tp-icon-tile--info { background: var(--tp-info-soft); color: var(--tp-info); }
+.tp-icon-tile--warning { background: var(--tp-warning-soft); color: var(--tp-warning); }
+.tp-icon-tile--danger { background: var(--tp-danger-soft); color: var(--tp-danger); }
+.tp-icon-tile--success { background: var(--tp-success-soft); color: var(--tp-success); }
 .tp-btn-danger-solid {
   background: var(--tp-danger);
   color: var(--tp-on-accent);
@@ -796,7 +870,7 @@ a.tp-card:active,
   width: 100%;
   min-height: var(--tp-control);
   padding: 10px var(--tp-space-3);
-  border: 1px solid var(--tp-line-strong);
+  border: 1px solid transparent;
   border-radius: var(--tp-radius-md);
   background: var(--tp-surface);
   color: var(--tp-text-1);
@@ -808,8 +882,17 @@ a.tp-card:active,
 }
 .tp-input:focus {
   border-color: var(--tp-accent);
-  outline: 2px solid var(--tp-accent-soft);
+  outline: 3px solid var(--tp-accent-soft);
   outline-offset: 0;
+}
+/* 卡片里的输入框在白底上，用浅灰底区分 */
+.tp-card .tp-input {
+  background: var(--tp-surface-hover);
+  border-color: var(--tp-line);
+}
+.tp-card .tp-input:focus {
+  background: var(--tp-surface);
+  border-color: var(--tp-accent);
 }
 .tp-input::placeholder {
   color: var(--tp-text-placeholder);
@@ -861,11 +944,34 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
 }
 
 .tp-segment {
+  position: relative;
+  isolation: isolate;
   display: flex;
   gap: 2px;
   padding: 2px;
   background: var(--tp-surface-sunken);
-  border-radius: var(--tp-radius-md);
+  border-radius: var(--tp-radius-sm);
+}
+/* 滑块：由 v-tp-segment 指令写入选中项的位置与宽度，切换时平滑滑过去 */
+.tp-segment[data-thumb]::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 2px;
+  bottom: 2px;
+  left: 0;
+  width: var(--seg-w, 0);
+  border-radius: 8px;
+  background: var(--seg-bg, var(--tp-surface));
+  box-shadow: 0 1px 3px rgba(20, 22, 31, 0.1), 0 0 0 0.5px rgba(20, 22, 31, 0.04);
+  transform: translateX(var(--seg-x, 0));
+  transition: transform var(--tp-dur-base) var(--tp-ease-spring), width var(--tp-dur-base) var(--tp-ease-spring), background var(--tp-dur-fast) var(--tp-ease-out);
+}
+.tp-segment[data-thumb='none']::before {
+  opacity: 0;
+}
+.tp-segment[data-thumb]:not([data-thumb-ready])::before {
+  transition: none;
 }
 .tp-segment-item {
   flex: 1;
@@ -877,7 +983,7 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   gap: var(--tp-space-1);
   padding: 0 6px;
   border: 0;
-  border-radius: var(--tp-radius-sm);
+  border-radius: 8px;
   background: transparent;
   color: var(--tp-text-2);
   font-size: var(--tp-fs-control);
@@ -891,7 +997,12 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   background: var(--tp-surface);
   color: var(--tp-text-1);
   font-weight: 600;
-  box-shadow: 0 0 0 1px var(--tp-line);
+  box-shadow: 0 1px 3px rgba(20, 22, 31, 0.1);
+}
+/* 有滑块时选中项本身透明，由滑块提供底色 */
+.tp-segment[data-thumb] .tp-segment-item.is-active {
+  background: transparent;
+  box-shadow: none;
 }
 .tp-count {
   font-size: var(--tp-fs-caption);
@@ -923,8 +1034,8 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   align-items: center;
   gap: var(--tp-space-1);
   padding: 0 var(--tp-space-3);
-  border: 1px solid var(--tp-line);
-  border-radius: var(--tp-radius-sm);
+  border: 0;
+  border-radius: var(--tp-radius-pill);
   background: var(--tp-surface);
   color: var(--tp-text-2);
   font-size: var(--tp-fs-control);
@@ -939,7 +1050,6 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   inset: -5px -1px;
 }
 .tp-chip.is-active {
-  border-color: var(--tp-accent);
   background: var(--tp-accent-soft);
   color: var(--tp-accent);
   font-weight: 600;
@@ -987,12 +1097,19 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   z-index: 5;
   margin: auto calc(-1 * var(--tp-gutter-right)) calc(-1 * var(--tp-page-bottom)) calc(-1 * var(--tp-gutter-left));
   padding: var(--tp-space-2) var(--tp-gutter-right) calc(var(--tp-space-2) + env(safe-area-inset-bottom)) var(--tp-gutter-left);
-  background: var(--tp-surface);
-  border-top: 1px solid var(--tp-line);
+  background: var(--tp-glass);
+  -webkit-backdrop-filter: var(--tp-glass-blur);
+  backdrop-filter: var(--tp-glass-blur);
+  box-shadow: inset 0 0.5px 0 var(--tp-line-strong);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--tp-space-2);
+}
+/* 页面底部的主要操作：更高、更大的圆角，单手好按 */
+.tp-action-bar .tp-btn {
+  min-height: var(--tp-control-lg);
+  border-radius: var(--tp-radius-md);
 }
 /* 操作条前留一点距离，避免内容贴着它 */
 .tp-page > .tp-stack:has(+ .tp-action-bar) {
@@ -1167,7 +1284,9 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   margin-right: calc(-1 * var(--tp-gutter-right));
   padding-left: var(--tp-gutter-left);
   padding-right: var(--tp-gutter-right);
-  background: var(--tp-bg);
+  background: var(--tp-glass);
+  -webkit-backdrop-filter: var(--tp-glass-blur);
+  backdrop-filter: var(--tp-glass-blur);
 }
 
 .tp-spin {
@@ -1219,8 +1338,20 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   flex-direction: column;
   border-radius: var(--tp-radius-lg) var(--tp-radius-lg) 0 0;
   background: var(--tp-surface);
+  box-shadow: var(--tp-shadow-float);
   padding-bottom: env(safe-area-inset-bottom);
   outline: none;
+}
+/* 顶部的拖拽提示条：一看就知道是从底部弹出的面板 */
+.tp-sheet__panel::before {
+  content: '';
+  align-self: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 5px;
+  margin-top: 6px;
+  border-radius: var(--tp-radius-pill);
+  background: var(--tp-line-strong);
 }
 .tp-sheet__head {
   display: flex;
@@ -1265,9 +1396,15 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
 .tp-sheet-leave-active {
   transition: background var(--tp-motion);
 }
-.tp-sheet-enter-active .tp-sheet__panel,
+.tp-sheet-enter-active,
+.tp-sheet-leave-active {
+  transition: background var(--tp-dur-slow) var(--tp-ease-out);
+}
+.tp-sheet-enter-active .tp-sheet__panel {
+  transition: transform var(--tp-dur-slow) var(--tp-ease-spring);
+}
 .tp-sheet-leave-active .tp-sheet__panel {
-  transition: transform 0.22s ease;
+  transition: transform var(--tp-dur-base) var(--tp-ease-out);
 }
 .tp-sheet-enter-from,
 .tp-sheet-leave-to {
@@ -1303,10 +1440,12 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   gap: var(--tp-space-2);
   border-radius: var(--tp-radius-md);
   background: var(--tp-toast-bg);
+  -webkit-backdrop-filter: var(--tp-glass-blur);
+  backdrop-filter: var(--tp-glass-blur);
   color: var(--tp-on-accent);
   font-size: var(--tp-fs-control);
   line-height: 20px;
-  box-shadow: var(--tp-shadow);
+  box-shadow: var(--tp-shadow-float);
 }
 .tp-toast svg {
   flex-shrink: 0;
@@ -1316,14 +1455,19 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
 .tp-toast--success svg { color: var(--tp-toast-success); }
 .tp-toast--warning svg { color: var(--tp-toast-alert); }
 .tp-toast--error svg { color: var(--tp-toast-error); }
-.tp-toast-enter-active,
-.tp-toast-leave-active {
-  transition: opacity 0.18s ease, transform 0.18s ease;
+.tp-toast-enter-active {
+  transition: opacity var(--tp-dur-base) var(--tp-ease-out), transform var(--tp-dur-slow) var(--tp-ease-spring);
 }
-.tp-toast-enter-from,
+.tp-toast-leave-active {
+  transition: opacity var(--tp-dur-fast) var(--tp-ease-out), transform var(--tp-dur-fast) var(--tp-ease-out);
+}
+.tp-toast-enter-from {
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+}
 .tp-toast-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: scale(0.98);
 }
 @media (prefers-reduced-motion: reduce) {
   .tp-sheet-enter-active .tp-sheet__panel,
@@ -1331,5 +1475,63 @@ input[type='search'].tp-input::-webkit-search-cancel-button {
   .tp-toast-enter-active,
   .tp-toast-leave-active {
     transition: none;
+  }
+}
+
+/* ---------- 动效 ---------- */
+/* 页面进入：前进从右侧轻推进来，返回从左侧，切换底部标签只淡入 (由 TeacherLayout 按导航方向加类名) */
+@keyframes tp-page-forward {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes tp-page-back {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes tp-page-fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.tp-page.tp-enter-forward { animation: tp-page-forward var(--tp-dur-slow) var(--tp-ease-spring); }
+.tp-page.tp-enter-back { animation: tp-page-back var(--tp-dur-slow) var(--tp-ease-spring); }
+.tp-page.tp-enter-fade { animation: tp-page-fade var(--tp-dur-base) var(--tp-ease-out); }
+
+/* 列表与卡片依次浮现：每行晚 30ms，最多错开 8 行。
+ * 只用 backwards 填充：动画结束后不占用 transform，按下缩放等效果照常生效 */
+@keyframes tp-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+.tp-list > *,
+.tp-stack > .tp-card,
+.tp-stack > .tp-list {
+  animation: tp-rise var(--tp-dur-slow) var(--tp-ease-out) backwards;
+}
+.tp-list > :nth-child(2) { animation-delay: 30ms; }
+.tp-list > :nth-child(3) { animation-delay: 60ms; }
+.tp-list > :nth-child(4) { animation-delay: 90ms; }
+.tp-list > :nth-child(5) { animation-delay: 120ms; }
+.tp-list > :nth-child(6) { animation-delay: 150ms; }
+.tp-list > :nth-child(7) { animation-delay: 180ms; }
+.tp-list > :nth-child(n + 8) { animation-delay: 210ms; }
+
+/* 按下：卡片和可点的大块轻微缩小，松手回弹 */
+a.tp-card,
+.tp-pressable {
+  transition: transform var(--tp-dur-fast) var(--tp-ease-out), background var(--tp-dur-fast) var(--tp-ease-out);
+}
+a.tp-card:active,
+.tp-pressable:active {
+  transform: scale(0.98);
+}
+
+/* 减少动态：关闭所有位移与缩放动画，只保留瞬时的状态变化 */
+@media (prefers-reduced-motion: reduce) {
+  .teacher-portal *,
+  .teacher-portal *::before,
+  .teacher-portal *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
   }
 }

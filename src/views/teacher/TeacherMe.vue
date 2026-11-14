@@ -13,19 +13,19 @@
 
     <section class="tp-list">
       <label v-if="tenantStore.canSwitchCampus" class="tp-row">
-        <Building2 class="menu-icon" aria-hidden="true" />
+        <span class="tp-icon-tile tp-icon-tile--warning"><Building2 aria-hidden="true" /></span>
         <span class="tp-row__body">当前校区</span>
         <select class="campus-select" :value="tenantStore.currentCampusId" aria-label="切换校区" @change="onCampusChange">
           <option v-for="c in tenantStore.campuses" :key="c.id" :value="c.id">{{ c.name }}</option>
         </select>
       </label>
       <button type="button" class="tp-row menu-button" @click="passwordVisible = true">
-        <KeyRound class="menu-icon" aria-hidden="true" />
+        <span class="tp-icon-tile"><KeyRound aria-hidden="true" /></span>
         <span class="tp-row__body">修改密码</span>
         <ChevronRight class="tp-row__chevron" aria-hidden="true" />
       </button>
       <RouterLink to="/educational/workbench" class="tp-row">
-        <Monitor class="menu-icon" aria-hidden="true" />
+        <span class="tp-icon-tile tp-icon-tile--info"><Monitor aria-hidden="true" /></span>
         <span class="tp-row__body">进入电脑版后台</span>
         <ChevronRight class="tp-row__chevron" aria-hidden="true" />
       </RouterLink>
@@ -147,17 +147,12 @@ onMounted(() => {
   gap: var(--tp-space-3);
 }
 .profile__name {
-  margin: 0;
-  font-size: var(--tp-fs-title);
-  font-weight: 600;
+  margin: 0 0 2px;
+  font-size: var(--tp-fs-heading);
+  font-weight: 700;
   line-height: var(--tp-lh-tight);
+  letter-spacing: var(--tp-tracking-tight);
   overflow-wrap: anywhere;
-}
-.menu-icon {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-  color: var(--tp-text-3);
 }
 .menu-button {
   width: 100%;
