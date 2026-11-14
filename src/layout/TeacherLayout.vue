@@ -81,7 +81,7 @@
           class="tp-tabbar__item"
           :class="{ 'is-active': currentTab === tab.key }"
           :aria-current="currentTab === tab.key ? 'page' : undefined"
-          @click="onTabClick(tab.to)"
+          @click="onTabClick(tab.to, $event)"
         >
           <component :is="tab.icon" aria-hidden="true" />
           <span class="tp-tabbar__label">{{ tab.label }}</span>
@@ -104,6 +104,7 @@ import { PAGE_REFRESH_KEY, type PageRefreshFn } from '@/views/teacher/utils/page
 import { useKeyboardViewport } from '@/views/teacher/utils/useKeyboardViewport'
 import { usePullToRefresh } from '@/views/teacher/utils/usePullToRefresh'
 import TpFeedbackHost from '@/views/teacher/components/TpFeedbackHost.vue'
+import { installSpringVariables, prefersReducedMotion, SPRINGS, springEasing, supportsLinearEasing } from '@/views/teacher/utils/spring'
 import '@/views/teacher/teacher.css'
 
 const CACHED_PAGES = [
@@ -214,8 +215,17 @@ function restoreScroll(top: number) {
   cancelRestore = stop
 }
 
-const removeBeforeEach = router.beforeEach((_to, from) => {
+const removeBeforeEach = router.beforeEach((to, from) => {
   if (mainEl.value) scrollPositions.set(from.fullPath, mainEl.value.scrollTop)
+  finishTransition()
+  // 浏览器 / 系统右滑触发的返回由系统自己做转场，这里不叠加；只有点页头返回键才播放 iOS 的退出动画
+  const isPop = (window.history.state?.position ?? 0) < historyPosition
+  const isTabSwitch = !!to.meta.teacherTab && !!from.meta.teacherTab
+  const mode = isPop ? (backRequested ? 'pop' : null) : 'push'
+  backRequested = false
+  // 首次打开、切换底部标签 (iOS 标签栏即时切换)、减少动态时不做转场
+  if (!mode || !from.matched.length || isTabSwitch || prefersReducedMotion()) return
+  pending = takeSnapshot(mode)
 })
 const removeAfterEach = router.afterEach((to, from, failure) => {
   // 被离开确认拦下的导航也会走到这里，此时页面并没有变化
@@ -226,32 +236,112 @@ const removeAfterEach = router.afterEach((to, from, failure) => {
   // 返回，或切换底部标签时回到原位置；打开新页面从顶部开始
   const shouldRestore = isBack || !!to.meta.teacherTab
   nextTick(() => restoreScroll(shouldRestore ? scrollPositions.get(to.fullPath) ?? 0 : 0))
-  // 进入动画：底部标签之间切换只淡入；前进从右侧推入，返回从左侧推入
-  const isTabSwitch = !!to.meta.teacherTab && !!from.meta.teacherTab
-  playEnter(isTabSwitch || !from.matched.length ? 'fade' : isBack ? 'back' : 'forward')
+  if (pending) nextTick(playTransition)
 })
+const removeOnError = router.onError(() => finishTransition())
 
-const ENTER_CLASSES = ['tp-enter-forward', 'tp-enter-back', 'tp-enter-fade']
-function playEnter(direction: 'forward' | 'back' | 'fade') {
-  nextTick(() => {
-    const el = pageEl.value
-    if (!el) return
-    el.classList.remove(...ENTER_CLASSES)
-    // 读一次布局，让浏览器重新开始动画
-    void el.offsetWidth
-    el.classList.add(`tp-enter-${direction}`)
-  })
+// ---------- iOS 导航转场 ----------
+// 做法与 iOS 相同：离开前给旧页面拍一张「快照」(克隆当前画面)，新页面渲染好后两者一起按弹簧运动。
+// 推入：新页从右侧整屏推入，旧页向左退 30% 并变暗；退出：旧页向右滑走，下面的页面从左侧回到原位。
+interface PendingTransition {
+  mode: 'push' | 'pop'
+  layer: HTMLElement
+  snapshot: HTMLElement
+  dim: HTMLElement
+}
+let pending: PendingTransition | null = null
+let running: { animations: Animation[]; cleanup: () => void } | null = null
+let backRequested = false
+
+const navSpring = supportsLinearEasing()
+  ? springEasing(SPRINGS.smooth)
+  : { easing: 'cubic-bezier(0.2, 0.9, 0.25, 1)', duration: 560 }
+
+function takeSnapshot(mode: 'push' | 'pop'): PendingTransition | null {
+  const page = pageEl.value
+  const main = mainEl.value
+  const area = main?.parentElement
+  if (!page || !main || !area) return null
+  const layer = document.createElement('div')
+  layer.className = `tp-push-layer is-${mode}`
+  layer.setAttribute('aria-hidden', 'true')
+  layer.inert = true
+  const dim = document.createElement('div')
+  dim.className = 'tp-push-dim'
+  const snapshot = document.createElement('div')
+  snapshot.className = 'tp-push-snapshot'
+  const clone = page.cloneNode(true) as HTMLElement
+  clone.removeAttribute('style')
+  // 克隆出来的元素不能和真实页面重复 id
+  clone.querySelectorAll('[id]').forEach((el) => el.removeAttribute('id'))
+  // 保持离开时的滚动位置
+  clone.style.marginTop = `${-main.scrollTop}px`
+  snapshot.appendChild(clone)
+  layer.append(dim, snapshot)
+  area.insertBefore(layer, mode === 'push' ? main : main.nextSibling)
+  return { mode, layer, snapshot, dim }
 }
 
-/** 再次点击当前标签回到顶部 */
-function onTabClick(to: string) {
+function playTransition() {
+  const t = pending
+  pending = null
+  const page = pageEl.value
+  if (!t || !page) {
+    t?.layer.remove()
+    return
+  }
+  const width = t.layer.clientWidth || window.innerWidth
+  const timing: KeyframeAnimationOptions = { duration: navSpring.duration, easing: navSpring.easing, fill: 'both' }
+  const back = -Math.round(width * 0.3)
+  let animations: Animation[]
+  if (t.mode === 'push') {
+    page.classList.add('is-pushing')
+    animations = [
+      page.animate([{ transform: `translateX(${width}px)` }, { transform: 'translateX(0)' }], timing),
+      t.snapshot.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${back}px)` }], timing),
+      t.dim.animate([{ opacity: 0 }, { opacity: 0.1 }], timing),
+    ]
+  } else {
+    animations = [
+      t.snapshot.animate([{ transform: 'translateX(0)' }, { transform: `translateX(${width}px)` }], timing),
+      page.animate([{ transform: `translateX(${back}px)` }, { transform: 'translateX(0)' }], timing),
+      t.dim.animate([{ opacity: 0.1 }, { opacity: 0 }], timing),
+    ]
+  }
+  const cleanup = () => {
+    animations.forEach((a) => a.cancel())
+    page.classList.remove('is-pushing')
+    t.layer.remove()
+    running = null
+  }
+  running = { animations, cleanup }
+  animations[0].finished.then(cleanup, () => {})
+}
+
+/** 新的导航开始时，上一段转场立即结束在终点：动画随时可以被打断，不会排队 */
+function finishTransition() {
+  running?.cleanup()
+  pending?.layer.remove()
+  pending = null
+}
+
+/** 再次点击当前标签回到顶部；点按时图标弹一下 (只在手指点按时，页面切换回来不重复播放) */
+function onTabClick(to: string, event?: MouseEvent) {
   if (route.fullPath === to) mainEl.value?.scrollTo({ top: 0, behavior: 'smooth' })
+  const item = event?.currentTarget as HTMLElement | undefined
+  if (!item || prefersReducedMotion()) return
+  item.classList.remove('is-bouncing')
+  void item.offsetWidth
+  item.classList.add('is-bouncing')
+  item.addEventListener('animationend', () => item.classList.remove('is-bouncing'), { once: true })
 }
 
 function goBack() {
   // 从分享链接 / 书签直接打开时没有上一页
-  if (window.history.state?.back) router.back()
-  else router.replace('/teacher')
+  if (window.history.state?.back) {
+    backRequested = true
+    router.back()
+  } else router.replace('/teacher')
 }
 
 // 手机浏览器的状态栏跟随页面底色；离开教师端时还原，后台和登录页仍是白色
@@ -260,8 +350,9 @@ const originalThemeColor = themeColorMeta?.content
 
 onMounted(() => {
   // 与页面底色一致：直接读设计变量，避免状态栏和页面之间出现一条色差
-  const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--st-color-bg').trim()
-  themeColorMeta?.setAttribute('content', pageBg || '#F5F5F7')
+  const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--tp-bg').trim()
+  themeColorMeta?.setAttribute('content', pageBg || '#F2F3F7')
+  installSpringVariables()
   window.addEventListener('online', onOnline)
   window.addEventListener('offline', onOffline)
   document.addEventListener('visibilitychange', onVisibilityChange)
@@ -271,6 +362,8 @@ onBeforeUnmount(() => {
   if (originalThemeColor) themeColorMeta?.setAttribute('content', originalThemeColor)
   removeBeforeEach()
   removeAfterEach()
+  removeOnError()
+  finishTransition()
   cancelRestore?.()
   window.removeEventListener('online', onOnline)
   window.removeEventListener('offline', onOffline)

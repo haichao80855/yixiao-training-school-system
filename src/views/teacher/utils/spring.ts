@@ -1,0 +1,152 @@
+/**
+ * 弹簧物理：教师端所有动效的唯一来源。
+ *
+ * 参数与 SwiftUI 的 spring(response:dampingFraction:) 一致：
+ * - response：弹簧走完一个周期的时间 (秒)，越小越快。
+ * - dampingFraction：阻尼比。1 = 不回弹 (iOS 导航推入)，< 1 带一点回弹，越小弹得越多。
+ *
+ * 模型：质量 1 的阻尼弹簧，x'' = -k (x - 目标) - c x'。
+ * 用途有两种：
+ * 1. CSS / Web Animations 的缓动：把弹簧从 0 到 1 的运动采样成 linear() 曲线，时长取弹簧真正停下的时间。
+ * 2. 手势结束后的动画：从手指松开的位置和速度出发逐帧积分，速度会被延续，动画也随时可以被下一次触摸打断。
+ */
+
+export interface SpringParams {
+  response: number;
+  dampingFraction: number;
+}
+
+/** 预设：导航推入 (不回弹)、控件 (轻微回弹)、强调 (明显回弹) */
+export const SPRINGS = {
+  smooth: { response: 0.45, dampingFraction: 1 },
+  snappy: { response: 0.32, dampingFraction: 0.82 },
+  bouncy: { response: 0.42, dampingFraction: 0.62 },
+} satisfies Record<string, SpringParams>;
+
+export function springCoefficients({ response, dampingFraction }: SpringParams) {
+  const stiffness = (2 * Math.PI / response) ** 2;
+  const damping = (4 * Math.PI * dampingFraction) / response;
+  return { stiffness, damping };
+}
+
+const STEP = 1 / 240;
+const REST = 0.0005;
+
+/** 单步积分 (半隐式欧拉，稳定)：返回新的位置和速度 */
+export function stepSpring(position: number, velocity: number, target: number, params: SpringParams, dt: number) {
+  const { stiffness, damping } = springCoefficients(params);
+  let x = position;
+  let v = velocity;
+  let remaining = dt;
+  while (remaining > 1e-9) {
+    const h = Math.min(STEP, remaining);
+    const accel = -stiffness * (x - target) - damping * v;
+    v += accel * h;
+    x += v * h;
+    remaining -= h;
+  }
+  return { position: x, velocity: v };
+}
+
+/**
+ * 从 0 运动到 1 的完整轨迹，按时间均匀采样。
+ * initialVelocity 以「每秒走过的全程比例」计 (例如手指甩动速度 / 剩余距离)。
+ */
+export function sampleSpring(params: SpringParams, initialVelocity = 0, maxSeconds = 2) {
+  const samples: number[] = [0];
+  let x = 0;
+  let v = initialVelocity;
+  let t = 0;
+  const frame = 1 / 60;
+  while (t < maxSeconds) {
+    ({ position: x, velocity: v } = stepSpring(x, v, 1, params, frame));
+    t += frame;
+    samples.push(x);
+    if (Math.abs(1 - x) < REST && Math.abs(v) < REST * 10) break;
+  }
+  samples[samples.length - 1] = 1;
+  return { samples, duration: Math.round(t * 1000) };
+}
+
+/** 把弹簧轨迹写成 CSS linear() 缓动 (Safari 17.2+ / Chrome 113+) */
+export function springEasing(params: SpringParams) {
+  const { samples, duration } = sampleSpring(params);
+  // 抽稀到约 40 个点：曲线足够平滑，字符串也不会太长
+  const stride = Math.max(1, Math.ceil(samples.length / 40));
+  const points = samples.filter((_, i) => i % stride === 0 || i === samples.length - 1);
+  const easing = `linear(${points.map((p) => Number(p.toFixed(4))).join(', ')})`;
+  return { easing, duration };
+}
+
+export function supportsLinearEasing() {
+  return typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('transition-timing-function', 'linear(0, 1)');
+}
+
+export function prefersReducedMotion() {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+}
+
+/**
+ * 把三种弹簧写成 CSS 变量：--tp-spring-<name> (缓动) 与 --tp-spring-<name>-dur (时长)。
+ * 不支持 linear() 的浏览器保留 teacher.css 里的贝塞尔曲线兜底。
+ */
+export function installSpringVariables(root: HTMLElement = document.documentElement) {
+  if (!supportsLinearEasing()) return;
+  for (const [name, params] of Object.entries(SPRINGS)) {
+    const { easing, duration } = springEasing(params);
+    root.style.setProperty(`--tp-spring-${name}`, easing);
+    root.style.setProperty(`--tp-spring-${name}-dur`, `${duration}ms`);
+  }
+}
+
+/**
+ * 手势结束后的弹簧动画：从当前位置和速度出发，逐帧积分到目标。
+ * 返回取消函数：下一次触摸开始时调用，动画立即停在当前位置 (可打断)。
+ */
+export function animateSpring(options: {
+  from: number;
+  to: number;
+  velocity?: number;
+  params?: SpringParams;
+  onUpdate: (value: number) => void;
+  onComplete?: () => void;
+}): () => void {
+  const params = options.params ?? SPRINGS.snappy;
+  if (prefersReducedMotion()) {
+    options.onUpdate(options.to);
+    options.onComplete?.();
+    return () => {};
+  }
+  let x = options.from;
+  let v = options.velocity ?? 0;
+  let last = performance.now();
+  let frame = 0;
+  let stopped = false;
+  const distance = Math.max(1, Math.abs(options.to - options.from));
+  const tick = (now: number) => {
+    if (stopped) return;
+    // 切到后台再回来时 dt 可能很大，限制单帧步长，避免跳过整段运动
+    const dt = Math.min(0.064, (now - last) / 1000);
+    last = now;
+    ({ position: x, velocity: v } = stepSpring(x, v, options.to, params, dt));
+    if (Math.abs(options.to - x) < distance * REST && Math.abs(v) < 1) {
+      options.onUpdate(options.to);
+      options.onComplete?.();
+      return;
+    }
+    options.onUpdate(x);
+    frame = requestAnimationFrame(tick);
+  };
+  frame = requestAnimationFrame(tick);
+  return () => {
+    stopped = true;
+    cancelAnimationFrame(frame);
+  };
+}
+
+/** iOS 的橡皮筋阻力：拖得越远越难拖 (超出边界时的位移) */
+export function rubberBand(offset: number, dimension: number, constant = 0.55) {
+  const sign = Math.sign(offset);
+  const abs = Math.abs(offset);
+  return sign * (1 - 1 / ((abs * constant) / dimension + 1)) * dimension;
+}

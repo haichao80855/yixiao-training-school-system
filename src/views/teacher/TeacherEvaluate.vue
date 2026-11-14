@@ -613,19 +613,21 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .star-btn svg {
-  transition: transform var(--tp-dur-fast) var(--tp-ease-out);
+  transition: transform var(--tp-spring-bouncy-dur) var(--tp-spring-bouncy);
 }
 .star-btn:active svg {
   transform: scale(0.82);
+  transition-duration: 90ms;
+  transition-timing-function: var(--tp-ease-out);
 }
 /* 新点亮的星依次弹一下 */
 .star-btn .star-on {
-  animation: star-pop var(--tp-dur-slow) var(--tp-ease-spring) backwards;
+  animation: star-pop var(--tp-spring-bouncy-dur) var(--tp-spring-bouncy) backwards;
 }
+/* 只写起止两点，回弹来自弹簧曲线 */
 @keyframes star-pop {
-  0% { transform: scale(0.6); }
-  60% { transform: scale(1.15); }
-  100% { transform: scale(1); }
+  from { transform: scale(0.7); }
+  to { transform: scale(1); }
 }
 .star-on {
   color: var(--tp-rating-line);
