@@ -189,6 +189,7 @@ import { isPushed, needsEvaluation, neighbours, submitLabel, submitPlan, summari
 import { compressVideo } from './utils/compressVideo'
 import { uploadVideoWithProgress } from './utils/uploadVideo'
 import { useLoad } from './utils/useLoad'
+import { pageData } from './utils/pageData'
 
 const MAX_PHOTO_BYTES = 10 * 1024 * 1024
 const MAX_VIDEO_BYTES = 100 * 1024 * 1024
@@ -204,7 +205,7 @@ const lessonId = route.params.id as string
 const studentId = route.params.studentId as string
 const userId = authStore.user?.id || ''
 
-const workbench = useLoad(async () => (await teacherPortalApi.getLessonWorkbench(lessonId)).data)
+const workbench = useLoad(pageData.workbench(lessonId))
 const schedule = computed(() => workbench.data.value?.schedule)
 const student = computed(() => workbench.data.value?.students.find((s) => s.studentId === studentId))
 const attendanceStatus = computed<AttendanceStatus>(() => student.value?.recordedStatus || student.value?.defaultStatus || 'present')

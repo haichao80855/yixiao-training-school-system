@@ -81,16 +81,16 @@ import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ChevronRight, Phone } from 'lucide-vue-next'
-import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import { attendanceLabel, dateOnly, friendlyDate, shortTime, studentStatusLabel } from './utils/format'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
+import { pageData } from './utils/pageData'
 
 const route = useRoute()
 // 页面被缓存时 useRoute 会跟着后续路由变化，id 只在创建时读取一次
 const studentId = route.params.id as string
-const detail = useLoad(async () => (await teacherPortalApi.getStudentDetail(studentId)).data)
+const detail = useLoad(pageData.studentDetail(studentId))
 const stu = computed(() => detail.data.value)
 
 function attendanceClass(status: string) {

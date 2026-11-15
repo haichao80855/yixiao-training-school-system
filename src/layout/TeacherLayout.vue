@@ -106,6 +106,7 @@ import { usePullToRefresh } from '@/views/teacher/utils/usePullToRefresh'
 import TpFeedbackHost from '@/views/teacher/components/TpFeedbackHost.vue'
 import { NAV_TRANSITION, prefersReducedMotion } from '@/views/teacher/utils/spring'
 import { setTransitionActive } from '@/views/teacher/utils/navTransition'
+import { prefetchRoute } from '@/views/teacher/utils/pageData'
 import '@/views/teacher/teacher.css'
 
 const CACHED_PAGES = [
@@ -218,7 +219,15 @@ function restoreScroll(top: number) {
   cancelRestore = stop
 }
 
-const removeBeforeEach = router.beforeEach((to, from) => {
+/**
+ * 打开新页面前最多等数据这么久：数据通常在这段时间内回来，新页面滑入时已经有内容。
+ * 点按的那一下列表行已经变灰给了反馈，这点等待察觉不到；网络慢时不再等，照常先显示骨架屏。
+ */
+const PUSH_DATA_WAIT_MS = 150
+let navToken = 0
+
+const removeBeforeEach = router.beforeEach(async (to, from) => {
+  const token = ++navToken
   if (mainEl.value) scrollPositions.set(from.fullPath, mainEl.value.scrollTop)
   finishTransition()
   // 浏览器 / 系统右滑触发的返回由系统自己做转场，这里不叠加；只有点页头返回键才播放 iOS 的退出动画
@@ -228,8 +237,44 @@ const removeBeforeEach = router.beforeEach((to, from) => {
   backRequested = false
   // 首次打开、切换底部标签 (iOS 标签栏即时切换)、减少动态时不做转场
   if (!mode || !from.matched.length || isTabSwitch || prefersReducedMotion()) return
+  if (mode === 'push') {
+    await prefetchRoute(to, PUSH_DATA_WAIT_MS)
+    // 等待期间又发起了新的导航：这次的快照交给新的导航去拍
+    if (token !== navToken) return
+  }
   pending = takeSnapshot(mode)
 })
+
+/** 手指按下列表行就开始准备下一页 (页面代码 + 数据)，比松手时再请求早约 100ms */
+function onPointerDown(event: PointerEvent) {
+  if (event.button !== 0) return
+  const link = (event.target as Element | null)?.closest?.('a[href]')
+  const href = link?.getAttribute('href')
+  if (!href || !href.startsWith('/teacher/')) return
+  const target = router.resolve(href)
+  if (target.matched.length) prefetchRoute(target)
+}
+
+/** 空闲时预先下载各页面的代码，第一次打开某个页面也不用等下载 */
+function preloadPageCode() {
+  const run = () => {
+    for (const record of router.getRoutes()) {
+      if (!record.path.startsWith('/teacher/')) continue
+      const component = record.components?.default
+      if (typeof component === 'function') {
+        try {
+          const result = (component as () => unknown)()
+          if (result instanceof Promise) result.catch(() => {})
+        } catch {
+          // 忽略：真正打开时会再加载
+        }
+      }
+    }
+  }
+  // iOS Safari 没有 requestIdleCallback
+  if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 3000 })
+  else setTimeout(run, 1500)
+}
 const removeAfterEach = router.afterEach((to, from, failure) => {
   // 被离开确认拦下的导航也会走到这里，此时页面并没有变化
   if (failure || to.fullPath === from.fullPath) {
@@ -369,6 +414,8 @@ onMounted(() => {
   const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--tp-bg').trim()
   themeColorMeta?.setAttribute('content', pageBg || '#F2F3F7')
   window.addEventListener('online', onOnline)
+  document.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true })
+  preloadPageCode()
   window.addEventListener('offline', onOffline)
   document.addEventListener('visibilitychange', onVisibilityChange)
 })
@@ -376,6 +423,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (originalThemeColor) themeColorMeta?.setAttribute('content', originalThemeColor)
   removeBeforeEach()
+  document.removeEventListener('pointerdown', onPointerDown, { capture: true })
   removeAfterEach()
   removeOnError()
   finishTransition()

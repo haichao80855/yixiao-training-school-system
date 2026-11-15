@@ -132,6 +132,7 @@ import { readDraft, removeDraft } from './utils/evaluationDraft'
 import { ATTENDANCE_OPTIONS, attendanceLabel, friendlyDate, isAttended, lessonStatusLabel, shortTime, todayStr } from './utils/format'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
+import { pageData } from './utils/pageData'
 
 interface RosterRow extends WorkbenchStudent {
   status: AttendanceStatus
@@ -145,7 +146,7 @@ const authStore = useAuthStore()
 const lessonId = route.params.id as string
 const userId = authStore.user?.id || ''
 
-const workbench = useLoad(async () => (await teacherPortalApi.getLessonWorkbench(lessonId)).data)
+const workbench = useLoad(pageData.workbench(lessonId))
 const students = ref<RosterRow[]>([])
 const baseline = ref(new Map<string, { status: AttendanceStatus; deduct: number }>())
 const syncState = ref<'idle' | 'saving' | 'saved' | 'failed'>('idle')

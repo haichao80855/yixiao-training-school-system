@@ -65,17 +65,17 @@ import TpAvatar from './components/TpAvatar.vue'
 import { computed, onActivated, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ChevronRight } from 'lucide-vue-next'
-import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import { classStatusLabel, friendlyDate, lessonStatusLabel, shortTime } from './utils/format'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
+import { pageData } from './utils/pageData'
 
 const route = useRoute()
 const tab = ref<'schedules' | 'students'>('schedules')
 // 页面被缓存时 useRoute 会跟着后续路由变化，id 只在创建时读取一次
 const classId = route.params.id as string
-const detail = useLoad(async () => (await teacherPortalApi.getClassDetail(classId)).data)
+const detail = useLoad(pageData.classDetail(classId))
 const cls = computed(() => detail.data.value)
 
 usePageRefresh(detail.load)
