@@ -66,17 +66,17 @@ import TpAvatar from './components/TpAvatar.vue'
 import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Star } from 'lucide-vue-next'
-import { teacherPortalApi } from '@/api'
 import LoadState from './components/LoadState.vue'
 import { attendanceLabel, friendlyDate, htmlToText, shortTime } from './utils/format'
 import { usePageRefresh } from './utils/pageRefresh'
 import { useLoad } from './utils/useLoad'
+import { pageData } from './utils/pageData'
 
 const route = useRoute()
 const lessonId = route.params.id as string
 const studentId = route.params.studentId as string
 
-const workbench = useLoad(async () => (await teacherPortalApi.getLessonWorkbench(lessonId)).data)
+const workbench = useLoad(pageData.workbench(lessonId))
 const schedule = computed(() => workbench.data.value?.schedule)
 const student = computed(() => workbench.data.value?.students.find((s) => s.studentId === studentId))
 const isPublished = computed(() => Boolean(student.value?.isPublished))
